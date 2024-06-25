@@ -1,0 +1,11 @@
+/.monaca/*
+!/.monaca/project_info.json
+/platforms
+/build
+.DS_Store
+*.swp
+.vscode/
+typings/
+node_modules
+.git
+package-lock.json
