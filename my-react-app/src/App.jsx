@@ -1,5 +1,4 @@
-// src/App.jsx
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import CodeEditor from './components/CodeEditor';
 import MermaidRenderer from './components/MermaidRenderer';
 import { ResizableBox } from 'react-resizable';
@@ -15,7 +14,7 @@ const predefinedInputs = {
          : Google
     2005 : Youtube
     2006 : Twitter`,
-  class:`---
+  class: `---
 title: Animal example
 ---
 classDiagram
@@ -42,7 +41,7 @@ classDiagram
         +run()
     }
 `,
-  state:`---
+  state: `---
 title: Simple sample
 ---
 stateDiagram-v2
