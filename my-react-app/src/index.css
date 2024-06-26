@@ -3,39 +3,89 @@ html, body, #app {
     margin: 0;
     padding: 0;
     overflow: hidden;
+    font-family: 'Arial', sans-serif;
   }
   
-  .react-resizable {
+  .container {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+  
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    width: 50%;
+    border-right: 2px solid #ddd;
     position: relative;
   }
   
-  .react-resizable-handle {
-    position: absolute;
+  .editor-wrapper {
+    flex: 1;
+    padding: 10px;
+    box-sizing: border-box;
+  }
+  
+  .resizable-handle {
+    height: 20px;
     background: #666;
-    z-index: 1;
-  }
-  
-  .react-resizable-handle-e {
-    width: 5px; 
-    right: 0;
-    top: 0;
-    bottom: 0;
-    cursor: col-resize;
-  }
-  
-  .react-resizable-handle-s {
-    height: 20px; 
+    cursor: row-resize;
+    position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
-    cursor: row-resize;
+  }
+  
+  .splitter {
+    width: 5px;
+    cursor: col-resize;
+    background-color: #666;
+    position: relative;
+    z-index: 1;
+  }
+  
+  .main-content {
+    display: flex;
+    flex-direction: column;
+    width: calc(100% - 50%);
+    padding: 20px;
+    box-sizing: border-box;
+    overflow: auto;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+  }
+  
+  .download-button {
+    position: absolute;
+    right: 20px;
+    top: 20px;
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  .download-button:hover {
+    background-color: #0056b3;
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
   }
   
   .mermaid-container {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100%;
     width: 100%;
+    height: 100%;
+    background-color: #fafafa;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    box-sizing: border-box;
   }
   

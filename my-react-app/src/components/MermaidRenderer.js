@@ -1,6 +1,7 @@
 // src/components/MermaidRenderer.js
 import React, { useEffect, useRef } from 'react';
-import mermaid from 'mermaid';
+// Import your local Mermaid file
+import mermaid from '../libs/mermaid.esm.mjs';
 
 const MermaidRenderer = ({ text }) => {
   const ref = useRef(null);
@@ -33,6 +34,7 @@ const MermaidRenderer = ({ text }) => {
     };
   }, [text]);
 
+  console.log(<div ref={ref} className="mermaid-container" />);
   return <div ref={ref} className="mermaid-container" />;
 };
 

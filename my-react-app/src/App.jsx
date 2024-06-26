@@ -60,8 +60,8 @@ stateDiagram-v2
 const App = () => {
   const [editor1Height, setEditor1Height] = useState(window.innerHeight / 2);
   const [leftWidth, setLeftWidth] = useState(window.innerWidth / 2);
-  const [code1, setCode1] = useState('// Code Editor 1');
-  const [mermaidCode, setMermaidCode] = useState('');
+  const [code1, setCode1] = useState('// Code Editor 1: user input');
+  const [mermaidCode, setMermaidCode] = useState('// Code Editor 2: mermaid input');
 
   const mermaidRef = useRef(null);
   const containerRef = useRef(null);
@@ -156,12 +156,7 @@ const App = () => {
       <div style={{ width: `calc(100% - ${leftWidth}px)`, padding: '10px', overflow: 'auto', position: 'relative' }}>
         <button
           onClick={handleDownload}
-          style={{
-            position: 'absolute',
-            right: '10px',
-            top: '10px',
-            zIndex: 10,
-          }}
+          className="download-button"
         >
           Download SVG
         </button>
