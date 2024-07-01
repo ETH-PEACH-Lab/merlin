@@ -1,6 +1,6 @@
-// src/App.jsx
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import CodeEditor from './components/CodeEditor';
+import './components/NavigationBar.css';
 import MermaidRenderer from './components/MermaidRenderer';
 import NavigationBar from './components/NavigationBar';
 import { ResizableBox } from 'react-resizable';
@@ -9,15 +9,14 @@ import './index.css';
 import download from 'downloadjs';
 import { toPng } from 'html-to-image';
 import jsPDF from 'jspdf';
-
-// Import the loaded examples
-import examples from './examples';
+import { examples } from './examples'; // Import the generated examples file
 
 const App = () => {
   const [editor1Height, setEditor1Height] = useState(window.innerHeight / 2);
   const [leftWidth, setLeftWidth] = useState(window.innerWidth / 2);
   const [code1, setCode1] = useState('// Code Editor 1');
   const [mermaidCode, setMermaidCode] = useState('');
+  const [activeTab, setActiveTab] = useState('examples'); // State for active tab
 
   const mermaidRef = useRef(null);
   const containerRef = useRef(null);
@@ -65,9 +64,8 @@ const App = () => {
 
   const handleEditor1Change = (value) => {
     setCode1(value);
-    const example = examples.find((example) => example.userCode.trim() === value.trim());
-    if (example) {
-      setMermaidCode(example.renderCode);
+    if (examples.find((example) => example.userCode.trim() === value.trim())) {
+      setMermaidCode(examples.find((example) => example.userCode.trim() === value.trim()).renderCode);
     } else {
       setMermaidCode('');
     }
@@ -80,13 +78,18 @@ const App = () => {
 
   return (
     <div ref={containerRef} className="container">
-      <NavigationBar items={examples} onSelect={handleSelectExample} />
+      <NavigationBar
+        items={examples}
+        onSelect={handleSelectExample}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      />
       <div
         style={{
           display: 'flex',
           height: '100%',
           width: `calc(100% - ${navBarWidth}px)`,
-          marginLeft: `${navBarWidth}px`,
+          marginLeft: '0px', // Set margin-left to 0px
         }}
       >
         <div
@@ -140,7 +143,10 @@ const App = () => {
         />
         <div style={{ width: `calc(100% - ${leftWidth}px)`, padding: '10px', overflow: 'auto', position: 'relative' }}>
           <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
-            <button onClick={handleDownload} className="download-button">
+            <button
+              onClick={handleDownload}
+              className="download-button"
+            >
               Download SVG
             </button>
             <div className="dropdown">

@@ -1,22 +1,37 @@
-// src/components/NavigationBar.jsx
 import React from 'react';
+import './NavigationBar.css';
 
-const NavigationBar = ({ items, onSelect }) => {
+const NavigationBar = ({ items, onSelect, activeTab, onTabChange }) => {
   return (
-    <div className="navigation-bar">
-      <div className="navigation-bar-content">
-        <div className="navigation-bar-header">Examples</div>
-        <ul className="navigation-bar-list">
-          {items.map((item) => (
-            <li
+    <div className="nav-container">
+      <div className="nav-tabs">
+        <button
+          className={`nav-tab ${activeTab === 'examples' ? 'active' : ''}`}
+          onClick={() => onTabChange('examples')}
+        >
+          Examples
+        </button>
+        <button
+          className={`nav-tab ${activeTab === 'saved' ? 'active' : ''}`}
+          onClick={() => onTabChange('saved')}
+        >
+          Saved
+        </button>
+      </div>
+      <div className="nav-content">
+        {activeTab === 'examples' ? (
+          items.map(item => (
+            <div
               key={item.id}
-              className="navigation-bar-item"
+              className="nav-item"
               onClick={() => onSelect(item)}
             >
-              {item.title}
-            </li>
-          ))}
-        </ul>
+              <div className="nav-item-title">{item.title}</div>
+            </div>
+          ))
+        ) : (
+          <div className="nav-empty">No saved diagrams</div>
+        )}
       </div>
     </div>
   );
