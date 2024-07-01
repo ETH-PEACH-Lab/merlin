@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import CodeEditor from "./components/CodeEditor";
 import "./components/NavigationBar.css";
 import MermaidRenderer from "./components/MermaidRenderer";
@@ -25,7 +25,17 @@ const App = () => {
   const mermaidRef = useRef(null);
   const containerRef = useRef(null);
   const navBarWidth = Math.max(Math.min(window.innerWidth / 10, 220), 200);
-  console.log(navBarWidth);
+
+  useEffect(() => {
+    // Load the saved code from cookies on component mount
+    const savedCookies = document.cookie.split("; ").filter(cookie => cookie.startsWith("savedDiagram"));
+    if (savedCookies.length) {
+      const latestCookie = savedCookies[savedCookies.length - 1];
+      const savedData = JSON.parse(decodeURIComponent(latestCookie.split("=")[1]));
+      setCode1(savedData.code1);
+      setMermaidCode(savedData.mermaidCode);
+    }
+  }, []);
 
   const handleMouseDown = (e) => {
     const startX = e.clientX;
@@ -71,8 +81,17 @@ const App = () => {
     const savedData = {
       code1,
       mermaidCode,
+      time: new Date().toISOString(),
     };
-    localStorage.setItem("savedDiagram", JSON.stringify(savedData));
+    const savedCookies = document.cookie.split("; ").filter(cookie => cookie.startsWith("savedDiagram"));
+    
+    if (savedCookies.length >= 20) {
+      const oldestCookie = savedCookies[0].split("=")[0];
+      document.cookie = `${oldestCookie}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+    }
+    
+    const cookieName = `savedDiagram${Date.now()}`;
+    document.cookie = `${cookieName}=${encodeURIComponent(JSON.stringify(savedData))};path=/;max-age=31536000`;
     alert("Diagram saved!");
   };
 
