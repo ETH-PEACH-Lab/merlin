@@ -12,6 +12,9 @@ import jsPDF from 'jspdf';
 import { examples } from './examples'; // Import the generated examples file
 import './App.css'; // Import the new CSS file for the top bar
 
+// Import the image directly
+import appIcon from './public/PEACH.svg';
+
 const App = () => {
   const [editor1Height, setEditor1Height] = useState(window.innerHeight / 2);
   const [leftWidth, setLeftWidth] = useState(window.innerWidth / 2);
@@ -80,7 +83,7 @@ const App = () => {
   return (
     <div ref={containerRef} className="container">
       <div className="top-bar">
-        <img src="/path/to/icon.png" alt="App Icon" className="app-icon" />
+        <img src={appIcon} alt="App Icon" className="app-icon" />
         <span className="app-name">Intuition Vis</span>
         <nav className="top-nav">
           <a href="#" className="top-nav-link">GitHub Repo</a>
@@ -88,15 +91,31 @@ const App = () => {
           <a href="#" className="top-nav-link">Tutorial</a>
         </nav>
       </div>
-      <div className="main-content">
+      <div style={{ display: 'flex', height: 'calc(100% - 50px)', marginTop: '50px' }}>
         <NavigationBar
           items={examples}
           onSelect={handleSelectExample}
           activeTab={activeTab}
           onTabChange={setActiveTab}
         />
-        <div className="editor-render-container">
-          <div className="code-editors">
+        <div
+          style={{
+            display: 'flex',
+            height: '100%',
+            width: `calc(100% - ${navBarWidth}px)`,
+            marginLeft: `${navBarWidth}px`,
+          }}
+        >
+          <div
+            style={{
+              width: leftWidth,
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+              borderRight: '1px solid #ccc',
+              position: 'relative',
+            }}
+          >
             <ResizableBox
               height={editor1Height}
               width={Infinity}
@@ -126,7 +145,17 @@ const App = () => {
               <CodeEditor value={mermaidCode} onChange={setMermaidCode} />
             </div>
           </div>
-          <div className="svg-render">
+          <div
+            style={{
+              width: '5px',
+              cursor: 'col-resize',
+              backgroundColor: '#666',
+              position: 'relative',
+              zIndex: 1,
+            }}
+            onMouseDown={handleMouseDown}
+          />
+          <div style={{ width: `calc(100% - ${leftWidth}px - ${navBarWidth}px)`, padding: '10px', overflow: 'auto', position: 'relative' }}>
             <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
               <button
                 onClick={handleDownload}
