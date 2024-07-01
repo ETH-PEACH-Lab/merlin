@@ -1,5 +1,5 @@
 // src/App.jsx
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import CodeEditor from './components/CodeEditor';
 import MermaidRenderer from './components/MermaidRenderer';
 import NavigationBar from './components/NavigationBar';
@@ -10,60 +10,8 @@ import download from 'downloadjs';
 import { toPng } from 'html-to-image';
 import jsPDF from 'jspdf';
 
-const predefinedInputs = {
-  timeline: `timeline
-    title History of Social Media Platform
-    2002 : LinkedIn
-    2004 : Facebook
-         : Google
-    2005 : Youtube
-    2006 : Twitter`,
-  class: `---
-title: Animal example
----
-classDiagram
-    note "From Duck till Zebra"
-    Animal <|-- Duck
-    note for Duck "can fly\ncan swim\ncan dive\ncan help in debugging"
-    Animal <|-- Fish
-    Animal <|-- Zebra
-    Animal : +int age
-    Animal : +String gender
-    Animal: +isMammal()
-    Animal: +mate()
-    class Duck{
-        +String beakColor
-        +swim()
-        +quack()
-    }
-    class Fish{
-        -int sizeInFeet
-        -canEat()
-    }
-    class Zebra{
-        +bool is_wild
-        +run()
-    }
-`,
-  state: `---
-title: Simple sample
----
-stateDiagram-v2
-    [*] --> Still
-    Still --> [*]
-
-    Still --> Moving
-    Moving --> Still
-    Moving --> Crash
-    Crash --> [*]
-`,
-};
-
-const exampleItems = [
-  { name: 'Timeline Example', key: 'timeline' },
-  { name: 'Class Diagram Example', key: 'class' },
-  { name: 'State Diagram Example', key: 'state' },
-];
+// Import the loaded examples
+import examples from './examples';
 
 const App = () => {
   const [editor1Height, setEditor1Height] = useState(window.innerHeight / 2);
@@ -73,7 +21,7 @@ const App = () => {
 
   const mermaidRef = useRef(null);
   const containerRef = useRef(null);
-  const navBarWidth = Math.min(window.innerWidth / 10, 220); // Calculate the navigation bar width with a maximum of 250px
+  const navBarWidth = Math.min(window.innerWidth / 10, 220);
 
   const handleMouseDown = (e) => {
     const startX = e.clientX;
@@ -117,21 +65,22 @@ const App = () => {
 
   const handleEditor1Change = (value) => {
     setCode1(value);
-    if (predefinedInputs[value.trim()]) {
-      setMermaidCode(predefinedInputs[value.trim()]);
+    const example = examples.find((example) => example.userCode.trim() === value.trim());
+    if (example) {
+      setMermaidCode(example.renderCode);
     } else {
       setMermaidCode('');
     }
   };
 
   const handleSelectExample = (item) => {
-    setCode1(item.key);
-    setMermaidCode(predefinedInputs[item.key]);
+    setCode1(item.userCode);
+    setMermaidCode(item.renderCode);
   };
 
   return (
     <div ref={containerRef} className="container">
-      <NavigationBar items={exampleItems} onSelect={handleSelectExample} />
+      <NavigationBar items={examples} onSelect={handleSelectExample} />
       <div
         style={{
           display: 'flex',
@@ -191,10 +140,7 @@ const App = () => {
         />
         <div style={{ width: `calc(100% - ${leftWidth}px)`, padding: '10px', overflow: 'auto', position: 'relative' }}>
           <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
-            <button
-              onClick={handleDownload}
-              className="download-button"
-            >
+            <button onClick={handleDownload} className="download-button">
               Download SVG
             </button>
             <div className="dropdown">

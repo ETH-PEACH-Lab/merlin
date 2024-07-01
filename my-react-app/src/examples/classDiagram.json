@@ -1,0 +1,9 @@
+{
+    "id": "classDiagram",
+    "title": "Class Diagram",
+    "tags": ["class", "diagram"],
+    "figure": "classDiagram.svg",
+    "userCode": "class",
+    "renderCode": "classDiagram\n    title Class Diagram Example\n    class Class1\n    class Class2\n    Class1 --> Class2"
+  }
+  

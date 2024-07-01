@@ -20,6 +20,7 @@
     "react-scripts": "^5.0.1"
   },
   "scripts": {
+    "prestart": "node src/generateExamples.js",
     "monaca:preview": "npm run dev & npm run watch",
     "monaca:transpile": "npm run build",
     "monaca:debug": "npm run watch",

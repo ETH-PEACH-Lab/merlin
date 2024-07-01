@@ -1,6 +1,5 @@
-// src/components/NavigationBar.js
+// src/components/NavigationBar.jsx
 import React from 'react';
-import './NavigationBar.css';
 
 const NavigationBar = ({ items, onSelect }) => {
   return (
@@ -8,13 +7,13 @@ const NavigationBar = ({ items, onSelect }) => {
       <div className="navigation-bar-content">
         <div className="navigation-bar-header">Examples</div>
         <ul className="navigation-bar-list">
-          {items.map((item, index) => (
+          {items.map((item) => (
             <li
-              key={index}
+              key={item.id}
               className="navigation-bar-item"
               onClick={() => onSelect(item)}
             >
-              {item.name}
+              {item.title}
             </li>
           ))}
         </ul>

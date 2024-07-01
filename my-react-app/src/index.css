@@ -14,7 +14,7 @@ html, body, #app {
 
 .navigation-bar {
   width: calc(100vw / 10);
-  max-width: 250px; /* Ensure the maximum width is 250px */
+  max-width: 220px;
   height: 100vh;
   background-color: #f8f9fa;
   display: flex;
@@ -53,30 +53,6 @@ html, body, #app {
 
 .navigation-bar-item:hover {
   background-color: #e9ecef;
-}
-
-.editor-wrapper {
-  flex: 1;
-  padding: 10px;
-  box-sizing: border-box;
-}
-
-.resizable-handle {
-  height: 20px;
-  background: #666;
-  cursor: row-resize;
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-}
-
-.splitter {
-  width: 5px;
-  cursor: col-resize;
-  background-color: #666;
-  position: relative;
-  z-index: 1;
 }
 
 .main-content {
