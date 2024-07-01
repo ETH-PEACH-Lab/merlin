@@ -24,7 +24,8 @@ const App = () => {
 
   const mermaidRef = useRef(null);
   const containerRef = useRef(null);
-  const navBarWidth = Math.min(window.innerWidth / 10, 220);
+  const navBarWidth = Math.max(Math.min(window.innerWidth / 10, 220), 200);
+  console.log(navBarWidth);
 
   const handleMouseDown = (e) => {
     const startX = e.clientX;
@@ -103,10 +104,11 @@ const App = () => {
             display: 'flex',
             height: '100%',
             width: `calc(100% - ${navBarWidth}px)`,
-            marginLeft: `${navBarWidth}px`,
+            marginLeft: `0px`,
           }}
         >
-          <div
+          <div 
+          className='CodeEditorsContent'
             style={{
               width: leftWidth,
               display: 'flex',
@@ -155,7 +157,8 @@ const App = () => {
             }}
             onMouseDown={handleMouseDown}
           />
-          <div style={{ width: `calc(100% - ${leftWidth}px - ${navBarWidth}px)`, padding: '10px', overflow: 'auto', position: 'relative' }}>
+          <div className='SvgRenderContent'
+          style={{ width: `calc(100%`, padding: '10px', overflow: 'auto', position: 'relative' }}>
             <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
               <button
                 onClick={handleDownload}
