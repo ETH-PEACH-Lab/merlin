@@ -4,6 +4,6 @@
     "tags": ["state", "diagram"],
     "figure": "stateDiagram.svg",
     "userCode": "state",
-    "renderCode": "stateDiagram-v2\n    [*] --> State1\n    State1 --> [*]"
+    "renderCode": "---\ntitle: Simple sample\n---\nstateDiagram-v2\n    [*] --> Still\n    Still --> [*]\n\n    Still --> Moving\n    Moving --> Still\n    Moving --> Crash\n    Crash --> [*]\n"
   }
   
