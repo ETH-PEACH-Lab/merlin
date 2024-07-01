@@ -1,11 +1,14 @@
+// src/App.jsx
 import React, { useState, useRef } from 'react';
 import CodeEditor from './components/CodeEditor';
 import MermaidRenderer from './components/MermaidRenderer';
+import NavigationBar from './components/NavigationBar';
 import { ResizableBox } from 'react-resizable';
-import 'monaco-editor/min/vs/editor/editor.main.css';
 import 'react-resizable/css/styles.css';
 import './index.css';
 import download from 'downloadjs';
+import { toPng } from 'html-to-image';
+import jsPDF from 'jspdf';
 
 const predefinedInputs = {
   timeline: `timeline
@@ -54,63 +57,23 @@ stateDiagram-v2
     Moving --> Crash
     Crash --> [*]
 `,
-visslides:`
-visslides
-page
-array
-@ 1 &blue&
-@ 2
-@ 3
-matrix
-@ 
-1,2
-3,4
-@
-page
-array
-@ 1
-@ 2 &blue&
-@ 3
-@ 4
-matrix
-@ 
-1,2,3
-4,5,6
-@
-page
-array
-@ 1
-@ 2 
-@ 3 &blue&
-@ 4
-matrix
-@ 
-1,2,3
-4,5,6
-@
-page
-array
-@ 1
-@ 2 
-@ 3 
-@ 4 &blue&
-matrix
-@ 
-1,2,3
-4,5,6
-@
-`,
-  // Add more predefined inputs here
 };
+
+const exampleItems = [
+  { name: 'Timeline Example', key: 'timeline' },
+  { name: 'Class Diagram Example', key: 'class' },
+  { name: 'State Diagram Example', key: 'state' },
+];
 
 const App = () => {
   const [editor1Height, setEditor1Height] = useState(window.innerHeight / 2);
   const [leftWidth, setLeftWidth] = useState(window.innerWidth / 2);
-  const [code1, setCode1] = useState('// Code Editor 1: user input');
-  const [mermaidCode, setMermaidCode] = useState('// Code Editor 2: mermaid input');
+  const [code1, setCode1] = useState('// Code Editor 1');
+  const [mermaidCode, setMermaidCode] = useState('');
 
   const mermaidRef = useRef(null);
   const containerRef = useRef(null);
+  const navBarWidth = Math.min(window.innerWidth / 10, 220); // Calculate the navigation bar width with a maximum of 250px
 
   const handleMouseDown = (e) => {
     const startX = e.clientX;
@@ -139,6 +102,19 @@ const App = () => {
     }
   };
 
+  const handleExport = async (format) => {
+    if (mermaidRef.current) {
+      const dataUrl = await toPng(mermaidRef.current);
+      if (format === 'png') {
+        download(dataUrl, 'diagram.png');
+      } else if (format === 'pdf') {
+        const pdf = new jsPDF();
+        pdf.addImage(dataUrl, 'PNG', 10, 10, 180, 160);
+        pdf.save('diagram.pdf');
+      }
+    }
+  };
+
   const handleEditor1Change = (value) => {
     setCode1(value);
     if (predefinedInputs[value.trim()]) {
@@ -148,66 +124,90 @@ const App = () => {
     }
   };
 
+  const handleSelectExample = (item) => {
+    setCode1(item.key);
+    setMermaidCode(predefinedInputs[item.key]);
+  };
+
   return (
-    <div ref={containerRef} style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+    <div ref={containerRef} className="container">
+      <NavigationBar items={exampleItems} onSelect={handleSelectExample} />
       <div
         style={{
-          width: leftWidth,
           display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          borderRight: '1px solid #ccc',
-          position: 'relative',
+          height: '100%',
+          width: `calc(100% - ${navBarWidth}px)`,
+          marginLeft: `${navBarWidth}px`,
         }}
       >
-        <ResizableBox
-          height={editor1Height}
-          width={Infinity}
-          resizeHandles={['s']}
-          onResizeStop={(e, data) => setEditor1Height(data.size.height)}
-          minConstraints={[Infinity, 100]}
-          maxConstraints={[Infinity, window.innerHeight - 100]}
-          handle={
-            <span
-              style={{
-                width: '100%',
-                height: '20px', // Match the increased height in CSS
-                background: '#666',
-                cursor: 'row-resize',
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-              }}
-            />
-          }
+        <div
+          style={{
+            width: leftWidth,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            borderRight: '1px solid #ccc',
+            position: 'relative',
+          }}
         >
-          <div style={{ height: '100%' }}>
-            <CodeEditor value={code1} onChange={handleEditor1Change} />
+          <ResizableBox
+            height={editor1Height}
+            width={Infinity}
+            resizeHandles={['s']}
+            onResizeStop={(e, data) => setEditor1Height(data.size.height)}
+            minConstraints={[Infinity, 100]}
+            maxConstraints={[Infinity, window.innerHeight - 100]}
+            handle={
+              <span
+                style={{
+                  width: '100%',
+                  height: '20px',
+                  background: '#666',
+                  cursor: 'row-resize',
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                }}
+              />
+            }
+          >
+            <div style={{ height: '100%' }}>
+              <CodeEditor value={code1} onChange={handleEditor1Change} />
+            </div>
+          </ResizableBox>
+          <div style={{ height: `calc(100% - ${editor1Height}px)`, overflow: 'hidden' }}>
+            <CodeEditor value={mermaidCode} onChange={setMermaidCode} />
           </div>
-        </ResizableBox>
-        <div style={{ height: `calc(100% - ${editor1Height}px)`, overflow: 'hidden' }}>
-          <CodeEditor value={mermaidCode} onChange={setMermaidCode} />
         </div>
-      </div>
-      <div
-        style={{
-          width: '5px', // Match the width in CSS
-          cursor: 'col-resize',
-          backgroundColor: '#666',
-          position: 'relative',
-          zIndex: 1,
-        }}
-        onMouseDown={handleMouseDown}
-      />
-      <div style={{ width: `calc(100% - ${leftWidth}px)`, padding: '10px', overflow: 'auto', position: 'relative' }}>
-        <button
-          onClick={handleDownload}
-          className="download-button"
-        >
-          Download SVG
-        </button>
-        <div ref={mermaidRef} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-          <MermaidRenderer text={mermaidCode} />
+        <div
+          style={{
+            width: '5px',
+            cursor: 'col-resize',
+            backgroundColor: '#666',
+            position: 'relative',
+            zIndex: 1,
+          }}
+          onMouseDown={handleMouseDown}
+        />
+        <div style={{ width: `calc(100% - ${leftWidth}px)`, padding: '10px', overflow: 'auto', position: 'relative' }}>
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+            <button
+              onClick={handleDownload}
+              className="download-button"
+            >
+              Download SVG
+            </button>
+            <div className="dropdown">
+              <button className="export-button">Export</button>
+              <div className="dropdown-content">
+                <button onClick={() => handleExport('png')}>Export as PNG</button>
+                <button onClick={() => handleExport('pdf')}>Export as PDF</button>
+              </div>
+            </div>
+          </div>
+          <div ref={mermaidRef} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+            <MermaidRenderer text={mermaidCode} />
+          </div>
         </div>
       </div>
     </div>
