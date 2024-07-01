@@ -10,6 +10,7 @@ import download from 'downloadjs';
 import { toPng } from 'html-to-image';
 import jsPDF from 'jspdf';
 import { examples } from './examples'; // Import the generated examples file
+import './App.css'; // Import the new CSS file for the top bar
 
 const App = () => {
   const [editor1Height, setEditor1Height] = useState(window.innerHeight / 2);
@@ -78,87 +79,72 @@ const App = () => {
 
   return (
     <div ref={containerRef} className="container">
-      <NavigationBar
-        items={examples}
-        onSelect={handleSelectExample}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-      />
-      <div
-        style={{
-          display: 'flex',
-          height: '100%',
-          width: `calc(100% - ${navBarWidth}px)`,
-          marginLeft: '0px', // Set margin-left to 0px
-        }}
-      >
-        <div
-          style={{
-            width: leftWidth,
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            borderRight: '1px solid #ccc',
-            position: 'relative',
-          }}
-        >
-          <ResizableBox
-            height={editor1Height}
-            width={Infinity}
-            resizeHandles={['s']}
-            onResizeStop={(e, data) => setEditor1Height(data.size.height)}
-            minConstraints={[Infinity, 100]}
-            maxConstraints={[Infinity, window.innerHeight - 100]}
-            handle={
-              <span
-                style={{
-                  width: '100%',
-                  height: '20px',
-                  background: '#666',
-                  cursor: 'row-resize',
-                  position: 'absolute',
-                  bottom: 0,
-                  left: 0,
-                }}
-              />
-            }
-          >
-            <div style={{ height: '100%' }}>
-              <CodeEditor value={code1} onChange={handleEditor1Change} />
-            </div>
-          </ResizableBox>
-          <div style={{ height: `calc(100% - ${editor1Height}px)`, overflow: 'hidden' }}>
-            <CodeEditor value={mermaidCode} onChange={setMermaidCode} />
-          </div>
-        </div>
-        <div
-          style={{
-            width: '5px',
-            cursor: 'col-resize',
-            backgroundColor: '#666',
-            position: 'relative',
-            zIndex: 1,
-          }}
-          onMouseDown={handleMouseDown}
+      <div className="top-bar">
+        <img src="/path/to/icon.png" alt="App Icon" className="app-icon" />
+        <span className="app-name">Intuition Vis</span>
+        <nav className="top-nav">
+          <a href="#" className="top-nav-link">GitHub Repo</a>
+          <a href="#" className="top-nav-link">Docs</a>
+          <a href="#" className="top-nav-link">Tutorial</a>
+        </nav>
+      </div>
+      <div className="main-content">
+        <NavigationBar
+          items={examples}
+          onSelect={handleSelectExample}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
         />
-        <div style={{ width: `calc(100% - ${leftWidth}px)`, padding: '10px', overflow: 'auto', position: 'relative' }}>
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
-            <button
-              onClick={handleDownload}
-              className="download-button"
+        <div className="editor-render-container">
+          <div className="code-editors">
+            <ResizableBox
+              height={editor1Height}
+              width={Infinity}
+              resizeHandles={['s']}
+              onResizeStop={(e, data) => setEditor1Height(data.size.height)}
+              minConstraints={[Infinity, 100]}
+              maxConstraints={[Infinity, window.innerHeight - 100]}
+              handle={
+                <span
+                  style={{
+                    width: '100%',
+                    height: '20px',
+                    background: '#666',
+                    cursor: 'row-resize',
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                  }}
+                />
+              }
             >
-              Download SVG
-            </button>
-            <div className="dropdown">
-              <button className="export-button">Export</button>
-              <div className="dropdown-content">
-                <button onClick={() => handleExport('png')}>Export as PNG</button>
-                <button onClick={() => handleExport('pdf')}>Export as PDF</button>
+              <div style={{ height: '100%' }}>
+                <CodeEditor value={code1} onChange={handleEditor1Change} />
+              </div>
+            </ResizableBox>
+            <div style={{ height: `calc(100% - ${editor1Height}px)`, overflow: 'hidden' }}>
+              <CodeEditor value={mermaidCode} onChange={setMermaidCode} />
+            </div>
+          </div>
+          <div className="svg-render">
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+              <button
+                onClick={handleDownload}
+                className="download-button"
+              >
+                Download SVG
+              </button>
+              <div className="dropdown">
+                <button className="export-button">Export</button>
+                <div className="dropdown-content">
+                  <button onClick={() => handleExport('png')}>Export as PNG</button>
+                  <button onClick={() => handleExport('pdf')}>Export as PDF</button>
+                </div>
               </div>
             </div>
-          </div>
-          <div ref={mermaidRef} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-            <MermaidRenderer text={mermaidCode} />
+            <div ref={mermaidRef} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+              <MermaidRenderer text={mermaidCode} />
+            </div>
           </div>
         </div>
       </div>
