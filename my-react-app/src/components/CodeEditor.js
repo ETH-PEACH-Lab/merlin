@@ -18,7 +18,7 @@ const CodeEditor = ({ value = '', onChange = () => {} }) => {
       options={{
         automaticLayout: true,
         fontFamily: 'Consolas',
-        fontSize: 14, 
+        fontSize: 18, 
         lineNumbers: "on",
         minimap: { enabled: false },
       }}
