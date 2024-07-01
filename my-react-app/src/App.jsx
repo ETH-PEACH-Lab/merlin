@@ -99,6 +99,9 @@ const App = () => {
           <a href="#" className="top-nav-link">
             Tutorial
           </a>
+          <a href="https://eth-peach-lab.github.io/intuition-visualisation/" className="top-nav-link">
+            Intuition Viewer
+          </a>
         </nav>
       </div>
       <div
