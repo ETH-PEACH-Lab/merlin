@@ -21,20 +21,14 @@ const App = () => {
   const [code1, setCode1] = useState("// Code Editor 1");
   const [mermaidCode, setMermaidCode] = useState("");
   const [activeTab, setActiveTab] = useState("examples"); // State for active tab
+  const [savedItems, setSavedItems] = useState([]); // State for saved items
 
   const mermaidRef = useRef(null);
   const containerRef = useRef(null);
   const navBarWidth = Math.max(Math.min(window.innerWidth / 10, 220), 200);
 
   useEffect(() => {
-    // Load the saved code from cookies on component mount
-    const savedCookies = document.cookie.split("; ").filter(cookie => cookie.startsWith("savedDiagram"));
-    if (savedCookies.length) {
-      const latestCookie = savedCookies[savedCookies.length - 1];
-      const savedData = JSON.parse(decodeURIComponent(latestCookie.split("=")[1]));
-      setCode1(savedData.code1);
-      setMermaidCode(savedData.mermaidCode);
-    }
+    loadSavedItems();
   }, []);
 
   const handleMouseDown = (e) => {
@@ -77,24 +71,6 @@ const App = () => {
     }
   };
 
-  const handleSave = () => {
-    const savedData = {
-      code1,
-      mermaidCode,
-      time: new Date().toISOString(),
-    };
-    const savedCookies = document.cookie.split("; ").filter(cookie => cookie.startsWith("savedDiagram"));
-    
-    if (savedCookies.length >= 20) {
-      const oldestCookie = savedCookies[0].split("=")[0];
-      document.cookie = `${oldestCookie}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-    }
-    
-    const cookieName = `savedDiagram${Date.now()}`;
-    document.cookie = `${cookieName}=${encodeURIComponent(JSON.stringify(savedData))};path=/;max-age=31536000`;
-    alert("Diagram saved!");
-  };
-
   const handleEditor1Change = (value) => {
     setCode1(value);
     if (examples.find((example) => example.userCode.trim() === value.trim())) {
@@ -110,6 +86,55 @@ const App = () => {
   const handleSelectExample = (item) => {
     setCode1(item.userCode);
     setMermaidCode(item.renderCode);
+  };
+
+  const handleSave = () => {
+    const timestamp = new Date().toISOString();
+    const cookieName = `diagram_${timestamp}`;
+    const newSavedItem = {
+      code1,
+      mermaidCode,
+      timestamp
+    };
+
+    // Save new item to cookies
+    document.cookie = `${cookieName}=${JSON.stringify(newSavedItem)}; max-age=31536000; path=/`;
+
+    // Update saved items state
+    setSavedItems((prevItems) => {
+      const updatedItems = [...prevItems, newSavedItem];
+      if (updatedItems.length > 20) {
+        // Remove oldest item if more than 20
+        const oldestItem = updatedItems.shift();
+        document.cookie = `${oldestItem.timestamp}=; max-age=0; path=/`; // Delete the cookie
+      }
+      // Sort items in descending order
+      updatedItems.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      return updatedItems;
+    });
+
+    // Show alert
+    alert("Diagram saved successfully!");
+  };
+
+  const loadSavedItems = () => {
+    const cookies = document.cookie.split("; ");
+    const loadedItems = cookies.map(cookie => {
+      const [name, value] = cookie.split("=");
+      if (name.startsWith("diagram_")) {
+        return JSON.parse(decodeURIComponent(value));
+      }
+      return null;
+    }).filter(item => item !== null);
+    
+    // Sort items in descending order
+    loadedItems.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    setSavedItems(loadedItems);
+  };
+
+  const handleSelectSavedItem = (item) => {
+    setCode1(item.code1);
+    setMermaidCode(item.mermaidCode);
   };
 
   return (
@@ -141,7 +166,8 @@ const App = () => {
       >
         <NavigationBar
           items={examples}
-          onSelect={handleSelectExample}
+          savedItems={savedItems}
+          onSelect={activeTab === 'examples' ? handleSelectExample : handleSelectSavedItem}
           activeTab={activeTab}
           onTabChange={setActiveTab}
         />
