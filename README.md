@@ -1,2 +1,3 @@
 # mermaid-gui-test
-test for plug in mermaid in GUI
+test for GUI  
+https://eth-peach-lab.github.io/intuition-vis-test/
