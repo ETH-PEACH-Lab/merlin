@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import CodeEditor from './components/CodeEditor';
 import MermaidRenderer from './components/MermaidRenderer';
 import { ResizableBox } from 'react-resizable';
+import 'monaco-editor/min/vs/editor/editor.main.css';
 import 'react-resizable/css/styles.css';
 import './index.css';
 import download from 'downloadjs';
@@ -52,6 +53,52 @@ stateDiagram-v2
     Moving --> Still
     Moving --> Crash
     Crash --> [*]
+`,
+visslides:`
+visslides
+page
+array
+@ 1 &blue&
+@ 2
+@ 3
+matrix
+@ 
+1,2
+3,4
+@
+page
+array
+@ 1
+@ 2 &blue&
+@ 3
+@ 4
+matrix
+@ 
+1,2,3
+4,5,6
+@
+page
+array
+@ 1
+@ 2 
+@ 3 &blue&
+@ 4
+matrix
+@ 
+1,2,3
+4,5,6
+@
+page
+array
+@ 1
+@ 2 
+@ 3 
+@ 4 &blue&
+matrix
+@ 
+1,2,3
+4,5,6
+@
 `,
   // Add more predefined inputs here
 };

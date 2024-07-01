@@ -37,12 +37,20 @@ export function registerCustomLanguage() {
     base: 'vs-dark',
     inherit: true,
     rules: [
-      { token: 'keyword', foreground: 'd73a49' },
+      { token: 'keyword', foreground: '569cd6' },  // Changed to a blue color
       { token: 'number', foreground: 'b5cea8' },
-      { token: 'string', foreground: '6a8759' },
-      { token: 'comment', foreground: '999999' },
+      { token: 'string', foreground: 'd69d85' },
+      { token: 'comment', foreground: '6a9955' },
       { token: 'identifier', foreground: '9cdcfe' }
     ],
-    colors: {}
+    colors: {
+      'editor.foreground': '#FFFFFF',
+      'editor.background': '#1E1E1E',  // Ensure background is set to dark
+      'editorCursor.foreground': '#A7A7A7',
+      'editor.lineHighlightBackground': '#333333',
+      'editorLineNumber.foreground': '#858585',
+      'editor.selectionBackground': '#264F78',
+      'editor.inactiveSelectionBackground': '#3A3D41'
+    }
   });
 }
