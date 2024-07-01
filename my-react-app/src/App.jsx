@@ -67,6 +67,15 @@ const App = () => {
     }
   };
 
+  const handleSave = () => {
+    const savedData = {
+      code1,
+      mermaidCode,
+    };
+    localStorage.setItem("savedDiagram", JSON.stringify(savedData));
+    alert("Diagram saved!");
+  };
+
   const handleEditor1Change = (value) => {
     setCode1(value);
     if (examples.find((example) => example.userCode.trim() === value.trim())) {
@@ -209,6 +218,9 @@ const App = () => {
                   </button>
                 </div>
               </div>
+              <button onClick={handleSave} className="save-button">
+                Save
+              </button>
             </div>
             <div
               ref={mermaidRef}
