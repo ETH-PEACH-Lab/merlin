@@ -117,7 +117,8 @@ if (devMode) {
 
   let devPlugins = [
     new HtmlWebPackPlugin({
-      template: 'src/public/index.html.ejs'
+      template: 'src/public/index.html.ejs',
+      favicon: 'src/public/favicon.png' // Ensure this line is added
     })
   ];
 
@@ -129,6 +130,7 @@ if (devMode) {
   let prodPlugins = [
     new HtmlWebPackPlugin({
       template: 'src/public/index.html.ejs',
+      favicon: 'src/public/favicon.png', // Ensure this line is added
       externalCSS: ['components/loader.css'],
       externalJS: ['cordova.js', 'components/loader.js'],
       minify: {
