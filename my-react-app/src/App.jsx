@@ -13,7 +13,7 @@ import { examples } from "./examples"; // Import the generated examples file
 import "./App.css"; // Import the new CSS file for the top bar
 
 // Import the image directly
-import appIcon from "./public/PEACH.svg";
+import appIcon from "./public/empty.png";
 
 const App = () => {
   const [editor1Height, setEditor1Height] = useState(window.innerHeight / 2);

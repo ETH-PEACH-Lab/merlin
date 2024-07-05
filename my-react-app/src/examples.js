@@ -22,6 +22,17 @@ export const examples = [
     "renderCode": "---\ntitle: Example Git diagram\n---\ngitGraph\n   commit\n   commit\n   branch develop\n   checkout develop\n   commit\n   commit\n   checkout main\n   merge develop\n   commit\n   commit"
   },
   {
+    "id": "simpleDemo",
+    "title": "Simple Demo",
+    "tags": [
+      "class",
+      "diagram"
+    ],
+    "figure": "classDiagram.svg",
+    "userCode": "//Init an array with size 7\nx = array\n//define how to generate the array\nx[i+1] = x[i-1] + x[i]",
+    "renderCode": "visslides\npage\narray\n@ 1 :arrow::cur &blue&\npage\narray\n@ 1 \n@ 1 :arrow::cur &blue&\npage\narray\n@ 1 \n@ 1 \n@ 2 :arrow::cur &blue&\npage\narray\n@ 1 \n@ 1 \n@ 2 \n@ 3 :arrow::cur &blue&\npage\narray\n@ 1 \n@ 1 \n@ 2 \n@ 3 \n@ 5 :arrow::cur &blue&\npage\narray\n@ 1 \n@ 1 \n@ 2 \n@ 3 \n@ 5 \n@ 8 :arrow::cur &blue&\npage\narray\n@ 1 \n@ 1 \n@ 2 \n@ 3 \n@ 5 \n@ 8 \n@ 13 :arrow::cur &blue&"
+  },
+  {
     "id": "stateDiagram",
     "title": "State Diagram",
     "tags": [
