@@ -13,20 +13,6 @@ export const parseDSL = (dsl) => {
       let parsedArray = JSON.parse(value);
       console.log('parserdArray:', parsedArray);
 
-      // Handle repeat functionality
-      parsedArray = parsedArray.map((array) => {
-        console.log(array);
-        if (Array.isArray(array)) {
-          return array.map((item, index, arr) => {
-            if (item === '*') {
-              return arr[index - 1] !== '*' ? arr[index - 1] : arr[index - 1];
-            }
-            return item;
-          });
-        }
-        return array;
-      });
-
       variables[variable] = parsedArray;
     }
   });
