@@ -20,14 +20,22 @@ const NavigationBar = ({ items, savedItems, onSelect, activeTab, onTabChange }) 
       </div>
       <div className="nav-content">
         {activeTab === 'examples' ? (
-          items.map((item) => (
-            <div key={item.id} className="nav-item" onClick={() => onSelect(item)}>
+          items.map(item => (
+            <div
+              key={item.id}
+              className="nav-item"
+              onClick={() => onSelect(item)}
+            >
               <div className="nav-item-title">{item.title}</div>
             </div>
           ))
         ) : savedItems.length > 0 ? (
-          savedItems.map((item, index) => (
-            <div key={index} className="nav-item" onClick={() => onSelect(item)}>
+          savedItems.map(item => (
+            <div
+              key={item.timestamp}
+              className="nav-item"
+              onClick={() => onSelect(item)}
+            >
               <div className="nav-item-title">{new Date(item.timestamp).toLocaleString()}</div>
             </div>
           ))

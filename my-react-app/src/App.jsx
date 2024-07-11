@@ -15,6 +15,9 @@ import "./App.css"; // Import the new CSS file for the top bar
 // Import the image directly
 import appIcon from "./public/empty.png";
 
+// Import the DSL parser and translator
+import { parseDSL, convertToMermaid } from "./dslParser";
+
 const App = () => {
   const [editor1Height, setEditor1Height] = useState(window.innerHeight / 2);
   const [leftWidth, setLeftWidth] = useState(window.innerWidth / 2);
@@ -73,13 +76,12 @@ const App = () => {
 
   const handleEditor1Change = (value) => {
     setCode1(value);
-    if (examples.find((example) => example.userCode.trim() === value.trim())) {
-      setMermaidCode(
-        examples.find((example) => example.userCode.trim() === value.trim())
-          .renderCode
-      );
-    } else {
-      setMermaidCode("");
+    try {
+      const parsedDSL = parseDSL(value);
+      const mermaidCode = convertToMermaid(parsedDSL);
+      setMermaidCode(mermaidCode);
+    } catch (error) {
+      setMermaidCode("// Invalid DSL format");
     }
   };
 
@@ -94,7 +96,7 @@ const App = () => {
     const newSavedItem = {
       code1,
       mermaidCode,
-      timestamp
+      timestamp,
     };
 
     // Save new item to cookies
@@ -119,14 +121,16 @@ const App = () => {
 
   const loadSavedItems = () => {
     const cookies = document.cookie.split("; ");
-    const loadedItems = cookies.map(cookie => {
-      const [name, value] = cookie.split("=");
-      if (name.startsWith("diagram_")) {
-        return JSON.parse(decodeURIComponent(value));
-      }
-      return null;
-    }).filter(item => item !== null);
-    
+    const loadedItems = cookies
+      .map((cookie) => {
+        const [name, value] = cookie.split("=");
+        if (name.startsWith("diagram_")) {
+          return JSON.parse(decodeURIComponent(value));
+        }
+        return null;
+      })
+      .filter((item) => item !== null);
+
     // Sort items in descending order
     loadedItems.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     setSavedItems(loadedItems);
@@ -152,7 +156,10 @@ const App = () => {
           <a href="#" className="top-nav-link">
             Tutorial
           </a>
-          <a href="https://eth-peach-lab.github.io/intuition-visualisation/" className="top-nav-link">
+          <a
+            href="https://eth-peach-lab.github.io/intuition-visualisation/"
+            className="top-nav-link"
+          >
             Intuition Viewer
           </a>
         </nav>
@@ -167,7 +174,7 @@ const App = () => {
         <NavigationBar
           items={examples}
           savedItems={savedItems}
-          onSelect={activeTab === 'examples' ? handleSelectExample : handleSelectSavedItem}
+          onSelect={activeTab === "examples" ? handleSelectExample : handleSelectSavedItem}
           activeTab={activeTab}
           onTabChange={setActiveTab}
         />
