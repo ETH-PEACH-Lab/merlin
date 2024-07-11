@@ -1,4 +1,21 @@
-// src/dslParser.js
+function handleRepeat(inputStr) {
+  let trimmedStr = inputStr.replace(/\s+/g, '');
+  let inputArr = trimmedStr.slice(1, -1).split(/,(?![^\[]*\])/);
+  let resultArr = [];
+  let lastElement;
+
+  for (let i = 0; i < inputArr.length; i++) {
+      if (inputArr[i] === '*') {
+          resultArr.push(lastElement);
+      } else {
+          resultArr.push(inputArr[i]);
+          lastElement = inputArr[i];
+      }
+  }
+
+  return `[${resultArr.join(',')}]`;
+}
+
 
 export const parseDSL = (dsl) => {
   const variableRegex = /^(\w+)\s*=\s*(\[.*?\])$/;
@@ -10,9 +27,11 @@ export const parseDSL = (dsl) => {
     if (match) {
       // console.log('match:', match);
       const [, variable, value] = match;
-      let parsedArray = JSON.parse(value);
-      console.log('parserdArray:', parsedArray);
-
+      let processed_value = handleRepeat(value);
+      // value is a string [[1],[1,2,3,4,5]]
+      // console.log('value: ', value);
+      let parsedArray = JSON.parse(processed_value);
+      // console.log('parseredArray:', parsedArray);
       variables[variable] = parsedArray;
     }
   });
@@ -21,6 +40,7 @@ export const parseDSL = (dsl) => {
 };
 
 export const convertToMermaid = (variables) => {
+  console.log('variables: ', variables);
   const mermaidLines = ['visslides'];
 
   const pages = {};
