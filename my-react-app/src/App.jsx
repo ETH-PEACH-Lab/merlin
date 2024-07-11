@@ -1,10 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
-import CodeEditor from "./components/CodeEditor";
 import "./components/NavigationBar.css";
-import MermaidRenderer from "./components/MermaidRenderer";
 import NavigationBar from "./components/NavigationBar";
-import { ResizableBox } from "react-resizable";
-import "react-resizable/css/styles.css";
+import EditorSection from "./components/EditorSection";
+import RendererSection from "./components/RendererSection";
 import "./index.css";
 import download from "downloadjs";
 import { toPng } from "html-to-image";
@@ -186,54 +184,16 @@ const App = () => {
             marginLeft: `0px`,
           }}
         >
-          <div
-            className="CodeEditorsContent"
-            style={{
-              width: leftWidth,
-              display: "flex",
-              flexDirection: "column",
-              overflow: "hidden",
-              borderRight: "1px solid #ccc",
-              position: "relative",
-            }}
-          >
-            <div className="nav-tabs">
-              <button className="nav-tab-code-editor">Code Editor</button>
-            </div>
-            <ResizableBox
-              height={editor1Height}
-              width={Infinity}
-              resizeHandles={["s"]}
-              onResizeStop={(e, data) => setEditor1Height(data.size.height)}
-              minConstraints={[Infinity, 100]}
-              maxConstraints={[Infinity, window.innerHeight - 100]}
-              handle={
-                <span
-                  style={{
-                    width: "100%",
-                    height: "20px",
-                    background: "#666",
-                    cursor: "row-resize",
-                    position: "absolute",
-                    bottom: 0,
-                    left: 0,
-                  }}
-                />
-              }
-            >
-              <div style={{ height: "100%" }}>
-                <CodeEditor value={code1} onChange={handleEditor1Change} />
-              </div>
-            </ResizableBox>
-            <div
-              style={{
-                height: `calc(100% - ${editor1Height}px)`,
-                overflow: "hidden",
-              }}
-            >
-              <CodeEditor value={mermaidCode} onChange={setMermaidCode} />
-            </div>
-          </div>
+          <EditorSection
+            code1={code1}
+            mermaidCode={mermaidCode}
+            editor1Height={editor1Height}
+            leftWidth={leftWidth}
+            handleEditor1Change={handleEditor1Change}
+            setEditor1Height={setEditor1Height}
+            setMermaidCode={setMermaidCode}
+            handleMouseDown={handleMouseDown}
+          />
           <div
             style={{
               width: "5px",
@@ -244,48 +204,13 @@ const App = () => {
             }}
             onMouseDown={handleMouseDown}
           />
-          <div
-            className="SvgRenderContent"
-            style={{
-              width: `calc(100%`,
-              overflow: "auto",
-              position: "relative",
-            }}
-          >
-            <div className="nav-tabs">
-              <button className="nav-tab-svg-render">Diagram Renderer</button>
-            </div>
-            <div className="buttons-container">
-              <button onClick={handleDownload} className="download-button">
-                Download SVG
-              </button>
-              <div className="dropdown">
-                <button className="export-button">Export</button>
-                <div className="dropdown-content">
-                  <button onClick={() => handleExport("png")}>
-                    Export as PNG
-                  </button>
-                  <button onClick={() => handleExport("pdf")}>
-                    Export as PDF
-                  </button>
-                </div>
-              </div>
-              <button onClick={handleSave} className="save-button">
-                Save
-              </button>
-            </div>
-            <div
-              ref={mermaidRef}
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                height: "100%",
-              }}
-            >
-              <MermaidRenderer text={mermaidCode} />
-            </div>
-          </div>
+          <RendererSection
+            mermaidCode={mermaidCode}
+            handleDownload={handleDownload}
+            handleExport={handleExport}
+            handleSave={handleSave}
+            mermaidRef={mermaidRef}
+          />
         </div>
       </div>
     </div>
