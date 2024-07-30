@@ -1,8 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import mermaid from '../libs/mermaid.esm.mjs';
+import { ElementEditor } from './ElementEditor';
 
-const MermaidRenderer = ({ text }) => {
+const MermaidRenderer = ({ text, update}) => {
   const ref = useRef(null);
+
 
   useEffect(() => {
     mermaid.initialize({
@@ -17,6 +19,7 @@ const MermaidRenderer = ({ text }) => {
         try {
           const { svg } = await mermaid.mermaidAPI.render('preview', text);
           ref.current.innerHTML = svg;
+          update(ref.current);
 
           // Set up navigation after rendering the SVG
           setupNavigation(ref.current.querySelector('svg'));

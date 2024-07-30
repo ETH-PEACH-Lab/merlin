@@ -193,6 +193,7 @@ const App = () => {
             setEditor1Height={setEditor1Height}
             setMermaidCode={setMermaidCode}
             handleMouseDown={handleMouseDown}
+
           />
           <div
             style={{
@@ -210,6 +211,7 @@ const App = () => {
             handleExport={handleExport}
             handleSave={handleSave}
             mermaidRef={mermaidRef}
+            updateCode={setCode1}
           />
         </div>
       </div>
