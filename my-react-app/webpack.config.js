@@ -1,6 +1,8 @@
 const HtmlWebPackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const ProgressBarPlugin = require('progress-bar-webpack-plugin');
+const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
+
 
 const path = require('path');
 const argvs = require('yargs').argv;
@@ -16,7 +18,6 @@ let webpackConfig = {
   entry: {
     app: ['./src/main.jsx']
   },
-
   output: {
     path: path.resolve(__dirname, 'www'),
     filename: '[name].js',
@@ -50,7 +51,7 @@ let webpackConfig = {
           loader: 'babel-loader',
           options: {
             presets: ['@babel/preset-env', '@babel/preset-react'],
-            plugins: devMode ? ['react-hot-loader/babel'] : []
+            plugins: devMode ? [require.resolve('react-refresh/babel')] : []
           }
         }]
       },
@@ -86,6 +87,11 @@ let webpackConfig = {
       chunkFilename: '[name].css'
     }),
     new ProgressBarPlugin(),
+    new ReactRefreshWebpackPlugin(),
+    new HtmlWebPackPlugin({
+      template: 'src/public/index.html.ejs',
+      favicon: 'src/public/favicon.png' // Ensure this line is added
+    })
   ],
 
   resolveLoader: {
@@ -94,56 +100,71 @@ let webpackConfig = {
 
   performance: {
     hints: false
-  }
-};
+  },
 
-// Development mode
-if (devMode) {
-
-  webpackConfig.devtool = 'eval';
-
-  webpackConfig.devServer = {
-    port: port,
+  devServer: {
+    port:port,
     host: host,
     allowedHosts: 'all',
+    hot: true,
     client: {
       webSocketURL: `${socketProtocol}://${host}:${port}/ws`,
     },
-    devMiddleware: {
+    devMiddleware:{
       publicPath: '/',
       stats: true
     }
   }
-
-  let devPlugins = [
-    new HtmlWebPackPlugin({
-      template: 'src/public/index.html.ejs',
-      favicon: 'src/public/favicon.png' // Ensure this line is added
-    })
-  ];
-
-  webpackConfig.plugins = webpackConfig.plugins.concat(devPlugins);
-
-} else {
-
-  // Production mode
-  let prodPlugins = [
-    new HtmlWebPackPlugin({
-      template: 'src/public/index.html.ejs',
-      favicon: 'src/public/favicon.png', // Ensure this line is added
-      externalCSS: ['components/loader.css'],
-      externalJS: ['cordova.js', 'components/loader.js'],
-      minify: {
-        caseSensitive: true,
-        collapseWhitespace: true,
-        conservativeCollapse: true,
-        removeAttributeQuotes: true,
-        removeComments: true
-      }
-    })
-  ];
-  webpackConfig.plugins = webpackConfig.plugins.concat(prodPlugins);
-
-}
+};
 
 module.exports = webpackConfig;
+
+// // Development mode
+// if (devMode) {
+
+//   webpackConfig.devtool = 'eval';
+
+//   webpackConfig.devServer = {
+//     port: port,
+//     host: host,
+//     allowedHosts: 'all',
+//     hot: true,
+//     client: {
+//       webSocketURL: `${socketProtocol}://${host}:${port}/ws`,
+//     },
+//     devMiddleware: {
+//       publicPath: '/',
+//       stats: true
+//     }
+//   }
+
+//   let devPlugins = [
+//     new HtmlWebPackPlugin({
+//       template: 'src/public/index.html.ejs',
+//       favicon: 'src/public/favicon.png' // Ensure this line is added
+//     })
+//   ];
+
+//   webpackConfig.plugins = webpackConfig.plugins.concat(devPlugins);
+
+// } else {
+
+//   // Production mode
+//   let prodPlugins = [
+//     new HtmlWebPackPlugin({
+//       template: 'src/public/index.html.ejs',
+//       favicon: 'src/public/favicon.png', // Ensure this line is added
+//       externalCSS: ['components/loader.css'],
+//       externalJS: ['cordova.js', 'components/loader.js'],
+//       minify: {
+//         caseSensitive: true,
+//         collapseWhitespace: true,
+//         conservativeCollapse: true,
+//         removeAttributeQuotes: true,
+//         removeComments: true
+//       }
+//     })
+//   ];
+//   webpackConfig.plugins = webpackConfig.plugins.concat(prodPlugins);
+
+// }
