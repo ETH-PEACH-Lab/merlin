@@ -5,13 +5,13 @@ import {
   isDetailedError,
   removeDirectives,
   utils_default
-} from "./chunks/mermaid.core/chunk-CPAUJB3U.mjs";
+} from "./chunks/mermaid.core/chunk-MTHQ7WA2.mjs";
 import {
   version
 } from "./chunks/mermaid.core/chunk-EDZNQMSI.mjs";
 import {
   selectSvgElement
-} from "./chunks/mermaid.core/chunk-FKHXDW44.mjs";
+} from "./chunks/mermaid.core/chunk-3XEH7EUF.mjs";
 import {
   UnknownDiagramError,
   __name,
@@ -37,7 +37,7 @@ import {
   styles_default,
   themes_default,
   updateSiteConfig
-} from "./chunks/mermaid.core/chunk-HYS3XFRJ.mjs";
+} from "./chunks/mermaid.core/chunk-UVG54GTT.mjs";
 
 // src/mermaid.ts
 import { dedent } from "ts-dedent";
@@ -52,7 +52,7 @@ var detector = /* @__PURE__ */ __name((txt) => {
   return /^\s*C4Context|C4Container|C4Component|C4Dynamic|C4Deployment/.test(txt);
 }, "detector");
 var loader = /* @__PURE__ */ __name(async () => {
-  const { diagram: diagram2 } = await import("./chunks/mermaid.core/c4Diagram-QDABVXM4.mjs");
+  const { diagram: diagram2 } = await import("./chunks/mermaid.core/c4Diagram-VCIANIPJ.mjs");
   return { id, diagram: diagram2 };
 }, "loader");
 var plugin = {
@@ -71,7 +71,7 @@ var detector2 = /* @__PURE__ */ __name((txt, config) => {
   return /^\s*graph/.test(txt);
 }, "detector");
 var loader2 = /* @__PURE__ */ __name(async () => {
-  const { diagram: diagram2 } = await import("./chunks/mermaid.core/flowDiagram-ORA7QV7D.mjs");
+  const { diagram: diagram2 } = await import("./chunks/mermaid.core/flowDiagram-IS3RPD3A.mjs");
   return { id: id2, diagram: diagram2 };
 }, "loader");
 var plugin2 = {
@@ -93,7 +93,7 @@ var detector3 = /* @__PURE__ */ __name((txt, config) => {
   return /^\s*flowchart/.test(txt);
 }, "detector");
 var loader3 = /* @__PURE__ */ __name(async () => {
-  const { diagram: diagram2 } = await import("./chunks/mermaid.core/flowDiagram-v2-B4M4QCHY.mjs");
+  const { diagram: diagram2 } = await import("./chunks/mermaid.core/flowDiagram-v2-TQM3UWEN.mjs");
   return { id: id3, diagram: diagram2 };
 }, "loader");
 var plugin3 = {
@@ -109,7 +109,7 @@ var detector4 = /* @__PURE__ */ __name((txt) => {
   return /^\s*erDiagram/.test(txt);
 }, "detector");
 var loader4 = /* @__PURE__ */ __name(async () => {
-  const { diagram: diagram2 } = await import("./chunks/mermaid.core/erDiagram-DMYHX5ER.mjs");
+  const { diagram: diagram2 } = await import("./chunks/mermaid.core/erDiagram-F6VJRADA.mjs");
   return { id: id4, diagram: diagram2 };
 }, "loader");
 var plugin4 = {
@@ -125,7 +125,7 @@ var detector5 = /* @__PURE__ */ __name((txt) => {
   return /^\s*gitGraph/.test(txt);
 }, "detector");
 var loader5 = /* @__PURE__ */ __name(async () => {
-  const { diagram: diagram2 } = await import("./chunks/mermaid.core/gitGraphDiagram-OI3B4IPD.mjs");
+  const { diagram: diagram2 } = await import("./chunks/mermaid.core/gitGraphDiagram-PZDTLHAJ.mjs");
   return { id: id5, diagram: diagram2 };
 }, "loader");
 var plugin5 = {
@@ -141,7 +141,7 @@ var detector6 = /* @__PURE__ */ __name((txt) => {
   return /^\s*gantt/.test(txt);
 }, "detector");
 var loader6 = /* @__PURE__ */ __name(async () => {
-  const { diagram: diagram2 } = await import("./chunks/mermaid.core/ganttDiagram-E4YAS5DV.mjs");
+  const { diagram: diagram2 } = await import("./chunks/mermaid.core/ganttDiagram-BW3QKU4I.mjs");
   return { id: id6, diagram: diagram2 };
 }, "loader");
 var plugin6 = {
@@ -157,7 +157,7 @@ var detector7 = /* @__PURE__ */ __name((txt) => {
   return /^\s*info/.test(txt);
 }, "detector");
 var loader7 = /* @__PURE__ */ __name(async () => {
-  const { diagram: diagram2 } = await import("./chunks/mermaid.core/infoDiagram-MAD3VQGS.mjs");
+  const { diagram: diagram2 } = await import("./chunks/mermaid.core/infoDiagram-X27PUPPI.mjs");
   return { id: id7, diagram: diagram2 };
 }, "loader");
 var info = {
@@ -172,7 +172,7 @@ var detector8 = /* @__PURE__ */ __name((txt) => {
   return /^\s*pie/.test(txt);
 }, "detector");
 var loader8 = /* @__PURE__ */ __name(async () => {
-  const { diagram: diagram2 } = await import("./chunks/mermaid.core/pieDiagram-ELF73DXJ.mjs");
+  const { diagram: diagram2 } = await import("./chunks/mermaid.core/pieDiagram-UDWTNQ6B.mjs");
   return { id: id8, diagram: diagram2 };
 }, "loader");
 var pie = {
@@ -187,7 +187,7 @@ var detector9 = /* @__PURE__ */ __name((txt) => {
   return /^\s*quadrantChart/.test(txt);
 }, "detector");
 var loader9 = /* @__PURE__ */ __name(async () => {
-  const { diagram: diagram2 } = await import("./chunks/mermaid.core/quadrantDiagram-MUAQ6A42.mjs");
+  const { diagram: diagram2 } = await import("./chunks/mermaid.core/quadrantDiagram-HSHKNOCZ.mjs");
   return { id: id9, diagram: diagram2 };
 }, "loader");
 var plugin7 = {
@@ -203,7 +203,7 @@ var detector10 = /* @__PURE__ */ __name((txt) => {
   return /^\s*xychart-beta/.test(txt);
 }, "detector");
 var loader10 = /* @__PURE__ */ __name(async () => {
-  const { diagram: diagram2 } = await import("./chunks/mermaid.core/xychartDiagram-SC5WLS5S.mjs");
+  const { diagram: diagram2 } = await import("./chunks/mermaid.core/xychartDiagram-YGUAGHHV.mjs");
   return { id: id10, diagram: diagram2 };
 }, "loader");
 var plugin8 = {
@@ -219,7 +219,7 @@ var detector11 = /* @__PURE__ */ __name((txt) => {
   return /^\s*requirement(Diagram)?/.test(txt);
 }, "detector");
 var loader11 = /* @__PURE__ */ __name(async () => {
-  const { diagram: diagram2 } = await import("./chunks/mermaid.core/requirementDiagram-EK3P5QEP.mjs");
+  const { diagram: diagram2 } = await import("./chunks/mermaid.core/requirementDiagram-5BCQNB6R.mjs");
   return { id: id11, diagram: diagram2 };
 }, "loader");
 var plugin9 = {
@@ -235,7 +235,7 @@ var detector12 = /* @__PURE__ */ __name((txt) => {
   return /^\s*sequenceDiagram/.test(txt);
 }, "detector");
 var loader12 = /* @__PURE__ */ __name(async () => {
-  const { diagram: diagram2 } = await import("./chunks/mermaid.core/sequenceDiagram-EW62LADD.mjs");
+  const { diagram: diagram2 } = await import("./chunks/mermaid.core/sequenceDiagram-ANOBKKMH.mjs");
   return { id: id12, diagram: diagram2 };
 }, "loader");
 var plugin10 = {
@@ -254,7 +254,7 @@ var detector13 = /* @__PURE__ */ __name((txt, config) => {
   return /^\s*classDiagram/.test(txt);
 }, "detector");
 var loader13 = /* @__PURE__ */ __name(async () => {
-  const { diagram: diagram2 } = await import("./chunks/mermaid.core/classDiagram-JPBDBQMC.mjs");
+  const { diagram: diagram2 } = await import("./chunks/mermaid.core/classDiagram-OV2TT2DC.mjs");
   return { id: id13, diagram: diagram2 };
 }, "loader");
 var plugin11 = {
@@ -273,7 +273,7 @@ var detector14 = /* @__PURE__ */ __name((txt, config) => {
   return /^\s*classDiagram-v2/.test(txt);
 }, "detector");
 var loader14 = /* @__PURE__ */ __name(async () => {
-  const { diagram: diagram2 } = await import("./chunks/mermaid.core/classDiagram-v2-Y73OBPUF.mjs");
+  const { diagram: diagram2 } = await import("./chunks/mermaid.core/classDiagram-v2-7TMJOW6C.mjs");
   return { id: id14, diagram: diagram2 };
 }, "loader");
 var plugin12 = {
@@ -292,7 +292,7 @@ var detector15 = /* @__PURE__ */ __name((txt, config) => {
   return /^\s*stateDiagram/.test(txt);
 }, "detector");
 var loader15 = /* @__PURE__ */ __name(async () => {
-  const { diagram: diagram2 } = await import("./chunks/mermaid.core/stateDiagram-7TBEP7CF.mjs");
+  const { diagram: diagram2 } = await import("./chunks/mermaid.core/stateDiagram-EJWPP4R2.mjs");
   return { id: id15, diagram: diagram2 };
 }, "loader");
 var plugin13 = {
@@ -314,7 +314,7 @@ var detector16 = /* @__PURE__ */ __name((txt, config) => {
   return false;
 }, "detector");
 var loader16 = /* @__PURE__ */ __name(async () => {
-  const { diagram: diagram2 } = await import("./chunks/mermaid.core/stateDiagram-v2-FCEG7LHV.mjs");
+  const { diagram: diagram2 } = await import("./chunks/mermaid.core/stateDiagram-v2-LQCPS624.mjs");
   return { id: id16, diagram: diagram2 };
 }, "loader");
 var plugin14 = {
@@ -330,7 +330,7 @@ var detector17 = /* @__PURE__ */ __name((txt) => {
   return /^\s*journey/.test(txt);
 }, "detector");
 var loader17 = /* @__PURE__ */ __name(async () => {
-  const { diagram: diagram2 } = await import("./chunks/mermaid.core/journeyDiagram-Q7J222VS.mjs");
+  const { diagram: diagram2 } = await import("./chunks/mermaid.core/journeyDiagram-FQFA7C4J.mjs");
   return { id: id17, diagram: diagram2 };
 }, "loader");
 var plugin15 = {
@@ -341,9 +341,9 @@ var plugin15 = {
 var journeyDetector_default = plugin15;
 
 // src/diagrams/error/errorRenderer.ts
-var draw = /* @__PURE__ */ __name((_text, id28, version2) => {
+var draw = /* @__PURE__ */ __name((_text, id29, version2) => {
   log.debug("rendering svg for syntax error\n");
-  const svg = selectSvgElement(id28);
+  const svg = selectSvgElement(id29);
   const g = svg.append("g");
   svg.attr("viewBox", "0 0 2412 512");
   configureSvgSize(svg, 100, 512, true);
@@ -408,7 +408,7 @@ var detector18 = /* @__PURE__ */ __name((txt, config) => {
   return false;
 }, "detector");
 var loader18 = /* @__PURE__ */ __name(async () => {
-  const { diagram: diagram2 } = await import("./chunks/mermaid.core/flowDiagram-v2-B4M4QCHY.mjs");
+  const { diagram: diagram2 } = await import("./chunks/mermaid.core/flowDiagram-v2-TQM3UWEN.mjs");
   return { id: id18, diagram: diagram2 };
 }, "loader");
 var plugin16 = {
@@ -424,7 +424,7 @@ var detector19 = /* @__PURE__ */ __name((txt) => {
   return /^\s*timeline/.test(txt);
 }, "detector");
 var loader19 = /* @__PURE__ */ __name(async () => {
-  const { diagram: diagram2 } = await import("./chunks/mermaid.core/timeline-definition-UUOAAHOV.mjs");
+  const { diagram: diagram2 } = await import("./chunks/mermaid.core/timeline-definition-5GPCOF5W.mjs");
   return { id: id19, diagram: diagram2 };
 }, "loader");
 var plugin17 = {
@@ -440,7 +440,7 @@ var detector20 = /* @__PURE__ */ __name((txt) => {
   return /^\s*mindmap/.test(txt);
 }, "detector");
 var loader20 = /* @__PURE__ */ __name(async () => {
-  const { diagram: diagram2 } = await import("./chunks/mermaid.core/mindmap-definition-SFWRPHP6.mjs");
+  const { diagram: diagram2 } = await import("./chunks/mermaid.core/mindmap-definition-4PKSA7QI.mjs");
   return { id: id20, diagram: diagram2 };
 }, "loader");
 var plugin18 = {
@@ -456,7 +456,7 @@ var detector21 = /* @__PURE__ */ __name((txt) => {
   return /^\s*sankey-beta/.test(txt);
 }, "detector");
 var loader21 = /* @__PURE__ */ __name(async () => {
-  const { diagram: diagram2 } = await import("./chunks/mermaid.core/sankeyDiagram-3WA7OVAD.mjs");
+  const { diagram: diagram2 } = await import("./chunks/mermaid.core/sankeyDiagram-A4G2TJXH.mjs");
   return { id: id21, diagram: diagram2 };
 }, "loader");
 var plugin19 = {
@@ -472,7 +472,7 @@ var detector22 = /* @__PURE__ */ __name((txt) => {
   return /^\s*packet-beta/.test(txt);
 }, "detector");
 var loader22 = /* @__PURE__ */ __name(async () => {
-  const { diagram: diagram2 } = await import("./chunks/mermaid.core/diagram-AX6KQMK6.mjs");
+  const { diagram: diagram2 } = await import("./chunks/mermaid.core/diagram-B7OP7CIY.mjs");
   return { id: id22, diagram: diagram2 };
 }, "loader");
 var packet = {
@@ -487,7 +487,7 @@ var detector23 = /* @__PURE__ */ __name((txt) => {
   return /^\s*array/.test(txt);
 }, "detector");
 var loader23 = /* @__PURE__ */ __name(async () => {
-  const { diagram: diagram2 } = await import("./chunks/mermaid.core/diagram-RNHQDW74.mjs");
+  const { diagram: diagram2 } = await import("./chunks/mermaid.core/diagram-IYMWEVEV.mjs");
   return { id: id23, diagram: diagram2 };
 }, "loader");
 var array = {
@@ -502,7 +502,7 @@ var detector24 = /* @__PURE__ */ __name((txt) => {
   return /^\s*matrix/.test(txt);
 }, "detector");
 var loader24 = /* @__PURE__ */ __name(async () => {
-  const { diagram: diagram2 } = await import("./chunks/mermaid.core/diagram-XCM5QU5H.mjs");
+  const { diagram: diagram2 } = await import("./chunks/mermaid.core/diagram-NXX3JEPI.mjs");
   return { id: id24, diagram: diagram2 };
 }, "loader");
 var matrix = {
@@ -517,7 +517,7 @@ var detector25 = /* @__PURE__ */ __name((txt) => {
   return /^\s*testslides/.test(txt);
 }, "detector");
 var loader25 = /* @__PURE__ */ __name(async () => {
-  const { diagram: diagram2 } = await import("./chunks/mermaid.core/diagram-NALWUAZK.mjs");
+  const { diagram: diagram2 } = await import("./chunks/mermaid.core/diagram-PLHCDBHA.mjs");
   return { id: id25, diagram: diagram2 };
 }, "loader");
 var testslides = {
@@ -532,7 +532,7 @@ var detector26 = /* @__PURE__ */ __name((txt) => {
   return /^\s*visslides/.test(txt);
 }, "detector");
 var loader26 = /* @__PURE__ */ __name(async () => {
-  const { diagram: diagram2 } = await import("./chunks/mermaid.core/diagram-3AEWFTKL.mjs");
+  const { diagram: diagram2 } = await import("./chunks/mermaid.core/diagram-ZMLF2JF3.mjs");
   return { id: id26, diagram: diagram2 };
 }, "loader");
 var visslides = {
@@ -541,19 +541,34 @@ var visslides = {
   loader: loader26
 };
 
-// src/diagrams/block/blockDetector.ts
-var id27 = "block";
+// src/diagrams/visual/detector.ts
+var id27 = "visual";
 var detector27 = /* @__PURE__ */ __name((txt) => {
-  return /^\s*block-beta/.test(txt);
+  return /^\s*visual/.test(txt);
 }, "detector");
 var loader27 = /* @__PURE__ */ __name(async () => {
-  const { diagram: diagram2 } = await import("./chunks/mermaid.core/blockDiagram-ZQU4LNOT.mjs");
+  const { diagram: diagram2 } = await import("./chunks/mermaid.core/diagram-BVEQ5KBN.mjs");
   return { id: id27, diagram: diagram2 };
 }, "loader");
-var plugin20 = {
+var visual = {
   id: id27,
   detector: detector27,
   loader: loader27
+};
+
+// src/diagrams/block/blockDetector.ts
+var id28 = "block";
+var detector28 = /* @__PURE__ */ __name((txt) => {
+  return /^\s*block-beta/.test(txt);
+}, "detector");
+var loader28 = /* @__PURE__ */ __name(async () => {
+  const { diagram: diagram2 } = await import("./chunks/mermaid.core/blockDiagram-TFBPXYFN.mjs");
+  return { id: id28, diagram: diagram2 };
+}, "loader");
+var plugin20 = {
+  id: id28,
+  detector: detector28,
+  loader: loader28
 };
 var blockDetector_default = plugin20;
 
@@ -622,7 +637,8 @@ var addDiagrams = /* @__PURE__ */ __name(() => {
     array,
     matrix,
     testslides,
-    visslides
+    visslides,
+    visual
   );
 }, "addDiagrams");
 
@@ -645,12 +661,12 @@ var Diagram = class _Diagram {
     try {
       getDiagram(type2);
     } catch (e) {
-      const loader29 = getDiagramLoader(type2);
-      if (!loader29) {
+      const loader30 = getDiagramLoader(type2);
+      if (!loader30) {
         throw new UnknownDiagramError(`Diagram ${type2} not found.`);
       }
-      const { id: id28, diagram: diagram2 } = await loader29();
-      registerDiagram(id28, diagram2);
+      const { id: id29, diagram: diagram2 } = await loader30();
+      registerDiagram(id29, diagram2);
     }
     const { db, parser, renderer: renderer2, init: init2 } = getDiagram(type2);
     if (parser.parser) {
@@ -664,8 +680,8 @@ var Diagram = class _Diagram {
     await parser.parse(text);
     return new _Diagram(type2, text, db, parser, renderer2);
   }
-  async render(id28, version2) {
-    await this.renderer.draw(this.text, id28, version2, this);
+  async render(id29, version2) {
+    await this.renderer.draw(this.text, id29, version2, this);
   }
   getParser() {
     return this.parser;
@@ -2810,7 +2826,7 @@ function load$1(input, options) {
 __name(load$1, "load$1");
 var loadAll_1 = loadAll$1;
 var load_1 = load$1;
-var loader28 = {
+var loader29 = {
   loadAll: loadAll_1,
   load: load_1
 };
@@ -3485,8 +3501,8 @@ function renamed(from, to) {
 }
 __name(renamed, "renamed");
 var JSON_SCHEMA = json;
-var load = loader28.load;
-var loadAll = loader28.loadAll;
+var load = loader29.load;
+var loadAll = loader29.loadAll;
 var dump = dumper.dump;
 var safeLoad = renamed("safeLoad", "load");
 var safeLoadAll = renamed("safeLoadAll", "loadAll");
@@ -3668,13 +3684,13 @@ var putIntoIFrame = /* @__PURE__ */ __name((svgCode = "", svgElement) => {
   ${IFRAME_NOT_SUPPORTED_MSG}
 </iframe>`;
 }, "putIntoIFrame");
-var appendDivSvgG = /* @__PURE__ */ __name((parentRoot, id28, enclosingDivId, divStyle, svgXlink) => {
+var appendDivSvgG = /* @__PURE__ */ __name((parentRoot, id29, enclosingDivId, divStyle, svgXlink) => {
   const enclosingDiv = parentRoot.append("div");
   enclosingDiv.attr("id", enclosingDivId);
   if (divStyle) {
     enclosingDiv.attr("style", divStyle);
   }
-  const svgNode = enclosingDiv.append("svg").attr("id", id28).attr("width", "100%").attr("xmlns", XMLNS_SVG_STD);
+  const svgNode = enclosingDiv.append("svg").attr("id", id29).attr("width", "100%").attr("xmlns", XMLNS_SVG_STD);
   if (svgXlink) {
     svgNode.attr("xmlns:xlink", svgXlink);
   }
@@ -3685,12 +3701,12 @@ function sandboxedIframe(parentNode, iFrameId) {
   return parentNode.append("iframe").attr("id", iFrameId).attr("style", "width: 100%; height: 100%;").attr("sandbox", "");
 }
 __name(sandboxedIframe, "sandboxedIframe");
-var removeExistingElements = /* @__PURE__ */ __name((doc, id28, divId, iFrameId) => {
-  doc.getElementById(id28)?.remove();
+var removeExistingElements = /* @__PURE__ */ __name((doc, id29, divId, iFrameId) => {
+  doc.getElementById(id29)?.remove();
   doc.getElementById(divId)?.remove();
   doc.getElementById(iFrameId)?.remove();
 }, "removeExistingElements");
-var render = /* @__PURE__ */ __name(async function(id28, text, svgContainingElement) {
+var render = /* @__PURE__ */ __name(async function(id29, text, svgContainingElement) {
   addDiagrams();
   const processed = processAndSetConfigs(text);
   text = processed.code;
@@ -3699,10 +3715,10 @@ var render = /* @__PURE__ */ __name(async function(id28, text, svgContainingElem
   if (text.length > (config?.maxTextSize ?? MAX_TEXTLENGTH)) {
     text = MAX_TEXTLENGTH_EXCEEDED_MSG;
   }
-  const idSelector = "#" + id28;
-  const iFrameID = "i" + id28;
+  const idSelector = "#" + id29;
+  const iFrameID = "i" + id29;
   const iFrameID_selector = "#" + iFrameID;
-  const enclosingDivID = "d" + id28;
+  const enclosingDivID = "d" + id29;
   const enclosingDivID_selector = "#" + enclosingDivID;
   const removeTempElements = /* @__PURE__ */ __name(() => {
     const tmpElementSelector = isSandboxed ? iFrameID_selector : enclosingDivID_selector;
@@ -3726,9 +3742,9 @@ var render = /* @__PURE__ */ __name(async function(id28, text, svgContainingElem
     } else {
       root = select(svgContainingElement);
     }
-    appendDivSvgG(root, id28, enclosingDivID, `font-family: ${fontFamily}`, XMLNS_XLINK_STD);
+    appendDivSvgG(root, id29, enclosingDivID, `font-family: ${fontFamily}`, XMLNS_XLINK_STD);
   } else {
-    removeExistingElements(document, id28, enclosingDivID, iFrameID);
+    removeExistingElements(document, id29, enclosingDivID, iFrameID);
     if (isSandboxed) {
       const iframe = sandboxedIframe(select("body"), iFrameID);
       root = select(iframe.nodes()[0].contentDocument.body);
@@ -3736,7 +3752,7 @@ var render = /* @__PURE__ */ __name(async function(id28, text, svgContainingElem
     } else {
       root = select("body");
     }
-    appendDivSvgG(root, id28, enclosingDivID);
+    appendDivSvgG(root, id29, enclosingDivID);
   }
   let diag;
   let parseEncounteredException;
@@ -3760,12 +3776,12 @@ var render = /* @__PURE__ */ __name(async function(id28, text, svgContainingElem
   style1.innerHTML = rules;
   svg.insertBefore(style1, firstChild);
   try {
-    await diag.renderer.draw(text, id28, version, diag);
+    await diag.renderer.draw(text, id29, version, diag);
   } catch (e) {
     if (config.suppressErrorRendering) {
       removeTempElements();
     } else {
-      errorRenderer_default.draw(text, id28, version);
+      errorRenderer_default.draw(text, id29, version);
     }
     throw e;
   }
@@ -3773,7 +3789,7 @@ var render = /* @__PURE__ */ __name(async function(id28, text, svgContainingElem
   const a11yTitle = diag.db.getAccTitle?.();
   const a11yDescr = diag.db.getAccDescription?.();
   addA11yInfo(diagramType, svgNode, a11yTitle, a11yDescr);
-  root.select(`[id="${id28}"]`).selectAll("foreignobject > *").attr("xmlns", XMLNS_XHTML_STD);
+  root.select(`[id="${id29}"]`).selectAll("foreignobject > *").attr("xmlns", XMLNS_XHTML_STD);
   let svgCode = root.select(enclosingDivID_selector).node().innerHTML;
   log.debug("config.arrowMarkerAbsolute", config.arrowMarkerAbsolute);
   svgCode = cleanUpSvgCode(svgCode, isSandboxed, evaluate(config.arrowMarkerAbsolute));
@@ -3850,14 +3866,14 @@ reset(getConfig());
 var loadRegisteredDiagrams = /* @__PURE__ */ __name(async () => {
   log.debug(`Loading registered diagrams`);
   const results = await Promise.allSettled(
-    Object.entries(detectors).map(async ([key, { detector: detector28, loader: loader29 }]) => {
-      if (loader29) {
+    Object.entries(detectors).map(async ([key, { detector: detector29, loader: loader30 }]) => {
+      if (loader30) {
         try {
           getDiagram(key);
         } catch (error) {
           try {
-            const { diagram: diagram2, id: id28 } = await loader29();
-            registerDiagram(id28, diagram2, detector28);
+            const { diagram: diagram2, id: id29 } = await loader30();
+            registerDiagram(id29, diagram2, detector29);
           } catch (err) {
             log.error(`Failed to load external diagram with key ${key}. Removing from detectors.`);
             delete detectors[key];
@@ -3944,7 +3960,7 @@ var runThrowsErrors = /* @__PURE__ */ __name(async function({ postRenderCallback
       continue;
     }
     element.setAttribute("data-processed", "true");
-    const id28 = `mermaid-${idGenerator.next()}`;
+    const id29 = `mermaid-${idGenerator.next()}`;
     txt = element.innerHTML;
     txt = dedent(utils_default.entityDecode(txt)).trim().replace(/<br\s*\/?>/gi, "<br/>");
     const init2 = utils_default.detectInit(txt);
@@ -3952,10 +3968,10 @@ var runThrowsErrors = /* @__PURE__ */ __name(async function({ postRenderCallback
       log.debug("Detected early reinit: ", init2);
     }
     try {
-      const { svg, bindFunctions } = await render2(id28, txt, element);
+      const { svg, bindFunctions } = await render2(id29, txt, element);
       element.innerHTML = svg;
       if (postRenderCallback) {
-        await postRenderCallback(id28);
+        await postRenderCallback(id29);
       }
       if (bindFunctions) {
         bindFunctions(element);
@@ -4050,10 +4066,10 @@ var parse2 = /* @__PURE__ */ __name(async (text, parseOptions) => {
     executeQueue().catch(reject);
   });
 }, "parse");
-var render2 = /* @__PURE__ */ __name((id28, text, container) => {
+var render2 = /* @__PURE__ */ __name((id29, text, container) => {
   return new Promise((resolve, reject) => {
     const performCall = /* @__PURE__ */ __name(() => new Promise((res, rej) => {
-      mermaidAPI.render(id28, text, container).then(
+      mermaidAPI.render(id29, text, container).then(
         (r) => {
           res(r);
           resolve(r);
