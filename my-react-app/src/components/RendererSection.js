@@ -8,7 +8,8 @@ const RendererSection = (({
   handleExport,
   handleSave,
   mermaidRef,
-  updateCode
+  updateCode, 
+  exampleSvg
 }) => {
   const [svgElement, updateSvgElement] = useState(null);
   return (
@@ -47,7 +48,7 @@ const RendererSection = (({
         height: "100%",
       }}
     >
-      <MermaidRenderer text={mermaidCode} update={updateSvgElement}/>
+      <MermaidRenderer text={mermaidCode} update={updateSvgElement} exampleSvg={exampleSvg}/>
       <ElementEditor svgElement={svgElement} updateCode={updateCode}/>
     </div>
   </div>
