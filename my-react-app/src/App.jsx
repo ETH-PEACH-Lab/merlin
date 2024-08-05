@@ -86,7 +86,7 @@ const App = () => {
 
   const handleSelectExample = (item) => {
     setCode1(item.userCode);
-    setMermaidCodeAndExampleSvg(item.renderCode, item.figure || null);
+    setMermaidCodeAndExampleSvg(item.renderCode, item.svg || null);
   };
 
   const handleSave = () => {
