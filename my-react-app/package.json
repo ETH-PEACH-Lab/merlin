@@ -2,7 +2,7 @@
   "name": "onsenui-v2-react-minimum",
   "version": "6.1.0",
   "description": "",
-  "private":true,
+  "private": true,
   "homepage": "https://eth-peach-lab.github.io/intuition-vis-test/",
   "engines": {
     "node": ">=18.16"
@@ -12,6 +12,8 @@
     "downloadjs": "^1.4.7",
     "html-to-image": "^1.11.11",
     "jspdf": "^2.5.1",
+    "langium": "^3.1.2",
+    "langium-cli": "^3.1.0",
     "mermaid": "^10.9.1",
     "monaca-plugin-monaca-core": "3.3.1",
     "onsenui": "2.11.2",
