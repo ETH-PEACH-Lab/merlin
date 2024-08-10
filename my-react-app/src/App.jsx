@@ -20,6 +20,7 @@ const App = () => {
   const [leftWidth, setLeftWidth] = useState(window.innerWidth / 2);
   const [code1, setCode1] = useState("// Code Editor 1");
   const [mermaidCode, setMermaidCode] = useState("");
+  const [exampleSvg, setExampleSvg] = useState(null); // New state for example SVG
   const [activeTab, setActiveTab] = useState("examples"); // State for active tab
   const [savedItems, setSavedItems] = useState([]); // State for saved items
 
@@ -79,15 +80,15 @@ const App = () => {
     try {
       const parsedDSL = parseDSL(value);
       const mermaidCode = convertToMermaid(parsedDSL);
-      setMermaidCode(mermaidCode);
+      setMermaidCodeAndExampleSvg(mermaidCode, null);
     } catch (error) {
-      setMermaidCode("// Invalid DSL format");
+      setMermaidCodeAndExampleSvg("// Invalid DSL format", null);
     }
   };
 
   const handleSelectExample = (item) => {
     setCode1(item.userCode);
-    setMermaidCode(item.renderCode);
+    setMermaidCodeAndExampleSvg(item.renderCode, item.svg || null);
   };
 
   const handleSave = () => {
@@ -138,7 +139,12 @@ const App = () => {
 
   const handleSelectSavedItem = (item) => {
     setCode1(item.code1);
-    setMermaidCode(item.mermaidCode);
+    setMermaidCodeAndExampleSvg(item.mermaidCode, null);
+  };
+
+  const setMermaidCodeAndExampleSvg = (code, svg) => {
+    setMermaidCode(code);
+    setExampleSvg(svg);
   };
 
   return (
@@ -150,83 +156,58 @@ const App = () => {
         <Box sx={{
           flex: 1,
           display: "flex",
-          flexDirection: "column",
-          minWidth: 0,
-        }}>
-          <Header sx={{
-            position: {
-              md: 'static'
-            }
-          }} />
-          <Box sx={{
-            flex: 1,
+          height: "calc(100% - 50px)",
+          marginTop: "50px",
+        }}
+      >
+        <NavigationBar
+          items={examples}
+          savedItems={savedItems}
+          onSelect={activeTab === "examples" ? handleSelectExample : handleSelectSavedItem}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
+        <div
+          style={{
             display: "flex",
-            minHeight: 0,
-          }}>
-            <NavigationBar
-              items={examples}
-              savedItems={savedItems}
-              onSelect={activeTab === "examples" ? handleSelectExample : handleSelectSavedItem}
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-            />
-            <Box component="main" sx={{
-              minWidth: 0,
-              minHeight: 0,
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-            }}>
-              <div
-                style={{
-                  display: "flex",
-                  height: "100%"
-                }}
-              >
+            height: "100%",
+            width: `calc(100% - ${navBarWidth}px)`,
+            marginLeft: `0px`,
+          }}
+        >
+          <EditorSection
+            code1={code1}
+            mermaidCode={mermaidCode}
+            editor1Height={editor1Height}
+            leftWidth={leftWidth}
+            handleEditor1Change={handleEditor1Change}
+            setEditor1Height={setEditor1Height}
+            setMermaidCode={setMermaidCodeAndExampleSvg}
+            handleMouseDown={handleMouseDown}
 
-                <div
-                  style={{
-                    display: "flex",
-                    height: "100%",
-                    width: "100%",
-                    marginLeft: `0px`,
-                  }}
-                >
-                  <EditorSection
-                    code1={code1}
-                    mermaidCode={mermaidCode}
-                    editor1Height={editor1Height}
-                    leftWidth={leftWidth}
-                    handleEditor1Change={handleEditor1Change}
-                    setEditor1Height={setEditor1Height}
-                    setMermaidCode={setMermaidCode}
-                    handleMouseDown={handleMouseDown}
-
-                  />
-                  <div
-                    style={{
-                      width: "4px",
-                      cursor: "col-resize",
-                      borderRight: "1px solid #444",
-                      position: "relative",
-                      zIndex: 1,
-                    }}
-                    onMouseDown={handleMouseDown}
-                  />
-                  <RendererSection
-                    mermaidCode={mermaidCode}
-                    handleDownload={handleDownload}
-                    handleExport={handleExport}
-                    handleSave={handleSave}
-                    mermaidRef={mermaidRef}
-                    updateCode={setCode1}
-                  />
-                </div>
-              </div>
-            </Box>
-          </Box>
-        </Box>
+          />
+          <div
+            style={{
+              width: "5px",
+              cursor: "col-resize",
+              backgroundColor: "#666",
+              position: "relative",
+              zIndex: 1,
+            }}
+            onMouseDown={handleMouseDown}
+          />
+          <RendererSection
+            mermaidCode={mermaidCode}
+            exampleSvg={exampleSvg}
+            handleDownload={handleDownload}
+            handleExport={handleExport}
+            handleSave={handleSave}
+            mermaidRef={mermaidRef}
+            updateCode={setCode1}
+          />
+        </div>
       </Box>
+    </Box>
     </div>
   );
 };

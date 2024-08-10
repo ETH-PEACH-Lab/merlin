@@ -14,7 +14,8 @@ const RendererSection = (({
   handleExport,
   handleSave,
   mermaidRef,
-  updateCode
+  updateCode, 
+  exampleSvg
 }) => {
   const [svgElement, updateSvgElement] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);

@@ -2,9 +2,8 @@ import React, { useEffect, useRef } from 'react';
 import mermaid from '../libs/mermaid.esm.mjs';
 import { ElementEditor } from './ElementEditor';
 
-const MermaidRenderer = ({ text, update}) => {
+const MermaidRenderer = ({ text, update, exampleSvg }) => {
   const ref = useRef(null);
-
 
   useEffect(() => {
     mermaid.initialize({
@@ -17,12 +16,19 @@ const MermaidRenderer = ({ text, update}) => {
     const renderMermaid = async () => {
       if (ref.current && text !== '') {
         try {
-          const { svg } = await mermaid.mermaidAPI.render('preview', text);
-          ref.current.innerHTML = svg;
-          update(ref.current);
+          if (exampleSvg) {
+            // Use the provided exampleSvg if available
+            ref.current.innerHTML = exampleSvg;
+            update(ref.current);
+            setupNavigation(ref.current.querySelector('svg'));
+          } else {
+            const { svg } = await mermaid.mermaidAPI.render('preview', text);
+            ref.current.innerHTML = svg;
+            update(ref.current);
 
-          // Set up navigation after rendering the SVG
-          setupNavigation(ref.current.querySelector('svg'));
+            // Set up navigation after rendering the SVG
+            setupNavigation(ref.current.querySelector('svg'));
+          }
         } catch (error) {
           console.error('Mermaid render error:', error);
         }
@@ -36,7 +42,7 @@ const MermaidRenderer = ({ text, update}) => {
         ref.current.innerHTML = '';
       }
     };
-  }, [text]);
+  }, [text, exampleSvg]);
 
   const setupNavigation = (svg) => {
     if (!svg) return;
