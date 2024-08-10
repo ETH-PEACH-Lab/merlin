@@ -2,6 +2,7 @@ import React from "react";
 import CodeEditor from "./CodeEditor";
 import { ResizableBox } from "react-resizable";
 import "react-resizable/css/styles.css";
+import { Box, Typography } from "@mui/material";
 
 const EditorSection = ({
   code1,
@@ -20,13 +21,11 @@ const EditorSection = ({
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
-      borderRight: "1px solid #ccc",
       position: "relative",
     }}
   >
-    <div className="nav-tabs">
-      <button className="nav-tab-code-editor">Code Editor</button>
-    </div>
+    <Box>
+    <Typography variant="overline" sx={{pl: 2}}>Code Editor</Typography>
     <ResizableBox
       height={editor1Height}
       width={Infinity}
@@ -38,18 +37,18 @@ const EditorSection = ({
         <span
           style={{
             width: "100%",
-            height: "20px",
-            background: "#666",
+            height: "4px",
+            borderTop: "1px solid #444",
             cursor: "row-resize",
             position: "absolute",
             bottom: 0,
             left: 0,
-          }}
+          }} 
         />
       }
     >
       <div style={{ height: "100%" }}>
-        <CodeEditor value={code1} onChange={handleEditor1Change} />
+      <CodeEditor value={code1} onChange={handleEditor1Change} />
       </div>
     </ResizableBox>
     <div
@@ -60,6 +59,7 @@ const EditorSection = ({
     >
       <CodeEditor value={mermaidCode} onChange={setMermaidCode} />
     </div>
+    </Box>
   </div>
 );
 

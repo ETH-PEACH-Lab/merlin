@@ -9,12 +9,11 @@ import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
 import { examples } from "./examples"; // Import the generated examples file
 import "./App.css"; // Import the new CSS file for the top bar
-
-// Import the image directly
-import appIcon from "./public/empty.png";
+import { Box } from "@mui/material";
 
 // Import the DSL parser and translator
 import { parseDSL, convertToMermaid } from "./dslParser";
+import Header from "./components/Header";
 
 const App = () => {
   const [editor1Height, setEditor1Height] = useState(window.innerHeight / 2);
@@ -68,6 +67,9 @@ const App = () => {
         const pdf = new jsPDF();
         pdf.addImage(dataUrl, "PNG", 10, 10, 180, 160);
         pdf.save("diagram.pdf");
+      } else if (format === 'svg') {
+        const svg = mermaidRef.current.innerHTML;
+        download(svg, "diagram.svg", "image/svg+xml");
       }
     }
   };
@@ -141,80 +143,90 @@ const App = () => {
 
   return (
     <div ref={containerRef} className="container">
-      <div className="top-bar">
-        <img src={appIcon} alt="App Icon" className="app-icon" />
-        <span className="app-name">Intuition Vis</span>
-        <nav className="top-nav">
-          <a href="#" className="top-nav-link">
-            GitHub Repo
-          </a>
-          <a href="#" className="top-nav-link">
-            Docs
-          </a>
-          <a href="#" className="top-nav-link">
-            Tutorial
-          </a>
-          <a
-            href="https://eth-peach-lab.github.io/intuition-visualisation/"
-            className="top-nav-link"
-          >
-            Intuition Viewer
-          </a>
-        </nav>
-      </div>
-      <div
-        style={{
+      <Box sx={{
+        display: "flex",
+        height: "100vh",
+      }}>
+        <Box sx={{
+          flex: 1,
           display: "flex",
-          height: "calc(100% - 50px)",
-          marginTop: "50px",
-        }}
-      >
-        <NavigationBar
-          items={examples}
-          savedItems={savedItems}
-          onSelect={activeTab === "examples" ? handleSelectExample : handleSelectSavedItem}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-        />
-        <div
-          style={{
+          flexDirection: "column",
+          minWidth: 0,
+        }}>
+          <Header sx={{
+            position: {
+              md: 'static'
+            }
+          }} />
+          <Box sx={{
+            flex: 1,
             display: "flex",
-            height: "100%",
-            width: `calc(100% - ${navBarWidth}px)`,
-            marginLeft: `0px`,
-          }}
-        >
-          <EditorSection
-            code1={code1}
-            mermaidCode={mermaidCode}
-            editor1Height={editor1Height}
-            leftWidth={leftWidth}
-            handleEditor1Change={handleEditor1Change}
-            setEditor1Height={setEditor1Height}
-            setMermaidCode={setMermaidCode}
-            handleMouseDown={handleMouseDown}
+            minHeight: 0,
+          }}>
+            <NavigationBar
+              items={examples}
+              savedItems={savedItems}
+              onSelect={activeTab === "examples" ? handleSelectExample : handleSelectSavedItem}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+            />
+            <Box component="main" sx={{
+              minWidth: 0,
+              minHeight: 0,
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+            }}>
+              <div
+                style={{
+                  display: "flex",
+                  height: "100%"
+                }}
+              >
 
-          />
-          <div
-            style={{
-              width: "5px",
-              cursor: "col-resize",
-              backgroundColor: "#666",
-              position: "relative",
-              zIndex: 1,
-            }}
-            onMouseDown={handleMouseDown}
-          />
-          <RendererSection
-            mermaidCode={mermaidCode}
-            handleDownload={handleDownload}
-            handleExport={handleExport}
-            handleSave={handleSave}
-            mermaidRef={mermaidRef}
-            updateCode={setCode1}
-          />
-        </div>
-      </div>
+                <div
+                  style={{
+                    display: "flex",
+                    height: "100%",
+                    width: "100%",
+                    marginLeft: `0px`,
+                  }}
+                >
+                  <EditorSection
+                    code1={code1}
+                    mermaidCode={mermaidCode}
+                    editor1Height={editor1Height}
+                    leftWidth={leftWidth}
+                    handleEditor1Change={handleEditor1Change}
+                    setEditor1Height={setEditor1Height}
+                    setMermaidCode={setMermaidCode}
+                    handleMouseDown={handleMouseDown}
+
+                  />
+                  <div
+                    style={{
+                      width: "4px",
+                      cursor: "col-resize",
+                      borderRight: "1px solid #444",
+                      position: "relative",
+                      zIndex: 1,
+                    }}
+                    onMouseDown={handleMouseDown}
+                  />
+                  <RendererSection
+                    mermaidCode={mermaidCode}
+                    handleDownload={handleDownload}
+                    handleExport={handleExport}
+                    handleSave={handleSave}
+                    mermaidRef={mermaidRef}
+                    updateCode={setCode1}
+                  />
+                </div>
+              </div>
+            </Box>
+          </Box>
+        </Box>
+      </Box>
     </div>
   );
 };

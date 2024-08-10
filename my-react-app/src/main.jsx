@@ -1,20 +1,19 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
+import { ThemeProvider } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline'; // To apply baseline CSS reset
+import theme from './Theme';
 
 import App from './App';
 
-const rootElement = document.getElementById('app');
-ReactDOM.render(
-    <App />,
-  rootElement
-);
+const container = document.getElementById('app');
+const root = createRoot(container);
 
-if (module.hot) {
-  module.hot.accept('./App', () => {
-    const NextApp = require('./App').default;
-    ReactDOM.render(
-         <NextApp />,
-      rootElement
-    );
-  });
-}
+root.render(
+  <React.StrictMode>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <App />
+    </ThemeProvider>
+  </React.StrictMode>
+);

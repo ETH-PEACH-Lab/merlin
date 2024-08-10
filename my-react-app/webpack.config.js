@@ -109,6 +109,9 @@ let webpackConfig = {
     hot: true,
     client: {
       webSocketURL: `${socketProtocol}://${host}:${port}/ws`,
+      overlay: {
+        runtimeErrors: false
+      }
     },
     devMiddleware:{
       publicPath: '/',

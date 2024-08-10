@@ -1,50 +1,52 @@
 import React from 'react';
 import './NavigationBar.css';
+import { Drawer, List, ListItemText, ListItemButton, ListSubheader, Typography } from '@mui/material';
+
 
 const NavigationBar = ({ items, savedItems, onSelect, activeTab, onTabChange }) => {
+  const [selectedIndex, setSelectedIndex] = React.useState(-1);
+
   return (
-    <div className="nav-container">
-      <div className="nav-tabs">
-        <button
-          className={`nav-tab ${activeTab === 'examples' ? 'active' : ''}`}
-          onClick={() => onTabChange('examples')}
-        >
-          Examples
-        </button>
-        <button
-          className={`nav-tab ${activeTab === 'saved' ? 'active' : ''}`}
-          onClick={() => onTabChange('saved')}
-        >
-          Saved
-        </button>
-      </div>
-      <div className="nav-content">
+    <Drawer
+      id="component-nav-drawer"
+      sx={{
+        width: 180,
+        '& .MuiDrawer-paper': {
+          width: 180
+        },
+        borderRight: "1px solid #444"
+      }}
+      variant="permanent"
+      open={true}
+      anchor="left"
+    >
+      <List dense>
+        <Typography sx={{pl: 2}} variant='overline'>Examples</Typography>
         {activeTab === 'examples' ? (
-          items.map(item => (
-            <div
+          items.map((item, index) => (
+            <ListItemButton
               key={item.id}
-              className="nav-item"
-              onClick={() => onSelect(item)}
+              selected={selectedIndex === index}
+              onClick={() => { onSelect(item); setSelectedIndex(index)}}
             >
-              <div className="nav-item-title">{item.title}</div>
-            </div>
+              <ListItemText sx={{ pl: 2 }}>{item.title}</ListItemText>
+            </ListItemButton>
           ))
         ) : savedItems.length > 0 ? (
-          savedItems.map(item => (
-            <div
+          savedItems.map((item, index) => (
+            <ListItemButton
               key={item.timestamp}
-              className="nav-item"
-              onClick={() => onSelect(item)}
+              onClick={() => {onSelect(item); setSelectedIndex(index)}}
             >
-              <div className="nav-item-title">{new Date(item.timestamp).toLocaleString()}</div>
-            </div>
+              <ListItemText sx={{ pl: 2 }}>{new Date(item.timestamp).toLocaleString()}</ListItemText>
+            </ListItemButton>
           ))
         ) : (
-          <div className="nav-empty">No saved diagrams</div>
+          <ListItemText sx={{ pl: 2 }}>No saved diagrams</ListItemText>
         )}
-      </div>
-    </div>
-  );
+      </List>
+    </Drawer>
+  )
 };
 
 export default NavigationBar;
