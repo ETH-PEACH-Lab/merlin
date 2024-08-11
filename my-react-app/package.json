@@ -13,6 +13,7 @@
     "@fontsource/roboto": "^5.0.13",
     "@monaco-editor/react": "^4.6.0",
     "@mui/icons-material": "^5.16.6",
+    "@mui/lab": "^5.0.0-alpha.173",
     "@mui/material": "^5.16.6",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.5.15",
     "downloadjs": "^1.4.7",

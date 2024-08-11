@@ -2,17 +2,14 @@ import React from 'react';
 import { Button, Box, Toolbar, Typography, AppBar, Grid, IconButton } from '@mui/material';
 import GitHubIcon from "@mui/icons-material/GitHub"
 
-// Import the image directly
-import appIcon from "../public/empty.png";
-
-
 const Header = () => {
     return (
-        <AppBar position="static" color="primary" sx={{
+        <AppBar position="static" sx={{
             justifyContent: "space-between",
             flexDirection: "row",
-            padding: '5px 16px',
-            borderBottom: '1px solid #444'
+            padding: '2px 15px',
+            borderBottom: '1px solid #444',
+            backgroundColor: '#000'
         }}>
 
             <Box display="flex" flexGrow={1} alignItems={'center'}>

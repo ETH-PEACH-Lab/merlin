@@ -1,57 +1,39 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect } from 'react';
 import './ElementEditor.css';
 
-export const ElementEditor = ({svgElement, updateCode}) => {
-    const ref = useRef(null);
-    const inputRef = useRef(null);
-
-    const [locL, setLocL] = useState(0);
-    const [locT, setLocT] = useState(0);
-    const [isDisplayed, setDisplay] = useState(false);
-    const [content, setContent] = useState('');
+export const ElementEditor = ({svgElement, updateInspector}) => {
     useEffect(()=>{
         initListener();
     }, [svgElement])
 
     const initListener = () => {
-        console.log('init listener');
         if(svgElement){
-            const gElements = svgElement.querySelectorAll('g.page');
-            gElements.forEach(element => {
-                element.addEventListener('click', onElementClick);
-            });
-            console.log(gElements)
+            svgElement.addEventListener('click', onElementClick);
         }
     }
 
     const onElementClick = (e) =>{
-        const loc = e.target.getBBox();
-        const loc_base = svgElement.getBoundingClientRect()
-        const loc_m = e.target.getCTM()
-        console.log(loc_m)
-        console.log(e.target)
-        if(ref.current){
-            setLocL(loc.x)
-            console.log('y:', loc.y, loc_base.y)
-            console.log('x:', loc.x, loc_base.x)
-            setLocT(loc.y+loc_base.y + loc_m.f - 80)
-            setDisplay(true)
-            inputRef.current.value = e.target.textContent
-            setContent(e.target.textContent)
+        let target = e.target;
+    
+        // Traverse up the DOM tree to find the nearest <g class="unit"> element
+        while (target && !target.classList.contains('unit')) {
+            target = target.parentElement;
         }
-    }
+        const unitID = target? target.id: null;
 
-    const handleClick = () =>{
-        setContent('');
-        setDisplay(false);
-        updateCode(inputRef.current.value)
-        inputRef.current.value = '';
-    }
+        // Traverse up the DOM tree to find the nearest <g class="component"> element
+        while (target && !target.classList.contains('component')) {
+            target = target.parentElement;
+        }
+        const componentID = target? target.id: null;
 
-    return <div ref={ref} id='element-editor' style={{left: `${locL}px`, top: `${locT}px`, display: `${isDisplayed?'block':'none'}`}}>
-        <div id='element-editor-container'>
-            <input ref={inputRef} defaultValue={content}></input>
-            <button onClick={handleClick}>Update</button>
-        </div>
-    </div>
+        // Traverse up the DOM tree to find the nearest <g class="page"> element
+        while (target && !target.classList.contains('page')) {
+            target = target.parentElement;
+        }
+        const pageID = target?target.id: null;
+
+        updateInspector(unitID, componentID, pageID)
+    }
+    return <div></div>
 }

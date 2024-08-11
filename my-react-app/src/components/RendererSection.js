@@ -8,14 +8,13 @@ import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import ImageIcon from '@mui/icons-material/Image';
 import ShapeLineIcon from '@mui/icons-material/ShapeLine';
 import SaveIcon from '@mui/icons-material/Save';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 const RendererSection = (({
   mermaidCode,
   handleExport,
   handleSave,
   mermaidRef,
-  updateCode, 
-  exampleSvg
+  exampleSvg,
+  updateInspector
 }) => {
   const [svgElement, updateSvgElement] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);
@@ -83,26 +82,10 @@ const RendererSection = (({
             <SaveIcon sx={{ fontSize: 20 }}></SaveIcon>
           </IconButton>
         </Box>
-        {/* <div className="buttons-container">
-          <Button variant="outlined" onClick={handleDownload}>
-            Download SVG
-          </Button>
-          <div className="dropdown">
-            <button className="export-button">Export</button>
-            <div className="dropdown-content">
-              <button onClick={() => handleExport("png")}>Export as PNG</button>
-              <button onClick={() => handleExport("pdf")}>Export as PDF</button>
-            </div>
-          </div>
-          <button onClick={handleSave} className="save-button">
-            Save
-          </button>
-        </div> */}
 
       </Box>
 
       <div
-        ref={mermaidRef}
         style={{
           display: "flex",
           justifyContent: "center",
@@ -112,14 +95,15 @@ const RendererSection = (({
       >
         <Card sx={
           {
-            height: "80%",
             width: "100%",
             borderRadius: '0'
           }
         }>
           <CardContent>
-            <MermaidRenderer text={mermaidCode} update={updateSvgElement} />
-            <ElementEditor svgElement={svgElement} updateCode={updateCode} />
+            <div ref={mermaidRef}>            
+              <MermaidRenderer text={mermaidCode} update={updateSvgElement} exampleSvg={exampleSvg}/>
+            </div>
+            <ElementEditor svgElement={svgElement} updateInspector={updateInspector}/>
           </CardContent>
         </Card>
       </div>
