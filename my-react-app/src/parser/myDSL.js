@@ -13,7 +13,7 @@ function handleRepetition(array) {
                 result.push([...result[result.length - 1]]);
             }
         } else {
-            result.push(array[i]);
+            result.push(array[i][0]);
         }
     }
     return result;
@@ -37,7 +37,27 @@ var grammar = {
         },
     {"name": "data_entry", "symbols": ["data_type", "_", "var_name", "_", {"literal":"="}, "_", "data_structure"], "postprocess": 
         function(d) {
-          return { type: d[0][0], name: d[2], value: handleRepetition(d[6]) };
+        	  switch (d[0][0]) {
+        		  case "array": 
+        			return { type: d[0][0], name: d[2], value: handleRepetition(d[6])};
+        			break;
+        		case "stack": 
+        			return { type: d[0][0], name: d[2], value: handleRepetition(d[6])};
+        			break;
+        		case "tree": 
+        			return { type: d[0][0], name: d[2], value: handleRepetition(d[6])};
+        			break;
+        		case "linkedlist": 
+        			return { type: d[0][0], name: d[2], value: handleRepetition(d[6])};
+        			  break;
+        		case "matrix":
+        			 // TODO 
+        			break;
+        		default:
+        			  return;
+        			  break
+        	  }
+        	 
         }
         },
     {"name": "data_type$string$1", "symbols": [{"literal":"a"}, {"literal":"r"}, {"literal":"r"}, {"literal":"a"}, {"literal":"y"}], "postprocess": function joiner(d) {return d.join('');}},
@@ -46,6 +66,10 @@ var grammar = {
     {"name": "data_type", "symbols": ["data_type$string$2"]},
     {"name": "data_type$string$3", "symbols": [{"literal":"l"}, {"literal":"i"}, {"literal":"n"}, {"literal":"k"}, {"literal":"e"}, {"literal":"d"}, {"literal":"l"}, {"literal":"i"}, {"literal":"s"}, {"literal":"t"}], "postprocess": function joiner(d) {return d.join('');}},
     {"name": "data_type", "symbols": ["data_type$string$3"]},
+    {"name": "data_type$string$4", "symbols": [{"literal":"t"}, {"literal":"r"}, {"literal":"e"}, {"literal":"e"}], "postprocess": function joiner(d) {return d.join('');}},
+    {"name": "data_type", "symbols": ["data_type$string$4"]},
+    {"name": "data_type$string$5", "symbols": [{"literal":"m"}, {"literal":"a"}, {"literal":"t"}, {"literal":"r"}, {"literal":"i"}, {"literal":"x"}], "postprocess": function joiner(d) {return d.join('');}},
+    {"name": "data_type", "symbols": ["data_type$string$5"]},
     {"name": "var_name$ebnf$1", "symbols": []},
     {"name": "var_name$ebnf$1", "symbols": ["var_name$ebnf$1", /[a-zA-Z0-9_]/], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
     {"name": "var_name", "symbols": ["var_name$ebnf$1"], "postprocess": function(d) { return d.join("").replace(",",""); }},
@@ -74,10 +98,13 @@ var grammar = {
     {"name": "value_list$ebnf$1", "symbols": ["value_list$ebnf$1", "value_list$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
     {"name": "value_list", "symbols": ["value", "value_list$ebnf$1"], "postprocess": 
         function(d) {
-          return [d[0]].concat(d[1].map(item => item[3][0]));
+          return [d[0][0]].concat(d[1].map(item => item[3][0]));
         }
         },
     {"name": "value", "symbols": ["alphanum"]},
+    {"name": "number$ebnf$1", "symbols": [/[0-9]/]},
+    {"name": "number$ebnf$1", "symbols": ["number$ebnf$1", /[0-9]/], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "number", "symbols": ["number$ebnf$1"], "postprocess": function(d) { return parseInt(d[0].join(""), 10); }},
     {"name": "alphanum$ebnf$1", "symbols": [/[a-zA-Z0-9]/]},
     {"name": "alphanum$ebnf$1", "symbols": ["alphanum$ebnf$1", /[a-zA-Z0-9]/], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
     {"name": "alphanum", "symbols": ["alphanum$ebnf$1"], "postprocess": function(d) { return d[0].join(""); }},

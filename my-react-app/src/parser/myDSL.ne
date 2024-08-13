@@ -32,11 +32,31 @@ data_entries -> data_entry (_ data_entry):* {%
 
 data_entry -> data_type _ var_name _ "=" _ data_structure {%
   function(d) {
-    return { type: d[0][0], name: d[2], value: handleRepetition(d[6]) };
+	  switch (d[0][0]) {
+		  case "array": 
+			return { type: d[0][0], name: d[2], value: handleRepetition(d[6])};
+			break;
+		case "stack": 
+			return { type: d[0][0], name: d[2], value: handleRepetition(d[6])};
+			break;
+		case "tree": 
+			return { type: d[0][0], name: d[2], value: handleRepetition(d[6])};
+			break;
+		case "linkedlist": 
+			return { type: d[0][0], name: d[2], value: handleRepetition(d[6])};
+			  break;
+		case "matrix":
+			 // TODO 
+			break;
+		default:
+			  return;
+			  break
+	  }
+	 
   }
 %}
 
-data_type -> "array" | "stack" | "linkedlist" | "tree"
+data_type -> "array" | "stack" | "linkedlist" | "tree" | "matrix"
 
 var_name -> [a-zA-Z0-9_]:* {% function(d) { return d.join("").replace(",",""); } %}
 

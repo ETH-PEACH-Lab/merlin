@@ -9,12 +9,13 @@ import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
 import { examples } from "./examples"; // Import the generated examples file
 import "./App.css"; // Import the new CSS file for the top bar
+import { myParser } from "./parser/myParser";
 
 // Import the image directly
 import appIcon from "./public/empty.png";
 
 // Import the DSL parser and translator
-import { parseDSL, convertToMermaid } from "./dslParser";
+import { parseDSL, convertToMermaid, convertToMermaidNearley } from "./dslParser";
 
 const App = () => {
   const [editor1Height, setEditor1Height] = useState(window.innerHeight / 2);
@@ -75,8 +76,9 @@ const App = () => {
   const handleEditor1Change = (value) => {
     setCode1(value);
     try {
-      const parsedDSL = parseDSL(value);
-      const mermaidCode = convertToMermaid(parsedDSL);
+      const parsedDSL = myParser(value);
+      console.log("nearley test: ", JSON.stringify(parseDSL),"end");
+      const mermaidCode = convertToMermaidNearley(parsedDSL);
       setMermaidCode(mermaidCode);
     } catch (error) {
       setMermaidCode("// Invalid DSL format");
