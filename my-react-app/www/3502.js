@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkonsenui_v2_react_minimum=self.webpackChunkonsenui_v2_react_minimum||[]).push([[3502],{63502:(e,n,i)=>{i.d(n,{createInfoServices:()=>s.v});var s=i(15073);i(35861),i(1265),i(33615),i(8605),i(6009)}}]);
