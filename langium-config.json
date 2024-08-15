@@ -1,0 +1,12 @@
+{
+    "projectName": "VisualEditor",
+    "languages": [
+      {
+        "id": "myDSL",
+        "grammar": "./src/myDSL.langium",
+        "fileExtensions": [".myext"]
+      }
+    ],
+    "out": "src/generated"
+  }
+  

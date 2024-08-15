@@ -1,0 +1,8 @@
+{
+    "id": "gitgraphDiagram",
+    "title": "GitGraph Diagram",
+    "tags": ["git", "diagram"],
+    "figure": "gitGraph.svg",
+    "userCode": "gitGraph",
+    "renderCode": "---\ntitle: Example Git diagram\n---\ngitGraph\n   commit\n   commit\n   branch develop\n   checkout develop\n   commit\n   commit\n   checkout main\n   merge develop\n   commit\n   commit"}
+  
