@@ -18,11 +18,64 @@ function handleRepetition(array) {
 }
 %}
 
-main -> _ "data:" _ data_entries _ {%
+main -> _ "data:" _ data_entries _ (_ "draw:" _ draw_section _):? {%
   function(data) {
-    return data[3];
+	let result = {data: data[3]};
+	if (data[5]) {
+		result.draw = data[5][3]
+	}
+    return result;
   }
 %}
+
+draw_section -> draw_entry :* {%
+	function (data) {
+		return data[0];
+	}
+%}
+
+draw_entry -> _ page_entry _ {%
+	function (data) {
+		return data[1]
+	}
+
+%}
+
+page_entry -> _ "page" _ page_index _ ":=" _ range_entry _ "{" (_ show_entry _):* "}" _ {%
+	function (data) {
+		let result = {};
+		result.page_index = data[3][0];
+		result.range = data[7];
+		result.show = data[10].map((item)=>item[1]);
+		return result;
+	}
+
+%}
+
+range_entry -> "[" _  number "," number _ "]" {%
+	function (data) {
+		return {start:data[2], end:data[4]}
+	}
+%}
+
+page_index -> alphanum
+
+show_entry-> "show" _ component_name _ "[" _ component_index _ "]" _ {%
+	function (data) {
+		return {component_name: data[2][0], component_index: data[6]};
+	}
+
+%}
+
+component_index -> [A-Za-z0-9_\-\+\*/]:+ {%
+	function (data) {
+		return data[0].join("");
+	}
+%}
+
+component_name -> alphanum
+
+
 
 data_entries -> data_entry (_ data_entry):* {%
   function(d) {

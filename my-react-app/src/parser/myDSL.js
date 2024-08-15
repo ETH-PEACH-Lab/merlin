@@ -22,11 +22,68 @@ var grammar = {
     Lexer: undefined,
     ParserRules: [
     {"name": "main$string$1", "symbols": [{"literal":"d"}, {"literal":"a"}, {"literal":"t"}, {"literal":"a"}, {"literal":":"}], "postprocess": function joiner(d) {return d.join('');}},
-    {"name": "main", "symbols": ["_", "main$string$1", "_", "data_entries", "_"], "postprocess": 
-        function(data) {
-          return data[3];
+    {"name": "main$ebnf$1$subexpression$1$string$1", "symbols": [{"literal":"d"}, {"literal":"r"}, {"literal":"a"}, {"literal":"w"}, {"literal":":"}], "postprocess": function joiner(d) {return d.join('');}},
+    {"name": "main$ebnf$1$subexpression$1", "symbols": ["_", "main$ebnf$1$subexpression$1$string$1", "_", "draw_section", "_"]},
+    {"name": "main$ebnf$1", "symbols": ["main$ebnf$1$subexpression$1"], "postprocess": id},
+    {"name": "main$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "main", "symbols": ["_", "main$string$1", "_", "data_entries", "_", "main$ebnf$1"], "postprocess": 
+          function(data) {
+        let result = {data: data[3]};
+        if (data[5]) {
+        	result.draw = data[5][3]
+        }
+            return result;
+          }
+        },
+    {"name": "draw_section$ebnf$1", "symbols": []},
+    {"name": "draw_section$ebnf$1", "symbols": ["draw_section$ebnf$1", "draw_entry"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "draw_section", "symbols": ["draw_section$ebnf$1"], "postprocess": 
+        function (data) {
+        	return data[0];
         }
         },
+    {"name": "draw_entry", "symbols": ["_", "page_entry", "_"], "postprocess": 
+        function (data) {
+        	return data[1]
+        }
+        
+        },
+    {"name": "page_entry$string$1", "symbols": [{"literal":"p"}, {"literal":"a"}, {"literal":"g"}, {"literal":"e"}], "postprocess": function joiner(d) {return d.join('');}},
+    {"name": "page_entry$string$2", "symbols": [{"literal":":"}, {"literal":"="}], "postprocess": function joiner(d) {return d.join('');}},
+    {"name": "page_entry$ebnf$1", "symbols": []},
+    {"name": "page_entry$ebnf$1$subexpression$1", "symbols": ["_", "show_entry", "_"]},
+    {"name": "page_entry$ebnf$1", "symbols": ["page_entry$ebnf$1", "page_entry$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "page_entry", "symbols": ["_", "page_entry$string$1", "_", "page_index", "_", "page_entry$string$2", "_", "range_entry", "_", {"literal":"{"}, "page_entry$ebnf$1", {"literal":"}"}, "_"], "postprocess": 
+        function (data) {
+        	let result = {};
+        	result.page_index = data[3][0];
+        	result.range = data[7];
+        	result.show = data[10].map((item)=>item[1]);
+        	return result;
+        }
+        
+        },
+    {"name": "range_entry", "symbols": [{"literal":"["}, "_", "number", {"literal":","}, "number", "_", {"literal":"]"}], "postprocess": 
+        function (data) {
+        	return {start:data[2], end:data[4]}
+        }
+        },
+    {"name": "page_index", "symbols": ["alphanum"]},
+    {"name": "show_entry$string$1", "symbols": [{"literal":"s"}, {"literal":"h"}, {"literal":"o"}, {"literal":"w"}], "postprocess": function joiner(d) {return d.join('');}},
+    {"name": "show_entry", "symbols": ["show_entry$string$1", "_", "component_name", "_", {"literal":"["}, "_", "component_index", "_", {"literal":"]"}, "_"], "postprocess": 
+        function (data) {
+        	return {component_name: data[2][0], component_index: data[6]};
+        }
+        
+        },
+    {"name": "component_index$ebnf$1", "symbols": [/[A-Za-z0-9_\-\+\*/]/]},
+    {"name": "component_index$ebnf$1", "symbols": ["component_index$ebnf$1", /[A-Za-z0-9_\-\+\*/]/], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "component_index", "symbols": ["component_index$ebnf$1"], "postprocess": 
+        function (data) {
+        	return data[0].join("");
+        }
+        },
+    {"name": "component_name", "symbols": ["alphanum"]},
     {"name": "data_entries$ebnf$1", "symbols": []},
     {"name": "data_entries$ebnf$1$subexpression$1", "symbols": ["_", "data_entry"]},
     {"name": "data_entries$ebnf$1", "symbols": ["data_entries$ebnf$1", "data_entries$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
