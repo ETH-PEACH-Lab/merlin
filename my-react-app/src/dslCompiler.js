@@ -40,7 +40,7 @@ export const parseDSL = (dsl) => {
 };
 
 export const convertToMermaid = (variables) => {
-  console.log('dslParser variables: ', variables);
+  console.log('dslCompiler variables: ', variables);
   const mermaidLines = ['visslides'];
 
   const pages = {};
@@ -65,13 +65,15 @@ export const convertToMermaid = (variables) => {
   return mermaidLines.join('\n');
 };
 
-export const convertToMermaidNearley = (variables) => {
-  console.log('convertToMermaidNearley variables: ', variables);
+export const convertToMermaidNearley = (parsedDSL) => {
+  console.log('convertToMermaidNearley parserdDSL: ', parsedDSL);
   let result = "visual\n";
   let pageNum = 0;
 
+  let parserdData = parsedDSL.data;
+
   // Determine the maximum page number based on the longest value array in variables
-  variables.forEach(obj => {
+  parserdData.forEach(obj => {
     if (obj.value.length > pageNum) {
       pageNum = obj.value.length;
     }
@@ -81,7 +83,7 @@ export const convertToMermaidNearley = (variables) => {
   for (let i = 0; i < pageNum; i++) {
     result += "page\n";
 
-    variables.forEach(item => {
+    parserdData.forEach(item => {
       switch (item.type) {
         case "array":
           if (item.value[i]) {

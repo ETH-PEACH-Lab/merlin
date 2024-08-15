@@ -15,7 +15,7 @@ import { myParser } from "./parser/myParser";
 import appIcon from "./public/empty.png";
 
 // Import the DSL parser and translator
-import { parseDSL, convertToMermaid, convertToMermaidNearley } from "./dslParser";
+import { parseDSL, convertToMermaid, convertToMermaidNearley } from "./dslCompiler";
 
 const App = () => {
   const [editor1Height, setEditor1Height] = useState(window.innerHeight / 2);
