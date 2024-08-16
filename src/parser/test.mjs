@@ -6,16 +6,18 @@ const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar));
 const input = `
 data: 
 stack cd = {
-[[12,234],*,[paris,2024,olmpics]]
+structure : [[12,234],*,[paris,2024,olmpics]]
+color : [[blue,null],*]
+hidden : [[True, True], [False], *, [True, True, False]]
 }
 array ab = {
-[[a,b],[hello, world, shuwang]]
+structure : [[a,b],[hello, world, shuwang]]
 }
 linkedlist ef = {
-[[node1,node2,node3], *, *]
+structure : [[node1,node2,node3], *, *]
 }
 tree tr = {
-[[1,None,2,3,3,4,5,None],*,*,*] 
+structure : [[1,None,2,3,3,4,5,None],*,*,*] 
 }
 draw:
 page p:= [1,2] {

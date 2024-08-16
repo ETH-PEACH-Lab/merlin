@@ -1,4 +1,5 @@
 # data_structure_extended_with_strings_corrected.ne
+# TODO: add graph and matrix grammar
 
 @{%
 const flatten = arr => [].concat(...arr);
@@ -15,6 +16,23 @@ function handleRepetition(array) {
         }
     }
     return result;
+}
+
+function createAttributes(arr) {
+	let result = {
+		structure : null,
+		value : null,
+		color : null,
+		arrow : null,
+		hidden : null
+	};
+		arr.forEach(item => {
+  let key = Object.keys(item)[0];
+  let value = item[key];
+
+  result[key] = value;
+});
+	return result;
 }
 %}
 
@@ -83,27 +101,35 @@ data_entries -> data_entry (_ data_entry):* {%
   }
 %}
 
-data_entry -> data_type _ var_name _ "=" _ "{" _ data_description _  "}" {%
+data_entry -> data_type _ var_name _ "=" _ "{" _ data_description:* _  "}" {%
   function(d) {
 	  switch (d[0][0]) {
 		  case "array": 
-			return { type: d[0][0], name: d[2], value: handleRepetition(d[8])};
+			let array_result = { type: d[0][0], name: d[2], value: handleRepetition(d[8]), raw_data: d[8]};
+			array_result.attributes = createAttributes(d[8]);
+			return array_result;
 			break;
 		case "stack": 
-			return { type: d[0][0], name: d[2], value: handleRepetition(d[8])};
+			let stack_result = { type: d[0][0], name: d[2], value: handleRepetition(d[8]), raw_data: d[8]};
+			stack_result.attributes = createAttributes(d[8]);
+			return stack_result;
 			break;
 		case "tree": 
-			return { type: d[0][0], name: d[2], value: handleRepetition(d[8])};
+			let tree_result = { type: d[0][0], name: d[2], value: handleRepetition(d[8]), raw_data: d[8]};
+			tree_result.attributes = createAttributes(d[8]);
+			return tree_result;
 			break;
 		case "linkedlist": 
-			return { type: d[0][0], name: d[2], value: handleRepetition(d[8])};
-			  break;
+			let linkedlist_result = { type: d[0][0], name: d[2], value: handleRepetition(d[8]), raw_data: d[8]};
+			linkedlist_result.attributes = createAttributes(d[8]);
+			return linkedlist_result;
+			break;
 		case "matrix":
 			 // TODO 
 			break;
 		default:
-			  return;
-			  break
+			return;
+			break
 	  }
 	 
   }
@@ -113,11 +139,13 @@ data_type -> "array" | "stack" | "linkedlist" | "tree" | "matrix"
 
 var_name -> [a-zA-Z0-9_]:* {% function(d) { return d.join("").replace(",",""); } %}
 
-data_description -> "[" _ data_rows _ "]" {%
+data_description -> _ attribute_name _ ":" _ "[" _ data_rows _ "]" _ {%
   function(d) {
-    return d[2];
+    return {[d[1][0]] : handleRepetition(d[7])};
   }
 %}
+
+attribute_name -> alphanum
 
 data_rows -> data_row_or_star (_ "," _ data_row_or_star):* {%
   function(d) {

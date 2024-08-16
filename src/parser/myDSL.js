@@ -18,6 +18,23 @@ function handleRepetition(array) {
     }
     return result;
 }
+
+function createAttributes(arr) {
+	let result = {
+		structure : null,
+		value : null,
+		color : null,
+		arrow : null,
+		hidden : null
+	};
+		arr.forEach(item => {
+  let key = Object.keys(item)[0];
+  let value = item[key];
+
+  result[key] = value;
+});
+	return result;
+}
 var grammar = {
     Lexer: undefined,
     ParserRules: [
@@ -92,27 +109,37 @@ var grammar = {
           return [d[0]].concat(d[1].map(item => item[1]));
         }
         },
-    {"name": "data_entry", "symbols": ["data_type", "_", "var_name", "_", {"literal":"="}, "_", {"literal":"{"}, "_", "data_description", "_", {"literal":"}"}], "postprocess": 
+    {"name": "data_entry$ebnf$1", "symbols": []},
+    {"name": "data_entry$ebnf$1", "symbols": ["data_entry$ebnf$1", "data_description"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "data_entry", "symbols": ["data_type", "_", "var_name", "_", {"literal":"="}, "_", {"literal":"{"}, "_", "data_entry$ebnf$1", "_", {"literal":"}"}], "postprocess": 
         function(d) {
         	  switch (d[0][0]) {
         		  case "array": 
-        			return { type: d[0][0], name: d[2], value: handleRepetition(d[8])};
+        			let array_result = { type: d[0][0], name: d[2], value: handleRepetition(d[8]), raw_data: d[8]};
+        			array_result.attributes = createAttributes(d[8]);
+        			return array_result;
         			break;
         		case "stack": 
-        			return { type: d[0][0], name: d[2], value: handleRepetition(d[8])};
+        			let stack_result = { type: d[0][0], name: d[2], value: handleRepetition(d[8]), raw_data: d[8]};
+        			stack_result.attributes = createAttributes(d[8]);
+        			return stack_result;
         			break;
         		case "tree": 
-        			return { type: d[0][0], name: d[2], value: handleRepetition(d[8])};
+        			let tree_result = { type: d[0][0], name: d[2], value: handleRepetition(d[8]), raw_data: d[8]};
+        			tree_result.attributes = createAttributes(d[8]);
+        			return tree_result;
         			break;
         		case "linkedlist": 
-        			return { type: d[0][0], name: d[2], value: handleRepetition(d[8])};
-        			  break;
+        			let linkedlist_result = { type: d[0][0], name: d[2], value: handleRepetition(d[8]), raw_data: d[8]};
+        			linkedlist_result.attributes = createAttributes(d[8]);
+        			return linkedlist_result;
+        			break;
         		case "matrix":
         			 // TODO 
         			break;
         		default:
-        			  return;
-        			  break
+        			return;
+        			break
         	  }
         	 
         }
@@ -130,11 +157,12 @@ var grammar = {
     {"name": "var_name$ebnf$1", "symbols": []},
     {"name": "var_name$ebnf$1", "symbols": ["var_name$ebnf$1", /[a-zA-Z0-9_]/], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
     {"name": "var_name", "symbols": ["var_name$ebnf$1"], "postprocess": function(d) { return d.join("").replace(",",""); }},
-    {"name": "data_description", "symbols": [{"literal":"["}, "_", "data_rows", "_", {"literal":"]"}], "postprocess": 
+    {"name": "data_description", "symbols": ["_", "attribute_name", "_", {"literal":":"}, "_", {"literal":"["}, "_", "data_rows", "_", {"literal":"]"}, "_"], "postprocess": 
         function(d) {
-          return d[2];
+          return {[d[1][0]] : handleRepetition(d[7])};
         }
         },
+    {"name": "attribute_name", "symbols": ["alphanum"]},
     {"name": "data_rows$ebnf$1", "symbols": []},
     {"name": "data_rows$ebnf$1$subexpression$1", "symbols": ["_", {"literal":","}, "_", "data_row_or_star"]},
     {"name": "data_rows$ebnf$1", "symbols": ["data_rows$ebnf$1", "data_rows$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
