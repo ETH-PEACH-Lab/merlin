@@ -135,7 +135,15 @@ data_entry -> data_type _ var_name _ "=" _ "{" _ data_description:* _  "}" {%
   }
 %}
 
-data_type -> "array" | "stack" | "linkedlist" | "tree" | "matrix"
+all_type_description -> data_description | matrix_description {%
+function (d) {
+	return d[0]
+}
+%}
+
+matrix_description -> alphanum
+
+data_type -> "array" | "stack" | "linkedlist" | "tree" | "matrix" | "graph"
 
 var_name -> [a-zA-Z0-9_]:* {% function(d) { return d.join("").replace(",",""); } %}
 

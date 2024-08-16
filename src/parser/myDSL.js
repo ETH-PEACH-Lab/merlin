@@ -144,6 +144,13 @@ var grammar = {
         	 
         }
         },
+    {"name": "all_type_description", "symbols": ["data_description"]},
+    {"name": "all_type_description", "symbols": ["matrix_description"], "postprocess": 
+        function (d) {
+        	return d[0]
+        }
+        },
+    {"name": "matrix_description", "symbols": ["alphanum"]},
     {"name": "data_type$string$1", "symbols": [{"literal":"a"}, {"literal":"r"}, {"literal":"r"}, {"literal":"a"}, {"literal":"y"}], "postprocess": function joiner(d) {return d.join('');}},
     {"name": "data_type", "symbols": ["data_type$string$1"]},
     {"name": "data_type$string$2", "symbols": [{"literal":"s"}, {"literal":"t"}, {"literal":"a"}, {"literal":"c"}, {"literal":"k"}], "postprocess": function joiner(d) {return d.join('');}},
@@ -154,6 +161,8 @@ var grammar = {
     {"name": "data_type", "symbols": ["data_type$string$4"]},
     {"name": "data_type$string$5", "symbols": [{"literal":"m"}, {"literal":"a"}, {"literal":"t"}, {"literal":"r"}, {"literal":"i"}, {"literal":"x"}], "postprocess": function joiner(d) {return d.join('');}},
     {"name": "data_type", "symbols": ["data_type$string$5"]},
+    {"name": "data_type$string$6", "symbols": [{"literal":"g"}, {"literal":"r"}, {"literal":"a"}, {"literal":"p"}, {"literal":"h"}], "postprocess": function joiner(d) {return d.join('');}},
+    {"name": "data_type", "symbols": ["data_type$string$6"]},
     {"name": "var_name$ebnf$1", "symbols": []},
     {"name": "var_name$ebnf$1", "symbols": ["var_name$ebnf$1", /[a-zA-Z0-9_]/], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
     {"name": "var_name", "symbols": ["var_name$ebnf$1"], "postprocess": function(d) { return d.join("").replace(",",""); }},
