@@ -41,7 +41,7 @@ draw_entry -> _ page_entry _ {%
 
 %}
 
-page_entry -> _ "page" _ page_index _ ":=" _ range_entry _ "{" (_ show_entry _):* "}" _ {%
+page_entry -> _ "page" _ page_index _ ":=" _ range_entry _ "{" (_ show_entry _):* _ "}" _ {%
 	function (data) {
 		let result = {};
 		result.page_index = data[3][0];
@@ -83,20 +83,20 @@ data_entries -> data_entry (_ data_entry):* {%
   }
 %}
 
-data_entry -> data_type _ var_name _ "=" _ data_structure {%
+data_entry -> data_type _ var_name _ "=" _ "{" _ data_description _  "}" {%
   function(d) {
 	  switch (d[0][0]) {
 		  case "array": 
-			return { type: d[0][0], name: d[2], value: handleRepetition(d[6])};
+			return { type: d[0][0], name: d[2], value: handleRepetition(d[8])};
 			break;
 		case "stack": 
-			return { type: d[0][0], name: d[2], value: handleRepetition(d[6])};
+			return { type: d[0][0], name: d[2], value: handleRepetition(d[8])};
 			break;
 		case "tree": 
-			return { type: d[0][0], name: d[2], value: handleRepetition(d[6])};
+			return { type: d[0][0], name: d[2], value: handleRepetition(d[8])};
 			break;
 		case "linkedlist": 
-			return { type: d[0][0], name: d[2], value: handleRepetition(d[6])};
+			return { type: d[0][0], name: d[2], value: handleRepetition(d[8])};
 			  break;
 		case "matrix":
 			 // TODO 
@@ -113,7 +113,7 @@ data_type -> "array" | "stack" | "linkedlist" | "tree" | "matrix"
 
 var_name -> [a-zA-Z0-9_]:* {% function(d) { return d.join("").replace(",",""); } %}
 
-data_structure -> "[" _ data_rows _ "]" {%
+data_description -> "[" _ data_rows _ "]" {%
   function(d) {
     return d[2];
   }
