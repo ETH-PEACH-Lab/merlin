@@ -5,14 +5,19 @@ const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar));
 
 const input = `
 data: 
-array cd = {
-structure : [[paris,2024,olmpics], *]
-color : [[blue,null],*]
+matrix matrix = {
+structure : [[[9,8,7,6,5],[4,3,2], [1]], [[1,2],[3,4]], *, *]
+color : [[[blue,red],[blue, green]],*]
+}
+array ar = {
+structure : [[1],[1,2,3],[1,2,3,4]]
+color : [[blue, red], [green], *, [black, white, grey]]
 }
 
 draw:
-page p:= [1,2] {
-    show cd[i]
+page p := [0,1] {
+show matrix[1]
+show arr[p+4]
 }
 `;
 

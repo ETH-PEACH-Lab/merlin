@@ -110,32 +110,35 @@ var grammar = {
         }
         },
     {"name": "data_entry$ebnf$1", "symbols": []},
-    {"name": "data_entry$ebnf$1", "symbols": ["data_entry$ebnf$1", "data_description"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "data_entry$ebnf$1", "symbols": ["data_entry$ebnf$1", "all_type_description"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
     {"name": "data_entry", "symbols": ["data_type", "_", "var_name", "_", {"literal":"="}, "_", {"literal":"{"}, "_", "data_entry$ebnf$1", "_", {"literal":"}"}], "postprocess": 
         function(d) {
         	  switch (d[0][0]) {
         		  case "array": 
         			let array_result = { type: d[0][0], name: d[2], value: handleRepetition(d[8]), raw_data: d[8]};
-        			array_result.attributes = createAttributes(d[8]);
+        			array_result.attributes = createAttributes(d[8].map((item)=>item[0]));
         			return array_result;
         			break;
         		case "stack": 
         			let stack_result = { type: d[0][0], name: d[2], value: handleRepetition(d[8]), raw_data: d[8]};
-        			stack_result.attributes = createAttributes(d[8]);
+        			stack_result.attributes = createAttributes(d[8].map((item)=>item[0]));
         			return stack_result;
         			break;
         		case "tree": 
         			let tree_result = { type: d[0][0], name: d[2], value: handleRepetition(d[8]), raw_data: d[8]};
-        			tree_result.attributes = createAttributes(d[8]);
+        			tree_result.attributes = createAttributes(d[8].map((item)=>item[0]));
         			return tree_result;
         			break;
         		case "linkedlist": 
         			let linkedlist_result = { type: d[0][0], name: d[2], value: handleRepetition(d[8]), raw_data: d[8]};
-        			linkedlist_result.attributes = createAttributes(d[8]);
+        			linkedlist_result.attributes = createAttributes(d[8].map((item)=>item[0]));
         			return linkedlist_result;
         			break;
         		case "matrix":
-        			 // TODO 
+        			 // TODO
+        			 let matrix_result = {type: d[0][0], name: d[2], row_data:d[8], processed_data:d[8].map((item) => item[0])};
+        			  matrix_result.attributes = createAttributes(matrix_result.processed_data);
+        			 return matrix_result;
         			break;
         		default:
         			return;
@@ -146,11 +149,49 @@ var grammar = {
         },
     {"name": "all_type_description", "symbols": ["data_description"]},
     {"name": "all_type_description", "symbols": ["matrix_description"], "postprocess": 
-        function (d) {
-        	return d[0]
+        function(d) {
+        	return flatten(d);
         }
         },
-    {"name": "matrix_description", "symbols": ["alphanum"]},
+    {"name": "matrix_description", "symbols": ["_", "attribute_name", "_", {"literal":":"}, "_", {"literal":"["}, "_", "matrix_components", "_", {"literal":"]"}, "_"], "postprocess": 
+        function(d) {
+        	  // todo: handle repetition
+        	  // matrix_components should be a list of matrix components [component1, component2, ...]
+          return {[d[1][0]] : handleRepetition(d[7])}; // return {attribute_name : [[[row1],[row2]],...]}
+        }
+        },
+    {"name": "matrix_components$ebnf$1", "symbols": []},
+    {"name": "matrix_components$ebnf$1$subexpression$1", "symbols": ["_", {"literal":","}, "_", "matrix_component_or_star"]},
+    {"name": "matrix_components$ebnf$1", "symbols": ["matrix_components$ebnf$1", "matrix_components$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "matrix_components", "symbols": ["matrix_component_or_star", "matrix_components$ebnf$1"], "postprocess": 
+        function(d) {
+          return [d[0]].concat(d[1].map(item => item[3])); // return [component1, componenet2, ...]
+        }
+        },
+    {"name": "matrix_component_or_star", "symbols": ["matrix_component"]},
+    {"name": "matrix_component_or_star", "symbols": [{"literal":"*"}], "postprocess": function(d) { return d[0] === '*' ? '*' : d[0]; }},
+    {"name": "matrix_component", "symbols": [{"literal":"["}, "_", "matrix_rows", "_", {"literal":"]"}], "postprocess": 
+        function(d) {
+          return d[2]; // return matrix_component [[row1],[row2],...]
+        }
+        },
+    {"name": "matrix_rows$ebnf$1", "symbols": []},
+    {"name": "matrix_rows$ebnf$1$subexpression$1", "symbols": ["_", {"literal":","}, "_", "matrix_row", "_"]},
+    {"name": "matrix_rows$ebnf$1", "symbols": ["matrix_rows$ebnf$1", "matrix_rows$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "matrix_rows", "symbols": ["_", "matrix_row", "matrix_rows$ebnf$1"], "postprocess": 
+        function(d) {
+        	  //TODO
+          return [d[1]].concat(d[2].map(item => item[3]));  // return matrix_component [[row1],[row2],...]
+        }
+        },
+    {"name": "matrix_row$ebnf$1", "symbols": []},
+    {"name": "matrix_row$ebnf$1$subexpression$1", "symbols": ["_", {"literal":","}, "_", "value", "_"]},
+    {"name": "matrix_row$ebnf$1", "symbols": ["matrix_row$ebnf$1", "matrix_row$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "matrix_row", "symbols": ["_", {"literal":"["}, "value", "matrix_row$ebnf$1", {"literal":"]"}], "postprocess": 
+        function (d) {
+        	return [d[2][0]].concat(d[3].map(item => item[3][0])); //TODO
+        }
+        },
     {"name": "data_type$string$1", "symbols": [{"literal":"a"}, {"literal":"r"}, {"literal":"r"}, {"literal":"a"}, {"literal":"y"}], "postprocess": function joiner(d) {return d.join('');}},
     {"name": "data_type", "symbols": ["data_type$string$1"]},
     {"name": "data_type$string$2", "symbols": [{"literal":"s"}, {"literal":"t"}, {"literal":"a"}, {"literal":"c"}, {"literal":"k"}], "postprocess": function joiner(d) {return d.join('');}},
@@ -165,7 +206,7 @@ var grammar = {
     {"name": "data_type", "symbols": ["data_type$string$6"]},
     {"name": "var_name$ebnf$1", "symbols": []},
     {"name": "var_name$ebnf$1", "symbols": ["var_name$ebnf$1", /[a-zA-Z0-9_]/], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
-    {"name": "var_name", "symbols": ["var_name$ebnf$1"], "postprocess": function(d) { return d.join("").replace(",",""); }},
+    {"name": "var_name", "symbols": ["var_name$ebnf$1"], "postprocess": function(d) { return d[0].join("").replace(",",""); }},
     {"name": "data_description", "symbols": ["_", "attribute_name", "_", {"literal":":"}, "_", {"literal":"["}, "_", "data_rows", "_", {"literal":"]"}, "_"], "postprocess": 
         function(d) {
           return {[d[1][0]] : handleRepetition(d[7])};
