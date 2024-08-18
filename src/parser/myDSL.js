@@ -21,7 +21,7 @@ function handleRepetition(array) {
 
 function createAttributes(arr) {
 	let result = {
-		structure : null,
+		id : null,
 		value : null,
 		color : null,
 		arrow : null,
@@ -135,11 +135,15 @@ var grammar = {
         			return linkedlist_result;
         			break;
         		case "matrix":
-        			 // TODO
         			 let matrix_result = {type: d[0][0], name: d[2], row_data:d[8], processed_data:d[8].map((item) => item[0])};
         			  matrix_result.attributes = createAttributes(matrix_result.processed_data);
         			 return matrix_result;
         			break;
+        		  case "graph":
+        			  let graph_result = { type: d[0][0], name: d[2], value: handleRepetition(d[8]), raw_data: d[8]};
+        			  graph_result.attributes = createAttributes(d[8].map((item)=>item[0]));
+        			return graph_result;
+        			  break;
         		default:
         			return;
         			break
@@ -180,7 +184,6 @@ var grammar = {
     {"name": "matrix_rows$ebnf$1", "symbols": ["matrix_rows$ebnf$1", "matrix_rows$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
     {"name": "matrix_rows", "symbols": ["_", "matrix_row", "matrix_rows$ebnf$1"], "postprocess": 
         function(d) {
-        	  //TODO
           return [d[1]].concat(d[2].map(item => item[3]));  // return matrix_component [[row1],[row2],...]
         }
         },
@@ -189,7 +192,7 @@ var grammar = {
     {"name": "matrix_row$ebnf$1", "symbols": ["matrix_row$ebnf$1", "matrix_row$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
     {"name": "matrix_row", "symbols": ["_", {"literal":"["}, "value", "matrix_row$ebnf$1", {"literal":"]"}], "postprocess": 
         function (d) {
-        	return [d[2][0]].concat(d[3].map(item => item[3][0])); //TODO
+        	return [d[2][0]].concat(d[3].map(item => item[3][0])); 
         }
         },
     {"name": "data_type$string$1", "symbols": [{"literal":"a"}, {"literal":"r"}, {"literal":"r"}, {"literal":"a"}, {"literal":"y"}], "postprocess": function joiner(d) {return d.join('');}},
@@ -223,9 +226,20 @@ var grammar = {
         },
     {"name": "data_row_or_star", "symbols": ["data_row"]},
     {"name": "data_row_or_star", "symbols": [{"literal":"*"}], "postprocess": function(d) { return d[0] === '*' ? '*' : d[0]; }},
-    {"name": "data_row", "symbols": [{"literal":"["}, "_", "value_list", "_", {"literal":"]"}], "postprocess": 
-        function(d) {
-          return d[2];
+    {"name": "data_row", "symbols": [{"literal":"["}, "_", "value_edge_list", "_", {"literal":"]"}], "postprocess": 
+          function(d) {
+            if (typeof(d[2][0]) == "object") { //edge type
+        	return d[2][0];
+          }
+        else { // value type
+        	return d[2] 
+        }
+          }
+        },
+    {"name": "value_edge_list", "symbols": ["edge_list"]},
+    {"name": "value_edge_list", "symbols": ["value_list"], "postprocess": 
+        function (d) {
+        	return d[0]
         }
         },
     {"name": "value_list$ebnf$1", "symbols": []},
@@ -234,6 +248,19 @@ var grammar = {
     {"name": "value_list", "symbols": ["value", "value_list$ebnf$1"], "postprocess": 
         function(d) {
           return [d[0][0]].concat(d[1].map(item => item[3][0]));
+        }
+        },
+    {"name": "edge_list$ebnf$1", "symbols": []},
+    {"name": "edge_list$ebnf$1$subexpression$1", "symbols": ["_", {"literal":","}, "_", "edge"]},
+    {"name": "edge_list$ebnf$1", "symbols": ["edge_list$ebnf$1", "edge_list$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "edge_list", "symbols": ["edge", "edge_list$ebnf$1"], "postprocess": 
+        function(d) {
+          return [d[0]].concat(d[1].map(item => item[3]));
+        }
+        },
+    {"name": "edge", "symbols": ["_", {"literal":"("}, "_", "value", "_", {"literal":","}, "_", "value", "_", {"literal":")"}], "postprocess": 
+        function (d) {
+        	return {startPoint:d[3], endPoint:d[7]};
         }
         },
     {"name": "value", "symbols": ["alphanum"]},

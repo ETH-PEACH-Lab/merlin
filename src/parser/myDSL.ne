@@ -20,7 +20,7 @@ function handleRepetition(array) {
 
 function createAttributes(arr) {
 	let result = {
-		structure : null,
+		id : null,
 		value : null,
 		color : null,
 		arrow : null,
@@ -125,11 +125,15 @@ data_entry -> data_type _ var_name _ "=" _ "{" _ all_type_description:* _  "}" {
 			return linkedlist_result;
 			break;
 		case "matrix":
-			 // TODO
 			 let matrix_result = {type: d[0][0], name: d[2], row_data:d[8], processed_data:d[8].map((item) => item[0])};
 			  matrix_result.attributes = createAttributes(matrix_result.processed_data);
 			 return matrix_result;
 			break;
+		  case "graph":
+			  let graph_result = { type: d[0][0], name: d[2], value: handleRepetition(d[8]), raw_data: d[8]};
+			  graph_result.attributes = createAttributes(d[8].map((item)=>item[0]));
+			return graph_result;
+			  break;
 		default:
 			return;
 			break
@@ -168,14 +172,13 @@ matrix_component -> "[" _ matrix_rows _ "]" {%
 
 matrix_rows -> _ matrix_row (_ "," _ matrix_row _):* {%
   function(d) {
-	  //TODO
     return [d[1]].concat(d[2].map(item => item[3]));  // return matrix_component [[row1],[row2],...]
   }
 %}
 
 matrix_row -> _ "[" value (_ "," _ value _):* "]" {%
 	function (d) {
-		return [d[2][0]].concat(d[3].map(item => item[3][0])); //TODO
+		return [d[2][0]].concat(d[3].map(item => item[3][0])); 
 	}
 %}
 
@@ -199,16 +202,39 @@ data_rows -> data_row_or_star (_ "," _ data_row_or_star):* {%
 
 data_row_or_star -> data_row | "*" {% function(d) { return d[0] === '*' ? '*' : d[0]; } %}
 
-data_row -> "[" _ value_list _ "]" {%
+data_row -> "[" _ value_edge_list _ "]" {%
   function(d) {
-    return d[2];
+    if (typeof(d[2][0]) == "object") { //edge type
+		return d[2][0];
   }
+	else { // value type
+		return d[2] 
+	}
+  }
+%}
+
+value_edge_list -> edge_list | value_list {%
+	function (d) {
+		return d[0]
+	}
 %}
 
 value_list -> value (_ "," _ value):* {%
   function(d) {
     return [d[0][0]].concat(d[1].map(item => item[3][0]));
   }
+%}
+
+edge_list -> edge (_ "," _ edge):* {%
+  function(d) {
+    return [d[0]].concat(d[1].map(item => item[3]));
+  }
+%}
+
+edge -> _ "(" _ value _ "," _ value _ ")" {%
+	function (d) {
+		return {startPoint:d[3], endPoint:d[7]};
+	}
 %}
 
 value -> alphanum
