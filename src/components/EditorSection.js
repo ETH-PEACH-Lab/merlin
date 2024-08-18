@@ -12,9 +12,8 @@ const EditorSection = ({
   handleEditor1Change,
   setEditor1Height,
   setMermaidCode,
-  handleMouseDown,
-}) => (
-  <div
+}) => {
+  return <div
     className="CodeEditorsContent"
     style={{
       width: leftWidth,
@@ -47,7 +46,7 @@ const EditorSection = ({
         />
       }
     >
-      <div style={{ height: "100%" }}>
+      <div style={{ height: "100%", margin: 0, padding: 0 }}>
       <CodeEditor value={code1} onChange={handleEditor1Change} />
       </div>
     </ResizableBox>
@@ -61,6 +60,6 @@ const EditorSection = ({
     </div>
     </Box>
   </div>
-);
+};
 
 export default EditorSection;

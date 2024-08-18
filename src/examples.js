@@ -379,8 +379,53 @@ export const examples = [
     </script>
 </svg>
     `,
-    "userCode":"aaa",
-    "renderCode":"aaa",
+    "userCode":`
+    data:
+	array arr = {
+		structure: [[unit1],[unit1,unit2],[unit1,unit2,unit3], *] # unit_id, required
+	}
+	linkedlist li = {
+		structure: [[unit1],[unit1,unit2],[unit1,unit2,unit3], *] # unit_id, required
+	}
+	tree tr = {
+		structure: [[node1],[node1,node2],[node1,node2,node3], *, *, *]
+	}
+
+draw:
+	page p := [0,2] {
+		show arr[p]
+		show li[p-1]
+	}
+	page p := [3,3] {
+		show li[3]
+	}
+	page i := [4,8] {
+		show li[8-i]
+		show tr[i]
+	}`,
+    "renderCode":`data:
+	array arr = {
+		structure: [[unit1],[unit1,unit2],[unit1,unit2,unit3], *] # unit_id, required
+	}
+	linkedlist li = {
+		structure: [[unit1],[unit1,unit2],[unit1,unit2,unit3], *] # unit_id, required
+	}
+	tree tr = {
+		structure: [[node1],[node1,node2],[node1,node2,node3], *, *, *]
+	}
+
+draw:
+	page p := [0,2] {
+		show arr[p]
+		show li[p-1]
+	}
+	page p := [3,3] {
+		show li[3]
+	}
+	page i := [4,8] {
+		show li[8-i]
+		show tr[i]
+	}`,
   },
   {
     "id":"example2",
