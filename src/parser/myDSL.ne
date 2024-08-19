@@ -70,9 +70,9 @@ page_entry -> _ "page" _ page_index _ ":=" _ range_entry _ "{" (_ show_entry _):
 
 %}
 
-range_entry -> "[" _  number "," number _ "]" {%
+range_entry -> "[" _  number _ "," _ number _ "]" {%
 	function (data) {
-		return {start:data[2], end:data[4]}
+		return {start:data[2], end:data[6]}
 	}
 %}
 

@@ -80,9 +80,9 @@ var grammar = {
         }
         
         },
-    {"name": "range_entry", "symbols": [{"literal":"["}, "_", "number", {"literal":","}, "number", "_", {"literal":"]"}], "postprocess": 
+    {"name": "range_entry", "symbols": [{"literal":"["}, "_", "number", "_", {"literal":","}, "_", "number", "_", {"literal":"]"}], "postprocess": 
         function (data) {
-        	return {start:data[2], end:data[4]}
+        	return {start:data[2], end:data[6]}
         }
         },
     {"name": "page_index", "symbols": ["alphanum"]},
