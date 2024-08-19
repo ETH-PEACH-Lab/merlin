@@ -8,7 +8,7 @@ import { generateTree } from "./generateTree.mjs";
 import { generateMatrix } from "./generateMatrix.mjs";
 import { generateGraph } from "./generateGraph.mjs";
 
-export function convertDSLtoMermaid (input) {
+export function convertDSLtoMermaid (input) { //input is user's myDSL string 
     const parsedDSL = parserMyDSL(input);
     // console.log(JSON.stringify(parsedData["draw"], null, 1));
     const data_commands = parsedDSL["data"];
@@ -91,7 +91,8 @@ export function convertDSLtoMermaid (input) {
         }
     }
 
-    console.log("mermaidString:", "\n", mermaidString);
+    // console.log("mermaidString:", "\n", mermaidString);
+    return mermaidString;
 }
 
 function cacalculateIndex(variableName, variableValue, expression) {

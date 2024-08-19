@@ -11,6 +11,7 @@ import { examples } from "./examples"; // Import the generated examples file
 import "./App.css"; // Import the new CSS file for the top bar
 import { Box } from "@mui/material";
 import { myParser } from "./parser/myParser";
+import { convertDSLtoMermaid } from "./compiler/myCompiler.mjs";
 import GUIEditor from "./components/GUIEditor";
 import Header from "./components/Header";
 
@@ -76,9 +77,10 @@ const App = () => {
   const handleEditor1Change = (value) => {
     setCode1(value);
     try {
-      const parsedDSL = myParser(value);
-      console.log("nearley test: ", JSON.stringify(parseDSL), "end");
-      const mermaidCode = convertToMermaidNearley(parsedDSL);
+      // const parsedDSL = myParser(value);
+      // console.log("setCode1 nearley test: ", JSON.stringify(parseDSL), "end");
+      const mermaidCode = convertDSLtoMermaid(value);
+      console.log('after convert DSL-mermaid:', mermaidCode);
       setMermaidCode(mermaidCode);
     } catch (error) {
       setMermaidCode("// Invalid DSL format");
