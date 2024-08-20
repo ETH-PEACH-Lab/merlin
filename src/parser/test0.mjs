@@ -3,7 +3,20 @@ import grammar from './myDSL.js';  // Compiled from data_structure_extended_with
 
 const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar));
 
-const input = `[ (node1,node2),(node3,node4) ]
+const input = `data: 
+array arr1 = {
+ structure: [[1],[1,2],[1,2,3],[1,2,3,4]]
+}
+array arr2 = {
+ structure: [[1],[1,2],[1,2,3],[1,2,3,4]]
+}
+array arr3 = {
+ structure: [[1],[1,2],[1,2,3],[1,2,3,4]]
+}
+draw:
+page p:=[0,3] {
+show arr1[p]
+}
  `;
 
 parser.feed(input);
