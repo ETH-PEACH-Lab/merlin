@@ -10,12 +10,10 @@ import { generateGraph } from "./generateGraph.mjs";
 
 export function convertDSLtoMermaid (input) { //input is user's myDSL string 
     const parsedDSL = parserMyDSL(input);
-    // console.log(JSON.stringify(parsedData["draw"], null, 1));
+
     const data_commands = parsedDSL["data"];
     const draw_commands = parsedDSL["draw"];
-    // draw_commands.forEach(element => {
-    //     console.log(element);
-    // });
+
 
     // create the showTable from parsedDSL
     let showTable = {}; // store all shown unit
@@ -27,9 +25,6 @@ export function convertDSLtoMermaid (input) { //input is user's myDSL string
         const endPage = draw_command["range"]["end"];
         const components_show = draw_command["show"];
 
-        // console.log(page_index, "\n", startPage, "\n", endPage, "\n", components_show);
-        // console.log("components_show: ", components_show);
-
         for (let p = startPage; p < endPage + 1; p ++) { // generate for each page
             showTable[`page${p}`] = {}
             let component_counter = 0; // used for generate component_id
@@ -38,7 +33,7 @@ export function convertDSLtoMermaid (input) { //input is user's myDSL string
 
                 let component_index_expression = component_show.component_index;
                 let component_name =component_show.component_name;
-                let component_data_index = cacalculateIndex(page_index, p, component_index_expression); // index in data part, to retrive data from parsedData
+                let component_data_index = calculateIndex(page_index, p, component_index_expression); // index in data part, to retrive data from parsedData
                 let component_data = findItemByComponentNameAndIndex(data_commands, component_name, component_data_index);
 
                 showTable[`page${p}`][`component_${component_counter}`] = {
@@ -53,8 +48,6 @@ export function convertDSLtoMermaid (input) { //input is user's myDSL string
             )
         };
     });
-    console.log("showTable:\n", JSON.stringify(showTable, null, 1));
-    // console.log(JSON.stringify(data_commands));
 
     // use showTable generate mermaid code
     let mermaidString = "visual\n";
@@ -95,7 +88,7 @@ export function convertDSLtoMermaid (input) { //input is user's myDSL string
     return mermaidString;
 }
 
-function cacalculateIndex(variableName, variableValue, expression) {
+function calculateIndex(variableName, variableValue, expression) {
     // Create a regular expression to find the variable in the expression
     const regex = new RegExp(`\\b${variableName}\\b`, 'g');
     

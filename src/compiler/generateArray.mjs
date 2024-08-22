@@ -1,9 +1,6 @@
 export function generateArray(arrayComponent) {
-    console.log("arrayComponent: ", arrayComponent);
     let result = "array\n@\n";
-    // for (const id of arrayComponent.attributes.structure) {
-    //     result += `${id}\n`
-    // }
+
     const structure = arrayComponent.attributes.structure;
     const color = arrayComponent.attributes.color || [];
     const arrow = arrayComponent.attributes.arrow || [];
