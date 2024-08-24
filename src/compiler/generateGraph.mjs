@@ -5,7 +5,7 @@ export function generateGraph(graphComponent) {
     // }
     const id = graphComponent.attributes.id;
     const edges = graphComponent.attributes.edge || [];
-    const value = graphComponent.attributes.color || [];
+    const value = graphComponent.attributes.value || [];
     const color = graphComponent.attributes.color || [];
 
     for (let idx = 0; idx < id.length; idx ++ ) {
