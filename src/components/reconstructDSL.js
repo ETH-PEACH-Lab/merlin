@@ -35,7 +35,7 @@ export function reconstructDSL (parserdDSL) {
     draw_part.forEach((draw_entry)=> {
         result_string += `\npage ${draw_entry.page_index}:=[${draw_entry.range.start},${draw_entry.range.end}] {`;
         draw_entry.show.forEach((show_entry) => {
-            result_string += `\nshow ${show_entry.component_name} [${show_entry.component_index}]`
+            result_string += `\nshow ${show_entry.component_name}[${show_entry.component_index}]`
         });
         result_string += `\n}`
     });
