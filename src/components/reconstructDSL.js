@@ -104,7 +104,18 @@ function reconstructGraph (parsedComponent) {
     let result_string = "";
     result_string += `\ngraph ${parsedComponent.name} = {`;
     result_string += `\n  id:${JSON.stringify(parsedComponent["attributes"]["id"]).replace(regex,"")}`;
-    result_string += `\n  edge:${JSON.stringify(parsedComponent["attributes"]["edge"]).replace(regex,"")}`;
+    // result_string += `\n  edge:${JSON.stringify(parsedComponent["attributes"]["edge"]).replace(regex,"")}`;
+    let edge_string = "\n  edge:[";
+    parsedComponent["attributes"]["edge"].forEach((component_edges) => {
+        let edges = [];
+        component_edges.forEach((edge) => {
+            edges.push(`(${edge['startPoint'][0]},${edge['endPoint'][0]})`)
+        });
+        edges = edges.join(",");
+        edge_string += `[${JSON.stringify(edges).replace(regex,"")}],`;
+    });
+    edge_string = edge_string.slice(0,-1) + "]";
+    result_string += edge_string;
     result_string += `\n  value:${JSON.stringify(parsedComponent["attributes"]["value"]).replace(regex,"")}`;
     result_string += `\n  color:${JSON.stringify(parsedComponent["attributes"]["color"]).replace(regex,"")}`;
     result_string += `\n  arrow:${JSON.stringify(parsedComponent["attributes"]["arrow"]).replace(regex,"")}`;
