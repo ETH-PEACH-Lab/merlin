@@ -36,30 +36,28 @@ function createAttributes(arr) {
 }
 %}
 
-main -> _ "data:" _ data_entries _ (_ "draw:" _ draw_section _):? {%
+main -> _ "data:" _ data_entries _  "draw:" draw_section _ {%
   function(data) {
 	let result = {data: data[3]};
-	if (data[5]) {
-		result.draw = data[5][3]
-	}
+	result.draw = data[6];
     return result;
   }
 %}
 
-draw_section -> draw_entry :* {%
+draw_section -> draw_entry :+ {%
 	function (data) {
 		return data[0];
 	}
 %}
 
-draw_entry -> _ page_entry _ {%
+draw_entry -> page_entry {%
 	function (data) {
-		return data[1]
+		return data[0]
 	}
 
 %}
 
-page_entry -> _ "page" _ page_index _ ":=" _ range_entry _ "{" (_ show_entry _):* _ "}" _ {%
+page_entry -> _ "page" _ page_index _ ":=" _ range_entry _ "{" (_ show_entry ):+ _ "}" {%
 	function (data) {
 		let result = {};
 		result.page_index = data[3][0];
@@ -70,22 +68,21 @@ page_entry -> _ "page" _ page_index _ ":=" _ range_entry _ "{" (_ show_entry _):
 
 %}
 
-range_entry -> "[" _  number _ "," _ number _ "]" {%
+range_entry -> "[" number "," number "]" {%
 	function (data) {
-		return {start:data[2], end:data[6]}
+		return {start:data[1], end:data[3]}
 	}
 %}
 
 page_index -> alphanum
 
-show_entry-> "show" _ component_name _ "[" _ component_index _ "]" _ {%
+show_entry-> "show" _ component_name "[" component_index "]" {%
 	function (data) {
-		return {component_name: data[2][0], component_index: data[6]};
+		return {component_name: data[2][0], component_index: data[4]};
 	}
-
 %}
 
-component_index -> [A-Za-z0-9_\-\+\*/]:+ {%
+component_index -> [A-Za-z0-9\-\+\*/]:+ {%
 	function (data) {
 		return data[0].join("");
 	}
@@ -95,43 +92,44 @@ component_name -> alphanum
 
 
 
-data_entries -> data_entry (_ data_entry):* {%
+data_entries -> ("\n" data_entry):+ {%
   function(d) {
-    return [d[0]].concat(d[1].map(item => item[1]));
+    //return [d[0]].concat(d[1].map(item => item[1]));
+	return d[0].map(item => item[1]);
   }
 %}
 
-data_entry -> data_type _ var_name _ "=" _ "{" _ all_type_description:* _  "}" {%
+data_entry -> data_type _ var_name _ "=" _ "{" all_type_description:+ _ "}" {%
   function(d) {
 	  switch (d[0][0]) {
 		  case "array": 
-			let array_result = { type: d[0][0], name: d[2], value: handleRepetition(d[8]), raw_data: d[8]};
-			array_result.attributes = createAttributes(d[8].map((item)=>item[0]));
+			let array_result = { type: d[0][0], name: d[2] };
+			array_result.attributes = createAttributes(d[7].map((item)=>item[0]));
 			return array_result;
 			break;
 		case "stack": 
-			let stack_result = { type: d[0][0], name: d[2], value: handleRepetition(d[8]), raw_data: d[8]};
-			stack_result.attributes = createAttributes(d[8].map((item)=>item[0]));
+			let stack_result = { type: d[0][0], name: d[2] };
+			stack_result.attributes = createAttributes(d[7].map((item)=>item[0]));
 			return stack_result;
 			break;
 		case "tree": 
-			let tree_result = { type: d[0][0], name: d[2], value: handleRepetition(d[8]), raw_data: d[8]};
-			tree_result.attributes = createAttributes(d[8].map((item)=>item[0]));
+			let tree_result = { type: d[0][0], name: d[2] };
+			tree_result.attributes = createAttributes(d[7].map((item)=>item[0]));
 			return tree_result;
 			break;
 		case "linkedlist": 
-			let linkedlist_result = { type: d[0][0], name: d[2], value: handleRepetition(d[8]), raw_data: d[8]};
-			linkedlist_result.attributes = createAttributes(d[8].map((item)=>item[0]));
+			let linkedlist_result = { type: d[0][0], name: d[2] };
+			linkedlist_result.attributes = createAttributes(d[7].map((item)=>item[0]));
 			return linkedlist_result;
 			break;
 		case "matrix":
-			 let matrix_result = {type: d[0][0], name: d[2], row_data:d[8], processed_data:d[8].map((item) => item[0])};
+			 let matrix_result = {type: d[0][0], name: d[2], processed_data:d[7].map((item) => item[0])};
 			  matrix_result.attributes = createAttributes(matrix_result.processed_data);
 			 return matrix_result;
 			break;
 		  case "graph":
-			  let graph_result = { type: d[0][0], name: d[2], value: handleRepetition(d[8]), raw_data: d[8]};
-			  graph_result.attributes = createAttributes(d[8].map((item)=>item[0]));
+			  let graph_result = { type: d[0][0], name: d[2] };
+			  graph_result.attributes = createAttributes(d[7].map((item)=>item[0]));
 			return graph_result;
 			  break;
 		default:
@@ -148,7 +146,7 @@ all_type_description -> data_description | matrix_description {%
 	}
 %}
 
-matrix_description -> _ attribute_name _ ":" _ "[" _ matrix_components _ "]" _ {%
+matrix_description -> _ attribute_name _ ":" _ "[" _ matrix_components _ "]" {%
   function(d) {
 	  // todo: handle repetition
 	  // matrix_components should be a list of matrix components [component1, component2, ...]
@@ -164,51 +162,51 @@ matrix_components -> matrix_component_or_star (_ "," _ matrix_component_or_star)
 
 matrix_component_or_star -> matrix_component | "*" {% function(d) { return d[0] === '*' ? '*' : d[0]; } %}
 
-matrix_component -> "[" _ matrix_rows _ "]" {%
+matrix_component -> "[" matrix_rows "]" {%
   function(d) {
-    return d[2]; // return matrix_component [[row1],[row2],...]
+    return d[1]; // return matrix_component [[row1],[row2],...]
   }
 %}
 
-matrix_rows -> _ matrix_row (_ "," _ matrix_row _):* {%
+matrix_rows -> matrix_row ("," matrix_row):* {%
   function(d) {
-    return [d[1]].concat(d[2].map(item => item[3]));  // return matrix_component [[row1],[row2],...]
+    return [d[0]].concat(d[1].map(item => item[1]));  // return matrix_component [[row1],[row2],...]
   }
 %}
 
-matrix_row -> _ "[" value (_ "," _ value _):* "]" {%
+matrix_row -> _ "[" value ("," _ value ):* "]" {%
 	function (d) {
-		return [d[2][0]].concat(d[3].map(item => item[3][0])); 
+		return [d[2][0]].concat(d[3].map(item => item[2][0])); 
 	}
 %}
 
 data_type -> "array" | "stack" | "linkedlist" | "tree" | "matrix" | "graph"
 
-var_name -> [a-zA-Z0-9_]:* {% function(d) { return d[0].join("").replace(",",""); } %}
+var_name -> [a-zA-Z0-9]:+ {% function(d) { return d[0].join("").replace(",",""); } %}
 
-data_description -> _ attribute_name _ ":" _ "[" _ data_rows _ "]" _ {%
+data_description -> _ attribute_name  ":" _ "[" data_rows "]" {%
   function(d) {
-    return {[d[1][0]] : handleRepetition(d[7])};
+    return {[d[1][0]] : handleRepetition(d[5])};
   }
 %}
 
 attribute_name -> alphanum
 
-data_rows -> data_row_or_star (_ "," _ data_row_or_star):* {%
+data_rows -> data_row_or_star ("," data_row_or_star):* {%
   function(d) {
-    return [d[0]].concat(d[1].map(item => item[3]));
+    return [d[0]].concat(d[1].map(item => item[1]));
   }
 %}
 
 data_row_or_star -> data_row | "*" {% function(d) { return d[0] === '*' ? '*' : d[0]; } %}
 
-data_row -> "[" _ value_edge_list _ "]" {%
+data_row -> "["  value_edge_list  "]" {%
   function(d) {
-    if (typeof(d[2][0]) == "object") { //edge type
-		return d[2][0];
+    if (typeof(d[1][0]) == "object") { //edge type
+		return d[1][0];
   }
 	else { // value type
-		return d[2] 
+		return d[1] 
 	}
   }
 %}
@@ -219,21 +217,21 @@ value_edge_list -> edge_list | value_list {%
 	}
 %}
 
-value_list -> value (_ "," _ value):* {%
+value_list -> value ("," value):* {%
   function(d) {
-    return [d[0][0]].concat(d[1].map(item => item[3][0]));
+    return [d[0][0]].concat(d[1].map(item => item[1][0]));
   }
 %}
 
-edge_list -> edge (_ "," _ edge):* {%
+edge_list -> edge ("," edge):* {%
   function(d) {
-    return [d[0]].concat(d[1].map(item => item[3]));
+    return [d[0]].concat(d[1].map(item => item[1]));
   }
 %}
 
-edge -> _ "(" _ value _ "," _ value _ ")" {%
+edge -> "(" value "," value ")" {%
 	function (d) {
-		return {startPoint:d[3], endPoint:d[7]};
+		return {startPoint:d[1], endPoint:d[3]};
 	}
 %}
 
