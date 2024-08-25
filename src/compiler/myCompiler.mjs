@@ -88,6 +88,84 @@ export function convertDSLtoMermaid (input) { //input is user's myDSL string
     return mermaidString;
 }
 
+export function convertParsedDSLtoMermaid (parsedDSL) { //input is parsed DSL
+
+    const data_commands = parsedDSL["data"];
+    const draw_commands = parsedDSL["draw"];
+
+    // create the showTable from parsedDSL
+    let showTable = {}; // store all shown unit
+
+    // generate showTable from draw commands
+    draw_commands.forEach((draw_command) => {
+        const page_index = draw_command["page_index"];
+        const startPage = draw_command["range"]["start"];
+        const endPage = draw_command["range"]["end"];
+        const components_show = draw_command["show"];
+
+        for (let p = startPage; p < endPage + 1; p ++) { // generate for each page
+            showTable[`page${p}`] = {}
+            let component_counter = 0; // used for generate component_id
+
+            components_show.forEach((component_show) => {
+
+                let component_index_expression = component_show.component_index;
+                let component_name =component_show.component_name;
+                let component_data_index = calculateIndex(page_index, p, component_index_expression); // index in data part, to retrive data from parsedData
+                let component_data = findItemByComponentNameAndIndex(data_commands, component_name, component_data_index);
+
+                showTable[`page${p}`][`component_${component_counter}`] = {
+                    type: component_data.type,
+                    name: component_name,
+                    index: component_data_index, 
+                    attributes: component_data.attributes,
+                }
+
+                component_counter += 1;
+                }
+            )
+        };
+    });
+
+    // use showTable generate mermaid code
+    let mermaidString = "visual\n";
+    const pageKeys = Object.keys(showTable);
+    for (const pageKey of pageKeys) {
+        mermaidString += "page\n"
+        const componentKeys = Object.keys(showTable[pageKey]);
+        for (const componentKey of componentKeys) {
+            const component = showTable[pageKey][componentKey];
+            // mermaidString += `${component.type}\n`
+            switch (component.type) {
+                case "array": 
+                    mermaidString += generateArray(component);
+                    break;
+                case "linkedlist":
+                    mermaidString += generateLinkedlist(component);
+                    break;
+                case "stack":
+                    mermaidString += generateStack(component);
+                    break;
+                case "tree":
+                    mermaidString += generateTree(component);
+                    break;
+                case "matrix":
+                    mermaidString += generateMatrix(component);
+                    break;
+                case "graph":
+                    mermaidString += generateGraph(component);
+                    break;
+                default:
+                    console.log(`compiler error! no matching componenet type: ${component.type}!`)
+                    break;
+            }
+        }
+    }
+
+    // console.log("mermaidString:", "\n", mermaidString);
+    return mermaidString;
+}
+
 function calculateIndex(variableName, variableValue, expression) {
     // Create a regular expression to find the variable in the expression
     const regex = new RegExp(`\\b${variableName}\\b`, 'g');
