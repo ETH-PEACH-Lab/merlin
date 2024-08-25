@@ -2,16 +2,60 @@ import React, { useEffect, useState } from 'react';
 import { Button, Box, Tooltip, Typography, Chip, AppBar, Grid, IconButton, List, ListItem, TextField, FormControlLabel, Switch } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
+import { fillParsedDsl } from './fillParsedDSL';
+import { reconstructDSL } from './reconstructDSL';
 import { hardcodeData } from '../hardcode/data';
+import { findLastDrawCoveringIndex, evaluateExpression, findComponentIdxByName } from './GuiHelper';
 
-const GUIEditor = ({ inspectorIndex }) => {
+const GUIEditor = ({ inspectorIndex, setCode1, parsedCode1 }) => {
     const defaultUnitValue = { value: '0', color: '#000', isArrow: false, isIndex: false }
     const [currentUnitData, setUnitData] = useState(defaultUnitValue);
 
     useEffect(() => {
         if (inspectorIndex) {
-            const findUnitData = hardcodeData.filter(e => e.unitID == inspectorIndex.unitID && e.componentID == inspectorIndex.componentID && e.pageID == inspectorIndex.pageID)
-            if (findUnitData.length > 0) setUnitData(findUnitData[0])
+            let lastPageDraw = findLastDrawCoveringIndex(parsedCode1, parseInt(inspectorIndex.pageID.slice(4)));
+            let page_idx = lastPageDraw["page_index"];
+            let target_page = parseInt(inspectorIndex.pageID.slice(4));
+            let component_idx = lastPageDraw.show[parseInt(inspectorIndex.componentID.slice(10))]["component_index"];
+            let component_name = lastPageDraw.show[parseInt(inspectorIndex.componentID.slice(10))]["component_name"];
+            let component_idx_dsl = evaluateExpression(component_idx, page_idx, target_page);
+            let component_id_dsl = findComponentIdxByName(parsedCode1, component_name);
+            let unit_id_dsl = inspectorIndex.unitID.slice(5);
+            const findSelectedComponents = parsedCode1["data"][component_id_dsl];
+            const findSelectedComponents_type = parsedCode1["data"][component_id_dsl]["type"];
+            const findSelectedComponentData = findSelectedComponents["attributes"];
+            let findUnitData = {};
+            switch (findSelectedComponents_type) {
+                case "array":
+                case "stack":
+                case "tree":
+                case "linkedlist":
+                case "graph":
+                    findUnitData = {
+                        value: findSelectedComponentData["value"][component_idx_dsl][parseInt(unit_id_dsl)],
+                        color: findSelectedComponentData["color"][component_idx_dsl][parseInt(unit_id_dsl)],
+                        arrow: findSelectedComponentData["arrow"][component_idx_dsl][parseInt(unit_id_dsl)],
+                        isArrow: false, 
+                        isIndex: false
+                    };
+                    break;
+                case "matrix":
+                    let row = parseInt(unit_id_dsl.slice(1, -1).split(',')[0]);
+                    let col = parseInt(unit_id_dsl.slice(1, -1).split(',')[1]);
+                    findUnitData = {
+                        value: findSelectedComponentData["value"][component_idx_dsl][row][col],
+                        color: findSelectedComponentData["color"][component_idx_dsl][row][col],
+                        arrow: findSelectedComponentData["arrow"][component_idx_dsl][row][col],
+                        isArrow: false, 
+                        isIndex: false
+                    };
+                    break;
+                default:
+                    console.log('GUI EDITOR - findUnitData, no matching component type!');
+            }
+
+            // console.log("findUnitData: ", findUnitData);
+            if (findUnitData) setUnitData(findUnitData)
             else setUnitData(defaultUnitValue)
         }
     }, [inspectorIndex])
@@ -32,6 +76,42 @@ const GUIEditor = ({ inspectorIndex }) => {
         // TODO: This is the place for handling update data values
         console.log('query index:', inspectorIndex);
         console.log('new data:', currentUnitData);
+
+        let updatedParsedCode1 = { ...parsedCode1};
+
+        let lastPageDraw = findLastDrawCoveringIndex(updatedParsedCode1, parseInt(inspectorIndex.pageID.slice(4)));
+        let page_idx = lastPageDraw["page_index"];
+        let target_page = parseInt(inspectorIndex.pageID.slice(4));
+        let component_idx = lastPageDraw.show[parseInt(inspectorIndex.componentID.slice(10))]["component_index"];
+        let component_name = lastPageDraw.show[parseInt(inspectorIndex.componentID.slice(10))]["component_name"];
+        let component_idx_dsl = evaluateExpression(component_idx, page_idx, target_page);
+        let component_id_dsl = findComponentIdxByName(updatedParsedCode1, component_name);
+        let unit_id_dsl = inspectorIndex.unitID.slice(5);
+        const findSelectedComponents = updatedParsedCode1["data"][component_id_dsl];
+        const findSelectedComponents_type = updatedParsedCode1["data"][component_id_dsl]["type"];
+        const findSelectedComponentData = findSelectedComponents["attributes"];
+        let findUnitData = {};
+        switch (findSelectedComponents_type) {
+            case "array":
+            case "stack":
+            case "tree":
+            case "linkedlist":
+            case "graph":
+                findSelectedComponentData["value"][component_idx_dsl][parseInt(unit_id_dsl)] = currentUnitData.value;
+                findSelectedComponentData["color"][component_idx_dsl][parseInt(unit_id_dsl)] = currentUnitData.color;
+                break;
+            case "matrix":
+                let row = parseInt(unit_id_dsl.slice(1, -1).split(',')[0]);
+                let col = parseInt(unit_id_dsl.slice(1, -1).split(',')[1]);
+                findSelectedComponentData["value"][component_idx_dsl][row][col] = currentUnitData.value;
+                findSelectedComponentData["color"][component_idx_dsl][row][col] = currentUnitData.color;
+                break;
+            default:
+                console.log('GUI EDITOR - findUnitData, no matching component type!');
+        }
+        console.log("GUIeditor Uupdate updatedParsedCode1:\n", updatedParsedCode1);
+        let updatedCode1 = reconstructDSL(updatedParsedCode1);
+        setCode1(updatedCode1);
     }
 
     return <div>
