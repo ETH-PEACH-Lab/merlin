@@ -200,9 +200,9 @@ export function fillParsedDsl(parsedDSL) {
                 break;
         }       
     })
-    return {
+    const result =  {
         data: data_part,
         draw: draw_part
     };
-    
+    return result;
 }
