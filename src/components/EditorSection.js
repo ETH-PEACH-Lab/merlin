@@ -1,5 +1,7 @@
 import React from "react";
 import CodeEditor from "./CodeEditor";
+import DslEditor from "./DSLEditor";
+import MermaidEditor from "./MermaidEditor";
 import { ResizableBox } from "react-resizable";
 import "react-resizable/css/styles.css";
 import { Box, Typography } from "@mui/material";
@@ -47,7 +49,7 @@ const EditorSection = ({
       }
     >
       <div style={{ height: "100%", margin: 0, padding: 0 }}>
-      <CodeEditor value={code1} onChange={handleEditor1Change} />
+      <DslEditor value={code1} onChange={handleEditor1Change} />
       </div>
     </ResizableBox>
     <div
@@ -56,7 +58,7 @@ const EditorSection = ({
         overflow: "hidden",
       }}
     >
-      <CodeEditor value={mermaidCode} onChange={setMermaidCode} />
+      <MermaidEditor value={mermaidCode} onChange={setMermaidCode} />
     </div>
     </Box>
   </div>
