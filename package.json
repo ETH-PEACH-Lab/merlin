@@ -42,7 +42,7 @@
     "build": "webpack --mode production",
     "watch": "webpack serve --mode development",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "deploy": "gh-pages -d www"
   },
   "cordova": {
     "plugins": {
