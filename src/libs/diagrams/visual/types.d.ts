@@ -17,6 +17,8 @@ export interface ArrayDiagram {
 export interface MatrixElement {
     value: string | number;
     color?: string;
+    arrow?: boolean;
+    arrowLabel?: string;
 }
 export interface MatrixRow {
     elements: MatrixElement[];
@@ -61,6 +63,8 @@ export interface TreeElement {
     nodeId: string;
     value?: string;
     color?: string;
+    arrow?: boolean;
+    arrowLabel?: string;
     left: string;
     right: string;
 }
