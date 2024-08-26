@@ -247,7 +247,18 @@ example: [[blue],[null,blue],[null,null,blue]]
 float: [[blue],[null,blue],[null,null,blue]]
 double: [[blue],[null,blue],[null,null,blue]]
 }
-
+graph ghp = {
+structure: [[1],[1,2],[1,2,3],[1,2,3,4],[1,2,3,4,5],*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*]
+color: [[blue],[null,blue],[null,null,blue]]
+id: [[blue],[null,blue],[null,null,blue]]
+edge:[[(node1,node2),(node3,node4),(node5,node6),(node7,node8),(node9,node10)],*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*,*]
+arrow: [[blue],[null,blue],[null,null,blue]]
+null: [[blue],[null,blue],[null,null,blue]]
+input: [[blue],[null,blue],[null,null,blue]]
+example: [[blue],[null,blue],[null,null,blue]]
+float: [[blue],[null,blue],[null,null,blue]]
+double: [[blue],[null,blue],[null,null,blue]]
+}
 draw:
 page p := [0,4] {
     show arr1[p]

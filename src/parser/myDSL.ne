@@ -174,9 +174,9 @@ matrix_rows -> matrix_row ("," matrix_row):* {%
   }
 %}
 
-matrix_row -> _ "[" value ("," _ value ):* "]" {%
+matrix_row -> _ "[" value _ ("," _ value ):* "]" {%
 	function (d) {
-		return [d[2][0]].concat(d[3].map(item => item[2][0])); 
+		return [d[2][0]].concat(d[4].map(item => item[2][0])); 
 	}
 %}
 
@@ -184,29 +184,29 @@ data_type -> "array" | "stack" | "linkedlist" | "tree" | "matrix" | "graph"
 
 var_name -> [a-zA-Z0-9]:+ {% function(d) { return d[0].join("").replace(",",""); } %}
 
-data_description -> _ attribute_name  ":" _ "[" data_rows "]" {%
+data_description -> _ attribute_name  _ ":" _ "[" _ data_rows _ "]" {%
   function(d) {
-    return {[d[1][0]] : handleRepetition(d[5])};
+    return {[d[1][0]] : handleRepetition(d[7])};
   }
 %}
 
 attribute_name -> alphanum
 
-data_rows -> data_row_or_star ("," data_row_or_star):* {%
+data_rows -> data_row_or_star _ ("," _ data_row_or_star):* {%
   function(d) {
-    return [d[0]].concat(d[1].map(item => item[1]));
+    return [d[0]].concat(d[2].map(item => item[2]));
   }
 %}
 
 data_row_or_star -> data_row | "*" {% function(d) { return d[0] === '*' ? '*' : d[0]; } %}
 
-data_row -> "["  value_edge_list  "]" {%
+data_row -> "[" _ value_edge_list _ "]" {%
   function(d) {
-    if (typeof(d[1][0]) == "object") { //edge type
-		return d[1][0];
+    if (typeof(d[2][0]) == "object") { //edge type
+		return d[2][0];
   }
 	else { // value type
-		return d[1] 
+		return d[2] 
 	}
   }
 %}
@@ -217,9 +217,9 @@ value_edge_list -> edge_list | value_list {%
 	}
 %}
 
-value_list -> value ("," value):* {%
+value_list -> value _ ("," _ value):* {%
   function(d) {
-    return [d[0][0]].concat(d[1].map(item => item[1][0]));
+    return [d[0][0]].concat(d[2].map(item => item[2][0]));
   }
 %}
 
@@ -229,9 +229,9 @@ edge_list -> edge ("," edge):* {%
   }
 %}
 
-edge -> "(" value "," value ")" {%
+edge -> "(" _ value _ "," _ value _ ")" {%
 	function (d) {
-		return {startPoint:d[1], endPoint:d[3]};
+		return {startPoint:d[2], endPoint:d[6]};
 	}
 %}
 

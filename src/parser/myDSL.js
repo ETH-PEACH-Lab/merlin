@@ -187,9 +187,9 @@ var grammar = {
     {"name": "matrix_row$ebnf$1", "symbols": []},
     {"name": "matrix_row$ebnf$1$subexpression$1", "symbols": [{"literal":","}, "_", "value"]},
     {"name": "matrix_row$ebnf$1", "symbols": ["matrix_row$ebnf$1", "matrix_row$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
-    {"name": "matrix_row", "symbols": ["_", {"literal":"["}, "value", "matrix_row$ebnf$1", {"literal":"]"}], "postprocess": 
+    {"name": "matrix_row", "symbols": ["_", {"literal":"["}, "value", "_", "matrix_row$ebnf$1", {"literal":"]"}], "postprocess": 
         function (d) {
-        	return [d[2][0]].concat(d[3].map(item => item[2][0])); 
+        	return [d[2][0]].concat(d[4].map(item => item[2][0])); 
         }
         },
     {"name": "data_type$string$1", "symbols": [{"literal":"a"}, {"literal":"r"}, {"literal":"r"}, {"literal":"a"}, {"literal":"y"}], "postprocess": function joiner(d) {return d.join('');}},
@@ -207,29 +207,29 @@ var grammar = {
     {"name": "var_name$ebnf$1", "symbols": [/[a-zA-Z0-9]/]},
     {"name": "var_name$ebnf$1", "symbols": ["var_name$ebnf$1", /[a-zA-Z0-9]/], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
     {"name": "var_name", "symbols": ["var_name$ebnf$1"], "postprocess": function(d) { return d[0].join("").replace(",",""); }},
-    {"name": "data_description", "symbols": ["_", "attribute_name", {"literal":":"}, "_", {"literal":"["}, "data_rows", {"literal":"]"}], "postprocess": 
+    {"name": "data_description", "symbols": ["_", "attribute_name", "_", {"literal":":"}, "_", {"literal":"["}, "_", "data_rows", "_", {"literal":"]"}], "postprocess": 
         function(d) {
-          return {[d[1][0]] : handleRepetition(d[5])};
+          return {[d[1][0]] : handleRepetition(d[7])};
         }
         },
     {"name": "attribute_name", "symbols": ["alphanum"]},
     {"name": "data_rows$ebnf$1", "symbols": []},
-    {"name": "data_rows$ebnf$1$subexpression$1", "symbols": [{"literal":","}, "data_row_or_star"]},
+    {"name": "data_rows$ebnf$1$subexpression$1", "symbols": [{"literal":","}, "_", "data_row_or_star"]},
     {"name": "data_rows$ebnf$1", "symbols": ["data_rows$ebnf$1", "data_rows$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
-    {"name": "data_rows", "symbols": ["data_row_or_star", "data_rows$ebnf$1"], "postprocess": 
+    {"name": "data_rows", "symbols": ["data_row_or_star", "_", "data_rows$ebnf$1"], "postprocess": 
         function(d) {
-          return [d[0]].concat(d[1].map(item => item[1]));
+          return [d[0]].concat(d[2].map(item => item[2]));
         }
         },
     {"name": "data_row_or_star", "symbols": ["data_row"]},
     {"name": "data_row_or_star", "symbols": [{"literal":"*"}], "postprocess": function(d) { return d[0] === '*' ? '*' : d[0]; }},
-    {"name": "data_row", "symbols": [{"literal":"["}, "value_edge_list", {"literal":"]"}], "postprocess": 
+    {"name": "data_row", "symbols": [{"literal":"["}, "_", "value_edge_list", "_", {"literal":"]"}], "postprocess": 
           function(d) {
-            if (typeof(d[1][0]) == "object") { //edge type
-        	return d[1][0];
+            if (typeof(d[2][0]) == "object") { //edge type
+        	return d[2][0];
           }
         else { // value type
-        	return d[1] 
+        	return d[2] 
         }
           }
         },
@@ -240,11 +240,11 @@ var grammar = {
         }
         },
     {"name": "value_list$ebnf$1", "symbols": []},
-    {"name": "value_list$ebnf$1$subexpression$1", "symbols": [{"literal":","}, "value"]},
+    {"name": "value_list$ebnf$1$subexpression$1", "symbols": [{"literal":","}, "_", "value"]},
     {"name": "value_list$ebnf$1", "symbols": ["value_list$ebnf$1", "value_list$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
-    {"name": "value_list", "symbols": ["value", "value_list$ebnf$1"], "postprocess": 
+    {"name": "value_list", "symbols": ["value", "_", "value_list$ebnf$1"], "postprocess": 
         function(d) {
-          return [d[0][0]].concat(d[1].map(item => item[1][0]));
+          return [d[0][0]].concat(d[2].map(item => item[2][0]));
         }
         },
     {"name": "edge_list$ebnf$1", "symbols": []},
@@ -255,9 +255,9 @@ var grammar = {
           return [d[0]].concat(d[1].map(item => item[1]));
         }
         },
-    {"name": "edge", "symbols": [{"literal":"("}, "value", {"literal":","}, "value", {"literal":")"}], "postprocess": 
+    {"name": "edge", "symbols": [{"literal":"("}, "_", "value", "_", {"literal":","}, "_", "value", "_", {"literal":")"}], "postprocess": 
         function (d) {
-        	return {startPoint:d[1], endPoint:d[3]};
+        	return {startPoint:d[2], endPoint:d[6]};
         }
         },
     {"name": "value", "symbols": ["alphanum"]},
