@@ -92,7 +92,7 @@ component_name -> alphanum
 
 
 
-data_entries -> ("\n" data_entry):+ {%
+data_entries -> (_ data_entry):+ {%
   function(d) {
     //return [d[0]].concat(d[1].map(item => item[1]));
 	return d[0].map(item => item[1]);
@@ -168,9 +168,9 @@ matrix_component -> "[" matrix_rows "]" {%
   }
 %}
 
-matrix_rows -> matrix_row ("," matrix_row):* {%
+matrix_rows -> matrix_row _ ("," _ matrix_row):* {%
   function(d) {
-    return [d[0]].concat(d[1].map(item => item[1]));  // return matrix_component [[row1],[row2],...]
+    return [d[0]].concat(d[2].map(item => item[2]));  // return matrix_component [[row1],[row2],...]
   }
 %}
 
@@ -223,9 +223,9 @@ value_list -> value _ ("," _ value):* {%
   }
 %}
 
-edge_list -> edge ("," edge):* {%
+edge_list -> edge _ ("," _ edge):* {%
   function(d) {
-    return [d[0]].concat(d[1].map(item => item[1]));
+    return [d[0]].concat(d[2].map(item => item[2]));
   }
 %}
 

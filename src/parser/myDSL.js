@@ -96,9 +96,9 @@ var grammar = {
         }
         },
     {"name": "component_name", "symbols": ["alphanum"]},
-    {"name": "data_entries$ebnf$1$subexpression$1", "symbols": [{"literal":"\n"}, "data_entry"]},
+    {"name": "data_entries$ebnf$1$subexpression$1", "symbols": ["_", "data_entry"]},
     {"name": "data_entries$ebnf$1", "symbols": ["data_entries$ebnf$1$subexpression$1"]},
-    {"name": "data_entries$ebnf$1$subexpression$2", "symbols": [{"literal":"\n"}, "data_entry"]},
+    {"name": "data_entries$ebnf$1$subexpression$2", "symbols": ["_", "data_entry"]},
     {"name": "data_entries$ebnf$1", "symbols": ["data_entries$ebnf$1", "data_entries$ebnf$1$subexpression$2"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
     {"name": "data_entries", "symbols": ["data_entries$ebnf$1"], "postprocess": 
           function(d) {
@@ -177,11 +177,11 @@ var grammar = {
         }
         },
     {"name": "matrix_rows$ebnf$1", "symbols": []},
-    {"name": "matrix_rows$ebnf$1$subexpression$1", "symbols": [{"literal":","}, "matrix_row"]},
+    {"name": "matrix_rows$ebnf$1$subexpression$1", "symbols": [{"literal":","}, "_", "matrix_row"]},
     {"name": "matrix_rows$ebnf$1", "symbols": ["matrix_rows$ebnf$1", "matrix_rows$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
-    {"name": "matrix_rows", "symbols": ["matrix_row", "matrix_rows$ebnf$1"], "postprocess": 
+    {"name": "matrix_rows", "symbols": ["matrix_row", "_", "matrix_rows$ebnf$1"], "postprocess": 
         function(d) {
-          return [d[0]].concat(d[1].map(item => item[1]));  // return matrix_component [[row1],[row2],...]
+          return [d[0]].concat(d[2].map(item => item[2]));  // return matrix_component [[row1],[row2],...]
         }
         },
     {"name": "matrix_row$ebnf$1", "symbols": []},
@@ -248,11 +248,11 @@ var grammar = {
         }
         },
     {"name": "edge_list$ebnf$1", "symbols": []},
-    {"name": "edge_list$ebnf$1$subexpression$1", "symbols": [{"literal":","}, "edge"]},
+    {"name": "edge_list$ebnf$1$subexpression$1", "symbols": [{"literal":","}, "_", "edge"]},
     {"name": "edge_list$ebnf$1", "symbols": ["edge_list$ebnf$1", "edge_list$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
-    {"name": "edge_list", "symbols": ["edge", "edge_list$ebnf$1"], "postprocess": 
+    {"name": "edge_list", "symbols": ["edge", "_", "edge_list$ebnf$1"], "postprocess": 
         function(d) {
-          return [d[0]].concat(d[1].map(item => item[1]));
+          return [d[0]].concat(d[2].map(item => item[2]));
         }
         },
     {"name": "edge", "symbols": [{"literal":"("}, "_", "value", "_", {"literal":","}, "_", "value", "_", {"literal":")"}], "postprocess": 
