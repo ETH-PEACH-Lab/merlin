@@ -33,25 +33,101 @@ const App = () => {
   const [activeTab, setActiveTab] = useState("examples"); // State for active tab
   const [savedItems, setSavedItems] = useState([]); // State for saved items
   const [inspectorIndex, setInspectorIndex] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [svgContent, setSvgContent] = useState(null)
 
   const mermaidRef = useRef(null);
   const containerRef = useRef(null);
+
+  console.log("parsedCode1\n", parsedCode1);
+
+  const renderPage = (showIndex) => {
+    const svg_element = document.getElementById('preview');
+    // console.log("app.jsx svg_element: ", svg_element);
+    if (svg_element) {
+      const pages = svg_element.querySelectorAll('g.page');
+      if (pages && pages.length > 0) {
+        pages.forEach(page => {
+          if (page && page.style) {
+            page.style.display = 'none';
+          }
+        });
+      }
+      if (pages && pages.length > 0 && pages[showIndex].style) {
+        pages[showIndex].style.display = 'inline';
+      }
+    }
+    // console.log('renderPage is called!\n');
+  };
 
   useEffect(() => {
     loadSavedItems();
   }, []);
 
   useEffect(() => {
+    // console.log("app.jsx svgContent is changed!");
+    let svg = document.getElementById('preview');
+    let totalPages = 0
+    try { totalPages = svg.querySelectorAll('g.page').length;
+    } catch (error) {
+      console.log('got error when fetching total pages: error');
+    }
+    // console.log("debug totalPages\n", totalPages)
+    setTotalPages(totalPages);
+    renderPage(currentPage-1);
+  }, [svgContent]);
+
+  useEffect(() => {
+    const svg_element = document.getElementById('preview');
+    // console.log("app.jsx svg_element: ", svg_element);
+    if (svg_element) {
+      const pages = svg_element.querySelectorAll('g.page');
+      if (pages && pages.length > 0) {
+        pages.forEach(page => {
+          if (page && page.style) {
+            page.style.display = 'none';
+          }
+        });
+      }
+      if (pages && pages.length > 0 && pages[currentPage - 1].style) {
+        pages[currentPage - 1].style.display = 'inline';
+      }
+    }
+  }, [currentPage])
+
+  useEffect(() => {
     try {
       let parsedCode1 = myParser(code1);
-      console.log("useEffect parsedCode1:\n", parsedCode1);
+      // console.log("useEffect parsedCode1:\n", parsedCode1);
+      setParsedCode1(parsedCode1);
       let mermaidCode = convertParsedDSLtoMermaid(parsedCode1);
       setMermaidCode(mermaidCode);
+      // let svg = document.getElementById('preview');
+      // let totalPages = svg.querySelectorAll('g.page');
+      // console.log("debug code1\n", code1)
+      // console.log("debug totalPages\n", totalPages)
+      // setTotalPages(totalPages.length);
+      renderPage(currentPage-1);
     } catch (err) {
       setMermaidCode("DSL grammar is incorrect!");
       console.log("update mermaid error:\n", err);
     }
   },[code1]);
+
+  useEffect(() => {
+    const handlePageChange = () => {
+      setCurrentPage(window.currentPage);
+    };
+    // Listen for the custom page change event
+    window.addEventListener('pageChange', handlePageChange);
+    // Cleanup the event listener on component unmount
+    return () => {
+      window.removeEventListener('pageChange', handlePageChange);
+    };
+  }, []);
+
+  // console.log("currentPage:", currentPage);
 
   const handleMouseDown = (e) => {
     const startX = e.clientX;
@@ -99,12 +175,15 @@ const App = () => {
     else {
       setParsedCode1({});
     }
+    setCurrentPage(1);
     setCode1(value);
   };
 
   const handleSelectExample = (item) => {
     setCode1(item.userCode);
-    setMermaidCode(item.renderCode);
+    setParsedCode1(myParser(item.userCode));
+    setCurrentPage(1);
+    // setMermaidCode(item.renderCode);
   };
 
   const handleSave = () => {
@@ -245,12 +324,20 @@ const App = () => {
                       handleSave={handleSave}
                       mermaidRef={mermaidRef}
                       updateInspector={updateInspector}
+                      totalPages={totalPages}
+                      setTotalPages={setTotalPages}
+                      setSvgContent={setSvgContent}
+                      currentPage={currentPage}
+                      setCurrentPage={setCurrentPage}
                     />
                     <GUIEditor 
                       inspectorIndex={inspectorIndex} 
                       setCode1={setCode1}
                       parsedCode1={parsedCode1}
                       setParsedCode1={setParsedCode1}
+                      code1={code1}
+                      currentPage={currentPage}
+                      totalPages={totalPages}
                     />
                   </Box>
                   </div>

@@ -1,14 +1,16 @@
 export function findLastDrawCoveringIndex(parsedDsl, page_index) {
     const drawArray = parsedDsl.draw;
     let lastDraw = null;
-
+    if (!drawArray) {
+        console.log("draw command is null!")
+        return null;
+    }
     for (let i = 0; i < drawArray.length; i++) {
         const range = drawArray[i].range;
         if (page_index >= range.start && page_index <= range.end) {
             lastDraw = drawArray[i];
         }
     }
-
     return lastDraw;
 }
 
