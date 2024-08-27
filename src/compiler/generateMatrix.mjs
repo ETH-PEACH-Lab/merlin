@@ -11,10 +11,10 @@ export function generateMatrix(matrixComponent) {
         // result += `${structure[i]} {color:"${color[i] || ""}", arrow:"${arrow[i] || ""}"}\n`;
         for (let col = 0; col < structure[row].length; col++) {
             if (col === 0) {
-                result += `${structure[row][col]} {color:"${color[row] ? (color[row][col] || null) : null}"}`
+                result += `${structure[row][col]} {color:"${color[row] ? (color[row][col] || null) : null}",arrow:"${arrow[row] ? (arrow[row][col] || null) : null}"}`
             }
             else {
-                result += `, ${structure[row][col]} {color:"${color[row] ? (color[row][col] || null) : null}"}` 
+                result += `, ${structure[row][col]} {color:"${color[row] ? (color[row][col] || null) : null}",arrow:"${arrow[row] ? (arrow[row][col] || null) : null}"}` 
             }
         }
       }

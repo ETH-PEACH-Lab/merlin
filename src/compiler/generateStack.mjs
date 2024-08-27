@@ -10,7 +10,7 @@ export function generateStack(stackComponent) {
     const color = stackComponent.attributes.color || [];
     const arrow = stackComponent.attributes.arrow || [];
     for (let i = 0; i < structure.length ; i++) {
-        result += `${structure[i]} {color:"${color[i] || ""}", arrow:"${arrow[i] || ""}"}\n`;
+        result += `${structure[i]} {color:"${color[i] || ""}", arrow:"${arrow[i] || "null"}"}\n`;
       }
     result += "@\n";
     return result;

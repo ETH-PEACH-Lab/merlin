@@ -8,14 +8,15 @@ export function generateTree(treeComponent) {
     // for (let i = 0; i < structure.length ; i++) {
     //     result += `${structure[i]} {value:"${value[i] || structure[i]}", color:"${color[i] || ""}", arrow:"${arrow[i] || ""}"}\n`;
     //   }
+    // console.log("tree arrow\n", console.log(arrow));
 
-    result += convertArrayToBinaryTree(structure, value, color);
+    result += convertArrayToBinaryTree(structure, value, color, arrow);
 
     result += "\n@\n";
     return result;
 }
 
-function convertArrayToBinaryTree(structure, value, color) {
+function convertArrayToBinaryTree(structure, value, color, arrow) {
     if (!structure || structure.length === 0) return '';
   
     let queue = [{ node: structure[0], index: 0 }];
@@ -37,7 +38,7 @@ function convertArrayToBinaryTree(structure, value, color) {
             let rightChild = (rightIndex < structure.length && structure[rightIndex] !== 'none') ? structure[rightIndex] : 'None';
             
             //TODO edit how to generate tree
-            result += `\n${node}:[${leftChild},${rightChild}]{value:"${value[index] || node }", color:"${color[index] || ""}"}`;
+            result += `\n${node}:[${leftChild},${rightChild}]{value:"${value[index] || node }", color:"${color[index] || "null"}", arrow:"${ arrow[index] || "null"}"}`;
   
             if (leftChild !== 'None') {
                 queue.push({ node: leftChild, index: leftIndex });

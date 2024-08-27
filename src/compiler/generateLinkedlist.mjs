@@ -6,7 +6,7 @@ export function generateLinkedlist(linkedListComponent) {
     const color = linkedListComponent.attributes.color || [];
     const arrow = linkedListComponent.attributes.arrow || [];
     for (let i = 0; i < structure.length ; i++) {
-        result += `${structure[i]} {value:"${value[i] || structure[i]}", color:"${color[i] || ""}", arrow:"${arrow[i] || ""}"}\n`;
+        result += `${structure[i]} {value:"${value[i] || structure[i]}", color:"${color[i] || "null"}", arrow:"${arrow[i] || "null"}"}\n`;
       }
     result += "@\n";
     return result;
