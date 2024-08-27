@@ -20,7 +20,9 @@ export function fillParsedDsl(parsedDSL) {
                     else {
                         let cur_value_len = component["attributes"]["value"][i].length;
                         let cur_structure_len =  component["attributes"]["structure"][i].length;
-                        component["attributes"]["value"][i] = component["attributes"]["value"][i].concat(component["attributes"]["structure"][i].slice(cur_value_len - cur_structure_len));
+                        if (cur_value_len < cur_structure_len) {
+                            component["attributes"]["value"][i] = component["attributes"]["value"][i].concat(component["attributes"]["structure"][i].slice(cur_value_len - cur_structure_len));
+                        }
                     }
                 }
 
@@ -33,7 +35,9 @@ export function fillParsedDsl(parsedDSL) {
                     else {
                         let cur_id_len = component["attributes"]["id"][i].length;
                         let cur_structure_len =  component["attributes"]["structure"][i].length;
-                        component["attributes"]["id"][i] = component["attributes"]["id"][i].concat(component["attributes"]["structure"][i].slice(cur_id_len - cur_structure_len));
+                        if (cur_id_len < cur_structure_len) {
+                            component["attributes"]["id"][i] = component["attributes"]["id"][i].concat(component["attributes"]["structure"][i].slice(cur_id_len - cur_structure_len));
+                        }
                     }
                 }
 
@@ -46,7 +50,9 @@ export function fillParsedDsl(parsedDSL) {
                     else {
                         let cur_color_len = component["attributes"]["color"][i].length;
                         let cur_structure_len =  component["attributes"]["structure"][i].length;
-                        component["attributes"]["color"][i] = component["attributes"]["color"][i].concat(Array(cur_structure_len-cur_color_len).fill("null"));
+                        if (cur_color_len < cur_structure_len) {
+                            component["attributes"]["color"][i] = component["attributes"]["color"][i].concat(Array(cur_structure_len-cur_color_len).fill("null"));
+                        }
                     }
                 }
 
@@ -59,7 +65,9 @@ export function fillParsedDsl(parsedDSL) {
                     else {
                         let cur_arrow_len = component["attributes"]["arrow"][i].length;
                         let cur_structure_len =  component["attributes"]["structure"][i].length;
-                        component["attributes"]["arrow"][i] = component["attributes"]["arrow"][i].concat(Array(cur_structure_len-cur_arrow_len).fill("null"));
+                        if (cur_arrow_len < cur_structure_len) {
+                            component["attributes"]["arrow"][i] = component["attributes"]["arrow"][i].concat(Array(cur_structure_len-cur_arrow_len).fill("null"));
+                        }
                     }
                 }
 
@@ -72,11 +80,13 @@ export function fillParsedDsl(parsedDSL) {
                     else {
                         let cur_hidden_len = component["attributes"]["hidden"][i].length;
                         let cur_structure_len =  component["attributes"]["structure"][i].length;
-                        component["attributes"]["hidden"][i] = component["attributes"]["hidden"][i].concat(Array(cur_structure_len-cur_hidden_len).fill("false"));
+                        if (cur_hidden_len < cur_structure_len) {
+                            component["attributes"]["hidden"][i] = component["attributes"]["hidden"][i].concat(Array(cur_structure_len-cur_hidden_len).fill("false"));
+                        }
                     }
                 }
-
                 break;
+
             case "graph":
                 let id_len = component["attributes"]["id"].length;
 
@@ -102,7 +112,9 @@ export function fillParsedDsl(parsedDSL) {
                     else {
                         let cur_value_len = component["attributes"]["value"][i].length;
                         let cur_id_len =  component["attributes"]["id"][i].length;
-                        component["attributes"]["value"][i] = component["attributes"]["id"][i].concat(component["attributes"]["id"][i].slice(cur_value_len - cur_id_len));
+                        if (cur_value_len < cur_id_len) {
+                            component["attributes"]["value"][i] = component["attributes"]["value"][i].concat(component["attributes"]["id"][i].slice(cur_value_len-cur_id_len));
+                        }
                     }
                 }
 
@@ -115,7 +127,9 @@ export function fillParsedDsl(parsedDSL) {
                     else {
                         let cur_color_len = component["attributes"]["color"][i].length;
                         let cur_id_len =  component["attributes"]["id"][i].length;
-                        component["attributes"]["color"][i] = component["attributes"]["color"][i].concat(Array(cur_id_len-cur_color_len).fill("null"));
+                        if (cur_color_len < cur_id_len) {
+                            component["attributes"]["color"][i] = component["attributes"]["color"][i].concat(Array(cur_id_len-cur_color_len).fill("null"));
+                        }
                     }
                 }
 
@@ -128,7 +142,9 @@ export function fillParsedDsl(parsedDSL) {
                     else {
                         let cur_arrow_len = component["attributes"]["arrow"][i].length;
                         let cur_id_len =  component["attributes"]["id"][i].length;
-                        component["attributes"]["arrow"][i] = component["attributes"]["arrow"][i].concat(Array(cur_id_len-cur_arrow_len).fill("null"));
+                        if (cur_arrow_len < cur_id_len) {
+                            component["attributes"]["arrow"][i] = component["attributes"]["arrow"][i].concat(Array(cur_id_len-cur_arrow_len).fill("null"));
+                        }
                     }
                 }
 
@@ -141,7 +157,9 @@ export function fillParsedDsl(parsedDSL) {
                     else {
                         let cur_hidden_len = component["attributes"]["hidden"][i].length;
                         let cur_id_len =  component["attributes"]["id"][i].length;
-                        component["attributes"]["hidden"][i] = component["attributes"]["hidden"][i].concat(Array(cur_id_len-cur_hidden_len).fill("null"));
+                        if (cur_hidden_len < cur_id_len) {
+                            component["attributes"]["hidden"][i] = component["attributes"]["hidden"][i].concat(Array(cur_id_len-cur_hidden_len).fill("null"));
+                        }
                     }
                 }
                 
