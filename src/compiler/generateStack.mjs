@@ -1,5 +1,4 @@
 export function generateStack(stackComponent) {
-    console.log('stackComponent: ', stackComponent);
     let result = "stack\n";
     result += "size: 7\n";
     result += "@\n";

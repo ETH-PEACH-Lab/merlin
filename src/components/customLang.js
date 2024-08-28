@@ -26,7 +26,7 @@ export function registerCustomLanguage(monaco) {
         [/\[debug\].*/, 'custom-debug'],
         [/\b(digit|number)\b/, 'custom-number'],
         [/\/\/.*$/, 'comment'],
-        [/@[ \t]*.*/, 'inlinecomment'],
+        [/$[ \t]*.*/, 'inlinecomment'],
         [keywordPattern, 'keyword'],
         [componentPattern, 'component'],
         [attributePattern, 'attribute'],

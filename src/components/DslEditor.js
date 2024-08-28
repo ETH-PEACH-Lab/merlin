@@ -20,7 +20,7 @@ const DslEditor = ({value = '', onChange= ()=>{}}) => {
       options={{
         automaticLayout: true,
         fontFamily: 'Consolas',
-        fontSize: 16, 
+        fontSize: 15, 
         lineNumbers: "on",
         minimap: { enabled: false },
       }}
