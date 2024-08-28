@@ -20,7 +20,7 @@ const MermaidEditor = ({value = '', onChange= ()=>{}}) => {
       options={{
         automaticLayout: true,
         fontFamily: 'Consolas',
-        fontSize: 15, 
+        fontSize: 14, 
         lineNumbers: "on",
         minimap: { enabled: false },
       }}
