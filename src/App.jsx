@@ -36,6 +36,7 @@ const App = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [svgContent, setSvgContent] = useState(null)
+  const [dslEditorEditable, setDslEditorEditable] = useState(true);
 
   const mermaidRef = useRef(null);
   const containerRef = useRef(null);
@@ -44,8 +45,7 @@ const App = () => {
 
   const renderPage = (showIndex) => {
     const svg_element = document.getElementById('preview');
-    // console.log("app.jsx svg_element: ", svg_element);
-    if (svg_element) {
+    if (svg_element && currentPage <= totalPages) {
       const pages = svg_element.querySelectorAll('g.page');
       if (pages && pages.length > 0) {
         pages.forEach(page => {
@@ -58,7 +58,6 @@ const App = () => {
         pages[showIndex].style.display = 'inline';
       }
     }
-    // console.log('renderPage is called!\n');
   };
 
   useEffect(() => {
@@ -81,7 +80,7 @@ const App = () => {
   useEffect(() => {
     const svg_element = document.getElementById('preview');
     // console.log("app.jsx svg_element: ", svg_element);
-    if (svg_element) {
+    if (svg_element && currentPage <= totalPages) {
       const pages = svg_element.querySelectorAll('g.page');
       if (pages && pages.length > 0) {
         pages.forEach(page => {
@@ -99,15 +98,9 @@ const App = () => {
   useEffect(() => {
     try {
       let parsedCode1 = myParser(code1);
-      // console.log("useEffect parsedCode1:\n", parsedCode1);
       setParsedCode1(parsedCode1);
       let mermaidCode = convertParsedDSLtoMermaid(parsedCode1);
       setMermaidCode(mermaidCode);
-      // let svg = document.getElementById('preview');
-      // let totalPages = svg.querySelectorAll('g.page');
-      // console.log("debug code1\n", code1)
-      // console.log("debug totalPages\n", totalPages)
-      // setTotalPages(totalPages.length);
       renderPage(currentPage-1);
     } catch (err) {
       setMermaidCode("DSL grammar is incorrect!");
@@ -166,17 +159,21 @@ const App = () => {
   };
 
   const handleEditor1Change = (value) => {
-    let parsedDSL = myParser(value);
-    console.log('handleEditor1Change before-fill parsedDSL:\n', parsedDSL);
-    if (parsedDSL) {
-      parsedDSL = fillParsedDsl(parsedDSL)
-      setParsedCode1(parsedDSL);
+    if (dslEditorEditable) {
+      let parsedDSL = myParser(value);
+      // console.log('handleEditor1Change before-fill parsedDSL:\n', parsedDSL);
+      if (parsedDSL) {
+        parsedDSL = fillParsedDsl(parsedDSL)
+        setParsedCode1(parsedDSL);
+      }
+      else {
+        setParsedCode1({});
+      }
+      setCurrentPage(1);
+      setCode1(value);
+    } else {
+      alert("The editor is locked! please unlock it first.");
     }
-    else {
-      setParsedCode1({});
-    }
-    setCurrentPage(1);
-    setCode1(value);
   };
 
   const handleSelectExample = (item) => {
@@ -304,6 +301,8 @@ const App = () => {
               setMermaidCode={setMermaidCode}
               handleMouseDown={handleMouseDown}
               updateInspector={updateInspector}
+              dslEditorEditable={dslEditorEditable}
+              setDslEditorEditable={setDslEditorEditable}
             />
             <div
               style={{
@@ -338,6 +337,10 @@ const App = () => {
                       code1={code1}
                       currentPage={currentPage}
                       totalPages={totalPages}
+                      setCurrentPage={setCurrentPage}
+                      setTotalPages={setTotalPages}
+                      dslEditorEditable={dslEditorEditable}
+                      setDslEditorEditable={setDslEditorEditable}
                     />
                   </Box>
                   </div>

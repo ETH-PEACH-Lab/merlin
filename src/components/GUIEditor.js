@@ -8,7 +8,19 @@ import { hardcodeData } from '../hardcode/data';
 import { myParser } from '../parser/myParser';
 import { findLastDrawCoveringIndex, evaluateExpression, findComponentIdxByName } from './GuiHelper';
 
-const GUIEditor = ({ inspectorIndex, setCode1, parsedCode1, setParsedCode1, code1, currentPage, totalPages }) => {
+const GUIEditor = ({ 
+    inspectorIndex, 
+    setCode1, 
+    parsedCode1, 
+    setParsedCode1, 
+    code1, 
+    currentPage, 
+    totalPages, 
+    setCurrentPage, 
+    setTotalPages,
+    dslEditorEditable,
+    setDslEditorEditable,
+}) => {
     const defaultUnitValue = {id:"the unit id can't be changed", value: 'input unit value', color: 'input unit color', arrow:"input arrow label ", hidden:"input false or true", isIndex: false }
     const [currentUnitData, setUnitData] = useState(defaultUnitValue);
     const [currentComponentType, setCurrentComponentType] = useState("undefined");
@@ -133,13 +145,52 @@ const GUIEditor = ({ inspectorIndex, setCode1, parsedCode1, setParsedCode1, code
 
         let updatedCode1 = reconstructDSL(filledParsedCode1);
         setCode1(updatedCode1);
-
+        setCurrentPage(currentPage => currentPage + 1);
+        setDslEditorEditable(false);
     }
 
     const handleRemovePage = () => {
         // TODO: This is the place for handling remove page
-        console.log('remove current page', inspectorIndex.pageID);
+        console.log('remove current page: ', currentPage - 1);
 
+        let filledParsedCode1 = fillParsedDsl(parsedCode1);
+
+        // console.log('handleAddPage filledParsedCode1:\n', filledParsedCode1);
+        setCurrentPage(currentPage => currentPage - 1);
+
+        let lastPageDraw = findLastDrawCoveringIndex(filledParsedCode1, currentPage - 1);
+        let page_idx = lastPageDraw["page_index"];
+        let target_page = currentPage - 1;
+
+        lastPageDraw.show.forEach((component_show) => {
+            let component_idx = component_show["component_index"];
+            let component_name = component_show["component_name"];
+            let component_idx_dsl = evaluateExpression(component_idx, page_idx, target_page); // which page to copy in component
+            let component_id_dsl = findComponentIdxByName(filledParsedCode1, component_name); // which component in data
+
+            let targetAttributes = filledParsedCode1["data"][component_id_dsl]["attributes"];
+
+            // delete target page, edge in graph is a special case 
+            Object.entries(targetAttributes).forEach(([key, value]) => {
+                if (!(key === "edge" && component_idx_dsl - 1 < 0)) {
+                    value.splice(component_idx_dsl, 1);
+                }
+            });
+
+            // console.log("idx: ", component_idx, 
+            //     "\nname: ", component_name, 
+            //     "\ncomponent_idx_dsl: ", component_idx_dsl, 
+            //     "\ncomponent_id_dsl", component_id_dsl,
+            //     "\nto delete: ", filledParsedCode1["data"][component_id_dsl],
+            //     "\nafter delete: ", filledParsedCode1["data"],
+            // );
+        });
+
+        lastPageDraw["range"]["end"] -= 1;
+
+        let updatedCode1 = reconstructDSL(filledParsedCode1);
+        setCode1(updatedCode1);
+        setDslEditorEditable(false);
     }
 
     const handleUpdate = () => {
@@ -193,6 +244,7 @@ const GUIEditor = ({ inspectorIndex, setCode1, parsedCode1, setParsedCode1, code
         // console.log('GUIEditor updatedParserdCode1: ', updatedParsedCode1);
         let updatedCode1 = reconstructDSL(updatedParsedCode1);
         setCode1(updatedCode1);
+        setDslEditorEditable(false);
     }
 
     return <div>
@@ -214,7 +266,7 @@ const GUIEditor = ({ inspectorIndex, setCode1, parsedCode1, setParsedCode1, code
                     </IconButton>
                 </Tooltip>
                 <Tooltip title="Remove last Page">
-                    <IconButton disabled={!(currentPage === totalPages)} onClick={handleRemovePage} sx={{ mr: 1 }} size="small">
+                    <IconButton disabled={!(currentPage === totalPages) || totalPages <= 1} onClick={handleRemovePage} sx={{ mr: 1 }} size="small">
                         <DeleteIcon sx={{ fontSize: 20 }}></DeleteIcon>
                     </IconButton>
                 </Tooltip>
