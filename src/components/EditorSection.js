@@ -7,6 +7,7 @@ import "react-resizable/css/styles.css";
 import { Box, Typography, Tooltip, IconButton } from "@mui/material";
 import LockIcon from '@mui/icons-material/Lock';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
+import EditIcon from '@mui/icons-material/Edit';
 
 const EditorSection = ({
   code1,
@@ -37,10 +38,10 @@ const EditorSection = ({
     >
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2 }}>
         <Typography variant="overline">Code Editor</Typography>
-        <Tooltip title={dslEditorEditable ? "Lock Editor" : "Unlock Editor"}>
+        <Tooltip title={dslEditorEditable ? "Edit Mode" : "Read Mode"}>
           <IconButton onClick={handleClickLock} size="small">
             {dslEditorEditable ? (
-              <LockOpenIcon sx={{ fontSize: 18 }} />
+              <EditIcon sx={{ fontSize: 18 }} />
             ) : (
               <LockIcon sx={{ fontSize: 18 }} />
             )}

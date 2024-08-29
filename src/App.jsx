@@ -41,8 +41,6 @@ const App = () => {
   const mermaidRef = useRef(null);
   const containerRef = useRef(null);
 
-  console.log("savedItems\n", savedItems);
-
   const renderPage = (showIndex) => {
     const svg_element = document.getElementById('preview');
     if (svg_element && currentPage <= totalPages) {
@@ -172,7 +170,7 @@ const App = () => {
       setCurrentPage(1);
       setCode1(value);
     } else {
-      alert("The editor is locked! please unlock it first.");
+      alert("You are editing under read-mode. Please double check!");
     }
   };
 
@@ -248,7 +246,6 @@ ${timestamp}
 
   const loadSavedItems = () => {
     const cookies = document.cookie.split("; ");
-    console.log("coookies: ", cookies);
     const loadedItems = cookies
       .map((cookie) => {
         const [name, value] = cookie.split("=");
