@@ -145,7 +145,7 @@ const GUIEditor = ({
 
         let updatedCode1 = reconstructDSL(filledParsedCode1);
         setCode1(updatedCode1);
-        setCurrentPage(currentPage => currentPage + 1);
+        // setCurrentPage(currentPage => currentPage + 1);
         setDslEditorEditable(false);
     }
 
@@ -215,28 +215,28 @@ const GUIEditor = ({
         switch (findSelectedComponents_type) {
             case "array":
             case "stack":
-                findSelectedComponentData["structure"][component_idx_dsl][parseInt(unit_id_dsl)] = currentUnitData.value;
-                findSelectedComponentData["value"][component_idx_dsl][parseInt(unit_id_dsl)] = currentUnitData.value;
-                findSelectedComponentData["color"][component_idx_dsl][parseInt(unit_id_dsl)] = currentUnitData.color;
-                findSelectedComponentData["arrow"][component_idx_dsl][parseInt(unit_id_dsl)] = currentUnitData.arrow;
-                findSelectedComponentData["hidden"][component_idx_dsl][parseInt(unit_id_dsl)] = currentUnitData.hidden;
+                findSelectedComponentData["structure"][component_idx_dsl][parseInt(unit_id_dsl)] = currentUnitData.value != "" ? currentUnitData.value : "null";
+                findSelectedComponentData["value"][component_idx_dsl][parseInt(unit_id_dsl)] = currentUnitData.value != "" ? currentUnitData.value : "null";
+                findSelectedComponentData["color"][component_idx_dsl][parseInt(unit_id_dsl)] = currentUnitData.color != "" ? currentUnitData.color : "null";
+                findSelectedComponentData["arrow"][component_idx_dsl][parseInt(unit_id_dsl)] = currentUnitData.arrow != "" ? currentUnitData.arrow  : "null" ;
+                findSelectedComponentData["hidden"][component_idx_dsl][parseInt(unit_id_dsl)] = currentUnitData.hidden != "" ? currentUnitData.hidden : "false";
                 break;
             case "tree":
             case "linkedlist":
             case "graph":
-                findSelectedComponentData["value"][component_idx_dsl][parseInt(unit_id_dsl)] = currentUnitData.value;
-                findSelectedComponentData["color"][component_idx_dsl][parseInt(unit_id_dsl)] = currentUnitData.color;
-                findSelectedComponentData["arrow"][component_idx_dsl][parseInt(unit_id_dsl)] = currentUnitData.arrow;
-                findSelectedComponentData["hidden"][component_idx_dsl][parseInt(unit_id_dsl)] = currentUnitData.hidden;
+                findSelectedComponentData["value"][component_idx_dsl][parseInt(unit_id_dsl)] = currentUnitData.value != "" ? currentUnitData.value : "null";
+                findSelectedComponentData["color"][component_idx_dsl][parseInt(unit_id_dsl)] = currentUnitData.color != "" ? currentUnitData.color : "null";
+                findSelectedComponentData["arrow"][component_idx_dsl][parseInt(unit_id_dsl)] = currentUnitData.arrow != "" ? currentUnitData.arrow  : "null" ;
+                findSelectedComponentData["hidden"][component_idx_dsl][parseInt(unit_id_dsl)] = currentUnitData.hidden != "" ? currentUnitData.hidden : "false";
                 console.log("debug findSelectedComponentData\n", findSelectedComponentData);
                 break;
             case "matrix":
                 let row = parseInt(unit_id_dsl.slice(1, -1).split(',')[0]);
                 let col = parseInt(unit_id_dsl.slice(1, -1).split(',')[1]);
-                findSelectedComponentData["value"][component_idx_dsl][row][col] = currentUnitData.value;
-                findSelectedComponentData["color"][component_idx_dsl][row][col] = currentUnitData.color;
-                findSelectedComponentData["arrow"][component_idx_dsl][row][col] = currentUnitData.arrow;
-                findSelectedComponentData["hidden"][component_idx_dsl][row][col] = currentUnitData.hidden;
+                findSelectedComponentData["value"][component_idx_dsl][row][col] = currentUnitData.value != "" ? currentUnitData.value : "null";
+                findSelectedComponentData["color"][component_idx_dsl][row][col] = currentUnitData.color != "" ? currentUnitData.color : "null";
+                findSelectedComponentData["arrow"][component_idx_dsl][row][col] = currentUnitData.arrow != "" ? currentUnitData.arrow  : "null" ;
+                findSelectedComponentData["hidden"][component_idx_dsl][row][col] = currentUnitData.hidden != "" ? currentUnitData.hidden : "false";
                 break;
             default:
                 console.log('GUI EDITOR - findUnitData, no matching component type!');

@@ -38,7 +38,11 @@ function convertArrayToBinaryTree(structure, value, color, arrow) {
             let rightChild = (rightIndex < structure.length && structure[rightIndex] !== 'none') ? structure[rightIndex] : 'None';
             
             //TODO edit how to generate tree
-            result += `\n${node}:[${leftChild},${rightChild}]{value:"${value[index] || node }", color:"${color[index] || "null"}", arrow:"${ arrow[index] || "null"}"}`;
+            result += `\n${node}:[${leftChild},${rightChild}]`;
+            result += `{value:"${value[index] || node }"`;
+            result += `, color:"${color[index] || "null"}"`;
+            result += `, arrow:"${ arrow[index] === `empty` ? "" : arrow[index] || "null"}"`;
+            result += `}`;
   
             if (leftChild !== 'None') {
                 queue.push({ node: leftChild, index: leftIndex });
@@ -49,6 +53,6 @@ function convertArrayToBinaryTree(structure, value, color, arrow) {
             }
         }
     }
-  
+    console.log("compiler tree: ", result);
     return result;
   }

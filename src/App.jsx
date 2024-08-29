@@ -74,7 +74,7 @@ const App = () => {
     }
     // console.log("debug totalPages\n", totalPages)
     setTotalPages(totalPages);
-    renderPage(currentPage-1);
+    renderPage(currentPage - 1);
   }, [svgContent]);
 
   useEffect(() => {

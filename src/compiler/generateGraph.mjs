@@ -11,7 +11,7 @@ export function generateGraph(graphComponent) {
     const hidden = graphComponent.attributes.hidden || [];
 
     for (let idx = 0; idx < id.length; idx ++ ) {
-        result += `\nnode:${id[idx]} {value:"${value[idx] || id[idx]}", color:"${color[idx] || null}", arrow:"${arrow[idx] || "null"}", hidden:"${hidden[idx] || "false" }"}`;
+        result += `\nnode:${id[idx]} {value:"${value[idx] || id[idx]}", color:"${color[idx] || null}", arrow:"${arrow[idx] === `empty` ? "" : arrow[idx] || "null"}", hidden:"${hidden[idx] || "false" }"}`;
     }
 
     for (const edge of edges) {
