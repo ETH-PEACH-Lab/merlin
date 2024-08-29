@@ -24,11 +24,9 @@ const GUIEditor = ({
     const defaultUnitValue = {id:"the unit id can't be changed", value: 'input unit value', color: 'input unit color', arrow:"input arrow label ", hidden:"input false or true", isIndex: false }
     const [currentUnitData, setUnitData] = useState(defaultUnitValue);
     const [currentComponentType, setCurrentComponentType] = useState("undefined");
-    console.log("currentPages: ", currentPage, "totalPages: ", totalPages);
 
     useEffect(() => {
         if (inspectorIndex) {
-            console.log("GUIEditor parsedCode1:\n", parsedCode1);
             try {
                 // console.log("GUIEditor before filleded parsedCode1:\n", parsedCode1);
                 parsedCode1 = fillParsedDsl(parsedCode1);

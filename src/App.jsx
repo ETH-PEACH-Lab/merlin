@@ -41,7 +41,7 @@ const App = () => {
   const mermaidRef = useRef(null);
   const containerRef = useRef(null);
 
-  console.log("parsedCode1\n", parsedCode1);
+  console.log("savedItems\n", savedItems);
 
   const renderPage = (showIndex) => {
     const svg_element = document.getElementById('preview');
@@ -187,33 +187,68 @@ const App = () => {
     const timestamp = new Date().toISOString();
     const cookieName = `diagram_${timestamp}`;
     const newSavedItem = {
-      code1,
-      mermaidCode,
-      timestamp,
+        userCode: code1,
+        mermaidCode: mermaidCode,
+        timestamp: timestamp,
     };
 
     // Save new item to cookies
-    document.cookie = `${cookieName}=${JSON.stringify(newSavedItem)}; max-age=31536000; path=/`;
+    document.cookie = `${cookieName}=${encodeURIComponent(JSON.stringify(newSavedItem))}; max-age=31536000; path=/`;
+
+    // Save new item to local storage
+    localStorage.setItem(cookieName, JSON.stringify(newSavedItem));
 
     // Update saved items state
     setSavedItems((prevItems) => {
-      const updatedItems = [...prevItems, newSavedItem];
-      if (updatedItems.length > 20) {
-        // Remove oldest item if more than 20
-        const oldestItem = updatedItems.shift();
-        document.cookie = `${oldestItem.timestamp}=; max-age=0; path=/`; // Delete the cookie
-      }
-      // Sort items in descending order
-      updatedItems.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-      return updatedItems;
+        const updatedItems = [...prevItems, newSavedItem];
+        if (updatedItems.length > 20) {
+            // Remove oldest item if more than 20
+            const oldestItem = updatedItems.shift();
+            document.cookie = `${oldestItem.timestamp}=; max-age=0; path=/`; // Delete the cookie
+            localStorage.removeItem(`diagram_${oldestItem.timestamp}`); // Delete the item from local storage
+        }
+        // Sort items in descending order
+        updatedItems.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        return updatedItems;
     });
+
+    // Function to trigger the download of the string onto the local computer
+    const downloadString = (filename, content) => {
+        const blob = new Blob([content], { type: 'text/plain' });
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = URL.createObjectURL(blob);
+        document.body.appendChild(link);
+        link.click();
+        URL.revokeObjectURL(link.href);
+        document.body.removeChild(link);
+    };
+
+    // Prepare plain text content for download
+    const plainTextContent = `
+userCode:
+
+${code1}
+
+mermaidCode:
+
+${mermaidCode}
+
+timestamp:
+
+${timestamp}
+    `;
+
+    // Download the saved item as a plain text file
+    downloadString(`${cookieName}.txt`, plainTextContent);
 
     // Show alert
     alert("Diagram saved successfully!");
-  };
+};
 
   const loadSavedItems = () => {
     const cookies = document.cookie.split("; ");
+    console.log("coookies: ", cookies);
     const loadedItems = cookies
       .map((cookie) => {
         const [name, value] = cookie.split("=");
@@ -231,7 +266,8 @@ const App = () => {
 
   const handleSelectSavedItem = (item) => {
     setCode1(item.code1);
-    setMermaidCode(item.mermaidCode);
+    setParsedCode1(myParser(item.code1));
+    setCurrentPage(1);
   };
 
   const updateInspector = (unitID, componentID, pageID) => {
