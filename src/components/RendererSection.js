@@ -132,7 +132,6 @@ const RendererSection = ({
               }}
             >
               <Button onClick={handleClickPrev} variant="contained" style={{ fontSize: "12px", marginRight: "15px", maxWidth: '80px', maxHeight: '25px', minWidth: '40px', minHeight: '25px' }}>Prev</Button>
-              <Button variant="contained" style={{ fontSize: "12px", marginRight: "15px", maxWidth: '60px', maxHeight: '25px', minWidth: '40px', minHeight: '25px' }}>Play</Button>
               <Button onClick={handleClickNext} variant="contained" style={{ fontSize: "12px", marginRight: "15px", maxWidth: '80px', maxHeight: '25px', minWidth: '40px', minHeight: '25px' }}>Next</Button>
               {currentPage}/{totalPages}
             </Box>

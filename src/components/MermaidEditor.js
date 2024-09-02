@@ -23,6 +23,7 @@ const MermaidEditor = ({value = '', onChange= ()=>{}}) => {
         fontSize: 14, 
         lineNumbers: "on",
         minimap: { enabled: false },
+        readOnly: true,
       }}
     />
 

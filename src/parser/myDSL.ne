@@ -68,9 +68,9 @@ page_entry -> _ "page" _ page_index _ ":=" _ range_entry _ "{" (_ show_entry ):+
 
 %}
 
-range_entry -> "[" number "," number "]" {%
+range_entry -> "[" _ number _ "," _ number _ "]" {%
 	function (data) {
-		return {start:data[1], end:data[3]}
+		return {start:data[2], end:data[6]}
 	}
 %}
 
@@ -239,6 +239,6 @@ value -> alphanum
 
 number -> [0-9]:+ {% function(d) { return parseInt(d[0].join(""), 10); } %}
 
-alphanum -> [a-zA-Z0-9\/\\<>#@$&|]:+ {% function(d) { return d[0].join(""); } %}
+alphanum -> [a-zA-Z0-9\/\\\{\}<>#@$&|]:+ {% function(d) { return d[0].join(""); } %}
 
 _ -> [ \t\n\r]:*  # Skip whitespace

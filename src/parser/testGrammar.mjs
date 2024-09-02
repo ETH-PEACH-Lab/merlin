@@ -4,13 +4,14 @@ import grammar from './myDSL.js';  // Compiled from data_structure_extended_with
 const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar));
 
 const input = `data:
-graph dfs = {
-    id:[[n1,n2,n3,n4,n5,n6,n7,n8]]
-    edge:[[(n1,n2)]]
+graph gh = {
+id:[[n1],[n1,n2],[n1,n2,n3],[n1,n2,n3,n4]]
+value:[[1],[1,2],[1,2,3],[1,2,3,4]]
+edge:[[(n1,n2)]]
 }
 draw:
-page p:=[0,5] {
-show dfs[p]
+page p := [0,2] {
+show gh[p]
 }`;
 
 parser.feed(input);

@@ -76,9 +76,9 @@ var grammar = {
         }
         
         },
-    {"name": "range_entry", "symbols": [{"literal":"["}, "number", {"literal":","}, "number", {"literal":"]"}], "postprocess": 
+    {"name": "range_entry", "symbols": [{"literal":"["}, "_", "number", "_", {"literal":","}, "_", "number", "_", {"literal":"]"}], "postprocess": 
         function (data) {
-        	return {start:data[1], end:data[3]}
+        	return {start:data[2], end:data[6]}
         }
         },
     {"name": "page_index", "symbols": ["alphanum"]},
@@ -264,8 +264,8 @@ var grammar = {
     {"name": "number$ebnf$1", "symbols": [/[0-9]/]},
     {"name": "number$ebnf$1", "symbols": ["number$ebnf$1", /[0-9]/], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
     {"name": "number", "symbols": ["number$ebnf$1"], "postprocess": function(d) { return parseInt(d[0].join(""), 10); }},
-    {"name": "alphanum$ebnf$1", "symbols": [/[a-zA-Z0-9\/\\<>#@$&|]/]},
-    {"name": "alphanum$ebnf$1", "symbols": ["alphanum$ebnf$1", /[a-zA-Z0-9\/\\<>#@$&|]/], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "alphanum$ebnf$1", "symbols": [/[a-zA-Z0-9\/\\\{\}<>#@$&|]/]},
+    {"name": "alphanum$ebnf$1", "symbols": ["alphanum$ebnf$1", /[a-zA-Z0-9\/\\\{\}<>#@$&|]/], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
     {"name": "alphanum", "symbols": ["alphanum$ebnf$1"], "postprocess": function(d) { return d[0].join(""); }},
     {"name": "_$ebnf$1", "symbols": []},
     {"name": "_$ebnf$1", "symbols": ["_$ebnf$1", /[ \t\n\r]/], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},

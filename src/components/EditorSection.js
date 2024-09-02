@@ -5,9 +5,9 @@ import MermaidEditor from "./MermaidEditor";
 import { ResizableBox } from "react-resizable";
 import "react-resizable/css/styles.css";
 import { Box, Typography, Tooltip, IconButton } from "@mui/material";
-import LockIcon from '@mui/icons-material/Lock';
-import LockOpenIcon from '@mui/icons-material/LockOpen';
-import EditIcon from '@mui/icons-material/Edit';
+import LockIcon from "@mui/icons-material/Lock";
+import LockOpenIcon from "@mui/icons-material/LockOpen";
+import EditIcon from "@mui/icons-material/Edit";
 
 const EditorSection = ({
   code1,
@@ -18,11 +18,10 @@ const EditorSection = ({
   setEditor1Height,
   setMermaidCode,
   dslEditorEditable,
-  setDslEditorEditable
+  setDslEditorEditable,
 }) => {
-
   const handleClickLock = () => {
-    setDslEditorEditable(dslEditorEditable => !dslEditorEditable);
+    setDslEditorEditable((dslEditorEditable) => !dslEditorEditable);
   };
 
   return (
@@ -36,7 +35,15 @@ const EditorSection = ({
         position: "relative",
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2 }}>
+      {/* Code Editor Section */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          px: 2,
+        }}
+      >
         <Typography variant="overline">Code Editor</Typography>
         <Tooltip title={dslEditorEditable ? "Edit Mode" : "Read Mode"}>
           <IconButton onClick={handleClickLock} size="small">
@@ -70,18 +77,38 @@ const EditorSection = ({
         }
       >
         <div style={{ height: "100%", margin: 0, padding: 0 }}>
-          <DslEditor value={code1} onChange={handleEditor1Change}/>
+          <DslEditor value={code1} onChange={handleEditor1Change} />
         </div>
       </ResizableBox>
-      <div
-        style={{
+
+      {/* Mermaid Editor Section */}
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
           height: `calc(100% - ${editor1Height}px)`,
           overflow: "hidden",
         }}
       >
-        <Typography variant="overline" sx={{ pl: 2 }}>Mermaid Editor</Typography>
-        <MermaidEditor value={mermaidCode} onChange={setMermaidCode} />
-      </div>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            px: 2,
+          }}
+        >
+          <Typography variant="overline">Mermaid Editor</Typography>
+          <Tooltip title={"Read Mode"}>
+            <IconButton size="small">
+              <LockIcon sx={{ fontSize: 18 }} />
+            </IconButton>
+          </Tooltip>
+        </Box>
+        <div style={{ flexGrow: 1, overflow: "auto" }}>
+          <MermaidEditor value={mermaidCode} onChange={setMermaidCode} />
+        </div>
+      </Box>
     </div>
   );
 };
