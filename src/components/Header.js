@@ -27,7 +27,7 @@ const Header = () => {
             <GitHubIcon />
           </IconButton>
                         <Button variant="text" color="inherit">Docs</Button>
-                        <Button variant="text" color="inherit">Tutorial</Button>
+                        <Button variant="text" color="inherit" href="https://github.com/ETH-PEACH-Lab/intuition-vis-tutorial" target="_blank">Tutorial</Button>
                         <Button variant="text" color="inherit" href="https://eth-peach-lab.github.io/intuition-visualisation/" target="_blank">Intuition Viewer</Button>
                     </Grid>
                 </Toolbar>

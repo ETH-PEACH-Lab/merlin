@@ -109,7 +109,7 @@ show mr1[p]
       "title":"Task 4 - Valid Brackets",
       "userCode" : `data:
 array arr = {
-  structure:[[{,{,{,},{,},},{,}]]
+  structure:[[{,{,{,},{,},},{]]
 }
 stack stk = {
     structure: [[{]]
