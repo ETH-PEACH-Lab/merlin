@@ -44,7 +44,7 @@ const EditorSection = ({
           px: 2,
         }}
       >
-        <Typography variant="overline">Code Editor</Typography>
+        <Typography variant="overline">Merlin-Lite Editor</Typography>
         <Tooltip title={dslEditorEditable ? "Edit Mode" : "Read Mode"}>
           <IconButton onClick={handleClickLock} size="small">
             {dslEditorEditable ? (
@@ -98,7 +98,7 @@ const EditorSection = ({
             px: 2,
           }}
         >
-          <Typography variant="overline">Mermaid Editor</Typography>
+          <Typography variant="overline">Merlin Editor</Typography>
           <Tooltip title={"Read Mode"}>
             <IconButton size="small">
               <LockIcon sx={{ fontSize: 18 }} />
