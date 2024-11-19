@@ -13,7 +13,7 @@ const Header = () => {
         }}>
 
             <Box display="flex" flexGrow={1} alignItems={'center'}>
-                <Typography sx={{ fontWeight: 'bold', textTransform: 'uppercase'}}>Intuition Vis</Typography>
+                <Typography sx={{ fontWeight: 'bold', textTransform: 'uppercase'}}>Merlin Editor 🧙🏼‍♂️🪄 </Typography>
             </Box>
             <Box display="flex">
                 <Toolbar disableGutters >
