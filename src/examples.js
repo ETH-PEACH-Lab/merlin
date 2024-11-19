@@ -332,6 +332,46 @@ page p:=[0,4] {
 show arr1[p]
 }`,
 },
+{
+  "id":"13",
+  "title":"count strictly increasing subarrays",
+  "userCode" : `data:
+array arr1 = {
+  structure:[[1,3,5,4,4,6],[1,3,5,4,4,6],[1,3,5,4,4,6],[1,3,5,4,4,6],[1,3,5,4,4,6],[1,3,5,4,4,6],[1,3,5,4,4,6],[1,3,5,4,4,6],[1,3,5,4,4,6],[1,3,5,4,4,6]]
+  value:[[1,3,5,4,4,6],[1,3,5,4,4,6],[1,3,5,4,4,6],[1,3,5,4,4,6],[1,3,5,4,4,6],[1,3,5,4,4,6],[1,3,5,4,4,6],[1,3,5,4,4,6],[1,3,5,4,4,6],[1,3,5,4,4,6]]
+  color:[[orange,null,null,null,null,null],[null,orange,null,null,null,null],[null,null,orange,null,null,null],[null,null,null,orange,null,null],[null,null,null,null,orange,null],[null,null,null,null,null,orange],[null,null,null,null,null,null],[null,null,null,null,null,null],[null,null,null,null,null,null],[null,null,null,null,null,null]]
+  arrow:[[null,null,null,null,null,null],[null,null,null,null,null,null],[null,null,null,null,null,null],[null,null,null,null,null,null],[null,null,null,null,null,null],[null,null,null,null,null,null],[null,null,null,null,null,null],[null,null,null,null,null,null],[null,null,null,null,null,null],[null,null,null,null,null,null]]
+  hidden:[[false,false,false,false,false,false],[false,false,false,false,false,false],[false,false,false,false,false,false],[false,false,false,false,false,false],[false,false,false,false,false,false],[false,false,false,false,false,false],[false,false,false,false,false,false],[false,false,false,false,false,false],[false,false,false,false,false,false],[false,false,false,false,false,false]]
+}
+array arr2 = {
+  structure:[[0,1,2,3,4,5],[0,1,2,3,4,5],[0,1,2,3,4,5],[0,1,2,3,4,5],[0,1,2,3,4,5],[0,1,2,3,4,5],[0,1,2,3,4,5],[0,1,2,3,4,5],[0,1,2,3,4,5]]
+  value:[[0,1,2,3,4,5],[0,1,2,3,4,5],[0,1,2,3,4,5],[0,1,2,3,4,5],[0,1,2,3,4,5],[0,1,2,3,4,5],[0,1,2,3,4,5],[0,1,2,3,4,5],[0,1,2,3,4,5]]
+  color:[[orange,null,null,null,null,null],[null,orange,null,null,null,null],[null,null,orange,null,null,null],[null,null,null,orange,null,null],[null,null,null,null,orange,null],[null,null,null,null,null,orange],[null,null,null,null,null,null],[null,null,null,null,null,null],[null,null,null,null,null,null]]
+  arrow:[[null,null,null,null,null,null],[null,null,null,null,null,null],[null,null,null,null,null,null],[null,null,null,null,null,null],[null,null,null,null,null,null],[null,null,null,null,null,null],[null,null,null,null,null,null],[null,null,null,null,null,null],[null,null,null,null,null,null]]
+  hidden:[[false,false,false,false,false,false],[false,false,false,false,false,false],[false,false,false,false,false,false],[false,false,false,false,false,false],[false,false,false,false,false,false],[false,false,false,false,false,false],[false,false,false,false,false,false],[false,false,false,false,false,false],[false,false,false,false,false,false]]
+}
+draw:
+page p:=[0,5] {
+show arr1[p]
+show arr2[p]
+}`,
+},
+{
+  "id":"14",
+  "title":"Binary tree preorder traversal",
+  "userCode" : `data:
+tree tr1 = {
+  structure:[[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7]]
+  value:[[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7]]
+  color:[[null,null,null,null,null,null,null],[blue,null,null,null,null,null,null],[blue,blue,null,null,null,null,null],[blue,blue,blue,null,null,null,null],[blue,blue,blue,blue,null,null,null],[blue,blue,blue,blue,blue,null,null],[blue,blue,blue,blue,blue,blue,blue],[blue,blue,blue,blue,blue,blue,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null]]
+  arrow:[[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null]]
+  hidden:[[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false]]
+}
+draw:
+page p:=[0,7] {
+show tr1[p]
+}`,
+},
 ];
 
 /*
