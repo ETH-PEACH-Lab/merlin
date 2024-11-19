@@ -363,7 +363,55 @@ show arr2[p]
 tree tr1 = {
   structure:[[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7]]
   value:[[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7]]
-  color:[[null,null,null,null,null,null,null],[blue,null,null,null,null,null,null],[blue,blue,null,null,null,null,null],[blue,blue,blue,null,null,null,null],[blue,blue,blue,blue,null,null,null],[blue,blue,blue,blue,blue,null,null],[blue,blue,blue,blue,blue,blue,blue],[blue,blue,blue,blue,blue,blue,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null]]
+  color:[[null,null,null,null,null,null,null],[blue,null,null,null,null,null,null],[blue,blue,null,null,null,null,null],[blue,blue,blue,null,null,null,null],[blue,blue,blue,blue,null,null,null],[blue,blue,blue,blue,blue,null,null],[blue,blue,blue,blue,blue,blue,null],[blue,blue,blue,blue,blue,blue,blue],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null]]
+  arrow:[[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null]]
+  hidden:[[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false]]
+}
+draw:
+page p:=[0,7] {
+show tr1[p]
+}`,
+},
+{
+  "id":"15",
+  "title":"Binary tree inorder traversal",
+  "userCode" : `data:
+tree tr1 = {
+  structure:[[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7]]
+  value:[[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7]]
+  color:[[null,null,null,null,null,null,null],[null,null,null,red,null,null,null],[null,red,null,red,null,null,null],[null,red,null,red,red,null,null],[red,red,null,red,red,null,null],[red,red,null,red,red,red,null],[red,red,red,red,red,red,null],[red,red,red,red,red,red,red],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null]]
+  arrow:[[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null]]
+  hidden:[[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false]]
+}
+draw:
+page p:=[0,7] {
+show tr1[p]
+}`,
+},
+{
+  "id":"16",
+  "title":"Binary tree postorder traversal",
+  "userCode" : `data:
+tree tr1 = {
+  structure:[[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7]]
+  value:[[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7]]
+  color:[[null,null,null,purple,null,null,null],[null,null,null,purple,purple,null,null],[null,purple,null,purple,purple,null,null],[null,purple,null,purple,purple,purple,null],[null,purple,null,purple,purple,purple,purple],[null,purple,purple,purple,purple,purple,purple],[purple,purple,purple,purple,purple,purple,purple],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null]]
+  arrow:[[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null]]
+  hidden:[[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false]]
+}
+draw:
+page p:=[0,6] {
+show tr1[p]
+}`,
+},
+{
+  "id":"17",
+  "title":"Binary tree level-order traversal",
+  "userCode" : `data:
+tree tr1 = {
+  structure:[[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7]]
+  value:[[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7]]
+  color:[[null,null,null,null,null,null,null],[pink,null,null,null,null,null,null],[pink,pink,null,null,null,null,null],[pink,pink,pink,null,null,null,null],[pink,pink,pink,pink,null,null,null],[pink,pink,pink,pink,pink,null,null],[pink,pink,pink,pink,pink,pink,null],[pink,pink,pink,pink,pink,pink,pink],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null]]
   arrow:[[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null]]
   hidden:[[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false]]
 }
