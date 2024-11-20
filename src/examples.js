@@ -575,7 +575,42 @@ show mr1[p]
 {
   "id":"28",
   "title":"Unique path ii",
-  "userCode" : ``,
+  "userCode" : `data:
+matrix mr1 = {
+  structure:[[[1,0,0,0],[0,0,0,2],[0,0,0,0],[0,0,0,0]],[[1,0,0,0],[0,0,0,2],[0,0,0,0],[0,0,0,0]],[[0,1,0,0],[0,0,0,2],[0,0,0,0],[0,0,0,0]],[[0,0,1,0],[0,0,0,2],[0,0,0,0],[0,0,0,0]],[[0,0,0,1],[0,0,0,2],[0,0,0,0],[0,0,0,0]],[[0,0,0,0],[0,0,0,2],[0,0,0,0],[0,0,0,0]]]
+  value:[[[1,0,0,0],[0,0,0,2],[0,0,0,0],[0,0,0,0]],[[1,0,0,0],[0,0,0,2],[0,0,0,0],[0,0,0,0]],[[0,1,0,0],[0,0,0,2],[0,0,0,0],[0,0,0,0]],[[0,0,1,0],[0,0,0,2],[0,0,0,0],[0,0,0,0]],[[0,0,0,1],[0,0,0,2],[0,0,0,0],[0,0,0,0]],[[0,0,0,0],[0,0,0,2],[0,0,0,0],[0,0,0,0]]]
+  color:[[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[red,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[red,red,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[red,red,red,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[red,red,red,red],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[red,red,red,red],[null,null,null,green],[null,null,null,null],[null,null,null,null]]]
+  arrow:[[[start,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[start,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]]]
+  hidden:[[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]]]
+}
+draw:
+page p:=[0,5] {
+show mr1[p]
+}`,
+},
+{
+  "id":"30",
+  "title":"Word Search",
+  "userCode" : `data:
+matrix mr1 = {
+  structure:[[[1,2,2,1]],[[1,2,2,1]],[[1,2,2,1]],[[1,2,2,1]],[[1,2,2,1]],[[1,2,2,1]]]
+  value:[[[1,2,2,1]],[[1,2,2,1]],[[1,2,2,1]],[[1,2,2,1]],[[1,2,2,1]],[[1,2,2,1]]]
+  color:[[[green,null,null,null]],[[green,null,null,null]],[[green,green,null,null]],[[green,green,red,null]],[[green,green,green,null]],[[green,green,green,green]]]
+  arrow:[[[null,null,null,null]],[[null,null,null,null]],[[null,null,null,null]],[[null,null,null,null]],[[null,null,null,null]],[[null,null,null,null]]]
+  hidden:[[[null,null,null,null]],[[null,null,null,null]],[[null,null,null,null]],[[null,null,null,null]],[[null,null,null,null]],[[null,null,null,null]]]
+}
+matrix mr2 = {
+  structure:[[[3,3,3,3],[3,1,2,3],[3,2,2,1],[3,3,3,3]],[[3,3,3,3],[3,1,2,3],[3,2,2,1],[3,3,3,3]],[[3,3,3,3],[3,1,2,3],[3,2,2,1],[3,3,3,3]],[[3,3,3,3],[3,1,2,3],[3,2,2,1],[3,3,3,3]],[[3,3,3,3],[3,1,2,3],[3,2,2,1],[3,3,3,3]],[[3,3,3,3],[3,1,2,3],[3,2,2,1],[3,3,3,3]]]
+  value:[[[3,3,3,3],[3,1,2,3],[3,2,2,1],[3,3,3,3]],[[3,3,3,3],[3,1,2,3],[3,2,2,1],[3,3,3,3]],[[3,3,3,3],[3,1,2,3],[3,2,2,1],[3,3,3,3]],[[3,3,3,3],[3,1,2,3],[3,2,2,1],[3,3,3,3]],[[3,3,3,3],[3,1,2,3],[3,2,2,1],[3,3,3,3]],[[3,3,3,3],[3,1,2,3],[3,2,2,1],[3,3,3,3]]]
+  color:[[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,green,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,green,green,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,green,green,red],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,green,green,red],[null,null,green,null],[null,null,null,null]],[[null,null,null,null],[null,green,green,red],[null,null,green,green],[null,null,null,null]]]
+  arrow:[[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]]]
+  hidden:[[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]]]
+}
+draw:
+page p:=[0,5] {
+show mr1[p]
+show mr2[p]
+}`,
 },
 ];
 
