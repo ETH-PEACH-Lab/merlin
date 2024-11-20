@@ -556,6 +556,27 @@ page p:=[0,11] {
 show mr1[p]
 }`,
 },
+{
+  "id":"27",
+  "title":"surrounded regions",
+  "userCode" : `data:
+matrix mr1 = {
+  structure:[[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]]
+  value:[[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]]
+  color:[[[red,red,red,red],[red,red,red,red],[null,null,null,null],[red,null,null,null]],[[red,red,red,red],[red,red,red,red],[blue,null,null,null],[red,null,null,null]],[[red,red,red,red],[red,red,red,red],[blue,blue,null,null],[red,null,null,null]],[[red,red,red,red],[red,red,red,red],[blue,blue,blue,null],[red,null,null,null]],[[red,red,red,red],[red,red,red,red],[blue,blue,blue,blue],[red,null,null,null]],[[red,red,red,red],[red,red,red,red],[blue,blue,blue,blue],[red,null,null,blue]],[[red,red,red,red],[red,red,red,red],[blue,blue,blue,blue],[red,null,blue,blue]],[[red,red,red,red],[red,red,red,red],[blue,blue,blue,blue],[red,blue,blue,blue]]]
+  arrow:[[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]]]
+  hidden:[[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]]]
+}
+draw:
+page p:=[0,7] {
+show mr1[p]
+}`,
+},
+{
+  "id":"28",
+  "title":"Unique path ii",
+  "userCode" : ``,
+},
 ];
 
 /*
