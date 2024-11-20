@@ -420,6 +420,142 @@ page p:=[0,7] {
 show tr1[p]
 }`,
 },
+{
+  "id":"18",
+  "title":"find smallest common element in all rows",
+  "userCode" : `data:
+matrix mr1 = {
+  structure:[[[1,2,3,4,5],[2,4,5,8,10],[3,5,7,9,11],[1,3,5,7,9]],[[1,2,3,4,5],[2,4,5,8,10],[3,5,7,9,11],[1,3,5,7,9]],[[1,2,3,4,5],[2,4,5,8,10],[3,5,7,9,11],[1,3,5,7,9]],[[1,2,3,4,5],[2,4,5,8,10],[3,5,7,9,11],[1,3,5,7,9]],[[1,2,3,4,5],[2,4,5,8,10],[3,5,7,9,11],[1,3,5,7,9]]]
+  value:[[[1,2,3,4,5],[2,4,5,8,10],[3,5,7,9,11],[1,3,5,7,9]],[[1,2,3,4,5],[2,4,5,8,10],[3,5,7,9,11],[1,3,5,7,9]],[[1,2,3,4,5],[2,4,5,8,10],[3,5,7,9,11],[1,3,5,7,9]],[[1,2,3,4,5],[2,4,5,8,10],[3,5,7,9,11],[1,3,5,7,9]],[[1,2,3,4,5],[2,4,5,8,10],[3,5,7,9,11],[1,3,5,7,9]]]
+  color:[[[yellow,green,green,green,green],[orange,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]],[[yellow,green,green,green,green],[orange,null,null,null,null],[orange,null,null,null,null],[null,null,null,null,null]],[[green,green,yellow,green,green],[null,orange,null,null,null],[null,null,null,null,null],[null,null,null,null,null]],[[green,green,green,yellow,green],[null,orange,null,null,null],[null,orange,null,null,null],[null,null,null,null,null]],[[green,green,green,green,yellow],[null,null,orange,null,null],[null,orange,null,null,null],[null,null,orange,null,null]]]
+  arrow:[[[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]],[[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]],[[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]],[[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]],[[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]]]
+  hidden:[[[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]],[[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]],[[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]],[[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]],[[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]]]
+}
+array arr1 = {
+  structure:[[F,N,N],[T,F,N],[F,N,N],[F,N,N],[F,N,N]]
+  value:[[F,N,N],[T,F,N],[F,N,N],[F,N,N],[T,T,T]]
+  color:[[null,null,null],[null,null,null],[null,null,null],[null,null,null],[green,green,green]]
+  arrow:[[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null]]
+  hidden:[[false,false,false],[false,false,false],[false,false,false],[false,false,false],[false,false,false]]
+}
+draw:
+page p:=[0,4] {
+show mr1[p]
+show arr1[p]
+}`,
+},
+{
+  "id":"19",
+  "title":"find the safest path in a grid",
+  "userCode" : `data:
+matrix mr1 = {
+  structure:[[[1,1,1,0],[1,1,1,1],[1,1,1,1],[0,1,1,1]],[[1,1,1,0],[1,1,1,1],[1,1,1,1],[0,1,1,1]],[[1,2,1,0],[2,1,2,1],[1,2,1,2],[0,1,2,1]],[[3,2,1,0],[2,3,2,1],[1,2,3,2],[0,1,2,3]]]
+  value:[[[1,1,1,0],[1,1,1,1],[1,1,1,1],[0,1,1,1]],[[1,1,1,0],[1,1,1,1],[1,1,1,1],[0,1,1,1]],[[1,2,1,0],[2,1,2,1],[1,2,1,2],[0,1,2,1]],[[3,2,1,0],[2,3,2,1],[1,2,3,2],[0,1,2,3]]]
+  color:[[[null,null,null,pink],[null,null,null,null],[null,null,null,null],[pink,null,null,null]],[[null,null,green,pink],[null,null,null,green],[green,null,null,null],[pink,green,null,null]],[[null,blue,green,pink],[blue,null,blue,green],[green,blue,null,blue],[pink,green,blue,null]],[[orange,blue,green,pink],[blue,orange,blue,green],[green,blue,orange,blue],[pink,green,blue,orange]]]
+  arrow:[[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]]]
+  hidden:[[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]]]
+}
+draw:
+page p:=[0,3] {
+show mr1[p]
+}`,
+},
+{
+  "id":"20",
+  "title":"number of closed islands",
+  "userCode" : `data:
+matrix mr1 = {
+  structure:[[[1,1,1,1,0],[1,0,0,1,0],[1,0,0,1,0],[1,1,1,1,0]],[[1,1,1,1,0],[1,0,0,1,0],[1,0,0,1,0],[1,1,1,1,0]],[[1,1,1,1,0],[1,0,0,1,0],[1,0,0,1,0],[1,1,1,1,0]],[[1,1,1,1,0],[1,0,0,1,0],[1,0,0,1,0],[1,1,1,1,0]],[[1,1,1,1,0],[1,0,0,1,0],[1,0,0,1,0],[1,1,1,1,0]]]
+  value:[[[1,1,1,1,0],[1,0,0,1,0],[1,0,0,1,0],[1,1,1,1,0]],[[1,1,1,1,0],[1,0,0,1,0],[1,0,0,1,0],[1,1,1,1,0]],[[1,1,1,1,0],[1,0,0,1,0],[1,0,0,1,0],[1,1,1,1,0]],[[1,1,1,1,0],[1,0,0,1,0],[1,0,0,1,0],[1,1,1,1,0]],[[1,1,1,1,0],[1,0,0,1,0],[1,0,0,1,0],[1,1,1,1,0]]]
+  color:[[[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]],[[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]],[[null,null,null,null,pink],[null,null,null,null,pink],[null,null,null,null,pink],[null,null,null,null,pink]],[[null,null,null,null,pink],[null,null,null,null,pink],[null,null,null,null,pink],[null,null,null,null,pink]],[[null,null,null,null,pink],[null,purple,purple,null,pink],[null,purple,purple,null,pink],[null,null,null,null,pink]]]
+  arrow:[[[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]],[[null,null,null,null,start],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]],[[null,null,null,null,start],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]],[[null,null,null,null,null],[null,start,null,null,null],[null,null,null,null,null],[null,null,null,null,null]],[[null,null,null,null,null],[null,start,null,null,null],[null,null,null,null,null],[null,null,null,null,null]]]
+  hidden:[[[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]],[[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]],[[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]],[[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]],[[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]]]
+}
+draw:
+page p:=[0,4] {
+show mr1[p]
+}`,
+},
+{
+  "id":"21",
+  "title":"number of enclaves",
+  "userCode" : `data:
+matrix mr1 = {
+  structure:[[[0,0,0,0,1],[0,0,1,0,1],[0,1,0,0,1],[0,1,0,1,0],[0,0,0,1,1]],[[0,0,0,0,1],[0,0,1,0,1],[0,1,0,0,1],[0,1,0,1,0],[0,0,0,1,1]],[[0,0,0,0,1],[0,0,1,0,1],[0,1,0,0,1],[0,1,0,1,0],[0,0,0,1,1]],[[0,0,0,0,1],[0,0,1,0,1],[0,1,0,0,1],[0,1,0,1,0],[0,0,0,1,1]],[[0,0,0,0,1],[0,0,1,0,1],[0,1,0,0,1],[0,1,0,1,0],[0,0,0,1,1]],[[0,0,0,0,1],[0,0,1,0,1],[0,1,0,0,1],[0,1,0,1,0],[0,0,0,1,1]],[[0,0,0,0,1],[0,0,1,0,1],[0,1,0,0,1],[0,1,0,1,0],[0,0,0,1,1]]]
+  value:[[[0,0,0,0,1],[0,0,1,0,1],[0,1,0,0,1],[0,1,0,1,0],[0,0,0,1,1]],[[0,0,0,0,1],[0,0,1,0,1],[0,1,0,0,1],[0,1,0,1,0],[0,0,0,1,1]],[[0,0,0,0,1],[0,0,1,0,1],[0,1,0,0,1],[0,1,0,1,0],[0,0,0,1,1]],[[0,0,0,0,1],[0,0,1,0,1],[0,1,0,0,1],[0,1,0,1,0],[0,0,0,1,1]],[[0,0,0,0,1],[0,0,1,0,1],[0,1,0,0,1],[0,1,0,1,0],[0,0,0,1,1]],[[0,0,0,0,1],[0,0,1,0,1],[0,1,0,0,1],[0,1,0,1,0],[0,0,0,1,1]],[[0,0,0,0,1],[0,0,1,0,1],[0,1,0,0,1],[0,1,0,1,0],[0,0,0,1,1]]]
+  color:[[[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]],[[null,null,null,null,red],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]],[[null,null,null,null,red],[null,null,null,null,red],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]],[[null,null,null,null,red],[null,null,null,null,red],[null,null,null,null,red],[null,null,null,null,null],[null,null,null,null,null]],[[null,null,null,null,red],[null,null,null,null,red],[null,null,null,null,red],[null,null,null,null,null],[null,null,null,null,null]],[[null,null,null,null,red],[null,null,null,null,red],[null,null,null,null,red],[null,null,null,red,null],[null,null,null,red,red]],[[null,null,null,null,red],[null,null,green,null,red],[null,green,null,null,red],[null,green,null,red,null],[null,null,null,red,red]]]
+  arrow:[[[null,null,null,null,root],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]],[[null,null,null,null,root],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]],[[null,null,null,null,root],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]],[[null,null,null,null,root],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]],[[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,root,null]],[[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,root,null]],[[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,root,null]]]
+  hidden:[[[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]],[[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]],[[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]],[[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]],[[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]],[[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]],[[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]]]
+}
+draw:
+page p:=[0,6] {
+show mr1[p]
+}`,
+},
+{
+  "id":"22",
+  "title":"Numbers of Islands",
+  "userCode" : `data:
+matrix mr1 = {
+  structure:[[[1,1,1],[0,1,0],[1,0,0],[1,0,1]],[[1,1,1],[0,1,0],[1,0,0],[1,0,1]],[[1,1,1],[0,1,0],[1,0,0],[1,0,1]],[[1,1,1],[0,1,0],[1,0,0],[1,0,1]],[[1,1,1],[0,1,0],[1,0,0],[1,0,1]],[[1,1,1],[0,1,0],[1,0,0],[1,0,1]],[[1,1,1],[0,1,0],[1,0,0],[1,0,1]],[[1,1,1],[0,1,0],[1,0,0],[1,0,1]],[[1,1,1],[0,1,0],[1,0,0],[1,0,1]],[[1,1,1],[0,1,0],[1,0,0],[1,0,1]]]
+  value:[[[1,1,1],[0,1,0],[1,0,0],[1,0,1]],[[1,1,1],[0,1,0],[1,0,0],[1,0,1]],[[1,1,1],[0,1,0],[1,0,0],[1,0,1]],[[1,1,1],[0,1,0],[1,0,0],[1,0,1]],[[1,1,1],[0,1,0],[1,0,0],[1,0,1]],[[1,1,1],[0,1,0],[1,0,0],[1,0,1]],[[1,1,1],[0,1,0],[1,0,0],[1,0,1]],[[1,1,1],[0,1,0],[1,0,0],[1,0,1]],[[1,1,1],[0,1,0],[1,0,0],[1,0,1]],[[1,1,1],[0,1,0],[1,0,0],[1,0,1]]]
+  color:[[[null,null,null],[null,null,null],[null,null,null],[null,null,null]],[[blue,null,null],[null,null,null],[null,null,null],[null,null,null]],[[blue,blue,null],[null,null,null],[null,null,null],[null,null,null]],[[blue,blue,null],[null,blue,null],[null,null,null],[null,null,null]],[[blue,blue,blue],[null,blue,null],[null,null,null],[null,null,null]],[[blue,blue,blue],[null,blue,null],[null,null,null],[null,null,null]],[[blue,blue,blue],[null,blue,null],[pink,null,null],[null,null,null]],[[blue,blue,blue],[null,blue,null],[pink,null,null],[pink,null,null]],[[blue,blue,blue],[null,blue,null],[pink,null,null],[pink,null,null]],[[blue,blue,blue],[null,blue,null],[pink,null,null],[pink,null,green]]]
+  arrow:[[[start,null,null],[null,null,null],[null,null,null],[null,null,null]],[[start,null,null],[null,null,null],[null,null,null],[null,null,null]],[[start,null,null],[null,null,null],[null,null,null],[null,null,null]],[[start,null,null],[null,null,null],[null,null,null],[null,null,null]],[[start,null,null],[null,null,null],[null,null,null],[null,null,null]],[[null,null,null],[null,null,null],[start,null,null],[null,null,null]],[[null,null,null],[null,null,null],[start,null,null],[null,null,null]],[[null,null,null],[null,null,null],[start,null,null],[null,null,null]],[[null,null,null],[null,null,null],[null,null,null],[null,null,start]],[[null,null,null],[null,null,null],[null,null,null],[null,null,start]]]
+  hidden:[[[null,null,null],[null,null,null],[null,null,null],[null,null,null]],[[null,null,null],[null,null,null],[null,null,null],[null,null,null]],[[null,null,null],[null,null,null],[null,null,null],[null,null,null]],[[null,null,null],[null,null,null],[null,null,null],[null,null,null]],[[null,null,null],[null,null,null],[null,null,null],[null,null,null]],[[null,null,null],[null,null,null],[null,null,null],[null,null,null]],[[null,null,null],[null,null,null],[null,null,null],[null,null,null]],[[null,null,null],[null,null,null],[null,null,null],[null,null,null]],[[null,null,null],[null,null,null],[null,null,null],[null,null,null]],[[null,null,null],[null,null,null],[null,null,null],[null,null,null]]]
+}
+draw:
+page p:=[0,9] {
+show mr1[p]
+}`,
+},
+{
+  "id":"24",
+  "title":"pacific atlantic water flow",
+  "userCode" : `data:
+matrix mr1 = {
+  structure:[[[1,2,2,3,5,1,1,1,3],[3,2,3,4,4,2,2,2,3],[2,4,5,3,2,1,5,1,4],[6,7,1,4,5,1,6,4,2],[5,1,1,2,4,4,1,1,4]],[[1,2,2,3,5,1,1,1,3],[3,2,3,4,4,2,2,2,3],[2,4,5,3,2,1,5,1,4],[6,7,1,4,5,1,6,4,2],[5,1,1,2,4,4,1,1,4]],[[1,2,2,3,5,1,1,1,3],[3,2,3,4,4,2,2,2,3],[2,4,5,3,2,1,5,1,4],[6,7,1,4,5,1,6,4,2],[5,1,1,2,4,4,1,1,4]],[[1,2,2,3,5,1,1,1,3],[3,2,3,4,4,2,2,2,3],[2,4,5,3,2,1,5,1,4],[6,7,1,4,5,1,6,4,2],[5,1,1,2,4,4,1,1,4]],[[1,2,2,3,5,1,1,1,3],[3,2,3,4,4,2,2,2,3],[2,4,5,3,2,1,5,1,4],[6,7,1,4,5,1,6,4,2],[5,1,1,2,4,4,1,1,4]],[[1,2,2,3,5,1,1,1,3],[3,2,3,4,4,2,2,2,3],[2,4,5,3,2,1,5,1,4],[6,7,1,4,5,1,6,4,2],[5,1,1,2,4,4,1,1,4]]]
+  value:[[[1,2,2,3,5,1,1,1,3],[3,2,3,4,4,2,2,2,3],[2,4,5,3,2,1,5,1,4],[6,7,1,4,5,1,6,4,2],[5,1,1,2,4,4,1,1,4]],[[1,2,2,3,5,1,1,1,3],[3,2,3,4,4,2,2,2,3],[2,4,5,3,2,1,5,1,4],[6,7,1,4,5,1,6,4,2],[5,1,1,2,4,4,1,1,4]],[[1,2,2,3,5,1,1,1,3],[3,2,3,4,4,2,2,2,3],[2,4,5,3,2,1,5,1,4],[6,7,1,4,5,1,6,4,2],[5,1,1,2,4,4,1,1,4]],[[1,2,2,3,5,1,1,1,3],[3,2,3,4,4,2,2,2,3],[2,4,5,3,2,1,5,1,4],[6,7,1,4,5,1,6,4,2],[5,1,1,2,4,4,1,1,4]],[[1,2,2,3,5,1,1,1,3],[3,2,3,4,4,2,2,2,3],[2,4,5,3,2,1,5,1,4],[6,7,1,4,5,1,6,4,2],[5,1,1,2,4,4,1,1,4]],[[1,2,2,3,5,1,1,1,3],[3,2,3,4,4,2,2,2,3],[2,4,5,3,2,1,5,1,4],[6,7,1,4,5,1,6,4,2],[5,1,1,2,4,4,1,1,4]]]
+  color:[[[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null]],[[blue,blue,blue,blue,blue,blue,blue,blue,blue],[blue,null,null,null,null,null,null,null,null],[blue,null,null,null,null,null,null,null,null],[blue,null,null,null,null,null,null,null,null],[blue,null,null,null,null,null,null,null,null]],[[blue,blue,blue,blue,blue,blue,blue,blue,blue],[blue,blue,blue,blue,blue,blue,blue,blue,blue],[blue,blue,blue,null,null,null,blue,null,blue],[blue,blue,null,null,null,null,blue,null,null],[blue,null,null,null,null,null,null,null,null]],[[blue,blue,blue,blue,blue,blue,blue,blue,yellow],[blue,blue,blue,blue,blue,blue,blue,blue,yellow],[blue,blue,blue,null,null,null,blue,null,yellow],[blue,blue,null,null,null,null,blue,null,yellow],[yellow,yellow,yellow,yellow,yellow,yellow,yellow,yellow,yellow]],[[blue,blue,blue,blue,blue,blue,blue,blue,yellow],[blue,blue,blue,blue,blue,blue,blue,blue,yellow],[blue,blue,yellow,null,null,null,blue,null,yellow],[yellow,yellow,yellow,yellow,yellow,null,yellow,yellow,yellow],[yellow,yellow,yellow,yellow,yellow,yellow,yellow,yellow,yellow]],[[blue,blue,blue,blue,blue,blue,blue,blue,yellow],[blue,blue,blue,blue,blue,blue,blue,blue,yellow],[blue,blue,yellow,null,null,null,blue,null,yellow],[yellow,yellow,green,green,green,null,yellow,green,green],[yellow,green,green,green,green,green,green,green,green]]]
+  arrow:[[[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null]],[[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null]],[[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null]],[[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null]],[[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null]],[[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null]]]
+  hidden:[[[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null]],[[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null]],[[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null]],[[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null]],[[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null]],[[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null]]]
+}
+draw:
+page p:=[0,5] {
+show mr1[p]
+}`,
+},
+{
+  "id":"25",
+  "title":"score after flipping matrix",
+  "userCode" : `data:
+matrix mr1 = {
+  structure:[[[0,0,1,1],[1,0,1,0],[1,1,0,0]],[[1,1,0,0],[1,0,1,0],[1,1,0,0]],[[1,1,0,0],[1,0,1,0],[1,1,0,0]],[[1,1,0,0],[1,0,1,0],[1,1,0,0]],[[1,1,0,0],[1,0,1,0],[1,1,0,0]],[[1,1,0,0],[1,0,1,0],[1,1,0,0]],[[1,1,1,0],[1,0,0,0],[1,1,1,0]],[[1,1,1,0],[1,0,0,0],[1,1,1,0]]]
+  value:[[[0,0,1,1],[1,0,1,0],[1,1,0,0]],[[1,1,0,0],[1,0,1,0],[1,1,0,0]],[[1,1,0,0],[1,0,1,0],[1,1,0,0]],[[1,1,0,0],[1,0,1,0],[1,1,0,0]],[[1,1,0,0],[1,0,1,0],[1,1,0,0]],[[1,1,0,0],[1,0,1,0],[1,1,0,0]],[[1,1,1,0],[1,0,0,0],[1,1,1,0]],[[1,1,1,0],[1,0,0,0],[1,1,1,0]]]
+  color:[[[pink,null,null,null],[null,null,null,null],[null,null,null,null]],[[blue,blue,blue,blue],[null,null,null,null],[null,null,null,null]],[[blue,blue,blue,blue],[green,null,null,null],[null,null,null,null]],[[blue,blue,blue,blue],[green,null,null,null],[green,null,null,null]],[[blue,green,blue,blue],[green,pink,null,null],[green,green,null,null]],[[blue,green,pink,blue],[green,pink,green,null],[green,green,pink,null]],[[blue,green,pink,blue],[green,pink,green,null],[green,green,pink,null]],[[blue,green,pink,orange],[green,pink,green,orange],[green,green,pink,orange]]]
+  arrow:[[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]]]
+  hidden:[[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]]]
+}
+draw:
+page p:=[0,7] {
+show mr1[p]
+}`,
+},
+{
+  "id":"26",
+  "title":"shift 2d grid",
+  "userCode" : `data:
+matrix mr1 = {
+  structure:[[[0,0,0,0],[0,0,0,0],[0,0,0,0]],[[0,0,0,0],[0,1,2,0],[0,0,0,0]],[[0,0,0,0],[0,1,2,3],[0,0,0,0]],[[0,0,0,0],[0,1,2,3],[4,0,0,0]],[[0,0,0,0],[0,1,2,3],[4,5,0,0]],[[0,0,0,0],[0,1,2,3],[4,5,6,0]],[[0,0,0,0],[0,1,2,3],[4,5,6,7]],[[8,0,0,0],[0,1,2,3],[4,5,6,7]],[[8,9,0,0],[0,1,2,3],[4,5,6,7]],[[8,9,10,0],[0,1,2,3],[4,5,6,7]],[[8,9,10,11],[0,1,2,3],[4,5,6,7]],[[8,9,10,11],[12,1,2,3],[4,5,6,7]]]
+  value:[[[0,0,0,0],[0,0,0,0],[0,0,0,0]],[[0,0,0,0],[0,1,2,0],[0,0,0,0]],[[0,0,0,0],[0,1,2,3],[0,0,0,0]],[[0,0,0,0],[0,1,2,3],[4,0,0,0]],[[0,0,0,0],[0,1,2,3],[4,5,0,0]],[[0,0,0,0],[0,1,2,3],[4,5,6,0]],[[0,0,0,0],[0,1,2,3],[4,5,6,7]],[[8,0,0,0],[0,1,2,3],[4,5,6,7]],[[8,9,0,0],[0,1,2,3],[4,5,6,7]],[[8,9,10,0],[0,1,2,3],[4,5,6,7]],[[8,9,10,11],[0,1,2,3],[4,5,6,7]],[[8,9,10,11],[12,1,2,3],[4,5,6,7]]]
+  color:[[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,pink,pink,null],[null,null,null,null]],[[null,null,null,null],[null,pink,pink,pink],[null,null,null,null]],[[null,null,null,null],[null,pink,pink,pink],[pink,null,null,null]],[[null,null,null,null],[null,pink,pink,pink],[pink,pink,null,null]],[[null,null,null,null],[null,pink,pink,pink],[pink,pink,pink,null]],[[null,null,null,null],[null,pink,pink,pink],[pink,pink,pink,pink]],[[pink,null,null,null],[null,pink,pink,pink],[pink,pink,pink,pink]],[[pink,pink,null,null],[null,pink,pink,pink],[pink,pink,pink,pink]],[[pink,pink,pink,null],[null,pink,pink,pink],[pink,pink,pink,pink]],[[pink,pink,pink,pink],[null,pink,pink,pink],[pink,pink,pink,pink]],[[pink,pink,pink,pink],[pink,pink,pink,pink],[pink,pink,pink,pink]]]
+  arrow:[[[null,null,null,null],[null,start,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]]]
+  hidden:[[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]]]
+}
+draw:
+page p:=[0,11] {
+show mr1[p]
+}`,
+},
 ];
 
 /*
