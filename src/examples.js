@@ -880,6 +880,62 @@ page p:=[0,5] {
 show gh[p]
 }`,
 },
+{
+  "id":"46",
+  "title":"find circle",
+  "userCode" : `data:
+graph gh = {
+  id:[[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8]]
+  edge:[[(n1,n2),(n2,n3),(n3,n4),(n4,n5),(n5,n6),(n6,n7),(n7,n8),(n8,n4)],[(n1,n2),(n2,n3),(n3,n4),(n4,n5),(n5,n6),(n6,n7),(n7,n8),(n8,n4)],[(n1,n2),(n2,n3),(n3,n4),(n4,n5),(n5,n6),(n6,n7),(n7,n8),(n8,n4)],[(n1,n2),(n2,n3),(n3,n4),(n4,n5),(n5,n6),(n6,n7),(n7,n8),(n8,n4)],[(n1,n2),(n2,n3),(n3,n4),(n4,n5),(n5,n6),(n6,n7),(n7,n8),(n8,n4)],[(n1,n2),(n2,n3),(n3,n4),(n4,n5),(n5,n6),(n6,n7),(n7,n8),(n8,n4)],[(n1,n2),(n2,n3),(n3,n4),(n4,n5),(n5,n6),(n6,n7),(n7,n8),(n8,n4)],[(n1,n2),(n2,n3),(n3,n4),(n4,n5),(n5,n6),(n6,n7),(n7,n8),(n8,n4)],[(n1,n2),(n2,n3),(n3,n4),(n4,n5),(n5,n6),(n6,n7),(n7,n8),(n8,n4)],[(n1,n2),(n2,n3),(n3,n4),(n4,n5),(n5,n6),(n6,n7),(n7,n8),(n8,n4)]]
+  value:[[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8]]
+  color:[[red,null,null,null,null,null,null,null],[green,red,null,null,null,null,null,null],[green,null,red,null,null,null,null,null],[null,green,null,null,red,null,null,null],[null,null,green,null,null,null,red,null],[null,null,null,green,null,null,null,red],[null,null,null,null,green,red,null,null],[null,null,null,null,null,green,null,red],[null,null,null,null,null,null,red,green],[null,null,null,red,null,null,null,null]]
+  arrow:[[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],[null,null,null,catch,null,null,null,null]]
+  hidden:[[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null]]
+}
+draw:
+page p:=[0,9] {
+show gh[p]
+}`,
+},
+{
+  "id":"47",
+  "title":"BFS in a graph",
+  "userCode" : `data:
+graph gh = {
+  id:[[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8]]
+  edge:[[(n1,n2),(n1,n3),(n1,n4),(n1,n6),(n1,n7),(n3,n4),(n3,n6),(n4,n5),(n6,n8)],[(n1,n2),(n1,n3),(n1,n4),(n1,n6),(n1,n7),(n3,n4),(n3,n6),(n4,n5),(n6,n8)],[(n1,n2),(n1,n3),(n1,n4),(n1,n6),(n1,n7),(n3,n4),(n3,n6),(n4,n5),(n6,n8)],[(n1,n2),(n1,n3),(n1,n4),(n1,n6),(n1,n7),(n3,n4),(n3,n6),(n4,n5),(n6,n8)],[(n1,n2),(n1,n3),(n1,n4),(n1,n6),(n1,n7),(n3,n4),(n3,n6),(n4,n5),(n6,n8)],[(n1,n2),(n1,n3),(n1,n4),(n1,n6),(n1,n7),(n3,n4),(n3,n6),(n4,n5),(n6,n8)],[(n1,n2),(n1,n3),(n1,n4),(n1,n6),(n1,n7),(n3,n4),(n3,n6),(n4,n5),(n6,n8)],[(n1,n2),(n1,n3),(n1,n4),(n1,n6),(n1,n7),(n3,n4),(n3,n6),(n4,n5),(n6,n8)],[(n1,n2),(n1,n3),(n1,n4),(n1,n6),(n1,n7),(n3,n4),(n3,n6),(n4,n5),(n6,n8)]]
+  value:[[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8]]
+  color:[[red,null,null,null,null,null,null,null],[red,red,null,null,null,null,null,null],[red,red,null,null,null,null,null,null],[red,red,red,null,null,null,null,null],[red,red,red,red,null,null,null,null],[red,red,red,red,null,red,null,null],[red,red,red,red,null,red,red,null],[red,red,red,red,red,red,red,null],[red,red,red,red,red,red,red,red]]
+  arrow:[[start,null,null,null,null,null,null,null],[null,cur,null,null,null,null,null,null],[cur,null,null,null,null,null,null,null],[null,null,cur,null,null,null,null,null],[null,null,null,cur,null,null,null,null],[null,null,null,null,null,cur,null,null],[null,null,null,null,null,null,cur,null],[null,null,null,null,cur,null,null,null],[null,null,null,null,null,null,null,finish]]
+  hidden:[[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null]]
+}
+draw:
+page p:=[0,8] {
+show gh[p]
+}`,
+},
+{
+  "id":"48",
+  "title":"DFS in a graph",
+  "userCode" : `data:
+graph gh = {
+  id:[[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8]]
+  edge:[[(n1,n2),(n1,n3),(n1,n4),(n1,n6),(n1,n7),(n3,n4),(n3,n6),(n4,n5),(n6,n8)],[(n1,n2),(n1,n3),(n1,n4),(n1,n6),(n1,n7),(n3,n4),(n3,n6),(n4,n5),(n6,n8)],[(n1,n2),(n1,n3),(n1,n4),(n1,n6),(n1,n7),(n3,n4),(n3,n6),(n4,n5),(n6,n8)],[(n1,n2),(n1,n3),(n1,n4),(n1,n6),(n1,n7),(n3,n4),(n3,n6),(n4,n5),(n6,n8)],[(n1,n2),(n1,n3),(n1,n4),(n1,n6),(n1,n7),(n3,n4),(n3,n6),(n4,n5),(n6,n8)],[(n1,n2),(n1,n3),(n1,n4),(n1,n6),(n1,n7),(n3,n4),(n3,n6),(n4,n5),(n6,n8)],[(n1,n2),(n1,n3),(n1,n4),(n1,n6),(n1,n7),(n3,n4),(n3,n6),(n4,n5),(n6,n8)],[(n1,n2),(n1,n3),(n1,n4),(n1,n6),(n1,n7),(n3,n4),(n3,n6),(n4,n5),(n6,n8)],[(n1,n2),(n1,n3),(n1,n4),(n1,n6),(n1,n7),(n3,n4),(n3,n6),(n4,n5),(n6,n8)],[(n1,n2),(n1,n3),(n1,n4),(n1,n6),(n1,n7),(n3,n4),(n3,n6),(n4,n5),(n6,n8)],[(n1,n2),(n1,n3),(n1,n4),(n1,n6),(n1,n7),(n3,n4),(n3,n6),(n4,n5),(n6,n8)]]
+  value:[[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8],[n1,n2,n3,n4,n5,n6,n7,n8]]
+  color:[[blue,null,null,null,null,null,null,null],[blue,blue,null,null,null,null,null,null],[blue,blue,null,null,null,null,null,null],[blue,blue,blue,null,null,null,null,null],[blue,blue,blue,blue,null,null,null,null],[blue,blue,blue,blue,blue,null,null,null],[blue,blue,blue,blue,blue,null,null,null],[blue,blue,blue,blue,blue,blue,null,null],[blue,blue,blue,blue,blue,blue,null,blue],[blue,blue,blue,blue,blue,blue,null,blue],[blue,blue,blue,blue,blue,blue,blue,blue]]
+  arrow:[[start,null,null,null,null,null,null,null],[null,cur,null,null,null,null,null,null],[cur,null,null,null,null,null,null,null],[null,null,cur,null,null,null,null,null],[null,null,null,cur,null,null,null,null],[null,null,null,null,cur,null,null,null],[null,null,cur,null,null,null,null,null],[null,null,null,null,null,cur,null,null],[null,null,null,null,null,null,null,cur],[cur,null,null,null,null,null,null,null],[null,null,null,null,null,null,cur,null]]
+  hidden:[[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null]]
+}
+draw:
+page p:=[0,10] {
+show gh[p]
+}`,
+},
+{
+  "id":"49",
+  "title":"reconstruct-itinerary",
+  "userCode" : ``,
+},
 ];
 
 /*
