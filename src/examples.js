@@ -612,6 +612,80 @@ show mr1[p]
 show mr2[p]
 }`,
 },
+{
+  "id":"31",
+  "title":"kth largest element in a stream",
+  "userCode" : `data:
+array arr1 = {
+  structure:[[2,4,8,5],[4,5,8],[4,5,8],[5,5,8],[5,8,10],[8,9,10]]
+  value:[[2,4,8,5],[4,5,8],[4,5,8],[5,5,8],[5,8,10],[8,9,10]]
+  color:[[null,null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null]]
+  arrow:[[null,null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null]]
+  hidden:[[false,false,false,false],[false,false,false],[false,false,false],[false,false,false],[false,false,false],[false,false,false]]
+}
+array arr2 = {
+  structure:[[2,3,4,5,8],[2,3,4,5,5,8],[2,3,4,5,5,8,10],[2,3,4,5,5,8,9,10]]
+  value:[[2,3,4,5,8],[2,3,4,5,5,8],[2,3,4,5,5,8,10],[2,3,4,5,5,8,9,10]]
+  color:[[null,null,green,null,null],[null,null,null,green,null,null],[null,null,null,null,green,null,null],[null,null,null,null,null,null,null,null]]
+  arrow:[[null,null,null,null,null],[null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null]]
+  hidden:[[false,false,false,false,false],[false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false,false]]
+}
+draw:
+page p:=[0,5] {
+show arr1[p]
+}
+page p:=[3,5] {
+show arr2[p-3]
+}`,
+},
+{
+  "id":"32",
+  "title":"validate binary search tree",
+  "userCode" : `data:
+tree tr1 = {
+  structure:[[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7]]
+  value:[[5,1,4,0,2,3,6],[5,1,4,0,2,3,6],[5,1,4,0,2,3,6],[5,1,4,0,2,3,6]]
+  color:[[blue,null,null,0,null,null,null],[blue,red,null,red,red,null,null],[blue,red,green,red,red,green,green],[blue,red,green,red,red,green,green]]
+  arrow:[[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,notBST,null,null,null,null]]
+  hidden:[[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false]]
+}
+draw:
+page p:=[0,3] {
+show tr1[p]
+}`,
+},
+{
+  "id":"33",
+  "title":"add two numbers ii",
+  "userCode" : `data:
+linkedlist li1 = {
+  structure:[[n1,n2,n3,n4],[n1,n2,n3,n4],[n1,n2,n3,n4],[n1,n2,n3,n4],[n1,n2,n3,n4]]
+  value:[[3,4,2,7],[3,4,2,7],[3,4,2,7],[3,4,2,7],[3,4,2,7]]
+  color:[[red,null,null,null],[red,red,null,null],[red,red,red,null],[red,red,red,red],[red,red,red,red]]
+  arrow:[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]]
+  hidden:[[false,false,false,false],[false,false,false,false],[false,false,false,false],[false,false,false,false],[false,false,false,false]]
+}
+linkedlist li2 = {
+  structure:[[n1,n2,n3],[n1,n2,n3],[n1,n2,n3],[n1,n2,n3],[n1,n2,n3]]
+  value:[[4,6,5],[4,6,5],[4,6,5],[4,6,5],[4,6,5]]
+  color:[[red,null,null],[red,red,null],[red,red,red],[red,red,red],[red,red,red]]
+  arrow:[[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null]]
+  hidden:[[false,false,false],[false,false,false],[false,false,false],[false,false,false],[false,false,false]]
+}
+linkedlist li3 = {
+  structure:[[n1,n2],[n1,n2,n3],[n1,n2,n3,n4],[n1,n2,n3,n4],[n1,n2,n3,n4,n5]]
+  value:[[7,0],[7,0,1],[7,0,8,0],[7,0,8,7,0],[7,0,8,7,0]]
+  color:[[green,null],[green,green,green],[green,green,green,green],[green,green,green,green],[green,green,green,green,green]]
+  arrow:[[null,null],[null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,return]]
+  hidden:[[false,false],[false,false,false],[false,false,false,false],[false,false,false,false],[false,false,false,false]]
+}
+draw:
+page p:=[0,4] {
+show li1[p]
+show li2[p]
+show li3[p]
+}`,
+},
 ];
 
 /*
