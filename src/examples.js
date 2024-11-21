@@ -774,6 +774,54 @@ show arr1[p]
 show arr2[p]
 }`,
 },
+{
+  "id":"39",
+  "title":"minimum-length-of-string-after-deleting-similar-ends",
+  "userCode" : `data:
+array arr = {
+  structure:[[a,a,b,c,c,a,b,b,a],[a,a,b,c,c,a,b,b,a],[a,a,b,c,c,a,b,b,a],[a,a,b,c,c,a,b,b,a],[a,a,b,c,c,a,b,b,a],[a,a,b,c,c,a,b,b,a],[a,a,b,c,c,a,b,b,a]]
+  value:[[a,a,b,c,c,a,b,b,a],[a,a,b,c,c,a,b,b,a],[a,a,b,c,c,a,b,b,a],[a,a,b,c,c,a,b,b,a],[a,a,b,c,c,a,b,b,a],[a,a,b,c,c,a,b,b,a],[a,a,b,c,c,a,b,b,a]]
+  color:[[blue,null,null,null,null,null,null,null,red],[blue,blue,null,null,null,null,null,null,red],[blue,blue,blue,null,null,null,null,red,red],[blue,blue,blue,blue,null,null,null,red,red],[blue,blue,blue,blue,blue,null,null,red,red],[blue,blue,blue,blue,blue,blue,null,red,red],[blue,blue,blue,blue,blue,blue,red,red,red]]
+  arrow:[[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null]]
+  hidden:[[false,false,false,false,false,false,false,false,false],[false,false,false,false,false,false,false,false,false],[false,false,false,false,false,false,false,false,false],[false,false,false,false,false,false,false,false,false],[false,false,false,false,false,false,false,false,false],[false,false,false,false,false,false,false,false,false],[false,false,false,false,false,false,false,false,false]]
+}
+draw:
+page p:=[0,6] {
+show arr[p]
+}`,
+},
+{
+  "id":"40",
+  "title":"number-of-ways-to-form-a-target-string-given-a-dictionary",
+  "userCode" : `data:
+matrix mr1 = {
+  structure:[[[a,c,c,a],[b,b,b,b],[c,a,c,a]],[[a,c,c,a],[b,b,b,b],[c,a,c,a]],[[a,c,c,a],[b,b,b,b],[c,a,c,a]],[[a,c,c,a],[b,b,b,b],[c,a,c,a]],[[a,c,c,a],[b,b,b,b],[c,a,c,a]],[[a,c,c,a],[b,b,b,b],[c,a,c,a]],[[a,c,c,a],[b,b,b,b],[c,a,c,a]],[[a,c,c,a],[b,b,b,b],[c,a,c,a]]]
+  value:[[[a,c,c,a],[b,b,b,b],[c,a,c,a]],[[a,c,c,a],[b,b,b,b],[c,a,c,a]],[[a,c,c,a],[b,b,b,b],[c,a,c,a]],[[a,c,c,a],[b,b,b,b],[c,a,c,a]],[[a,c,c,a],[b,b,b,b],[c,a,c,a]],[[a,c,c,a],[b,b,b,b],[c,a,c,a]],[[a,c,c,a],[b,b,b,b],[c,a,c,a]],[[a,c,c,a],[b,b,b,b],[c,a,c,a]]]
+  color:[[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[yellow,null,null,null],[yellow,null,null,null],[yellow,null,null,null]],[[green,null,null,null],[yellow,null,null,null],[yellow,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,yellow,null,null],[null,yellow,null,null],[null,yellow,null,null]],[[null,yellow,null,null],[null,green,null,null],[null,yellow,null,null]],[[null,null,null,yellow],[null,null,null,yellow],[null,null,null,yellow]],[[null,null,null,yellow],[null,null,null,yellow],[null,null,null,green]]]
+  arrow:[[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]]]
+  hidden:[[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null]]]
+}
+draw:
+page p:=[0,7] {
+show mr1[p]
+}`,
+},
+{
+  "id":"41",
+  "title":"smallest-string-starting-from-leaf",
+  "userCode" : `data:
+tree tr1 = {
+  structure:[[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7],[n1,n2,n3,n4,n5,n6,n7]]
+  value:[[z,b,d,b,d,a,c],[z,b,d,b,d,a,c],[z,b,d,b,d,a,c],[z,b,d,b,d,a,c],[z,b,d,b,d,a,c],[z,b,d,b,d,a,c],[z,b,d,b,d,a,c],[z,b,d,b,d,a,c],[z,b,d,b,d,a,c],[z,b,d,b,d,a,c]]
+  color:[[null,null,null,null,null,null,null],[blue,null,null,null,null,null,null],[blue,blue,null,null,null,null,null],[blue,blue,null,blue,null,null,null],[blue,blue,null,null,null,null,null],[blue,blue,null,null,blue,null,null],[blue,null,blue,null,null,null,null],[blue,null,blue,null,null,blue,null],[blue,null,blue,null,null,null,null],[blue,null,blue,null,null,null,blue]]
+  arrow:[[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null]]
+  hidden:[[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false],[false,false,false,false,false,false,false]]
+}
+draw:
+page p:=[0,9] {
+show tr1[p]
+}`,
+},
 ];
 
 /*
