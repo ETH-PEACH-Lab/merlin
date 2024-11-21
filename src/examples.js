@@ -686,12 +686,100 @@ show li2[p]
 show li3[p]
 }`,
 },
+{
+  "id":"34",
+  "title":"print-immutable-linked-list-in-reverse",
+  "userCode" : `data:
+linkedlist li = {
+  structure:[[n1,n2,n3],[n1,n2,n3],[n1,n2,n3],[n1,n2,n3],[n1,n2,n3]]
+  value:[[1,2,3],[1,2,3],[1,2,3],[1,2,3],[1,2,3]]
+  color:[[green,null,null],[null,green,null],[null,null,green],[null,null,red],[null,red,null]]
+  arrow:[[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null]]
+  hidden:[[false,false,false],[false,false,false],[false,false,false],[false,false,false],[false,false,false]]
+}
+stack stk = {
+  structure:[[1],[2,1],[3,2,1],[2,1],[1]]
+  value:[[1],[1,1],[1,2,1],[1,1],[1]]
+  color:[[green],[green,null],[green,null,null],[null,null],[null]]
+  arrow:[[null],[null,null],[null,null,null],[null,null],[null]]
+  hidden:[[false],[false,false],[false,false,false],[false,false],[false]]
+}
+draw:
+page p:=[0,4] {
+show li[p]
+show stk[p]
+}`,
+},
+{
+  "id":"36",
+  "title":"count-substrings-with-only-one-distinct-letter",
+  "userCode" : `data:
+array arr1 = {
+  structure:[[a,a,a,a,b,b,a,c,c,c],[a,a,a,a,b,b,a,c,c,c],[a,a,a,a,b,b,a,c,c,c],[a,a,a,a,b,b,a,c,c,c],[a,a,a,a,b,b,a,c,c,c],[a,a,a,a,b,b,a,c,c,c],[a,a,a,a,b,b,a,c,c,c],[a,a,a,a,b,b,a,c,c,c],[a,a,a,a,b,b,a,c,c,c],[a,a,a,a,b,b,a,c,c,c]]
+  value:[[a,a,a,a,b,b,a,c,c,c],[a,a,a,a,b,b,a,c,c,c],[a,a,a,a,b,b,a,c,c,c],[a,a,a,a,b,b,a,c,c,c],[a,a,a,a,b,b,a,c,c,c],[a,a,a,a,b,b,a,c,c,c],[a,a,a,a,b,b,a,c,c,c],[a,a,a,a,b,b,a,c,c,c],[a,a,a,a,b,b,a,c,c,c],[a,a,a,a,b,b,a,c,c,c]]
+  color:[[pink,null,null,null,null,null,null,null,null,null],[null,pink,null,null,null,null,null,null,null,null],[null,null,pink,null,null,null,null,null,null,null],[null,null,null,pink,null,null,null,null,null,null],[null,null,null,null,pink,null,null,null,null,null],[null,null,null,null,null,pink,null,null,null,null],[null,null,null,null,null,null,pink,null,null,null],[null,null,null,null,null,null,null,pink,null,null],[null,null,null,null,null,null,null,null,pink,null],[null,null,null,null,null,null,null,null,null,pink]]
+  arrow:[[null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null]]
+  hidden:[[false,false,false,false,false,false,false,false,false,false],[false,false,false,false,false,false,false,false,false,false],[false,false,false,false,false,false,false,false,false,false],[false,false,false,false,false,false,false,false,false,false],[false,false,false,false,false,false,false,false,false,false],[false,false,false,false,false,false,false,false,false,false],[false,false,false,false,false,false,false,false,false,false],[false,false,false,false,false,false,false,false,false,false],[false,false,false,false,false,false,false,false,false,false],[false,false,false,false,false,false,false,false,false,false]]
+}
+array arr2 = {
+  structure:[[1,0,0,0,0,0,0,0,0,0],[1,2,0,0,0,0,0,0,0,0],[1,2,3,0,0,0,0,0,0,0],[1,2,3,4,0,0,0,0,0,0],[1,2,3,4,1,0,0,0,0,0],[1,2,3,4,1,2,0,0,0,0],[1,2,3,4,1,2,1,0,0,0],[1,2,3,4,1,2,1,1,0,0],[1,2,3,4,1,2,1,1,2,0],[1,2,3,4,1,2,1,1,2,3]]
+  value:[[1,0,0,0,0,0,0,0,0,0],[1,2,0,0,0,0,0,0,0,0],[1,2,3,0,0,0,0,0,0,0],[1,2,3,4,0,0,0,0,0,0],[1,2,3,4,1,0,0,0,0,0],[1,2,3,4,1,2,0,0,0,0],[1,2,3,4,1,2,1,0,0,0],[1,2,3,4,1,2,1,1,0,0],[1,2,3,4,1,2,1,1,2,0],[1,2,3,4,1,2,1,1,2,3]]
+  color:[[pink,null,null,null,null,null,null,null,null,null],[null,pink,null,null,null,null,null,null,null,null],[null,null,pink,null,null,null,null,null,null,null],[null,null,null,pink,null,null,null,null,null,null],[null,null,null,null,pink,null,null,null,null,null],[null,null,null,null,null,pink,null,null,null,null],[null,null,null,null,null,null,pink,null,null,null],[null,null,null,null,null,null,null,pink,null,null],[null,null,null,null,null,null,null,null,pink,null],[null,null,null,null,null,null,null,null,null,pink]]
+  arrow:[[null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null],[null,null,null,null,null,null,null,null,null,null]]
+  hidden:[[false,false,false,false,false,false,false,false,false,false],[false,false,false,false,false,false,false,false,false,false],[false,false,false,false,false,false,false,false,false,false],[false,false,false,false,false,false,false,false,false,false],[false,false,false,false,false,false,false,false,false,false],[false,false,false,false,false,false,false,false,false,false],[false,false,false,false,false,false,false,false,false,false],[false,false,false,false,false,false,false,false,false,false],[false,false,false,false,false,false,false,false,false,false],[false,false,false,false,false,false,false,false,false,false]]
+}
+draw:
+page p:=[0,9] {
+show arr1[p]
+show arr2[p]
+}`,
+},
+{
+  "id":"37",
+  "title":"vote game",
+  "userCode" : `data:
+array arr = {
+  structure:[[d,r,d,r,d,r],[d,r,d,r,d,r],[d,r,d,r,d,r],[d,r,d,r,d,r],[d,r,d,r,d,r],[d,r,d,r,d,r],[d,r,d,r,d,r]]
+  value:[[d,r,d,r,d,r],[d,r,d,r,d,r],[d,r,d,r,d,r],[d,r,d,r,d,r],[d,r,d,r,d,r],[d,r,d,r,d,r],[d,r,d,r,d,r]]
+  color:[[null,null,null,null,null,null],[null,null,null,null,null,red],[null,vote,null,null,red,red],[null,null,null,red,red,red],[null,null,red,red,red,red],[null,red,red,red,red,red],[green,null,null,null,null,null]]
+  arrow:[[vote,null,null,null,null,null],[vote,null,null,null,null,null],[null,vote,null,null,null,null],[null,null,vote,null,null,null],[null,vote,null,null,null,null],[vote,null,null,null,null,null],[win,null,null,null,null,null]]
+  hidden:[[false,false,false,false,false,false],[false,false,false,false,false,false],[false,false,false,false,false,false],[false,false,false,false,false,false],[false,false,false,false,false,false],[false,false,false,false,false,false],[false,false,false,false,false,false]]
+}
+draw:
+page p:=[0,6] {
+show arr[p]
+}`,
+},
+{
+  "id":"38",
+  "title":"longest-word-in-dictionary-through-deleting",
+  "userCode" : `data:
+array arr1 = {
+  structure:[[a,l,e],[a,l,e],[a,l,e],[a,l,e],[a,l,e],[a,l,e],[a,l,e]]
+  value:[[a,l,e],[a,l,e],[a,l,e],[a,l,e],[a,l,e],[a,l,e],[a,l,e]]
+  color:[[null,null,null],[red,null,null],[red,red,null],[red,red,null],[red,red,null],[red,red,null],[red,red,red]]
+  arrow:[[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null],[null,null,null]]
+  hidden:[[false,false,false],[false,false,false],[false,false,false],[false,false,false],[false,false,false],[false,false,false],[false,false,false]]
+}
+array arr2 = {
+  structure:[[a,p,p,l,l,e],[a,p,p,l,l,e],[a,p,p,l,l,e],[a,p,p,l,l,e],[a,p,p,l,l,e],[a,p,p,l,l,e],[a,p,p,l,l,e]]
+  value:[[a,p,p,l,l,e],[a,p,p,l,l,e],[a,p,p,l,l,e],[a,p,p,l,l,e],[a,p,p,l,l,e],[a,p,p,l,l,e],[a,p,p,l,l,e]]
+  color:[[null,null,null,null,null,null],[blue,null,null,null,null,null],[blue,pink,null,null,null,null],[blue,pink,pink,null,null,null],[blue,pink,pink,blue,null,null],[blue,pink,pink,blue,blue,null],[blue,pink,pink,blue,blue,red]]
+  arrow:[[null,null,null,null,null,null],[null,null,null,null,null,null],[null,null,null,null,null,null],[null,null,null,null,null,null],[null,null,null,null,null,null],[null,null,null,null,null,null],[null,null,null,null,null,null]]
+  hidden:[[false,false,false,false,false,false],[false,false,false,false,false,false],[false,false,false,false,false,false],[false,false,false,false,false,false],[false,false,false,false,false,false],[false,false,false,false,false,false],[false,false,false,false,false,false]]
+}
+draw:
+page p:=[0,6] {
+show arr1[p]
+show arr2[p]
+}`,
+},
 ];
 
 /*
 {
-  "id":"task4ValidBrackets",
-  "title":"Task 4 - Valid Brackets",
+  "id":"",
+  "title":"",
   "userCode" : ``,
 },
 */
