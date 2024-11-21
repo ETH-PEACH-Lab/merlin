@@ -10,18 +10,25 @@ import jsPDF from "jspdf";
 import { examples } from "./examples"; // Import the generated examples file
 import "./App.css"; // Import the new CSS file for the top bar
 import { Box } from "@mui/material";
-import { convertDSLtoMermaid, convertParsedDSLtoMermaid } from "./compiler/myCompiler.mjs";
+import {
+  convertDSLtoMermaid,
+  convertParsedDSLtoMermaid,
+} from "./compiler/myCompiler.mjs";
 import GUIEditor from "./components/GUIEditor";
 import Header from "./components/Header";
 import { fillParsedDsl } from "./components/fillParsedDSL";
-import { reconstructDSL } from "./components/reconstructDSL"
+import { reconstructDSL } from "./components/reconstructDSL";
 import { myParser } from "./parser/myParser";
 import { parserMyDSL } from "./parser/test";
 // Import the image directly
 import appIcon from "./public/empty.png";
 
 // Import the DSL parser and translator
-import { parseDSL, convertToMermaid, convertToMermaidNearley } from "./dslCompiler";
+import {
+  parseDSL,
+  convertToMermaid,
+  convertToMermaidNearley,
+} from "./dslCompiler";
 
 const App = () => {
   const [editor1Height, setEditor1Height] = useState(window.innerHeight / 2);
@@ -35,25 +42,25 @@ const App = () => {
   const [inspectorIndex, setInspectorIndex] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
-  const [svgContent, setSvgContent] = useState(null)
+  const [svgContent, setSvgContent] = useState(null);
   const [dslEditorEditable, setDslEditorEditable] = useState(true);
 
   const mermaidRef = useRef(null);
   const containerRef = useRef(null);
 
   const renderPage = (showIndex) => {
-    const svg_element = document.getElementById('preview');
+    const svg_element = document.getElementById("preview");
     if (svg_element && currentPage <= totalPages) {
-      const pages = svg_element.querySelectorAll('g.page');
+      const pages = svg_element.querySelectorAll("g.page");
       if (pages && pages.length > 0) {
-        pages.forEach(page => {
+        pages.forEach((page) => {
           if (page && page.style) {
-            page.style.display = 'none';
+            page.style.display = "none";
           }
         });
       }
       if (pages && pages.length > 0 && pages[showIndex].style) {
-        pages[showIndex].style.display = 'inline';
+        pages[showIndex].style.display = "inline";
       }
     }
   };
@@ -64,11 +71,12 @@ const App = () => {
 
   useEffect(() => {
     // console.log("app.jsx svgContent is changed!");
-    let svg = document.getElementById('preview');
-    let totalPages = 0
-    try { totalPages = svg.querySelectorAll('g.page').length;
+    let svg = document.getElementById("preview");
+    let totalPages = 0;
+    try {
+      totalPages = svg.querySelectorAll("g.page").length;
     } catch (error) {
-      console.log('got error when fetching total pages: error');
+      console.log("got error when fetching total pages: error");
     }
     // console.log("debug totalPages\n", totalPages)
     setTotalPages(totalPages);
@@ -76,22 +84,22 @@ const App = () => {
   }, [svgContent]);
 
   useEffect(() => {
-    const svg_element = document.getElementById('preview');
+    const svg_element = document.getElementById("preview");
     // console.log("app.jsx svg_element: ", svg_element);
     if (svg_element && currentPage <= totalPages) {
-      const pages = svg_element.querySelectorAll('g.page');
+      const pages = svg_element.querySelectorAll("g.page");
       if (pages && pages.length > 0) {
-        pages.forEach(page => {
+        pages.forEach((page) => {
           if (page && page.style) {
-            page.style.display = 'none';
+            page.style.display = "none";
           }
         });
       }
       if (pages && pages.length > 0 && pages[currentPage - 1].style) {
-        pages[currentPage - 1].style.display = 'inline';
+        pages[currentPage - 1].style.display = "inline";
       }
     }
-  }, [currentPage])
+  }, [currentPage]);
 
   useEffect(() => {
     try {
@@ -99,22 +107,22 @@ const App = () => {
       setParsedCode1(parsedCode1);
       let mermaidCode = convertParsedDSLtoMermaid(parsedCode1);
       setMermaidCode(mermaidCode);
-      renderPage(currentPage-1);
+      renderPage(currentPage - 1);
     } catch (err) {
       setMermaidCode("DSL grammar is incorrect!");
       console.log("update mermaid error:\n", err);
     }
-  },[code1]);
+  }, [code1]);
 
   useEffect(() => {
     const handlePageChange = () => {
       setCurrentPage(window.currentPage);
     };
     // Listen for the custom page change event
-    window.addEventListener('pageChange', handlePageChange);
+    window.addEventListener("pageChange", handlePageChange);
     // Cleanup the event listener on component unmount
     return () => {
-      window.removeEventListener('pageChange', handlePageChange);
+      window.removeEventListener("pageChange", handlePageChange);
     };
   }, []);
 
@@ -149,7 +157,7 @@ const App = () => {
         const pdf = new jsPDF();
         pdf.addImage(dataUrl, "PNG", 10, 10, 180, 160);
         pdf.save("diagram.pdf");
-      } else if (format === 'svg') {
+      } else if (format === "svg") {
         const svg = mermaidRef.current.innerHTML;
         download(svg, "diagram.svg", "image/svg+xml");
       }
@@ -161,10 +169,9 @@ const App = () => {
       let parsedDSL = myParser(value);
       // console.log('handleEditor1Change before-fill parsedDSL:\n', parsedDSL);
       if (parsedDSL) {
-        parsedDSL = fillParsedDsl(parsedDSL)
+        parsedDSL = fillParsedDsl(parsedDSL);
         setParsedCode1(parsedDSL);
-      }
-      else {
+      } else {
         setParsedCode1({});
       }
       setCurrentPage(1);
@@ -185,41 +192,45 @@ const App = () => {
     const timestamp = new Date().toISOString();
     const cookieName = `diagram_${timestamp}`;
     const newSavedItem = {
-        userCode: code1,
-        mermaidCode: mermaidCode,
-        timestamp: timestamp,
+      userCode: code1,
+      mermaidCode: mermaidCode,
+      timestamp: timestamp,
     };
 
     // Save new item to cookies
-    document.cookie = `${cookieName}=${encodeURIComponent(JSON.stringify(newSavedItem))}; max-age=31536000; path=/`;
+    document.cookie = `${cookieName}=${encodeURIComponent(
+      JSON.stringify(newSavedItem)
+    )}; max-age=31536000; path=/`;
 
     // Save new item to local storage
     localStorage.setItem(cookieName, JSON.stringify(newSavedItem));
 
     // Update saved items state
     setSavedItems((prevItems) => {
-        const updatedItems = [...prevItems, newSavedItem];
-        if (updatedItems.length > 20) {
-            // Remove oldest item if more than 20
-            const oldestItem = updatedItems.shift();
-            document.cookie = `${oldestItem.timestamp}=; max-age=0; path=/`; // Delete the cookie
-            localStorage.removeItem(`diagram_${oldestItem.timestamp}`); // Delete the item from local storage
-        }
-        // Sort items in descending order
-        updatedItems.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-        return updatedItems;
+      const updatedItems = [...prevItems, newSavedItem];
+      if (updatedItems.length > 20) {
+        // Remove oldest item if more than 20
+        const oldestItem = updatedItems.shift();
+        document.cookie = `${oldestItem.timestamp}=; max-age=0; path=/`; // Delete the cookie
+        localStorage.removeItem(`diagram_${oldestItem.timestamp}`); // Delete the item from local storage
+      }
+      // Sort items in descending order
+      updatedItems.sort(
+        (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+      );
+      return updatedItems;
     });
 
     // Function to trigger the download of the string onto the local computer
     const downloadString = (filename, content) => {
-        const blob = new Blob([content], { type: 'text/plain' });
-        const link = document.createElement('a');
-        link.download = filename;
-        link.href = URL.createObjectURL(blob);
-        document.body.appendChild(link);
-        link.click();
-        URL.revokeObjectURL(link.href);
-        document.body.removeChild(link);
+      const blob = new Blob([content], { type: "text/plain" });
+      const link = document.createElement("a");
+      link.download = filename;
+      link.href = URL.createObjectURL(blob);
+      document.body.appendChild(link);
+      link.click();
+      URL.revokeObjectURL(link.href);
+      document.body.removeChild(link);
     };
 
     // Prepare plain text content for download
@@ -242,7 +253,7 @@ ${timestamp}
 
     // Show alert
     alert("Diagram saved successfully!");
-};
+  };
 
   const loadSavedItems = () => {
     const cookies = document.cookie.split("; ");
@@ -269,53 +280,68 @@ ${timestamp}
 
   const updateInspector = (unitID, componentID, pageID) => {
     // Update the Inspector based on the given IDs
-    if (unitID && componentID && pageID) setInspectorIndex({ unitID, componentID, pageID })
-    else setInspectorIndex(null)
-  }
+    if (unitID && componentID && pageID)
+      setInspectorIndex({ unitID, componentID, pageID });
+    else setInspectorIndex(null);
+  };
 
   return (
     <div ref={containerRef} className="container">
-      <Box sx={{
-        display: "flex",
-        height: "100vh",
-      }}>
-        <Box sx={{
-          flex: 1,
+      <Box
+        sx={{
           display: "flex",
-          flexDirection: "column",
-          minWidth: 0,
-        }}>
-          <Header sx={{
-            position: {
-              md: 'static'
-            }
-          }} />
-        <Box sx={{
+          height: "100vh",
+        }}
+      >
+        <Box
+          sx={{
             flex: 1,
             display: "flex",
-            minHeight: 0,
-          }}>
-          <NavigationBar
-            items={examples}
-            savedItems={savedItems}
-            onSelect={activeTab === "examples" ? handleSelectExample : handleSelectSavedItem}
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
+            flexDirection: "column",
+            minWidth: 0,
+          }}
+        >
+          <Header
+            sx={{
+              position: {
+                md: "static",
+              },
+            }}
           />
-          <Box component="main" sx={{
-              minWidth: 0,
-              minHeight: 0,
+          <Box
+            sx={{
               flex: 1,
               display: "flex",
-              flexDirection: "column",
-            }}>
+              minHeight: 0,
+            }}
+          >
+            <NavigationBar
+              items={examples}
+              savedItems={savedItems}
+              onSelect={
+                activeTab === "examples"
+                  ? handleSelectExample
+                  : handleSelectSavedItem
+              }
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+            />
+            <Box
+              component="main"
+              sx={{
+                minWidth: 0,
+                minHeight: 0,
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
               <div
                 style={{
                   display: "flex",
-                  height: "100%"
+                  height: "100%",
                 }}
               >
-
                 <div
                   style={{
                     display: "flex",
@@ -324,32 +350,34 @@ ${timestamp}
                     marginLeft: `0px`,
                   }}
                 >
-            <EditorSection
-              code1={code1}
-              mermaidCode={mermaidCode}
-              editor1Height={editor1Height}
-              leftWidth={leftWidth}
-              handleEditor1Change={handleEditor1Change}
-              setEditor1Height={setEditor1Height}
-              setMermaidCode={setMermaidCode}
-              handleMouseDown={handleMouseDown}
-              updateInspector={updateInspector}
-              dslEditorEditable={dslEditorEditable}
-              setDslEditorEditable={setDslEditorEditable}
-            />
-            <div
-              style={{
-                width: "5px",
-                cursor: "col-resize",
-                borderLeft: "solid 1px #666",
-                position: "relative",
-                zIndex: 1,
-              }}
-              onMouseDown={handleMouseDown}
-            />
-            <Box sx={{
-                    width: '100%'
-                  }}>
+                  <EditorSection
+                    code1={code1}
+                    mermaidCode={mermaidCode}
+                    editor1Height={editor1Height}
+                    leftWidth={leftWidth}
+                    handleEditor1Change={handleEditor1Change}
+                    setEditor1Height={setEditor1Height}
+                    setMermaidCode={setMermaidCode}
+                    handleMouseDown={handleMouseDown}
+                    updateInspector={updateInspector}
+                    dslEditorEditable={dslEditorEditable}
+                    setDslEditorEditable={setDslEditorEditable}
+                  />
+                  <div
+                    style={{
+                      width: "5px",
+                      cursor: "col-resize",
+                      borderLeft: "solid 1px #666",
+                      position: "relative",
+                      zIndex: 1,
+                    }}
+                    onMouseDown={handleMouseDown}
+                  />
+                  <Box
+                    sx={{
+                      width: "100%",
+                    }}
+                  >
                     <RendererSection
                       mermaidCode={mermaidCode}
                       handleExport={handleExport}
@@ -362,8 +390,8 @@ ${timestamp}
                       currentPage={currentPage}
                       setCurrentPage={setCurrentPage}
                     />
-                    <GUIEditor 
-                      inspectorIndex={inspectorIndex} 
+                    <GUIEditor
+                      inspectorIndex={inspectorIndex}
                       setCode1={setCode1}
                       parsedCode1={parsedCode1}
                       setParsedCode1={setParsedCode1}
@@ -376,7 +404,7 @@ ${timestamp}
                       setDslEditorEditable={setDslEditorEditable}
                     />
                   </Box>
-                  </div>
+                </div>
               </div>
             </Box>
           </Box>
