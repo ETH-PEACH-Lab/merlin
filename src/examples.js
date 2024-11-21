@@ -932,9 +932,21 @@ show gh[p]
 }`,
 },
 {
-  "id":"49",
+  "id":"50",
   "title":"reconstruct-itinerary",
-  "userCode" : ``,
+  "userCode" : `data:
+graph gh = {
+  id:[[n1,n2,n3,n4],[n1,n2,n3,n4],[n1,n2,n3,n4],[n1,n2,n3,n4],[n1,n2,n3,n4],[n1,n2,n3,n4],[n1,n2,n3,n4]]
+  edge:[[(n1,n4),(n2,n3),(n3,n4),(n2,n4)],[(n1,n4),(n2,n3),(n3,n4),(n2,n4)],[(n1,n4),(n2,n3),(n3,n4),(n2,n4)],[(n1,n4),(n2,n3),(n3,n4),(n2,n4)],[(n1,n4),(n2,n3),(n3,n4),(n2,n4)],[(n1,n4),(n2,n3),(n3,n4),(n2,n4)],[(n1,n4),(n2,n3),(n3,n4),(n2,n4)]]
+  value:[[aaa,bbb,ccc,jfk],[aaa,bbb,ccc,jfk],[aaa,bbb,ccc,jfk],[aaa,bbb,ccc,jfk],[aaa,bbb,ccc,jfk],[aaa,bbb,ccc,jfk],[aaa,bbb,ccc,jfk]]
+  color:[[null,null,null,null],[null,null,null,green],[green,null,null,green],[null,null,null,green],[null,null,green,green],[null,green,green,green],[green,green,green,green]]
+  arrow:[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]]
+  hidden:[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]]
+}
+draw:
+page p:=[0,6] {
+show gh[p]
+}`,
 },
 ];
 
