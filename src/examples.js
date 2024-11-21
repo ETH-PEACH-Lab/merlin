@@ -822,6 +822,64 @@ page p:=[0,9] {
 show tr1[p]
 }`,
 },
+{
+  "id":"42",
+  "title":"work ladder",
+  "userCode" : `data:
+matrix mr1 = {
+  structure:[[[1,2,2,1]],[[1,2,2,1]],[[1,2,2,1]],[[1,2,2,1]],[[1,2,2,1]],[[1,2,2,1]]]
+  value:[[[1,2,2,1]],[[1,2,2,1]],[[1,2,2,1]],[[1,2,2,1]],[[1,2,2,1]],[[1,2,2,1]]]
+  color:[[[green,null,null,null]],[[green,null,null,null]],[[green,green,null,null]],[[green,green,red,null]],[[green,green,green,null]],[[green,green,green,green]]]
+  arrow:[[[null,null,null,null]],[[null,null,null,null]],[[null,null,null,null]],[[null,null,null,null]],[[null,null,null,null]],[[null,null,null,null]]]
+  hidden:[[[null,null,null,null]],[[null,null,null,null]],[[null,null,null,null]],[[null,null,null,null]],[[null,null,null,null]],[[null,null,null,null]]]
+}
+matrix mr2 = {
+  structure:[[[3,3,3,3],[3,1,2,3],[3,2,2,1],[3,3,3,3]],[[3,3,3,3],[3,1,2,3],[3,2,2,1],[3,3,3,3]],[[3,3,3,3],[3,1,2,3],[3,2,2,1],[3,3,3,3]],[[3,3,3,3],[3,1,2,3],[3,2,2,1],[3,3,3,3]],[[3,3,3,3],[3,1,2,3],[3,2,2,1],[3,3,3,3]],[[3,3,3,3],[3,1,2,3],[3,2,2,1],[3,3,3,3]]]
+  value:[[[3,3,3,3],[3,1,2,3],[3,2,2,1],[3,3,3,3]],[[3,3,3,3],[3,1,2,3],[3,2,2,1],[3,3,3,3]],[[3,3,3,3],[3,1,2,3],[3,2,2,1],[3,3,3,3]],[[3,3,3,3],[3,1,2,3],[3,2,2,1],[3,3,3,3]],[[3,3,3,3],[3,1,2,3],[3,2,2,1],[3,3,3,3]],[[3,3,3,3],[3,1,2,3],[3,2,2,1],[3,3,3,3]]]
+  color:[[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,green,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,green,green,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,green,green,red],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,green,green,red],[null,null,green,null],[null,null,null,null]],[[null,null,null,null],[null,green,green,red],[null,null,green,green],[null,null,null,null]]]
+  arrow:[[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]]]
+  hidden:[[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]],[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]]]
+}
+draw:
+page p:=[0,5] {
+show mr1[p]
+show mr2[p]
+}`,
+},
+{
+  "id":"43",
+  "title":"cheapest-flights-within-k-stops",
+  "userCode" : `data:
+graph gh = {
+  id:[[n1,n2,n3,n4,n5],[n1,n2,n3,n4,n5],[n1,n2,n3,n4,n5],[n1,n2,n3,n4,n5],[n1,n2,n3,n4,n5],[n1,n2,n3,n4,n5]]
+  edge:[[(n1,n2),(n1,n3),(n2,n3),(n2,n4),(n4,n5),(n3,n4),(n3,n5)],[(n1,n2),(n1,n3),(n2,n3),(n2,n4),(n4,n5),(n3,n4),(n3,n5)],[(n1,n2),(n1,n3),(n2,n3),(n2,n4),(n4,n5),(n3,n4),(n3,n5)],[(n1,n2),(n1,n3),(n2,n3),(n2,n4),(n4,n5),(n3,n4),(n3,n5)],[(n1,n2),(n1,n3),(n2,n3),(n2,n4),(n4,n5),(n3,n4),(n3,n5)],[(n1,n2),(n1,n3),(n2,n3),(n2,n4),(n4,n5),(n3,n4),(n3,n5)]]
+  value:[[1,2,3,4,5],[1,2,3,4,5],[1,2,3,4,5],[1,2,3,4,5],[1,2,3,4,5],[1,2,3,4,5],[1,2],[1,2,3]]
+  color:[[null,null,null,null,null],[red,null,null,null,null],[red,green,green,null,null],[red,red,yellow,green,null],[red,red,green,green,null],[red,red,green,yellow,green]]
+  arrow:[[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]]
+  hidden:[[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]]
+}
+draw:
+page p:=[0,5] {
+show gh[p]
+}`,
+},
+{
+  "id":"44",
+  "title":"design-graph-with-shortest-path-calculator",
+  "userCode" : `data:
+graph gh = {
+  id:[[n1,n2,n3,n4,n5,n6],[n1,n2,n3,n4,n5,n6],[n1,n2,n3,n4,n5,n6],[n1,n2,n3,n4,n5,n6],[n1,n2,n3,n4,n5,n6],[n1,n2,n3,n4,n5,n6]]
+  edge:[[(n1,n2),(n1,n3),(n2,n4),(n2,n5),(n3,n5),(n4,n6),(n4,n5)],[(n1,n2),(n1,n3),(n2,n4),(n2,n5),(n3,n5),(n4,n6),(n4,n5)],[(n1,n2),(n1,n3),(n2,n4),(n2,n5),(n3,n5),(n4,n6),(n4,n5)],[(n1,n2),(n1,n3),(n2,n4),(n2,n5),(n3,n5),(n4,n6),(n4,n5)],[(n1,n2),(n1,n3),(n2,n4),(n2,n5),(n3,n5),(n4,n6),(n4,n5)],[(n1,n2),(n1,n3),(n2,n4),(n2,n5),(n3,n5),(n4,n6),(n4,n5)]]
+  value:[[a,b,c,d,e,f],[a,b,c,d,e,f],[a,b,c,d,e,f],[a,b,c,d,e,f],[a,b,c,d,e,f],[a,b,c,d,e,f]]
+  color:[[blue,null,null,null,null,null],[grey,blue,null,null,null,null],[grey,grey,blue,null,null,null],[grey,grey,grey,blue,null,null],[grey,grey,grey,grey,blue,null],[grey,grey,grey,grey,grey,blue]]
+  arrow:[[null,null,null,null,null,null],[null,null,null,null,null,null],[null,null,null,null,null,null],[null,null,null,null,null,null],[null,null,null,null,null,null],[null,null,null,null,null,null]]
+  hidden:[[null,null,null,null,null,null],[null,null,null,null,null,null],[null,null,null,null,null,null],[null,null,null,null,null,null],[null,null,null,null,null,null],[null,null,null,null,null,null]]
+}
+draw:
+page p:=[0,5] {
+show gh[p]
+}`,
+},
 ];
 
 /*
