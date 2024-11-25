@@ -26,7 +26,7 @@ const Header = () => {
           >
             <GitHubIcon />
           </IconButton>
-                        <Button variant="text" color="inherit">About</Button>
+                        <Button variant="text" color="inherit" href='https://eth-peach-lab.github.io/merlin-about/' target='_blank'>About</Button>
                         <Button variant="text" color="inherit" href='https://eth-peach-lab.github.io/merlin-docs/' target="_blank">Docs</Button>
                         <Button variant="text" color="inherit" href="https://eth-peach-lab.github.io/merlin-tutorial/" target="_blank">Tutorial</Button>
                         <Button variant="text" color="inherit" href="https://eth-peach-lab.github.io/intuition-visualisation/" target="_blank">Intuition Viewer</Button>
