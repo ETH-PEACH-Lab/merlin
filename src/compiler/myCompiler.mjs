@@ -1,6 +1,6 @@
 // myCompiler to convert myDSL into mermaid code
 
-import { parserMyDSL } from "../parser/test.mjs";
+import { parserMyDSL } from "../parser/parser.mjs";
 import { generateArray } from "./generateArray.mjs";
 import { generateLinkedlist } from "./generateLinkedlist.mjs";
 import { generateStack } from "./generateStack.mjs";

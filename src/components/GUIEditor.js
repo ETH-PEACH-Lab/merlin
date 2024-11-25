@@ -18,8 +18,6 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { fillParsedDsl } from "./fillParsedDSL";
 import { reconstructDSL } from "./reconstructDSL";
-import { hardcodeData } from "../hardcode/data";
-import { myParser } from "../parser/myParser";
 import {
   findLastDrawCoveringIndex,
   evaluateExpression,

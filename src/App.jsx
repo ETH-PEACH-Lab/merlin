@@ -19,7 +19,6 @@ import Header from "./components/Header";
 import { fillParsedDsl } from "./components/fillParsedDSL";
 import { reconstructDSL } from "./components/reconstructDSL";
 import { myParser } from "./parser/myParser";
-import { parserMyDSL } from "./parser/test";
 // Import the image directly
 import appIcon from "./public/empty.png";
 
