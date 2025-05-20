@@ -8,21 +8,25 @@ import { Box, Typography, Tooltip, IconButton } from "@mui/material";
 import LockIcon from "@mui/icons-material/Lock";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import EditIcon from "@mui/icons-material/Edit";
+import { useParseCompile } from "../context/ParseCompileContext";
 
 const EditorSection = ({
-  code1,
-  mermaidCode,
   editor1Height,
   leftWidth,
-  handleEditor1Change,
   setEditor1Height,
-  setMermaidCode,
   dslEditorEditable,
   setDslEditorEditable,
 }) => {
   const handleClickLock = () => {
     setDslEditorEditable((dslEditorEditable) => !dslEditorEditable);
   };
+
+  const {
+    unparsedCode,
+    compiledMerlin,
+    error,
+    updateUnparsedCode,
+  } = useParseCompile();
 
   return (
     <div
@@ -77,7 +81,11 @@ const EditorSection = ({
         }
       >
         <div style={{ height: "100%", margin: 0, padding: 0 }}>
-          <DslEditor value={code1} onChange={handleEditor1Change} />
+          <DslEditor
+            value={unparsedCode}
+            onChange={updateUnparsedCode}
+            readOnly={!dslEditorEditable}
+          />
         </div>
       </ResizableBox>
 
@@ -106,7 +114,22 @@ const EditorSection = ({
           </Tooltip>
         </Box>
         <div style={{ flexGrow: 1, overflow: "auto" }}>
-          <MermaidEditor value={mermaidCode} onChange={setMermaidCode} />
+          {// Use terminal-like font and don't wrap lines
+            error ? (
+              <div
+                style={{
+                  fontFamily: "monospace",
+                  color: "rgb(255, 118, 118)",
+                  fontSize: "14px",
+                  padding: "30px",
+                  whiteSpace: "pre",
+                }}
+              >
+                {error}
+              </div>
+            ) : (
+              <MermaidEditor value={compiledMerlin} onChange={() => {}} />
+            )}
         </div>
       </Box>
     </div>

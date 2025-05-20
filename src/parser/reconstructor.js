@@ -1,6 +1,6 @@
 // re-construct DSL from parserd DSL
 
-export function reconstructDSL (parserdDSL) {
+export default function reconstructDSL (parserdDSL) {
     let result_string = "";
     let data_part = parserdDSL.data;
     let draw_part = parserdDSL.draw;

@@ -10,34 +10,27 @@ import jsPDF from "jspdf";
 import { examples } from "./examples"; // Import the generated examples file
 import "./App.css"; // Import the new CSS file for the top bar
 import { Box } from "@mui/material";
-import {
-  convertDSLtoMermaid,
-  convertParsedDSLtoMermaid,
-} from "./compiler/myCompiler.mjs";
+
 import GUIEditor from "./components/GUIEditor";
 import Header from "./components/Header";
-import { fillParsedDsl } from "./components/fillParsedDSL";
-import { reconstructDSL } from "./components/reconstructDSL";
-import { myParser } from "./parser/myParser";
-// Import the image directly
-import appIcon from "./public/empty.png";
+import { ParseCompileProvider, useParseCompile } from "./context/ParseCompileContext";
 
-// Import the DSL parser and translator
-import {
-  parseDSL,
-  convertToMermaid,
-  convertToMermaidNearley,
-} from "./dslCompiler";
 
 const App = () => {
+  // Use context for code and parsing
+  const {
+    unparsedCode,
+    parsedCode,
+    compiledMerlin,
+    updateUnparsedCode,
+    error,
+  } = useParseCompile();
+
   const [editor1Height, setEditor1Height] = useState(window.innerHeight / 2);
   const [leftWidth, setLeftWidth] = useState(window.innerWidth / 2);
-  const [code1, setCode1] = useState(`// input dsl code`);
-  const [parsedCode1, setParsedCode1] = useState({});
-  const [mermaidCode, setMermaidCode] = useState("");
-  const [exampleSvg, setExampleSvg] = useState(null); // New state for example SVG
-  const [activeTab, setActiveTab] = useState("examples"); // State for active tab
-  const [savedItems, setSavedItems] = useState([]); // State for saved items
+  const [exampleSvg, setExampleSvg] = useState(null);
+  const [activeTab, setActiveTab] = useState("examples");
+  const [savedItems, setSavedItems] = useState([]);
   const [inspectorIndex, setInspectorIndex] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
@@ -100,18 +93,6 @@ const App = () => {
     }
   }, [currentPage]);
 
-  useEffect(() => {
-    try {
-      let parsedCode1 = myParser(code1);
-      setParsedCode1(parsedCode1);
-      let mermaidCode = convertParsedDSLtoMermaid(parsedCode1);
-      setMermaidCode(mermaidCode);
-      renderPage(currentPage - 1);
-    } catch (err) {
-      setMermaidCode("DSL grammar is incorrect!");
-      console.log("update mermaid error:\n", err);
-    }
-  }, [code1]);
 
   useEffect(() => {
     const handlePageChange = () => {
@@ -163,36 +144,17 @@ const App = () => {
     }
   };
 
-  const handleEditor1Change = (value) => {
-    if (dslEditorEditable) {
-      let parsedDSL = myParser(value);
-      // console.log('handleEditor1Change before-fill parsedDSL:\n', parsedDSL);
-      if (parsedDSL) {
-        parsedDSL = fillParsedDsl(parsedDSL);
-        setParsedCode1(parsedDSL);
-      } else {
-        setParsedCode1({});
-      }
-      setCurrentPage(1);
-      setCode1(value);
-    } else {
-      alert("You are editing under read-mode. Please double check!");
-    }
-  };
-
   const handleSelectExample = (item) => {
-    setCode1(item.userCode);
-    setParsedCode1(myParser(item.userCode));
+    updateUnparsedCode(item.userCode);
     setCurrentPage(1);
-    // setMermaidCode(item.renderCode);
   };
 
   const handleSave = () => {
     const timestamp = new Date().toISOString();
     const cookieName = `diagram_${timestamp}`;
     const newSavedItem = {
-      userCode: code1,
-      mermaidCode: mermaidCode,
+      userCode: unparsedCode,
+      mermaidCode: compiledMerlin,
       timestamp: timestamp,
     };
 
@@ -236,11 +198,11 @@ const App = () => {
     const plainTextContent = `
 userCode:
 
-${code1}
+${unparsedCode}
 
 mermaidCode:
 
-${mermaidCode}
+${compiledMerlin}
 
 timestamp:
 
@@ -272,8 +234,7 @@ ${timestamp}
   };
 
   const handleSelectSavedItem = (item) => {
-    setCode1(item.code1);
-    setParsedCode1(myParser(item.code1));
+    updateUnparsedCode(item.userCode);
     setCurrentPage(1);
   };
 
@@ -350,17 +311,16 @@ ${timestamp}
                   }}
                 >
                   <EditorSection
-                    code1={code1}
-                    mermaidCode={mermaidCode}
+                    code1={unparsedCode}
+                    mermaidCode={compiledMerlin}
                     editor1Height={editor1Height}
                     leftWidth={leftWidth}
-                    handleEditor1Change={handleEditor1Change}
                     setEditor1Height={setEditor1Height}
-                    setMermaidCode={setMermaidCode}
                     handleMouseDown={handleMouseDown}
                     updateInspector={updateInspector}
                     dslEditorEditable={dslEditorEditable}
                     setDslEditorEditable={setDslEditorEditable}
+                    setCode1={updateUnparsedCode}
                   />
                   <div
                     style={{
@@ -378,7 +338,7 @@ ${timestamp}
                     }}
                   >
                     <RendererSection
-                      mermaidCode={mermaidCode}
+                      mermaidCode={compiledMerlin}
                       handleExport={handleExport}
                       handleSave={handleSave}
                       mermaidRef={mermaidRef}
@@ -391,10 +351,10 @@ ${timestamp}
                     />
                     <GUIEditor
                       inspectorIndex={inspectorIndex}
-                      setCode1={setCode1}
-                      parsedCode1={parsedCode1}
-                      setParsedCode1={setParsedCode1}
-                      code1={code1}
+                      setCode1={updateUnparsedCode}
+                      parsedCode1={parsedCode}
+                      setParsedCode1={() => {}}
+                      code1={unparsedCode}
                       currentPage={currentPage}
                       totalPages={totalPages}
                       setCurrentPage={setCurrentPage}

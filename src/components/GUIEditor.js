@@ -16,13 +16,12 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { fillParsedDsl } from "./fillParsedDSL";
-import { reconstructDSL } from "./reconstructDSL";
 import {
   findLastDrawCoveringIndex,
   evaluateExpression,
   findComponentIdxByName,
 } from "./GuiHelper";
+import { useParseCompile } from "../context/ParseCompileContext";
 
 const GUIEditor = ({
   inspectorIndex,
@@ -46,133 +45,38 @@ const GUIEditor = ({
     isIndex: false,
   };
   const [currentUnitData, setUnitData] = useState(defaultUnitValue);
-  const [currentComponentType, setCurrentComponentType] = useState("undefined");
+  const { pages } = useParseCompile();
+
 
   useEffect(() => {
     if (inspectorIndex) {
-      try {
-        // console.log("GUIEditor before filleded parsedCode1:\n", parsedCode1);
-        parsedCode1 = fillParsedDsl(parsedCode1);
-        // console.log("GUIEditor after filleded parsedCode1:\n", parsedCode1);
-      } catch (error) {
-        console.log("GUIEditor error in fillParsedDSL:\n", error);
-      }
+      const page_idx = parseInt(inspectorIndex.pageID.slice(4));
+      const component_idx = parseInt(inspectorIndex.componentID.slice(10));
+      const unit_idx = inspectorIndex.unitID.slice(5);
+      const component = pages[page_idx][component_idx];
+      const value = component.body?.value?.[unit_idx] ?? "null";
+      const color = component.body?.color?.[unit_idx] ?? "null";
+      const arrow = component.body?.arrow?.[unit_idx] ?? "null";
+      
 
-      let lastPageDraw = findLastDrawCoveringIndex(
-        parsedCode1,
-        parseInt(inspectorIndex.pageID.slice(4))
-      );
-      let page_idx = lastPageDraw["page_index"];
-      let target_page = parseInt(inspectorIndex.pageID.slice(4));
-      let component_idx =
-        lastPageDraw.show[parseInt(inspectorIndex.componentID.slice(10))][
-          "component_index"
-        ];
-      let component_name =
-        lastPageDraw.show[parseInt(inspectorIndex.componentID.slice(10))][
-          "component_name"
-        ];
-      let component_idx_dsl = evaluateExpression(
-        component_idx,
-        page_idx,
-        target_page
-      );
-      let component_id_dsl = findComponentIdxByName(
-        parsedCode1,
-        component_name
-      );
-      let unit_id_dsl = inspectorIndex.unitID.slice(5);
-      const findSelectedComponents = parsedCode1["data"][component_id_dsl];
-      const findSelectedComponents_type =
-        parsedCode1["data"][component_id_dsl]["type"];
-      setCurrentComponentType(findSelectedComponents_type);
-      const findSelectedComponentData = findSelectedComponents["attributes"];
-      let findUnitData = {};
-      switch (findSelectedComponents_type) {
-        case "array":
-        case "stack":
-        case "tree":
-        case "linkedlist":
-          findUnitData = {
-            id: findSelectedComponentData["structure"][component_idx_dsl][
-              parseInt(unit_id_dsl)
-            ],
-            value:
-              findSelectedComponentData["value"][component_idx_dsl][
-                parseInt(unit_id_dsl)
-              ],
-            color:
-              findSelectedComponentData["color"][component_idx_dsl][
-                parseInt(unit_id_dsl)
-              ],
-            arrow:
-              findSelectedComponentData["arrow"][component_idx_dsl][
-                parseInt(unit_id_dsl)
-              ],
-            hidden:
-              findSelectedComponentData["hidden"][component_idx_dsl][
-                parseInt(unit_id_dsl)
-              ],
-            isArrow: false,
-            isIndex: false,
-          };
-          break;
-        case "graph":
-          findUnitData = {
-            id: findSelectedComponentData["id"][component_idx_dsl][
-              parseInt(unit_id_dsl)
-            ],
-            value:
-              findSelectedComponentData["value"][component_idx_dsl][
-                parseInt(unit_id_dsl)
-              ],
-            color:
-              findSelectedComponentData["color"][component_idx_dsl][
-                parseInt(unit_id_dsl)
-              ],
-            arrow:
-              findSelectedComponentData["arrow"][component_idx_dsl][
-                parseInt(unit_id_dsl)
-              ],
-            hidden:
-              findSelectedComponentData["hidden"][component_idx_dsl][
-                parseInt(unit_id_dsl)
-              ],
-            isArrow: false,
-            isIndex: false,
-          };
-          break;
-        case "matrix":
-          let row = parseInt(unit_id_dsl.slice(1, -1).split(",")[0]);
-          let col = parseInt(unit_id_dsl.slice(1, -1).split(",")[1]);
-          findUnitData = {
-            id: findSelectedComponentData["structure"][component_idx_dsl][row][
-              col
-            ],
-            value:
-              findSelectedComponentData["value"][component_idx_dsl][row][col],
-            color:
-              findSelectedComponentData["color"][component_idx_dsl][row][col],
-            arrow:
-              findSelectedComponentData["arrow"][component_idx_dsl][row][col],
-            hidden:
-              findSelectedComponentData["hidden"][component_idx_dsl][row][col],
-            isArrow: false,
-            isIndex: false,
-          };
-          break;
-        default:
-          console.log("GUI EDITOR - findUnitData, no matching component type!");
-      }
-
-      // console.log("findUnitData: ", findUnitData);
-      if (findUnitData) setUnitData(findUnitData);
-      else setUnitData(defaultUnitValue);
+      setUnitData(
+        {
+          id: unit_idx,
+          component: component_idx,
+          name: component.name,
+          page: page_idx,
+          type: component.type,
+          value: value,
+          color: color,
+          arrow: arrow,
+        }
+      )
     }
   }, [inspectorIndex]);
 
   const handleAddPage = () => {
     // TODO: This is the place for handling add page
+    /*
     console.log("add a new page, current page: ", `page${currentPage - 1}`);
 
     let filledParsedCode1 = fillParsedDsl(parsedCode1);
@@ -240,10 +144,13 @@ const GUIEditor = ({
     setCode1(updatedCode1);
     // setCurrentPage(currentPage => currentPage + 1);
     // setDslEditorEditable(false);
+    setTotalPages((totalPages) => totalPages + 1);
+    */
   };
 
   const handleRemovePage = () => {
     // TODO: This is the place for handling remove page
+    /*
     console.log("remove current page: ", currentPage - 1);
 
     let filledParsedCode1 = fillParsedDsl(parsedCode1);
@@ -295,6 +202,7 @@ const GUIEditor = ({
     let updatedCode1 = reconstructDSL(filledParsedCode1);
     setCode1(updatedCode1);
     // setDslEditorEditable(false);
+    */
   };
 
   const handleUpdate = () => {
@@ -302,6 +210,7 @@ const GUIEditor = ({
     console.log("query index:", inspectorIndex);
     console.log("new data:", currentUnitData);
 
+    /*
     let updatedParsedCode1 = { ...parsedCode1 };
 
     let lastPageDraw = findLastDrawCoveringIndex(
@@ -391,6 +300,7 @@ const GUIEditor = ({
     let updatedCode1 = reconstructDSL(updatedParsedCode1);
     setCode1(updatedCode1);
     // setDslEditorEditable(false);
+    */
   };
 
   return (
@@ -455,13 +365,18 @@ const GUIEditor = ({
           >
             <Box display="flex" alignItems="center">
               <Typography variant="overline">Current Selection:</Typography>
-              <Chip label={inspectorIndex.unitID} size="small" sx={{ ml: 1 }} />
+              <Chip label={`Page ${currentUnitData.page+1}`} size="small" sx={{ ml: 1 }} />
               <Chip
-                label={inspectorIndex.componentID}
+                label={`Component ${currentUnitData.component+1} - ${currentUnitData.name}`}
                 size="small"
                 sx={{ ml: 1 }}
               />
-              <Chip label={inspectorIndex.pageID} size="small" sx={{ ml: 1 }} />
+              <Chip label={`Unit ${currentUnitData.id}`} size="small" sx={{ ml: 1 }} />
+              <Chip
+                label={`Type ${currentUnitData.type}`}
+                size="small"
+                sx={{ ml: 1 }}
+              />
             </Box>
             <Button
               variant="contained"
@@ -474,9 +389,9 @@ const GUIEditor = ({
           </Box>
           <div>
             <div>
-              {(currentComponentType == "graph" ||
-                currentComponentType == "tree" ||
-                currentComponentType == "linkedlist") && (
+              {(currentUnitData.type == "graph" ||
+                currentUnitData.type == "tree" ||
+                currentUnitData.type == "linkedlist") && (
                 <TextField
                   label="Id"
                   disabled="true"
@@ -503,6 +418,19 @@ const GUIEditor = ({
                 id="outlined-size-small"
                 value={currentUnitData.color}
                 size="small"
+                onBlur={(test) => (console.log(test))}
+                onKeyDown={(ev) => {
+                  console.log(`Pressed keyCode ${ev.key}`);
+                  if (ev.key === 'Enter') {
+                    // Lose focus on the input field
+                    ev.target.blur();
+                    ev.preventDefault();
+                  }
+                }}
+                onSubmit={(e) => {
+                  console.log("onSubmit", e);
+                  setUnitData({ ...currentUnitData, color: e.target.value });
+                }}
                 onChange={(e) => {
                   setUnitData({ ...currentUnitData, color: e.target.value });
                 }}
@@ -516,7 +444,7 @@ const GUIEditor = ({
                   setUnitData({ ...currentUnitData, arrow: e.target.value });
                 }}
               />
-              {currentComponentType == "graph" && (
+              {currentUnitData.type == "graph" && (
                 <TextField
                   label="Hidden"
                   id="outlined-size-small"

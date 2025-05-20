@@ -1,7 +1,7 @@
 export function registerCustomLanguage(monaco) {
   // Register a new language
   monaco.languages.register({ id: "customLang" });
-  const keywords = ['page', 'show', 'visslides', 'data', 'draw'];
+  const keywords = ['page', 'show', "hide", 'visslides', 'data', 'draw'];
   const keywordPattern = new RegExp(`\\b(${keywords.join('|')})\\b`);
 
   const symbols = [':', ':=', '=', '*', ',', '@', '&', '(', ')', '[', ']', '{', '}'];
@@ -16,6 +16,8 @@ export function registerCustomLanguage(monaco) {
   const attribute = ['id', 'value', 'color', 'arrow', 'hidden', 'structure'];
   const attributePattern = new RegExp(`\\b(${attribute.join('|')})\\b`);
 
+  const setCommand = new RegExp(`\\b(set)\\w*\\b`);
+
   // Register a tokens provider for the language
   monaco.languages.setMonarchTokensProvider("customLang", {
     tokenizer: {
@@ -28,10 +30,12 @@ export function registerCustomLanguage(monaco) {
         [/\/\/.*$/, 'comment'],
         [/$[ \t]*.*/, 'inlinecomment'],
         [keywordPattern, 'keyword'],
+        [setCommand, 'set-command'],
         [componentPattern, 'component'],
         [attributePattern, 'attribute'],
         [/\b[a-zA-Z_][a-zA-Z0-9_]*\b/, 'variable'],
         [/\b\d+(\.\d+)?\b/, 'number'],
+        [/("([^"\\]|\\.)*")|('([^'\\]|\\.)*')/, 'string'],
         [symbolPattern, 'symbol'],
       ]
     }
@@ -49,13 +53,14 @@ export function registerCustomLanguage(monaco) {
       { token: 'custom-number', foreground: '800080' },
       { token: 'comment', foreground: '6a9955' },
       { token: 'inlinecomment', foreground: '6a9955' },
-      { token: 'variable',  foreground: 'dcdcaa'}, 
+      { token: 'variable',  foreground: '50C1F9'}, 
       { token: 'number', foreground: 'b5cea8' }, // Light green for numbers
-      { token: 'keyword', foreground: '569cd6' },  // Changed to a blue color
-      { token: 'symbol', foreground: 'ffcc00' },
-      { token: 'component', foreground: '4ec9b0' },
-      { token: 'attribute', foreground: 'd19a66' }
-
+      { token: 'keyword', foreground: '8477FD' },  // Changed to a blue color
+      { token: 'symbol', foreground: 'ffffff' },
+      { token: 'string', foreground: '3AE1FF', fontStyle: 'bold' }, // Changed to a nice green color
+      { token: 'component', foreground: '21FFD6' },
+      { token: 'attribute', foreground: '21FFD6' },
+      { token: 'set-command', foreground: '21FFD6' }
     ],
     colors: {
       'editor.background': '#1E1E1E',
@@ -67,4 +72,27 @@ export function registerCustomLanguage(monaco) {
       'editor.inactiveSelectionBackground': '#3A3D41'
     }
   });
+
+  monaco.languages.setLanguageConfiguration("customLang", {
+    comments: {
+      lineComment: "//",
+      blockComment: ["/*", "*/"]
+    },
+    brackets: [
+      ["{", "}"],
+      ["[", "]"],
+      ["(", ")"]
+    ],
+    autoClosingPairs: [
+      { open: "{", close: "}" },
+      { open: "[", close: "]" },
+      { open: "(", close: ")" }
+    ],
+    surroundingPairs: [
+      { open: "{", close: "}" },
+      { open: "[", close: "]" },
+      { open: "(", close: ")" }
+    ]
+  });
+
 }

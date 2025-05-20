@@ -5,15 +5,17 @@ import CssBaseline from "@mui/material/CssBaseline"; // To apply baseline CSS re
 import theme from "./Theme";
 
 import App from "./App";
-
+import { ParseCompileProvider } from "./context/ParseCompileContext"
 const container = document.getElementById("app");
 const root = createRoot(container);
 
 root.render(
   <React.StrictMode>
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <App />
-    </ThemeProvider>
+    <ParseCompileProvider>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <App />
+      </ThemeProvider>
+    </ParseCompileProvider>
   </React.StrictMode>
 );
