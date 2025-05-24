@@ -93,9 +93,6 @@ const lexer = moo.compile({
   comment: { match: /\/\/.*?$/, lineBreaks: true },
 });
 
-let symbolTable = {};
-console.log("Symbol table initialized.");
-
 const iid = ([el]) => id(el);
 
 const getDef = ([el]) => { 

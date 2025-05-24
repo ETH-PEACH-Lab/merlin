@@ -7,7 +7,10 @@ import { generateTree } from "./types/generateTree.mjs";
 import { generateMatrix } from "./types/generateMatrix.mjs";
 import { generateGraph } from "./types/generateGraph.mjs";
 
-export default function convertParsedDSLtoMermaid (parsedDSL) {
+export default function convertParsedDSLtoMermaid(parsedDSL) {
+    // Pre-checks to ensure the parsed DSL is valid
+    preCheck(parsedDSL);
+
     const definitions = parsedDSL.defs; 
     const commands = parsedDSL.cmds;
 
@@ -124,6 +127,8 @@ export default function convertParsedDSLtoMermaid (parsedDSL) {
         }
     });
 
+    postCheck(pages);
+
     // Generate the mermaid string
     let mermaidString = "visual\n";
     for (const page of pages) {
@@ -159,4 +164,46 @@ export default function convertParsedDSLtoMermaid (parsedDSL) {
         mermaidString,
         compiled_pages: pages,
     }
+}
+
+function preCheck(parsedDSL) {
+    if (!parsedDSL || !parsedDSL.defs || !parsedDSL.cmds) {
+        throw new Error("Nothing to show\nPlease define an object and a page, then show it using the 'show' command");
+    }
+
+    // Check for duplicate component names
+    const names = new Set();
+    parsedDSL.defs.forEach(def => {
+        if (names.has(def.name)) {
+            throw new Error(`Duplicate component name found: ${def.name}`);
+        }
+        names.add(def.name);
+    });
+
+    // Check for valid command types
+    parsedDSL.cmds.forEach(cmd => {
+        if (!["page", "show", "hide", "set", "set_multiple"].includes(cmd.type)) {
+            throw new Error(`Unknown command type: ${cmd.type}`);
+        }
+    });
+
+    // Check if the first command is a page
+    if (parsedDSL.cmds[0].type !== "page") {
+        setError("No page command found\nPlease start a page using the 'page' command before using any other commands.");
+        return;
+    }
+}
+
+function postCheck(pages) {
+    // Check if there is at least one page
+    if (pages.length === 0) {
+        throw new Error("No pages found. Please define at least one page with components.");
+    }
+
+    // For each page, check if it has at least one component
+    pages.forEach((page, index) => {
+        if (page.length === 0) {
+            throw new Error(`Page ${index + 1} is empty. \nPlease add at least one component to the page using the 'show' command.`);
+        }
+    });
 }

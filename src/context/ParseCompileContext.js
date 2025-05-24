@@ -27,19 +27,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             setParsedCode(parsed);
         } catch (e) {
             setParsedCode(null);
-            setError(`[${e.line}:${e.col}] Parse error: ` + (e.message || e));
-            return;
-        }
-
-        // User either didn't define an object or didn't show it
-        if (parsed === null || !parsed?.defs || !parsed?.cmds) {
-            setError("Parse error: Nothing to show\nPlease define an object and a page, then show it using the 'show' command.");
-            return;
-        }
-
-        // Check if the first command is a page
-        if (parsed.cmds[0].type !== "page") {
-            setError("Parse error: No page command found\nPlease define a page using the 'page' command before using any other commands.");
+            setError(`Parse error: ` + (e.message || e));
             return;
         }
 
@@ -48,7 +36,11 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             setCompiledMerlin(mermaidString);
             setPages(compiled_pages);
         } catch (e) {
-            setError(`[${e.line}:${e.col}] Compile error: ${e.message || e}`);
+            if (e.line && e.col) {
+                setError(`[${e.line}:${e.col}] Compile error: ${e.message || e}`);
+            } else {
+                setError(`Compile error: ${e.message || e}`);
+            }
         }
     }, []);
 
