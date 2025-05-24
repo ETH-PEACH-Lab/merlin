@@ -13,16 +13,13 @@ export default function convertParsedDSLtoMermaid (parsedDSL) {
 
     // Helper function to find a component definition by its name
     function findComponentDefinitionByName(defs, name) {
-        const definition = defs.find(def => def.name === name);
-        if (definition) {
-            return {
-                type: definition.type,
-                name: definition.name,
-                body: definition.body, 
-            };
-        }
-        console.error(`Component definition not found for name: ${name}`);
-        return null;
+        return defs.find(def => def.name === name);
+    }
+
+    function causeCompileError(message, command) {
+        const err = new Error(message);
+        Object.assign(err, { line: command.line, col: command.col });
+        throw err;
     }
 
     const pages = [];
@@ -49,7 +46,7 @@ export default function convertParsedDSLtoMermaid (parsedDSL) {
                         body: componentData.body,
                     });
                 } else {
-                    console.warn(`Could not show component "${componentNameToShow}": definition not found.`);
+                    causeCompileError(`Component definition not found for name: ${componentNameToShow}`, command);
                 }
                 break;
             case "hide":
@@ -62,7 +59,7 @@ export default function convertParsedDSLtoMermaid (parsedDSL) {
                         pages[pages.length - 1].splice(index, 1);
                     }
                 } else {
-                    console.warn(`Could not hide component "${componentNameToHide}": not found on the current page.`);
+                    causeCompileError(`Component "${componentNameToHide}" not found on the current page.`, command);
                 }
                 break;
             case "set": {
@@ -76,13 +73,18 @@ export default function convertParsedDSLtoMermaid (parsedDSL) {
                 if (targetObject) {
                     const body = targetObject.body;
                     const currentArray = body[property]
-                    if (currentArray && index < currentArray.length) {
+                    
+                    // If property does not exist, create array of null of length property "value"
+                    if (!currentArray) {
+                        body[property] = Array(newValue.length).fill(null);
+                        body[property][index] = newValue;
+                    } else if (index < currentArray.length) {
                         currentArray[index] = newValue;
                     } else {
-                        console.error(`Index ${index} out of bounds for component "${name}".`);
+                        causeCompileError(`Index ${index} out of bounds for property "${property}" on component "${name}".`, command);
                     }
                 } else {
-                    console.error(`Component "${name}" not found on the current page.`);
+                    causeCompileError(`Component "${name}" not found on the current page.`, command);
                 }
                 break;
             }
@@ -109,16 +111,16 @@ export default function convertParsedDSLtoMermaid (parsedDSL) {
                                 }
                             }
                         } else {
-                            console.error(`Args is not an array for component "${name}".`);
+                            causeCompileError(`Expected an array for property "${property}" on component "${name}".`, command);
                         }
                     } else {
-                        console.error(`Property "${property}" not found on component "${name}".`);
+                        causeCompileError(`Property "${property}" not found on component "${name}".`, command);
                     }
                 } else {
-                    console.error(`Component "${name}" not found on the current page.`);
+                    causeCompileError(`Component "${name}" not found on the current page.`, command);
                 }
             }
-                
+
         }
     });
 

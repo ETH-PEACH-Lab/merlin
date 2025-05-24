@@ -22,13 +22,12 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
     const parseAndCompile = useCallback((code) => {
         setError(null);
         let parsed = null;
-        let compiled = null;
         try {
             parsed = parseText(code);
             setParsedCode(parsed);
         } catch (e) {
             setParsedCode(null);
-            setError("Parse error: " + (e.message || e));
+            setError(`[${e.line}:${e.col}] Parse error: ` + (e.message || e));
             return;
         }
 
@@ -49,7 +48,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             setCompiledMerlin(mermaidString);
             setPages(compiled_pages);
         } catch (e) {
-            setError("Compile error: " + (e.message || e));
+            setError(`[${e.line}:${e.col}] Compile error: ${e.message || e}`);
         }
     }, []);
 

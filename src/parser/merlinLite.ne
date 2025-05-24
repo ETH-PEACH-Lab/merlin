@@ -3,14 +3,7 @@
 ##################
 
 # definition[X, Y] -> $X __ word _ equals _ bracketlist[$Y] _ {% ([type, , name, , , , body]) => ({ ...getDef(type), name, body: body }) %}
-definition[X, Y] -> $X __ word _ equals _ bracketlist[$Y] _ {% ([type, , name, , , , body]) => {
-    const def = { ...getDef(type), name, body: body };
-    // If already defined, throw an error
-    //console.log("symbolTable", symbolTable);
-    
-    symbolTable[name] = def;
-    return def;
-} %}
+definition[X, Y] -> $X __ word _ equals _ bracketlist[$Y] _ {% ([type, , word, , , , body]) => ({ ...getDef(type), body: body, ...word }) %}
 
 # bracketlist: One-per-line definition,
 # e.g. catch all, be lenient with whitespace
@@ -18,7 +11,7 @@ definition[X, Y] -> $X __ word _ equals _ bracketlist[$Y] _ {% ([type, , name, ,
 #   value: [1, 2, 3]
 #   name: "something"
 # }
-bracketlist[X] -> lbracket nlow:? $X (comma_nlow $X):* nlow:? rbracket {% d => {
+bracketlist[X] -> lbracket nlow $X (comma_nlow $X):* nlow:? rbracket {% d => {
     const firstXValue = d[2];
     const repetitionGroups = d[3];
     let result = {};
@@ -66,15 +59,7 @@ list_content[X] -> trim[$X] next_list_item[$X]:* {% (([first, rest]) => [...firs
 next_list_item[X] -> comma trim[$X] {% ([, value]) => id(value) %}
 
 # Commands
-cmd[X, Y] -> word dot $X lparen _ $Y _ rparen {% ([name, , , , , args], _, reject) => {
-    const command = { name, args: id(args) };
-    // Check if the command is valid
-    if (symbolTable[name]) {
-        return command;
-    } else {
-        throw new Error(`Command "${name}" is not defined.`);
-    }
-} %}
+cmd[X, Y] -> word dot $X lparen _ $Y _ rparen {% ([word, dot, , , , args], _, reject) => ({ args: id(args), ...word }) %}
 
 # Ignore surrounding whitespace
 trim[X] -> _ $X _ {% ([, value, ]) => value[0] %}
@@ -108,7 +93,8 @@ const lexer = moo.compile({
   comment: { match: /\/\/.*?$/, lineBreaks: true },
 });
 
-const symbolTable = {};
+let symbolTable = {};
+console.log("Symbol table initialized.");
 
 const iid = ([el]) => id(el);
 
@@ -116,6 +102,8 @@ const getDef = ([el]) => {
   return {
     class: el.type,
     type: el.value,
+    line: el.line,
+    col: el.col,
   };
 }
 %}
@@ -135,8 +123,8 @@ definition -> (comment
 ) {% iid %}
 
 # Array Definition
-array_def -> definition["array", array_pairs] {% id %}
-array_pairs -> (
+array_def -> definition["array", array_pair] {% id %}
+array_pair -> (
               pair["color", nns_list] 
             | pair["value", nns_list]
             | pair["arrow", nns_list]
@@ -167,23 +155,9 @@ set_arrow -> cmd["setArrows", list[(string | nullT | pass) {% iid %}]] {% (detai
 
 page -> "page" {% () => ({ type: "page" }) %}
 
-show -> "show" _ word {% ([, , name]) => {
-    // Check if the command is valid
-    if (symbolTable[name]) {
-        return { type: "show", value: name };
-    } else {
-        throw new Error(`Command "${name}" is not defined.`);
-    }
-} %}
+show -> "show" _ word {% ([, , word]) => ({ type: "show", value: word.name, line: word.line, col: word.col }) %}
 
-hide -> "hide" _ word {% ([, , name]) => {
-    // Check if the command is valid
-    if (symbolTable[name]) {
-        return { type: "hide", value: name };
-    } else {
-        throw new Error(`Command "${name}" is not defined.`);
-    }
-} %}
+hide -> "hide" _ word {% ([, , word]) => ({ type: "hide", value: word.name, line: word.line, col: word.col }) %}
 
 # - Lists - #
 nns_list -> list[(nullT | number | string) {% iid %}] {% id %} # Accepts null, number, or string
@@ -191,7 +165,7 @@ nns_list -> list[(nullT | number | string) {% iid %}] {% id %} # Accepts null, n
 # - Literals - #
 number -> %number {% ([value]) => parseInt(value.value, 10) %}
 string -> %string {% ([value]) => value.value %}
-word -> %word {% ([value]) => value.value %}
+word -> %word {% ([value]) => ({name: value.value, line: value.line, col: value.col}) %}
 nullT -> %nullT {% () => null %}
 pass -> %pass {% () => "_" %}
 
@@ -200,7 +174,7 @@ _ -> %ws:? {% () => null %}
 __ -> %ws {% () => null %}
 nlw -> %nlw {% () => null %}
 nlow -> (%nlw | %ws) {% () => null %}
-comma_nlow -> nlow:? comma:? nlow:? {% () => null %}
+comma_nlow -> ((nlow:? comma nlow:?) | nlw) {% () => null %}
 
 # - Tokens - # 
 # Note: Return null to save memory

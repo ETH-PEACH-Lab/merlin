@@ -16,13 +16,13 @@ array arr2 = {
 page
 show arr1
 arr1.setColor(4, "blue")
-arr1.setValue(0, 4)
-page
-// arr1.reset()
-arr1.setColor(0, "green")
-arr1.setValues([2,_,4,_,_,_,_])
-show arr2`;
+arr1.setValue(0, 10)
 
+page
+arr1.setColor(0, "green")
+arr1.setValues([100,_,4,_,_,_,_])
+show arr2`;
+	
 parser.feed(input);
 const parsedData = parser.results[0];  // Parsed output
 
