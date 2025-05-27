@@ -13,8 +13,7 @@ import { Box } from "@mui/material";
 
 import GUIEditor from "./components/GUIEditor";
 import Header from "./components/Header";
-import { ParseCompileProvider, useParseCompile } from "./context/ParseCompileContext";
-
+import { useParseCompile } from "./context/ParseCompileContext";
 
 const App = () => {
   // Use context for code and parsing
@@ -23,90 +22,32 @@ const App = () => {
     parsedCode,
     compiledMerlin,
     updateUnparsedCode,
-    error,
+    pages,
   } = useParseCompile();
 
   const [editor1Height, setEditor1Height] = useState(window.innerHeight / 2);
   const [leftWidth, setLeftWidth] = useState(window.innerWidth / 2);
-  const [exampleSvg, setExampleSvg] = useState(null);
   const [activeTab, setActiveTab] = useState("examples");
   const [savedItems, setSavedItems] = useState([]);
   const [inspectorIndex, setInspectorIndex] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(0);
-  const [svgContent, setSvgContent] = useState(null);
   const [dslEditorEditable, setDslEditorEditable] = useState(true);
 
   const mermaidRef = useRef(null);
   const containerRef = useRef(null);
 
-  const renderPage = (showIndex) => {
-    const svg_element = document.getElementById("preview");
-    if (svg_element && currentPage <= totalPages) {
-      const pages = svg_element.querySelectorAll("g.page");
-      if (pages && pages.length > 0) {
-        pages.forEach((page) => {
-          if (page && page.style) {
-            page.style.display = "none";
-          }
-        });
-      }
-      if (pages && pages.length > 0 && pages[showIndex].style) {
-        pages[showIndex].style.display = "inline";
-      }
+  useEffect(() => {
+    // Keep currentPage in range
+    if (currentPage < 1) {
+      setCurrentPage(pages.length > 0 ? 1 : 0);
+    } else if (currentPage > pages.length) {
+      setCurrentPage(pages.length);
     }
-  };
+  }, [currentPage, pages.length]);
 
   useEffect(() => {
     loadSavedItems();
   }, []);
-
-  useEffect(() => {
-    // console.log("app.jsx svgContent is changed!");
-    let svg = document.getElementById("preview");
-    let totalPages = 0;
-    try {
-      totalPages = svg.querySelectorAll("g.page").length;
-    } catch (error) {
-      console.log("got error when fetching total pages: error");
-    }
-    // console.log("debug totalPages\n", totalPages)
-    setTotalPages(totalPages);
-    renderPage(currentPage - 1);
-  }, [svgContent]);
-
-  useEffect(() => {
-    const svg_element = document.getElementById("preview");
-    // console.log("app.jsx svg_element: ", svg_element);
-    if (svg_element && currentPage <= totalPages) {
-      const pages = svg_element.querySelectorAll("g.page");
-      if (pages && pages.length > 0) {
-        pages.forEach((page) => {
-          if (page && page.style) {
-            page.style.display = "none";
-          }
-        });
-      }
-      if (pages && pages.length > 0 && pages[currentPage - 1].style) {
-        pages[currentPage - 1].style.display = "inline";
-      }
-    }
-  }, [currentPage]);
-
-
-  useEffect(() => {
-    const handlePageChange = () => {
-      setCurrentPage(window.currentPage);
-    };
-    // Listen for the custom page change event
-    window.addEventListener("pageChange", handlePageChange);
-    // Cleanup the event listener on component unmount
-    return () => {
-      window.removeEventListener("pageChange", handlePageChange);
-    };
-  }, []);
-
-  // console.log("currentPage:", currentPage);
 
   const handleMouseDown = (e) => {
     const startX = e.clientX;
@@ -343,22 +284,13 @@ ${timestamp}
                       handleSave={handleSave}
                       mermaidRef={mermaidRef}
                       updateInspector={updateInspector}
-                      totalPages={totalPages}
-                      setTotalPages={setTotalPages}
-                      setSvgContent={setSvgContent}
                       currentPage={currentPage}
                       setCurrentPage={setCurrentPage}
                     />
                     <GUIEditor
                       inspectorIndex={inspectorIndex}
-                      setCode1={updateUnparsedCode}
-                      parsedCode1={parsedCode}
-                      setParsedCode1={() => {}}
-                      code1={unparsedCode}
                       currentPage={currentPage}
-                      totalPages={totalPages}
                       setCurrentPage={setCurrentPage}
-                      setTotalPages={setTotalPages}
                       dslEditorEditable={dslEditorEditable}
                       setDslEditorEditable={setDslEditorEditable}
                     />

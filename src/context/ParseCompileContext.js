@@ -57,20 +57,43 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
     const reconstructMerlinLite = useCallback(() => {
         if (!parsedCode) return null;
         try {
-            return reconstructor(parsedCode);
+            const reconstructed = reconstructor(parsedCode);
+            setUnparsedCode(reconstructed);
+            parseAndCompile(reconstructed);
+            return reconstructed;
         } catch (e) {
             setError("Reconstruction error: " + (e.message || e));
             return null;
         }
+    }, [parsedCode, parseAndCompile]);  
+
+    const updateValue = useCallback(
+        (page, component, id, fieldKey, value) => {
+            if (!parsedCode) return;
+            // TODO: implement partial AST update logic
+            console.log(
+                `Update value at page ${page}, component ${component}, id ${id}, field ${fieldKey} to ${value}`
+            )
+        },
+        [parsedCode]
+    );
+
+    const addPage = useCallback(() => {
+        parsedCode?.cmds.push({ type: "page" });
+        reconstructMerlinLite();
     }, [parsedCode]);
 
-    // Dummy: update part of the parsed code (to be implemented)
-    const updateParsedCodePart = useCallback(
-        (/* part, value */) => {
-            // TODO: implement partial AST update logic
-        },
-        []
-    );
+    const removePage = useCallback(() => {
+        while (parsedCode?.cmds.length > 0) {
+            const lastCommand = parsedCode.cmds[parsedCode.cmds.length - 1];
+            if (lastCommand.type === "page") {
+                parsedCode.cmds.pop();
+                break;
+            }
+            parsedCode.cmds.pop();
+        }
+        reconstructMerlinLite();
+    }, [parsedCode]);
 
     // Memoize context value
     const contextValue = useMemo(
@@ -82,7 +105,9 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             pages,
             updateUnparsedCode,
             reconstructMerlinLite,
-            updateParsedCodePart,
+            updateValue,
+            addPage,
+            removePage,
         }),
         [
             unparsedCode,
@@ -92,7 +117,9 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             pages,
             updateUnparsedCode,
             reconstructMerlinLite,
-            updateParsedCodePart,
+            updateValue,
+            addPage,
+            removePage,
         ]
     );
 

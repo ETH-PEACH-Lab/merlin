@@ -6,8 +6,8 @@ const MermaidRenderer = ({
   text,
   update,
   exampleSvg,
-  setTotalPages,
   setSvgContent,
+  currentPage,
 }) => {
   const ref = useRef(null);
 
@@ -19,6 +19,31 @@ const MermaidRenderer = ({
       logLevel: 5,
     });
 
+    const setPage = (svg, pageIndex) => {
+      // Create a temporary DOM element to parse the SVG
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(svg, 'image/svg+xml');
+      const svgElement = doc.querySelector('svg');
+      
+      if (!svgElement) return svg;
+      
+      // Find all page elements
+      const pages = svgElement.querySelectorAll('g.page');
+      
+      // Set all pages to display none
+      pages.forEach(page => {
+        page.setAttribute('display', 'none');
+      });
+
+      // Show the specified page if it exists
+      if (pages[pageIndex]) {
+        pages[pageIndex].setAttribute('display', 'inline');
+      }
+      
+      // Return the modified SVG as string
+      return new XMLSerializer().serializeToString(svgElement);
+    };
+
     const renderMermaid = async () => {
       if (ref.current && text !== "") {
         try {
@@ -29,13 +54,7 @@ const MermaidRenderer = ({
             // setupNavigation(ref.current.querySelector('svg'));
           } else {
             const { svg } = await mermaid.mermaidAPI.render("preview", text);
-            // const svg_element = document.getElementById('preview');
-            // console.log("mermaidRenderer svg_element: ", svg);
-            // const totalPages = svg.querySelectorAll('g.page').length;
-            // console.log("mermaidRenderer totalPages: ", totalPages);
-            // setTotalPages(totalPages);
-            setSvgContent(svg);
-            ref.current.innerHTML = svg;
+            ref.current.innerHTML = setPage(svg, currentPage - 1);
             update(ref.current);
             // Set up navigation after rendering the SVG
             // setupNavigation(ref.current.querySelector('svg'));
@@ -53,7 +72,7 @@ const MermaidRenderer = ({
         ref.current.innerHTML = "";
       }
     };
-  }, [text, exampleSvg]);
+  }, [text, exampleSvg, currentPage]);
 
   const setupNavigation = (svg) => {
     console.log("setupNavigation svg:\n", svg);
