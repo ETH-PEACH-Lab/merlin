@@ -208,7 +208,7 @@ const GUIEditor = ({
     if (lengthBefore > 1) {
       setCurrentPage(lengthBefore - 1);
     } else {
-      setCurrentPage(0);
+      setCurrentPage(1);
     }
   };
 
@@ -231,24 +231,28 @@ const GUIEditor = ({
         </Box>
         <Box sx={{ display: "flex" }}>
           <Tooltip title="Add a Page">
-            <IconButton
-              disabled={!(currentPage === pages.length)}
-              onClick={handleAddPage}
-              sx={{ mr: 1 }}
-              size="small"
-            >
-              <AddIcon sx={{ fontSize: 20 }}></AddIcon>
-            </IconButton>
+            <span>
+              <IconButton
+                disabled={!(currentPage === pages.length)}
+                onClick={handleAddPage}
+                sx={{ mr: 1 }}
+                size="small"
+              >
+                <AddIcon sx={{ fontSize: 20 }}></AddIcon>
+              </IconButton>
+            </span>
           </Tooltip>
           <Tooltip title="Remove last Page">
-            <IconButton
-              disabled={!(currentPage === pages.length) || pages.length <= 1}
-              onClick={handleRemovePage}
-              sx={{ mr: 1 }}
-              size="small"
-            >
-              <DeleteIcon sx={{ fontSize: 20 }}></DeleteIcon>
-            </IconButton>
+            <span>
+              <IconButton
+                disabled={!(currentPage === pages.length) || pages.length <= 1}
+                onClick={handleRemovePage}
+                sx={{ mr: 1 }}
+                size="small"
+              >
+                <DeleteIcon sx={{ fontSize: 20 }}></DeleteIcon>
+              </IconButton>
+            </span>
           </Tooltip>
         </Box>
       </Box>

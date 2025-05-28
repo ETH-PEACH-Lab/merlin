@@ -38,8 +38,8 @@ const App = () => {
 
   useEffect(() => {
     // Keep currentPage in range
-    if (currentPage < 1) {
-      setCurrentPage(pages.length > 0 ? 1 : 0);
+    if (currentPage < 1 || pages.length === 0) {
+      setCurrentPage(1);
     } else if (currentPage > pages.length) {
       setCurrentPage(pages.length);
     }

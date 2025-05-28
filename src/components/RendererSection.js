@@ -116,17 +116,24 @@ const RendererSection = ({
               <MermaidRenderer text={mermaidCode} update={updateSvgElement} exampleSvg={exampleSvg}  currentPage={currentPage} />
             </div>
             <ElementEditor svgElement={svgElement} updateInspector={updateInspector} />
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'center',
-                mt: 2, // Optional: adds some margin-top for spacing
-              }}
-            >
-              <Button onClick={handleClickPrev} variant="contained" style={{ fontSize: "12px", marginRight: "15px", maxWidth: '80px', maxHeight: '25px', minWidth: '40px', minHeight: '25px' }}>Prev</Button>
-              <Button onClick={handleClickNext} variant="contained" style={{ fontSize: "12px", marginRight: "15px", maxWidth: '80px', maxHeight: '25px', minWidth: '40px', minHeight: '25px' }}>Next</Button>
-              {currentPage}/{pages.length}
-            </Box>
+            
+            {(pages && pages.length === 0) ? (
+              <Typography sx={{ mt: 2, textAlign: 'center' }}>
+                No pages to show.
+              </Typography>
+            ) : (
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  mt: 2,
+                }}
+              >
+                <Button onClick={handleClickPrev} variant="contained" style={{ fontSize: "12px", marginRight: "15px", maxWidth: '80px', maxHeight: '25px', minWidth: '40px', minHeight: '25px' }}>Prev</Button>
+                <Button onClick={handleClickNext} variant="contained" style={{ fontSize: "12px", marginRight: "15px", maxWidth: '80px', maxHeight: '25px', minWidth: '40px', minHeight: '25px' }}>Next</Button>
+                {currentPage}/{pages.length}
+              </Box>
+            )}
           </CardContent>
         </Card>
       </div>
