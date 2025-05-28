@@ -51,8 +51,33 @@ const types = {
 const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate }) => {
   const [label, inputType] = fieldConfig;
   
+  const convertValueToType = (value, type) => {
+    if (value === "" || value === null || value === undefined) {
+      return null;
+    }
+    
+    switch (type) {
+      case "number":
+        const numValue = Number(value);
+        return isNaN(numValue) ? null : numValue;
+      case "boolean":
+        if (typeof value === "boolean") return value;
+        if (typeof value === "string") {
+          const lowerValue = value.toLowerCase().trim();
+          return lowerValue === "true" || lowerValue === "1";
+        }
+        return Boolean(value);
+      case "color":
+      case "string":
+      default:
+        return String(value);
+    }
+  };
+  
   const handleBlur = () => {
-    onUpdate(fieldKey, value);
+    if (!value) return;
+    const convertedValue = convertValueToType(value, inputType);
+    onUpdate(fieldKey, convertedValue);
   };
 
   const handleKeyDown = (ev) => {
@@ -62,18 +87,50 @@ const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate }) => {
     }
   };
 
+  const handleColorChange = (e) => {
+    const newValue = e.target.value;
+    onChange(fieldKey, newValue);
+    // For color inputs, immediately update since color picker doesn't work well with blur
+    if (inputType === "color") {
+      const convertedValue = convertValueToType(newValue, inputType);
+      onUpdate(fieldKey, convertedValue);
+    }
+  };
+
+  // For boolean inputs, use a Switch component instead of TextField
+  if (inputType === "boolean") {
+    const boolValue = value === "true" || value === true;
+    return (
+      <FormControlLabel
+        control={
+          <Switch
+            checked={boolValue}
+            onChange={(e) => {
+              const newValue = e.target.checked;
+              onChange(fieldKey, newValue);
+              onUpdate(fieldKey, newValue);
+            }}
+            disabled={fieldKey === "id"}
+          />
+        }
+        label={label}
+        sx={{ m: 1, width: "25ch" }}
+      />
+    );
+  }
+
   return (
     <TextField
       label={label}
       id={`${fieldKey}-input`}
-      value={value || ""}
+      value={value !== null && value !== undefined && value !== "null" ? value : (inputType === "color" ? "#ffffff" : "")}
       size="small"
-      type={inputType === "number" ? "number" : "text"}
+      type={inputType === "number" ? "number" : inputType === "color" ? "color" : "text"}
       disabled={fieldKey === "id"}
       helperText={fieldKey === "id" ? "The unit id is unchangeable" : ""}
-      onChange={(e) => onChange(fieldKey, e.target.value)}
-      onBlur={handleBlur}
-      onKeyDown={handleKeyDown}
+      onChange={inputType === "color" ? handleColorChange : (e) => onChange(fieldKey, e.target.value)}
+      onBlur={inputType === "color" ? undefined : handleBlur}
+      onKeyDown={inputType === "color" ? undefined : handleKeyDown}
     />
   );
 };
@@ -98,14 +155,14 @@ const GUIEditor = ({
 
   useEffect(() => {
     if (inspectorIndex) {
-      const page_idx = parseInt(inspectorIndex.pageID.slice(4));
+      const page_idx = currentPage - 1; // Convert to zero-based index
       const component_idx = parseInt(inspectorIndex.componentID.slice(10));
-      const unit_idx = inspectorIndex.unitID.slice(5);
+      const unit_idx = parseInt(inspectorIndex.unitID.slice(5), 10);
       const component = pages[page_idx][component_idx];
       
       // Dynamically build unit data based on component type
       const unitData = {
-        id: unit_idx,
+        idx: unit_idx,
         component: component_idx,
         name: component.name,
         page: page_idx,
@@ -121,7 +178,7 @@ const GUIEditor = ({
 
       setUnitData(unitData);
     }
-  }, [inspectorIndex]);
+  }, [inspectorIndex, currentPage]);
 
   const handleFieldChange = (fieldKey, value) => {
     setUnitData(prev => ({ ...prev, [fieldKey]: value }));
@@ -131,8 +188,8 @@ const GUIEditor = ({
     if (inspectorIndex && fieldKey !== "id") {
       updateValue(
         currentUnitData.page,
-        currentUnitData.component,
-        currentUnitData.id,
+        currentUnitData.name,
+        currentUnitData.idx,
         fieldKey,
         value
       );
@@ -195,7 +252,7 @@ const GUIEditor = ({
           </Tooltip>
         </Box>
       </Box>
-      {inspectorIndex && (
+      {inspectorIndex ? (
         <Box
           component="form"
           sx={{
@@ -223,7 +280,7 @@ const GUIEditor = ({
                 size="small"
                 sx={{ ml: 1 }}
               />
-              <Chip label={`Unit ${currentUnitData.id}`} size="small" sx={{ ml: 1 }} />
+              <Chip label={`Unit ${currentUnitData.idx}`} size="small" sx={{ ml: 1 }} />
               <Chip
                 label={`Type ${currentUnitData.type}`}
                 size="small"
@@ -238,7 +295,7 @@ const GUIEditor = ({
                 <DynamicInput
                   fieldKey="id"
                   fieldConfig={["Id", "text"]}
-                  value={currentUnitData.id}
+                  value={currentUnitData.idx}
                   onChange={handleFieldChange}
                   onUpdate={handleFieldUpdate}
                 />
@@ -259,6 +316,18 @@ const GUIEditor = ({
               }
             </div>
           </div>
+        </Box>
+      ) : (
+        <Box
+          sx={{
+            p: 2,
+            textAlign: "center",
+            color: "text.secondary",
+          }}
+        >
+          <Typography variant="body2">
+            Select a unit to inspect its properties.
+          </Typography>
         </Box>
       )}
     </div>

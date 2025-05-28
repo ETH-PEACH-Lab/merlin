@@ -1,3 +1,6 @@
+# Merlin Lite Parser
+# From this file, we can generate the parser.js file
+
 ##################
 # --- MACROS --- #
 ##################
@@ -51,7 +54,7 @@ one_per_line[X] -> nlw:* $X nlw:* (nlw:+ $X nlw:* _):* {% ([, first, ,rest]) => 
 pair[X, Y] -> $X colon _ $Y {% ([key, , , value]) => ({ [key]: id(value) }) %}
 
 # Tuple, e.g. 1, 2
-tuple[X, Y] -> $X _ comma _ $Y {% ([x, , , , y]) => ({ index: x, value: y }) %}
+tuple[X, Y] -> $X _ comma _ $Y {% ([x, , , , y]) => ({ index: id(x), value: id(y) }) %}
 
 # Lists, e.g. [1, 2, 3]
 list[X] -> lbrac list_content[$X] rbrac {% ([, content]) => content.flat() %}
@@ -59,7 +62,7 @@ list_content[X] -> trim[$X] next_list_item[$X]:* {% (([first, rest]) => [...firs
 next_list_item[X] -> comma trim[$X] {% ([, value]) => id(value) %}
 
 # Commands
-cmd[X, Y] -> word dot $X lparen _ $Y _ rparen {% ([word, dot, , , , args], _, reject) => ({ args: id(args), ...word }) %}
+cmd[X, Y] -> word dot $X lparen _ $Y _ rparen {% ([word, dot, , , , args]) => ({ args: id(args), ...word }) %}
 
 # Ignore surrounding whitespace
 trim[X] -> _ $X _ {% ([, value, ]) => value[0] %}
@@ -140,15 +143,15 @@ commands -> (comment
 ) {% iid %}
 
 # Set a value in an array
-set_value -> cmd["setValue", tuple[number, number]] {% (details) => ({ type: "set", target: "value", ...id(details) }) %}
+set_value -> cmd["setValue", tuple[number , number]] {% (details) => ({ type: "set", target: "value", ...id(details) }) %}
 set_color -> cmd["setColor", tuple[number, string]] {% (details) => ({ type: "set", target: "color", ...id(details) }) %}
-set_arrow -> cmd["setArrow", tuple[number, (string | nullT) {% iid %}]] {% (details) => ({ type: "set", target: "arrow", ...id(details) }) %}
+set_arrow -> cmd["setArrow", tuple[number, (string | nullT) {% id %}]] {% (details) => ({ type: "set", target: "arrow", ...id(details) }) %}
 
 # Set multiple values in an array
 # Example: arr1.setValue([2,_,4,_,_,_,_])
-set_value -> cmd["setValues", list[(number | nullT | pass) {% iid %}]] {% (details) => ({ type: "set_multiple", target: "value", ...id(details) }) %}
-set_color -> cmd["setColors", list[(string | nullT | pass) {% iid %}]] {% (details) => ({ type: "set_multiple", target: "color", ...id(details) }) %}
-set_arrow -> cmd["setArrows", list[(string | nullT | pass) {% iid %}]] {% (details) => ({ type: "set_multiple", target: "arrow", ...id(details) }) %}
+set_value -> cmd["setValues", list[(number | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "value", ...id(details) }) %}
+set_color -> cmd["setColors", list[(string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "color", ...id(details) }) %}
+set_arrow -> cmd["setArrows", list[(string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "arrow", ...id(details) }) %}
 
 page -> "page" {% () => ({ type: "page" }) %}
 

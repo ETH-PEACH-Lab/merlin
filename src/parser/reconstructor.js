@@ -1,4 +1,4 @@
-// re-construct DSL from parserd DSL
+// re-construct DSL (Merlin Lite) from parsed DSL
 
 export default function reconstructDSL(parsedDSL) {
     const lines = [];
@@ -47,8 +47,8 @@ function reconstructCommand(cmd) {
             
         case 'set':
             const methodName = `set${capitalize(cmd.target)}`;
-            const index = cmd.args.index[0];
-            const value = formatValue(cmd.args.value[0]);
+            const index = cmd.args.index;
+            const value = formatValue(cmd.args.value);
             return `${cmd.name}.${methodName}(${index}, ${value})`;
             
         case 'set_multiple':
@@ -66,12 +66,23 @@ function formatArray(arr) {
 }
 
 function formatValue(value) {
-    if (value === null) {
+    if (value === '_') {
+        return '_';
+    }
+
+    if (value === null || value === undefined) {
         return 'null';
     }
     if (typeof value === 'string') {
         return `"${value}"`;
     }
+    if (typeof value === 'number') {
+        return value.toString();
+    }
+    if (typeof value === 'boolean') {
+        return value.toString();
+    }
+    // For any other type, convert to string as fallback
     return String(value);
 }
 

@@ -86,12 +86,16 @@ export function registerCustomLanguage(monaco) {
     autoClosingPairs: [
       { open: "{", close: "}" },
       { open: "[", close: "]" },
-      { open: "(", close: ")" }
+      { open: "(", close: ")" },
+      { open: '"', close: '"' },
+      { open: "'", close: "'" }
     ],
     surroundingPairs: [
       { open: "{", close: "}" },
       { open: "[", close: "]" },
-      { open: "(", close: ")" }
+      { open: "(", close: ")" },
+      { open: '"', close: '"' },
+      { open: "'", close: "'" }
     ]
   });
 

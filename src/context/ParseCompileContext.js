@@ -8,6 +8,7 @@ import React, {
 import parseText from "../parser/parseText.mjs";
 import reconstructor from "../parser/reconstructor.js";
 import compiler from "../compiler/compiler.mjs";
+import { createOptimizedCommand, findRelevantCommands } from "../parser/commandUtils.js";
 
 const ParseCompileContext = createContext();
 
@@ -68,14 +69,78 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
     }, [parsedCode, parseAndCompile]);  
 
     const updateValue = useCallback(
-        (page, component, id, fieldKey, value) => {
+        (page, componentName, idx, fieldKey, value) => {
             if (!parsedCode) return;
-            // TODO: implement partial AST update logic
-            console.log(
-                `Update value at page ${page}, component ${component}, id ${id}, field ${fieldKey} to ${value}`
-            )
+            // If the value is already set to the same value, do nothing, check in pages
+            // First find the page in pages
+            // Then find the object with .name === componentName
+            console.log(pages[page])
+            if (
+                pages[page] &&
+                pages[page].some(
+                    (obj) => obj.name === componentName && obj.body[fieldKey] && obj.body[fieldKey][idx] === value
+                ) &&
+                value !== "_" // Don't skip if value is "_", as it means we want to clear it
+            ) {
+                return;
+            }
+            
+            // Find the start and end indices of the specified page
+            let pageStartIndex = -1;
+            let pageEndIndex = parsedCode.cmds.length;
+            let currentPage = 0;
+            
+            for (let i = 0; i < parsedCode.cmds.length; i++) {
+                if (parsedCode.cmds[i].type === "page") {
+                    if (currentPage === page) {
+                        pageStartIndex = i + 1;
+                    } else if (currentPage === page + 1) {
+                        pageEndIndex = i;
+                        break;
+                    }
+                    currentPage++;
+                }
+            }
+            
+            if (pageStartIndex === -1) {
+                console.error(`Page ${page} not found`);
+                return;
+            }
+            
+            // Collect all relevant commands on this page
+            const { relevantCommands, commandsToRemove } = findRelevantCommands(
+                parsedCode.cmds, 
+                pageStartIndex, 
+                pageEndIndex, 
+                componentName, 
+                fieldKey
+            );
+
+            
+            // Create optimized command
+            const newCommand = createOptimizedCommand(
+                relevantCommands, 
+                componentName, 
+                fieldKey, 
+                idx, 
+                value
+            );
+            
+            // Remove old commands (in reverse order to maintain indices)
+            commandsToRemove.reverse().forEach(index => {
+                parsedCode.cmds.splice(index, 1);
+            });
+            
+            // Add the new command at the end of the page (if there is one)
+            if (newCommand) {
+                const insertIndex = pageEndIndex - commandsToRemove.length;
+                parsedCode.cmds.splice(insertIndex, 0, newCommand);
+            }
+            
+            // Trigger reconstruction and recompilation
+            reconstructMerlinLite();
         },
-        [parsedCode]
+        [parsedCode, pages, reconstructMerlinLite]
     );
 
     const addPage = useCallback(() => {
