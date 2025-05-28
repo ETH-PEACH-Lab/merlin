@@ -71,10 +71,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
     const updateValue = useCallback(
         (page, componentName, idx, fieldKey, value) => {
             if (!parsedCode) return;
-            // If the value is already set to the same value, do nothing, check in pages
-            // First find the page in pages
-            // Then find the object with .name === componentName
-            console.log(pages[page])
+            // If the value is already set to the same value, do nothing
             if (
                 pages[page] &&
                 pages[page].some(
