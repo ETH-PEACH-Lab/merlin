@@ -7,7 +7,10 @@ import { generateTree } from "./types/generateTree.mjs";
 import { generateMatrix } from "./types/generateMatrix.mjs";
 import { generateGraph } from "./types/generateGraph.mjs";
 
-export default function convertParsedDSLtoMermaid(parsedDSL) {
+export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
+    // Deep copy to avoid mutating the original parsed DSL
+    const parsedDSL = JSON.parse(JSON.stringify(parsedDSLOriginal));
+    
     // Pre-checks to ensure the parsed DSL is valid
     preCheck(parsedDSL);
 
