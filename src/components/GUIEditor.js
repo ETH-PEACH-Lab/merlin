@@ -158,7 +158,7 @@ const GUIEditor = ({
       const page_idx = currentPage - 1; // Convert to zero-based index
       const component_idx = parseInt(inspectorIndex.componentID.slice(10));
       const unit_idx = parseInt(inspectorIndex.unitID.slice(5), 10);
-      const component = pages[page_idx][component_idx];
+      const component = JSON.parse(JSON.stringify(pages[page_idx][component_idx]));
       
       // Dynamically build unit data based on component type
       const unitData = {
