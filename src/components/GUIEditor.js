@@ -157,9 +157,11 @@ const GUIEditor = ({
     if (inspectorIndex) {
       const page_idx = currentPage - 1; // Convert to zero-based index
       const component_idx = parseInt(inspectorIndex.componentID.slice(10));
-      const unit_idx = parseInt(inspectorIndex.unitID.slice(5), 10);
-      const component = JSON.parse(JSON.stringify(pages[page_idx][component_idx]));
-      
+      const unit_idx_all = parseInt(inspectorIndex.unitID.slice(5), 10);
+      const component = pages[page_idx][component_idx];
+
+      const unit_idx = findVisibleUnitIndex(component, unit_idx_all);
+
       // Dynamically build unit data based on component type
       const unitData = {
         idx: unit_idx,
@@ -180,6 +182,26 @@ const GUIEditor = ({
     }
   }, [inspectorIndex, currentPage]);
 
+  const findVisibleUnitIndex = (component, unitIdx) => {
+    // Find i'th visible unit index in the component
+    if (!component.body || !component.body.value) return 0;
+    
+    const hidden = component.body.hidden || [];
+
+    // Loop through hidden array
+    let visibleCount = 0;
+    for (let i = 0; i < component.body.value.length; i++) {
+      if (!hidden[i]) {
+        if (visibleCount === unitIdx) {
+          return i; // Return the index of the visible unit
+        }
+        visibleCount++;
+      }
+    }
+    return 0;
+  };
+
+  
   const handleFieldChange = (fieldKey, value) => {
     setUnitData(prev => ({ ...prev, [fieldKey]: value }));
   };

@@ -53,8 +53,11 @@ one_per_line[X] -> nlw:* $X nlw:* (nlw:+ $X nlw:* _):* {% ([, first, ,rest]) => 
 # Key-value pairs, e.g. key: value
 pair[X, Y] -> $X colon _ $Y {% ([key, , , value]) => ({ [key]: id(value) }) %}
 
-# Tuple, e.g. 1, 2
-tuple[X, Y] -> $X _ comma _ $Y {% ([x, , , , y]) => ({ index: id(x), value: id(y) }) %}
+# Comma Separated, e.g. 1, 2
+comma_sep[X, Y] -> $X _ comma _ $Y {% ([x, , , , y]) => ({ index: id(x), value: id(y) }) %}
+
+# Tuples, e.g. (1, 2)
+tuple[X, Y] -> lparen _ $X _ comma _ $Y _ rparen {% ([, , x, , , y, ]) => [id(x), id(y)] %}
 
 # Lists, e.g. [1, 2, 3]
 list[X] -> lbrac list_content[$X] rbrac {% ([, content]) => content.flat() %}
@@ -78,8 +81,7 @@ const lexer = moo.compile({
   ws:     /[ \t]+/,
   nullT: { match: /null/, value: () => null },
   number: /[0-9]+/,
-  def: ["array", "matrix", "graph"],
-  string: { match: /"(?:\\.|[^"\\])*"/, value: s => s.slice(1, -1) },
+  boolean: { match: /true|false/, value: s => s === "true" },
   times:  /\*/,
   lbracket: "{",
   rbracket: "}",
@@ -90,10 +92,14 @@ const lexer = moo.compile({
   colon: ":",
   comma: ",",
   dot: ".",
+  dash: "-",
   equals: "=",
   pass: "_",
-  word:  /[a-zA-Z_][a-zA-Z0-9_]*/,
+  word: { match: /[a-zA-Z_][a-zA-Z0-9_]*/, type: moo.keywords({
+    def: ["array", "matrix", "graph"],
+  })},
   comment: { match: /\/\/.*?$/, lineBreaks: true },
+  string: { match: /"(?:\\.|[^"\\])*"/, value: s => s.slice(1, -1) },
 });
 
 const iid = ([el]) => id(el);
@@ -120,51 +126,97 @@ root -> one_per_line[definition] one_per_line[commands] {% ([defs, cmds]) => ({ 
 # List of all definitions
 definition -> (comment 
             | array_def
+            | graph_def
 ) {% iid %}
 
 # Array Definition
 array_def -> definition["array", array_pair] {% id %}
 array_pair -> (
-              pair["color", nns_list] 
+              pair["color", ns_list] 
             | pair["value", nns_list]
             | pair["arrow", nns_list]
 ) {% iid %}
 
+# Graph Definition
+graph_def -> definition["graph", graph_pair] {% id %}
+graph_pair -> (
+              pair["nodes", w_list]
+            | pair["color", ns_list]
+            | pair["value", nns_list]
+            | pair["arrow", nns_list]
+            | pair["edges", e_list]
+            | pair["hidden", b_list]
+) {% iid %}
 
 # - COMMANDS - #
 # List of all commands
 commands -> (comment
-          | set_value 
           | page 
           | show
           | hide
+          | set_value 
           | set_color
           | set_arrow
+          | set_hidden
+          | add_value
+          | add_node
+          | add_edge
+          | insert_value
+          | insert_node
+          | insert_edge
+          | remove_value
+          | remove_node
+          | remove_edge
 ) {% iid %}
 
-# Set a value in an array
-set_value -> cmd["setValue", tuple[number , number]] {% (details) => ({ type: "set", target: "value", ...id(details) }) %}
-set_color -> cmd["setColor", tuple[number, string]] {% (details) => ({ type: "set", target: "color", ...id(details) }) %}
-set_arrow -> cmd["setArrow", tuple[number, (string | nullT) {% id %}]] {% (details) => ({ type: "set", target: "arrow", ...id(details) }) %}
-
-# Set multiple values in an array
-# Example: arr1.setValue([2,_,4,_,_,_,_])
-set_value -> cmd["setValues", list[(number | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "value", ...id(details) }) %}
-set_color -> cmd["setColors", list[(string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "color", ...id(details) }) %}
-set_arrow -> cmd["setArrows", list[(string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "arrow", ...id(details) }) %}
-
+# Main commands
 page -> "page" {% () => ({ type: "page" }) %}
 
 show -> "show" _ word {% ([, , word]) => ({ type: "show", value: word.name, line: word.line, col: word.col }) %}
 
 hide -> "hide" _ word {% ([, , word]) => ({ type: "hide", value: word.name, line: word.line, col: word.col }) %}
 
+# Set a value in an array
+set_value -> cmd["setValue", comma_sep[number , number]] {% (details) => ({ type: "set", target: "value", ...id(details) }) %}
+set_color -> cmd["setColor", comma_sep[number, string]] {% (details) => ({ type: "set", target: "color", ...id(details) }) %}
+set_arrow -> cmd["setArrow", comma_sep[number, (number | string | nullT) {% id %}]] {% (details) => ({ type: "set", target: "arrow", ...id(details) }) %}
+set_hidden -> cmd["setHidden", comma_sep[number, boolean]] {% (details) => ({ type: "set", target: "hidden", ...id(details) }) %}
+
+# Set multiple values in an array
+# Example: arr1.setValue([2,_,4,_,_,_,_])
+set_value -> cmd["setValues", list[(number | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "value", ...id(details) }) %}
+set_color -> cmd["setColors", list[(string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "color", ...id(details) }) %}
+set_arrow -> cmd["setArrows", list[(number | string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "arrow", ...id(details) }) %}
+set_hidden -> cmd["setHidden", list[(boolean | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "hidden", ...id(details) }) %}
+
+# Add functions
+add_value -> cmd["addValue", (number | string | nullT) {% id %}] {% (details) => ({ type: "add", target: "value", ...id(details) }) %}
+add_node -> cmd["addNode", word] {% (details) => ({ type: "add", target: "nodes", ...id(details) }) %}
+add_edge -> cmd["addEdge", edge] {% (details) => ({ type: "add", target: "edges", ...id(details) }) %}
+
+# Insert functions
+insert_value -> cmd["insertValue", comma_sep[number, (number | string | nullT) {% id %}]] {% (details) => ({ type: "insert", target: "value", ...id(details) }) %}
+insert_node -> cmd["insertNode", comma_sep[number, word]] {% (details) => ({ type: "insert", target: "nodes", ...id(details) }) %}
+insert_edge -> cmd["insertEdge", comma_sep[number, edge]] {% (details) => ({ type: "insert", target: "edges", ...id(details) }) %}
+
+# Remove functions
+remove_value -> cmd["removeValue", (number | string | nullT) {% id %}] {% (details) => ({ type: "remove", target: "value", ...id(details) }) %}
+remove_node -> cmd["removeNode", word] {% (details) => ({ type: "remove", target: "nodes", ...id(details) }) %}
+remove_edge -> cmd["removeEdge", edge] {% (details) => ({ type: "remove", target: "edges", ...id(details) }) %}
+
 # - Lists - #
 nns_list -> list[(nullT | number | string) {% iid %}] {% id %} # Accepts null, number, or string
+ns_list -> list[(nullT | string) {% iid %}] {% id %} # Accepts null or string
+s_list -> list[string {% id %}] {% id %} # Accepts only strings
+w_list -> list[word {% id %}] {% id %} # Accepts only words
+e_list -> list[edge {% id %}] {% id %} # Accepts only edges
+b_list -> list[boolean {% id %}] {% id %} # Accepts only booleans
 
 # - Literals - #
 number -> %number {% ([value]) => parseInt(value.value, 10) %}
 string -> %string {% ([value]) => value.value %}
+boolean -> %boolean {% ([value]) => value.value %}
+edge -> word %dash word {% ([start, , end]) => ({ start: start.name, end: end.name }) %}
 word -> %word {% ([value]) => ({name: value.value, line: value.line, col: value.col}) %}
 nullT -> %nullT {% () => null %}
 pass -> %pass {% () => "_" %}

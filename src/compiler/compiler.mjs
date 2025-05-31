@@ -74,6 +74,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                 const index = command.args.index;
                 const newValue = command.args.value;
                 const targetObject = pages[pages.length - 1].find(comp => comp.name === name);
+                const isValidIndex = Number.isInteger(index) && index >= 0;
 
                 // Check if in bounds
                 if (targetObject) {
@@ -84,7 +85,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                     if (!currentArray) {
                         body[property] = Array(newValue.length).fill(null);
                         body[property][index] = newValue;
-                    } else if (index < currentArray.length) {
+                    } else if (isValidIndex) {
                         currentArray[index] = newValue;
                     } else {
                         causeCompileError(`Index ${index} out of bounds for property "${property}" on component "${name}".`, command);
@@ -108,23 +109,115 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                 if (targetObject) {
                     const body = targetObject.body;
                     const currentArray = body[property];
-                    if (currentArray) {
-                        // Check if args is an array
-                        if (Array.isArray(args)) {
-                            for (let i = 0; i < args.length; i++) {
-                                if (args[i] !== "_") {
-                                    currentArray[i] = args[i];
-                                }
+                    // If property does not exist, create array of null of length args
+                    if (!currentArray) {
+                        body[property] = Array(args.length).fill(null);
+                    }
+                    // Iterate over args and set the values
+                    for (let i = 0; i < args.length; i++) {
+                        const value = args[i];
+                        const isValidIndex = Number.isInteger(i) && i >= 0;
+                        if (value !== "_") {
+                            if (isValidIndex) {
+                                body[property][i] = value;
+                            } else {
+                                causeCompileError(`Index ${i} out of bounds for property "${property}" on component "${name}".`, command);
                             }
-                        } else {
-                            causeCompileError(`Expected an array for property "${property}" on component "${name}".`, command);
                         }
-                    } else {
-                        causeCompileError(`Property "${property}" not found on component "${name}".`, command);
                     }
                 } else {
                     causeCompileError(`Component "${name}" not found on the current page.`, command);
                 }
+                break;
+            }
+            case "add": {
+                const name = command.name;
+                const target = command.target;
+                const value = command.args;
+                const targetObject = pages[pages.length - 1].find(comp => comp.name === name);
+
+                if (targetObject) {
+                    const body = targetObject.body;
+                    if (!body[target]) {
+                        body[target] = [];
+                    }
+                    body[target].push(value);
+                } else {
+                    causeCompileError(`Component "${name}" not found on the current page.`, command);
+                }
+
+                break;
+            }
+            case "insert": {
+                const name = command.name;
+                const target = command.target;
+                const index = command.args.index;
+                const value = command.args.value;
+                const targetObject = pages[pages.length - 1].find(comp => comp.name === name);
+
+                if (targetObject) {
+                    const body = targetObject.body;
+                    if (!body[target]) {
+                        body[target] = [];
+                    }
+                    const isValidIndex = Number.isInteger(index) && index >= 0 && index <= body[target].length;
+                    if (isValidIndex) {
+                        body[target].splice(index, 0, value);
+                    } else {
+                        causeCompileError(`Index ${index} out of bounds for insertion in property "${target}" on component "${name}".`, command);
+                    }
+                } else {
+                    causeCompileError(`Component "${name}" not found on the current page.`, command);
+                }
+                break;
+            }
+            case "remove": {
+                const name = command.name;
+                const target = command.target;
+                const value = command.args;
+                const targetObject = pages[pages.length - 1].find(comp => comp.name === name);
+
+                if (targetObject) {
+                    const body = targetObject.body;
+                    if (body[target]) {
+                        // For arrays with primitive values, find by value
+                        if (typeof value === 'number' || typeof value === 'string' || typeof value === 'boolean') {
+                            const index = body[target].indexOf(value);
+                            if (index > -1) {
+                                body[target].splice(index, 1);
+                            } else {
+                                causeCompileError(`Value "${value}" not found in property "${target}" on component "${name}".`, command);
+                            }
+                        } 
+                        // For objects (nodes, edges), find by matching properties
+                        else if (typeof value === 'object' && value !== null) {
+                            let found = false;
+                            for (let i = body[target].length - 1; i >= 0; i--) {
+                                const item = body[target][i];
+                                // For nodes, compare by name
+                                if (value.name && item.name === value.name) {
+                                    body[target].splice(i, 1);
+                                    found = true;
+                                    break;
+                                }
+                                // For edges, compare by start and end
+                                else if (value.start && value.end && item.start === value.start && item.end === value.end) {
+                                    body[target].splice(i, 1);
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if (!found) {
+                                causeCompileError(`Object not found in property "${target}" on component "${name}".`, command);
+                            }
+                        }
+                    } else {
+                        causeCompileError(`Property "${target}" not found on component "${name}".`, command);
+                    }
+                } else {
+                    causeCompileError(`Component "${name}" not found on the current page.`, command);
+                }
+                break;
             }
 
         }
@@ -185,7 +278,7 @@ function preCheck(parsedDSL) {
 
     // Check for valid command types
     parsedDSL.cmds.forEach(cmd => {
-        if (!["page", "show", "hide", "set", "set_multiple"].includes(cmd.type)) {
+        if (!["page", "show", "hide", "set", "set_multiple", "add", "insert", "remove"].includes(cmd.type)) {
             throw new Error(`Unknown command type: ${cmd.type}`);
         }
     });

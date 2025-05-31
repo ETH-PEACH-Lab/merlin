@@ -30,7 +30,7 @@ function reconstructDefinition(def) {
     let result = `${type} ${name} = {\n`;
     
     for (const [key, value] of Object.entries(body)) {
-        result += `\t${key}: ${formatArray(value)}\n`;
+        result += `\t${key}: ${formatValues(key, value)}\n`;
     }
     
     result += '}';
@@ -52,17 +52,49 @@ function reconstructCommand(cmd) {
             return `${cmd.name}.${methodName}(${index}, ${value})`;
             
         case 'set_multiple':
-            const pluralMethodName = `set${capitalize(cmd.target)}s`;
-            const values = formatArray(cmd.args);
+            const samePlural = ['hidden']
+            const pluralMethodName = samePlural.includes(cmd.target) ? `set${capitalize(cmd.target)}` : `set${capitalize(cmd.target)}s`;
+            const values = formatValues(cmd.target, cmd.args);
             return `${cmd.name}.${pluralMethodName}(${values})`;
             
+        case 'add':
+            const addMethodName = `add${capitalize(cmd.target)}`;
+            const addValue = formatValue(cmd.args);
+            return `${cmd.name}.${addMethodName}(${addValue})`;
+            
+        case 'insert':
+            const insertMethodName = `insert${capitalize(cmd.target)}`;
+            const insertIndex = cmd.args.index;
+            const insertValue = formatValue(cmd.args.value);
+            return `${cmd.name}.${insertMethodName}(${insertIndex}, ${insertValue})`;
+            
+        case 'remove':
+            const removeMethodName = `remove${capitalize(cmd.target)}`;
+            const removeValue = formatValue(cmd.args);
+            return `${cmd.name}.${removeMethodName}(${removeValue})`;
+
         default:
             return null;
     }
 }
 
-function formatArray(arr) {
-    return `[${arr.map(formatValue).join(',')}]`;
+function formatValues(key, value) {
+    if (!Array.isArray(value)) {
+        return formatValue(value);
+    }
+    switch (key) {
+        case 'nodes':
+            // For nodes, just extract the names without quotes
+            return `[${value.map(node => node.name).join(',')}]`;
+            
+        case 'edges':
+            // For edges, format as "start-end"
+            return `[${value.map(edge => `${edge.start}-${edge.end}`).join(',')}]`;
+            
+        default:
+            // For other properties (value, color, arrow), use standard array formatting
+            return `[${value.map(formatValue).join(',')}]`;
+    }
 }
 
 function formatValue(value) {
@@ -81,6 +113,14 @@ function formatValue(value) {
     }
     if (typeof value === 'boolean') {
         return value.toString();
+    }
+    // Handle word objects (nodes)
+    if (value && typeof value === 'object' && value.name && !value.start && !value.end) {
+        return value.name;
+    }
+    // Handle edge objects
+    if (value && typeof value === 'object' && value.start && value.end) {
+        return `${value.start}-${value.end}`;
     }
     // For any other type, convert to string as fallback
     return String(value);

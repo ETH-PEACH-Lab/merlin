@@ -3,25 +3,17 @@ import grammar from './parser.js';  // Compiled from data_structure_extended_wit
 
 const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar));
 
-const input = `array arr1 = {
+const input = `graph graph1 = {
+	nodes: [n1,n2,n3,n4,n5,n6,n7]
 	value: [1,2,3,4,5,6,7]
 	color: [null,null,"blue",null,"blue"]
+	edges: [n1-n2,n2-n3,n3-n4,n4-n5,n5-n6,n6-n7]
 	arrow: [null,null,"important",null,null]
 }
 
-array arr2 = {
-	value: [3,3,3,3,3,3]
-}
-
 page
-show arr1
-arr1.setColor(4, "blue")
-arr1.setValue(0, 10)
-
-page
-arr1.setColor(0, "green")
-arr1.setValues([100,_,4,_,_,_,_])
-show arr2`;
+show graph1
+graph1.addEdge(n1-n2)`;
 	
 parser.feed(input);
 const parsedData = parser.results[0];  // Parsed output
