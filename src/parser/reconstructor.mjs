@@ -93,14 +93,14 @@ function reconstructCommand(cmd) {
             return `${cmd.name}.${pluralMethodName}(${values})`;
             
         case 'set_matrix':
-            const matrixMethodName = getMethodName('set', cmd.target === 'values' ? 'values' : cmd.target, false);
+            const matrixMethodName = getMethodName('set', cmd.target, false);
             const row = cmd.args.row;
             const col = cmd.args.col;
             const matrixValue = formatValue(cmd.args.value);
             return `${cmd.name}.${matrixMethodName}(${row}, ${col}, ${matrixValue})`;
             
         case 'set_matrix_multiple':
-            const matrixMultipleMethodName = getMethodName('set', cmd.target === 'values' ? 'values' : cmd.target, true);
+            const matrixMultipleMethodName = getMethodName('set', cmd.target, true);
             const matrixMultipleValue = formatMatrix(cmd.args);
             return `${cmd.name}.${matrixMultipleMethodName}(${matrixMultipleValue})`;
             
@@ -148,11 +148,11 @@ function formatValues(key, value) {
         return formatValue(value);
     }
     
-    // Handle 2D arrays for matrix
-    if (key === 'values' || key === 'color') {
+    // Handle 2D arrays for matrix (value, values, color)
+    if (key === 'value' || key === 'color') {
         // Check if it's a 2D array (matrix)
         if (Array.isArray(value[0])) {
-            return `[${value.map(row => `[${row.map(formatValue).join(',')}]`).join(',')}]`;
+            return `[${value.map(row => `[${row.map(formatValue).join(', ')}]`).join(', ')}]`;
         }
     }
     
@@ -201,5 +201,8 @@ function formatValue(value) {
 }
 
 function capitalize(str) {
+    if (typeof str !== 'string' || str.length === 0) {
+        return '';
+    }
     return str.charAt(0).toUpperCase() + str.slice(1);
 }

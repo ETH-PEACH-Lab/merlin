@@ -71,8 +71,9 @@ export function getComponentFields(componentType) {
       arrow: ["Arrow Label", "string"],
     },
     matrix: {
-      values: ["Values", "number"],
+      value: ["Value", "number"],
       color: ["Color", "color"],
+      arrow: ["Arrow Label", "string"],
     },
     stack: {
       value: ["Value", "number"],

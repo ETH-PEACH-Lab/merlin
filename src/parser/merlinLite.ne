@@ -163,8 +163,9 @@ array_pair -> (
 # Matrix Definition
 matrix_def -> definition["matrix", matrix_pair] {% id %}
 matrix_pair -> (
-              pair["values", nns_mlist]
+              pair["value", nns_mlist]
             | pair["color", nns_mlist]
+            | pair["arrow", nns_mlist]
 ) {% iid %}
 
 # LinkedList Definition
@@ -218,6 +219,8 @@ commands -> (comment
           | set_matrix_color
           | set_matrix_values
           | set_matrix_colors
+          | set_matrix_arrow
+          | set_matrix_arrows
           | add_value
           | add_node
           | add_edge
@@ -244,8 +247,9 @@ set_arrow -> cmd["setArrow", comma_sep[number, (number | string | nullT) {% id %
 set_hidden -> cmd["setHidden", comma_sep[number, boolean]] {% (details) => ({ type: "set", target: "hidden", ...id(details) }) %}
 
 # Set a value in a matrix
-set_matrix_value -> matrix_cmd["setValue", (number | string | nullT) {% id %}] {% (details) => ({ type: "set_matrix", target: "values", ...id(details) }) %}
+set_matrix_value -> matrix_cmd["setValue", (number | string | nullT) {% id %}] {% (details) => ({ type: "set_matrix", target: "value", ...id(details) }) %}
 set_matrix_color -> matrix_cmd["setColor", (string | nullT) {% id %}] {% (details) => ({ type: "set_matrix", target: "color", ...id(details) }) %}
+set_matrix_arrow -> matrix_cmd["setArrow", (number | string | nullT) {% id %}] {% (details) => ({ type: "set_matrix", target: "arrow", ...id(details) }) %}
 
 # Set multiple values in an array
 # Example: arr1.setValue([2,_,4,_,_,_,_])
@@ -256,8 +260,9 @@ set_hidden -> cmd["setHidden", list[(boolean | pass) {% id %}]] {% (details) => 
 
 # Set multiple values in a matrix
 # Example: mat1.setValues([[1, 2], [3, 4]]) or mat1.setValues([[1, _], [_, 4]])
-set_matrix_values -> cmd["setValues", nnsp_mlist] {% (details) => ({ type: "set_matrix_multiple", target: "values", ...id(details) }) %}
+set_matrix_values -> cmd["setValues", nnsp_mlist] {% (details) => ({ type: "set_matrix_multiple", target: "value", ...id(details) }) %}
 set_matrix_colors -> cmd["setColors", nnsp_mlist] {% (details) => ({ type: "set_matrix_multiple", target: "color", ...id(details) }) %}
+set_matrix_arrows -> cmd["setArrows", nnsp_mlist] {% (details) => ({ type: "set_matrix_multiple", target: "arrow", ...id(details) }) %}
 
 # Add functions
 add_value -> cmd["addValue", (number | string | nullT) {% id %}] {% (details) => ({ type: "add", target: "value", ...id(details) }) %}
