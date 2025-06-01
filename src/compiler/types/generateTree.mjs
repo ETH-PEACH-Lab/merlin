@@ -51,6 +51,5 @@ function convertArrayToBinaryTree(nodes, value, color, arrow) {
             }
         }
     }
-    console.log("compiler tree: ", result);
     return result;
 }
