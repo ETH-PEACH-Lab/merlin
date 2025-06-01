@@ -16,63 +16,16 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
-import {
-  findLastDrawCoveringIndex,
-  evaluateExpression,
-  findComponentIdxByName,
-} from "./GuiHelper";
 import { useParseCompile } from "../context/ParseCompileContext";
-
-// Types for all the components
-const types = {
-  array: {
-    value: ["Value", "number"],
-    color: ["Color", "color"],
-    arrow: ["Arrow Label", "string"],
-  },
-  graph: {
-    value: ["Value", "number"],
-    color: ["Color", "color"],
-    arrow: ["Arrow Label", "string"],
-    hidden: ["Hidden", "boolean"],
-  },
-  tree: {
-    value: ["Value", "number"],
-    color: ["Color", "color"],
-    arrow: ["Arrow Label", "string"],
-  },
-  linkedlist: {
-    value: ["Value", "number"],
-    color: ["Color", "color"],
-    arrow: ["Arrow Label", "string"],
-  },
-};
+import { 
+  parseInspectorIndex, 
+  createUnitData, 
+  getComponentFields, 
+  convertValueToType 
+} from "../compiler/dslUtils.mjs";
 
 const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate }) => {
   const [label, inputType] = fieldConfig;
-  
-  const convertValueToType = (value, type) => {
-    if (value === "" || value === null || value === undefined) {
-      return null;
-    }
-    
-    switch (type) {
-      case "number":
-        const numValue = Number(value);
-        return isNaN(numValue) ? null : numValue;
-      case "boolean":
-        if (typeof value === "boolean") return value;
-        if (typeof value === "string") {
-          const lowerValue = value.toLowerCase().trim();
-          return lowerValue === "true" || lowerValue === "1";
-        }
-        return Boolean(value);
-      case "color":
-      case "string":
-      default:
-        return String(value);
-    }
-  };
   
   const handleBlur = () => {
     if (!value) return;
@@ -143,75 +96,34 @@ const GUIEditor = ({
   setDslEditorEditable,
 }) => {
   const defaultUnitValue = {
-    id: "the unit id can't be changed",
-    value: "input unit value",
-    color: "input unit color",
-    arrow: "input arrow label ",
-    hidden: "input false or true",
-    isIndex: false,
+    displayId: "the unit id can't be changed",
+    coordinates: null,
+    type: null,
   };
   const [currentUnitData, setUnitData] = useState(defaultUnitValue);
   const { pages, addPage, removePage, updateValue } = useParseCompile();
 
   useEffect(() => {
     if (inspectorIndex) {
-      const page_idx = currentPage - 1; // Convert to zero-based index
-      const component_idx = parseInt(inspectorIndex.componentID.slice(10));
-      const unit_idx_all = parseInt(inspectorIndex.unitID.slice(5), 10);
-      const component = pages[page_idx][component_idx];
-
-      const unit_idx = findVisibleUnitIndex(component, unit_idx_all);
-
-      // Dynamically build unit data based on component type
-      const unitData = {
-        idx: unit_idx,
-        component: component_idx,
-        name: component.name,
-        page: page_idx,
-        type: component.type,
-      };
-
-      // Add fields based on type definition
-      if (types[component.type]) {
-        Object.keys(types[component.type]).forEach(fieldKey => {
-          unitData[fieldKey] = component.body?.[fieldKey]?.[unit_idx] ?? "null";
-        });
-      }
-
-      setUnitData(unitData);
-    }
-  }, [inspectorIndex, currentPage]);
-
-  const findVisibleUnitIndex = (component, unitIdx) => {
-    // Find i'th visible unit index in the component
-    if (!component.body || !component.body.value) return 0;
-    
-    const hidden = component.body.hidden || [];
-
-    // Loop through hidden array
-    let visibleCount = 0;
-    for (let i = 0; i < component.body.value.length; i++) {
-      if (!hidden[i]) {
-        if (visibleCount === unitIdx) {
-          return i; // Return the index of the visible unit
-        }
-        visibleCount++;
+      const parsedInfo = parseInspectorIndex(inspectorIndex, pages, currentPage);
+      const unitData = createUnitData(parsedInfo);
+      
+      if (unitData) {
+        setUnitData(unitData);
       }
     }
-    return 0;
-  };
+  }, [inspectorIndex, currentPage, pages]);
 
-  
   const handleFieldChange = (fieldKey, value) => {
     setUnitData(prev => ({ ...prev, [fieldKey]: value }));
   };
 
   const handleFieldUpdate = (fieldKey, value) => {
-    if (inspectorIndex && fieldKey !== "id") {
+    if (inspectorIndex && fieldKey !== "id" && currentUnitData.coordinates) {
       updateValue(
         currentUnitData.page,
         currentUnitData.name,
-        currentUnitData.idx,
+        currentUnitData.coordinates,
         fieldKey,
         value
       );
@@ -306,7 +218,7 @@ const GUIEditor = ({
                 size="small"
                 sx={{ ml: 1 }}
               />
-              <Chip label={`Unit ${currentUnitData.idx}`} size="small" sx={{ ml: 1 }} />
+              <Chip label={`Unit ${currentUnitData.displayId}`} size="small" sx={{ ml: 1 }} />
               <Chip
                 label={`Type ${currentUnitData.type}`}
                 size="small"
@@ -321,15 +233,15 @@ const GUIEditor = ({
                 <DynamicInput
                   fieldKey="id"
                   fieldConfig={["Id", "text"]}
-                  value={currentUnitData.idx}
+                  value={currentUnitData.displayId}
                   onChange={handleFieldChange}
                   onUpdate={handleFieldUpdate}
                 />
               )}
               
               {/* Dynamically generate inputs based on type definition */}
-              {currentUnitData.type && types[currentUnitData.type] && 
-                Object.entries(types[currentUnitData.type]).map(([fieldKey, fieldConfig]) => (
+              {currentUnitData.type && 
+                Object.entries(getComponentFields(currentUnitData.type)).map(([fieldKey, fieldConfig]) => (
                   <DynamicInput
                     key={fieldKey}
                     fieldKey={fieldKey}

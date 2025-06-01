@@ -6,9 +6,9 @@ import React, {
     useMemo,
 } from "react";
 import parseText from "../parser/parseText.mjs";
-import reconstructor from "../parser/reconstructor.js";
+import reconstructor from "../parser/reconstructor.mjs";
 import compiler from "../compiler/compiler.mjs";
-import { createOptimizedCommand, findRelevantCommands } from "../parser/commandUtils.js";
+import { createOptimizedCommand, findRelevantCommands } from "../parser/commandUtils.mjs";
 
 const ParseCompileContext = createContext();
 
@@ -69,17 +69,24 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
     }, [parsedCode, parseAndCompile]);  
 
     const updateValue = useCallback(
-        (page, componentName, idx, fieldKey, value) => {
+        (page, componentName, coordinates, fieldKey, value) => {
             if (!parsedCode) return;
-            // If the value is already set to the same value, do nothing
-            if (
-                pages[page] &&
-                pages[page].some(
-                    (obj) => obj.name === componentName && obj.body[fieldKey] && obj.body[fieldKey][idx] === value
-                ) &&
-                value !== "_" // Don't skip if value is "_", as it means we want to clear it
-            ) {
-                return;
+            
+            // Check if the value is already set to the same value
+            const currentComponent = pages[page]?.find(comp => comp.name === componentName);
+            if (currentComponent) {
+                let currentValue;
+                if (coordinates.isMatrix) {
+                    const { row, col } = coordinates;
+                    currentValue = currentComponent.body[fieldKey]?.[row]?.[col];
+                } else {
+                    const { index } = coordinates;
+                    currentValue = currentComponent.body[fieldKey]?.[index];
+                }
+                
+                if (currentValue === value && value !== "_") {
+                    return;
+                }
             }
             
             // Find the start and end indices of the specified page
@@ -104,22 +111,21 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
                 return;
             }
             
-            // Collect all relevant commands on this page
+            // Use unified command optimization for both arrays and matrices
             const { relevantCommands, commandsToRemove } = findRelevantCommands(
                 parsedCode.cmds, 
                 pageStartIndex, 
                 pageEndIndex, 
                 componentName, 
-                fieldKey
+                fieldKey,
+                coordinates.isMatrix
             );
-
             
-            // Create optimized command
             const newCommand = createOptimizedCommand(
                 relevantCommands, 
                 componentName, 
                 fieldKey, 
-                idx, 
+                coordinates, 
                 value
             );
             

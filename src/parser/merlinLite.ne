@@ -64,11 +64,30 @@ list[X] -> lbrac list_content[$X] rbrac {% ([, content]) => content.flat() %}
 list_content[X] -> trim[$X] next_list_item[$X]:* {% (([first, rest]) => [...first, ...rest.flat()]) %}
 next_list_item[X] -> comma trim[$X] {% ([, value]) => id(value) %}
 
+# 2D Lists for matrices, e.g. [[1, 2], [3, 4]] - do not flatten
+matrix_2d_list[X] -> lbrac _ matrix_row[$X] (_ comma _ matrix_row[$X]):* _ rbrac {% ([, , first, rest]) => {
+    const rows = [first];
+    if (rest) {
+        rest.forEach(([, , , row]) => rows.push(row));
+    }
+    return rows;
+} %}
+matrix_row[X] -> lbrac _ $X (_ comma _ $X):* _ rbrac {% ([, , first, rest]) => {
+    const row = [first[0]];
+    if (rest) {
+        rest.forEach(([, , , item]) => row.push(item[0]));
+    }
+    return row;
+} %}
+
 # Commands
 cmd[X, Y] -> word dot $X lparen _ $Y _ rparen {% ([word, dot, , , , args]) => ({ args: id(args), ...word }) %}
 
+# Matrix commands with 3 parameters (row, col, value)
+matrix_cmd[X, Y] -> word dot $X lparen _ number _ comma _ number _ comma _ $Y _ rparen {% ([word, , , , , row, , , , col, , , , value]) => ({ args: { row: row, col: col, value: id(value) }, ...word }) %}
+
 # Ignore surrounding whitespace
-trim[X] -> _ $X _ {% ([, value, ]) => value[0] %}
+trim[X] -> _ $X _ {% ([, value, ]) => id(value) %}
 
 #################
 # --- LEXER --- #
@@ -126,6 +145,7 @@ root -> one_per_line[definition] one_per_line[commands] {% ([defs, cmds]) => ({ 
 # List of all definitions
 definition -> (comment 
             | array_def
+            | matrix_def
             | graph_def
 ) {% iid %}
 
@@ -135,6 +155,13 @@ array_pair -> (
               pair["color", ns_list] 
             | pair["value", nns_list]
             | pair["arrow", nns_list]
+) {% iid %}
+
+# Matrix Definition
+matrix_def -> definition["matrix", matrix_pair] {% id %}
+matrix_pair -> (
+              pair["values", nns_mlist]
+            | pair["color", nns_mlist]
 ) {% iid %}
 
 # Graph Definition
@@ -158,6 +185,10 @@ commands -> (comment
           | set_color
           | set_arrow
           | set_hidden
+          | set_matrix_value
+          | set_matrix_color
+          | set_matrix_values
+          | set_matrix_colors
           | add_value
           | add_node
           | add_edge
@@ -182,12 +213,21 @@ set_color -> cmd["setColor", comma_sep[number, string]] {% (details) => ({ type:
 set_arrow -> cmd["setArrow", comma_sep[number, (number | string | nullT) {% id %}]] {% (details) => ({ type: "set", target: "arrow", ...id(details) }) %}
 set_hidden -> cmd["setHidden", comma_sep[number, boolean]] {% (details) => ({ type: "set", target: "hidden", ...id(details) }) %}
 
+# Set a value in a matrix
+set_matrix_value -> matrix_cmd["setValue", (number | string | nullT) {% id %}] {% (details) => ({ type: "set_matrix", target: "values", ...id(details) }) %}
+set_matrix_color -> matrix_cmd["setColor", (string | nullT) {% id %}] {% (details) => ({ type: "set_matrix", target: "color", ...id(details) }) %}
+
 # Set multiple values in an array
 # Example: arr1.setValue([2,_,4,_,_,_,_])
 set_value -> cmd["setValues", list[(number | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "value", ...id(details) }) %}
 set_color -> cmd["setColors", list[(string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "color", ...id(details) }) %}
 set_arrow -> cmd["setArrows", list[(number | string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "arrow", ...id(details) }) %}
 set_hidden -> cmd["setHidden", list[(boolean | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "hidden", ...id(details) }) %}
+
+# Set multiple values in a matrix
+# Example: mat1.setValues([[1, 2], [3, 4]]) or mat1.setValues([[1, _], [_, 4]])
+set_matrix_values -> cmd["setValues", nnsp_mlist] {% (details) => ({ type: "set_matrix_multiple", target: "values", ...id(details) }) %}
+set_matrix_colors -> cmd["setColors", nnsp_mlist] {% (details) => ({ type: "set_matrix_multiple", target: "color", ...id(details) }) %}
 
 # Add functions
 add_value -> cmd["addValue", (number | string | nullT) {% id %}] {% (details) => ({ type: "add", target: "value", ...id(details) }) %}
@@ -211,6 +251,8 @@ s_list -> list[string {% id %}] {% id %} # Accepts only strings
 w_list -> list[word {% id %}] {% id %} # Accepts only words
 e_list -> list[edge {% id %}] {% id %} # Accepts only edges
 b_list -> list[boolean {% id %}] {% id %} # Accepts only booleans
+nns_mlist -> matrix_2d_list[(nullT | number | string) {% iid %}] {% id %} # 2D array for matrix values, accepts null, number, or string
+nnsp_mlist -> matrix_2d_list[(nullT | number | string | pass) {% iid %}] {% id %} # 2D array for matrix values, accepts null, number, string, or pass
 
 # - Literals - #
 number -> %number {% ([value]) => parseInt(value.value, 10) %}

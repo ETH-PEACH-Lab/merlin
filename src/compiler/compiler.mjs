@@ -130,6 +130,72 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                 }
                 break;
             }
+            case "set_matrix": {
+                const name = command.name;
+                const property = command.target;
+                const row = command.args.row;
+                const col = command.args.col;
+                const newValue = command.args.value;
+                const targetObject = pages[pages.length - 1].find(comp => comp.name === name);
+
+                if (targetObject) {
+                    const body = targetObject.body;
+                    const currentMatrix = body[property];
+                    
+                    // If property does not exist, create 2D array
+                    if (!currentMatrix) {
+                        body[property] = [];
+                    }
+                    
+                    // Ensure the row exists
+                    if (!body[property][row]) {
+                        body[property][row] = [];
+                    }
+                    
+                    // Set the value
+                    body[property][row][col] = newValue;
+                } else {
+                    causeCompileError(`Component "${name}" not found on the current page.`, command);
+                }
+                break;
+            }
+            case "set_matrix_multiple": {
+                const name = command.name;
+                const property = command.target;
+                const newMatrix = command.args;
+                const targetObject = pages[pages.length - 1].find(comp => comp.name === name);
+
+                if (targetObject) {
+                    const body = targetObject.body;
+                    const currentMatrix = body[property];
+                    
+                    // If property does not exist, create 2D array filled with null
+                    if (!currentMatrix) {
+                        body[property] = Array(newMatrix.length).fill(null).map(() => 
+                            Array(newMatrix[0] ? newMatrix[0].length : 0).fill(null)
+                        );
+                    }
+                    
+                    // Iterate over the matrix and set values, preserving "_" placeholders
+                    for (let row = 0; row < newMatrix.length; row++) {
+                        if (!body[property][row]) {
+                            body[property][row] = Array(newMatrix[row] ? newMatrix[row].length : 0).fill(null);
+                        }
+                        
+                        if (newMatrix[row]) {
+                            for (let col = 0; col < newMatrix[row].length; col++) {
+                                const value = newMatrix[row][col];
+                                if (value !== "_") {
+                                    body[property][row][col] = value;
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    causeCompileError(`Component "${name}" not found on the current page.`, command);
+                }
+                break;
+            }
             case "add": {
                 const name = command.name;
                 const target = command.target;
@@ -278,7 +344,7 @@ function preCheck(parsedDSL) {
 
     // Check for valid command types
     parsedDSL.cmds.forEach(cmd => {
-        if (!["page", "show", "hide", "set", "set_multiple", "add", "insert", "remove"].includes(cmd.type)) {
+        if (!["page", "show", "hide", "set", "set_multiple", "set_matrix", "set_matrix_multiple", "add", "insert", "remove"].includes(cmd.type)) {
             throw new Error(`Unknown command type: ${cmd.type}`);
         }
     });

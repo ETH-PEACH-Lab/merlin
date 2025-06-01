@@ -1,23 +1,22 @@
 export function generateMatrix(matrixComponent) {
     let result = "matrix\n@";
-    // for (const id of arrayComponent.attributes.structure) {
-    //     result += `${id}\n`
-    // }
-    const structure = matrixComponent.attributes.structure;
-    const color = matrixComponent.attributes.color || [];
-    const arrow = matrixComponent.attributes.arrow || [];
-    for (let row = 0; row < structure.length ; row++) {
-        result += "\n"
-        // result += `${structure[i]} {color:"${color[i] || ""}", arrow:"${arrow[i] || ""}"}\n`;
-        for (let col = 0; col < structure[row].length; col++) {
-            if (col === 0) {                                                                                    
-                result += `${structure[row][col]} {color:"${color[row] ? (color[row][col] || null) : null}",arrow:"${arrow[row] ? (arrow[row][col] === "empty" ? "" : (arrow[row][col] || null) || null) : null}"}`
-            }
-            else {
-                result += `, ${structure[row][col]} {color:"${color[row] ? (color[row][col] || null) : null}",arrow:"${arrow[row] ? (arrow[row][col] === "empty" ? "" : (arrow[row][col] || null) || null) : null}"}` 
+    
+    const values = matrixComponent.body.values || [];
+    const color = matrixComponent.body.color || [];
+    
+    for (let row = 0; row < values.length; row++) {
+        result += "\n";
+        for (let col = 0; col < values[row].length; col++) {
+            const value = values[row][col] !== undefined ? values[row][col] : null;
+            const cellColor = color[row] ? (color[row][col] || null) : null;
+            
+            if (col === 0) {
+                result += `${value} {color:"${cellColor || ""}", arrow:"${null}"}`;
+            } else {
+                result += `, ${value} {color:"${cellColor || ""}", arrow:"${null}"}`;
             }
         }
-      }
+    }
     result += "\n@\n";
     return result;
 }

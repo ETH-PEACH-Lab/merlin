@@ -57,6 +57,18 @@ function reconstructCommand(cmd) {
             const values = formatValues(cmd.target, cmd.args);
             return `${cmd.name}.${pluralMethodName}(${values})`;
             
+        case 'set_matrix':
+            const matrixMethodName = `set${capitalize(cmd.target === 'values' ? 'Value' : capitalize(cmd.target))}`;
+            const row = cmd.args.row;
+            const col = cmd.args.col;
+            const matrixValue = formatValue(cmd.args.value);
+            return `${cmd.name}.${matrixMethodName}(${row}, ${col}, ${matrixValue})`;
+            
+        case 'set_matrix_multiple':
+            const matrixMultipleMethodName = `set${capitalize(cmd.target === 'values' ? 'Values' : capitalize(cmd.target) + 's')}`;
+            const matrixMultipleValue = formatMatrix(cmd.args);
+            return `${cmd.name}.${matrixMultipleMethodName}(${matrixMultipleValue})`;
+            
         case 'add':
             const addMethodName = `add${capitalize(cmd.target)}`;
             const addValue = formatValue(cmd.args);
@@ -78,10 +90,33 @@ function reconstructCommand(cmd) {
     }
 }
 
+function formatMatrix(matrix) {
+    if (!Array.isArray(matrix)) {
+        return formatValue(matrix);
+    }
+    
+    // Handle 2D arrays for matrix
+    if (Array.isArray(matrix[0])) {
+        return `[${matrix.map(row => `[${row.map(formatValue).join(', ')}]`).join(', ')}]`;
+    }
+    
+    // Fallback to regular array formatting
+    return `[${matrix.map(formatValue).join(', ')}]`;
+}
+
 function formatValues(key, value) {
     if (!Array.isArray(value)) {
         return formatValue(value);
     }
+    
+    // Handle 2D arrays for matrix
+    if (key === 'values' || key === 'color') {
+        // Check if it's a 2D array (matrix)
+        if (Array.isArray(value[0])) {
+            return `[${value.map(row => `[${row.map(formatValue).join(',')}]`).join(',')}]`;
+        }
+    }
+    
     switch (key) {
         case 'nodes':
             // For nodes, just extract the names without quotes
