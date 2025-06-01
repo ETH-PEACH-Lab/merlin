@@ -266,7 +266,7 @@ set_matrix_arrows -> cmd["setArrows", nnsp_mlist] {% (details) => ({ type: "set_
 
 # Add functions
 add_value -> cmd["addValue", (number | string | nullT) {% id %}] {% (details) => ({ type: "add", target: "value", ...id(details) }) %}
-add_node -> cmd["addNode", word] {% (details) => ({ type: "add", target: "nodes", ...id(details) }) %}
+add_node -> cmd["addNode", (word | comma_sep[word, (number | string | nullT) {% id %}]) {% id %}] {% (details) => ({ type: "add", target: "nodes", ...id(details) }) %}
 add_edge -> cmd["addEdge", edge] {% (details) => ({ type: "add", target: "edges", ...id(details) }) %}
 
 # Insert functions

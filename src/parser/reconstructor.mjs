@@ -106,8 +106,16 @@ function reconstructCommand(cmd) {
             
         case 'add':
             const addMethodName = getMethodName('add', cmd.target, false);
-            const addValue = formatValue(cmd.args);
-            return `${cmd.name}.${addMethodName}(${addValue})`;
+            
+            // Handle special case for nodes with optional value
+            if (cmd.target === 'nodes' && cmd.args && typeof cmd.args === 'object' && cmd.args.index !== undefined) {
+                const nodeName = formatValue(cmd.args.index);
+                const nodeValue = formatValue(cmd.args.value);
+                return `${cmd.name}.${addMethodName}(${nodeName}, ${nodeValue})`;
+            } else {
+                const addValue = formatValue(cmd.args);
+                return `${cmd.name}.${addMethodName}(${addValue})`;
+            }
             
         case 'insert':
             const insertMethodName = getMethodName('insert', cmd.target, false);

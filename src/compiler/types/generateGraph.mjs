@@ -9,6 +9,8 @@ export function generateGraph(graphComponent) {
 
     for (let idx = 0; idx < nodes.length; idx++) {
         const node = nodes[idx];
+        if (!node) continue; // Skip null nodes
+        
         const nodeValue = idx < value.length ? value[idx] : null;
         const nodeColor = idx < color.length ? color[idx] : null;
         const nodeArrow = idx < arrow.length ? arrow[idx] : null;

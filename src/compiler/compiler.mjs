@@ -248,7 +248,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
             case "add": {
                 const name = command.name;
                 const target = command.target;
-                const value = command.args;
+                const args = command.args;
                 const targetObject = pages[pages.length - 1].find(comp => comp.name === name);
 
                 if (targetObject) {
@@ -257,7 +257,30 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                         body[target] = [];
                     }
                     const insertIndex = body[target].length;
-                    body[target].push(value);
+                    
+                    // Handle different argument structures
+                    if (target === "nodes" && args && typeof args === 'object' && args.index !== undefined) {
+                        // New format: addNode(nodeName, nodeValue)
+                        const nodeName = args.index; // For nodes, 'index' contains the node name
+                        const nodeValue = args.value;
+                        
+                        body[target].push(nodeName);
+                        
+                        // If a value is provided, add it to the value array
+                        if (nodeValue !== undefined) {
+                            if (!body.value) {
+                                body.value = [];
+                            }
+                            // Ensure value array is same length as nodes array
+                            while (body.value.length < body[target].length - 1) {
+                                body.value.push(null);
+                            }
+                            body.value.push(nodeValue);
+                        }
+                    } else {
+                        // Original format: just add the value directly
+                        body[target].push(args);
+                    }
                     
                     // Maintain consistency across all array properties for all component types
                     maintainArrayPropertyConsistency(body, target, insertIndex, "add");
