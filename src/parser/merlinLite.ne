@@ -255,7 +255,7 @@ set_edges -> cmd["setEdges", e_list] {% (details) => ({ type: "set_multiple", ta
 
 # Set multiple values in an array
 # Example: arr1.setValue([2,_,4,_,_,_,_])
-set_value -> cmd["setValues", list[(number | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "value", ...id(details) }) %}
+set_value -> cmd["setValues", list[(number | string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "value", ...id(details) }) %}
 set_color -> cmd["setColors", list[(string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "color", ...id(details) }) %}
 set_arrow -> cmd["setArrows", list[(number | string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "arrow", ...id(details) }) %}
 set_hidden -> cmd["setHidden", list[(boolean | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "hidden", ...id(details) }) %}
