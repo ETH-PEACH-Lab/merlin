@@ -215,6 +215,7 @@ commands -> (comment
           | set_color
           | set_arrow
           | set_hidden
+          | set_edges
           | set_matrix_value
           | set_matrix_color
           | set_matrix_values
@@ -242,7 +243,7 @@ hide -> "hide" _ word {% ([, , word]) => ({ type: "hide", value: word.name, line
 
 # Set a value in an array
 set_value -> cmd["setValue", comma_sep[number , number]] {% (details) => ({ type: "set", target: "value", ...id(details) }) %}
-set_color -> cmd["setColor", comma_sep[number, string]] {% (details) => ({ type: "set", target: "color", ...id(details) }) %}
+set_color -> cmd["setColor", comma_sep[number, (string | nullT) {% id %}]] {% (details) => ({ type: "set", target: "color", ...id(details) }) %}
 set_arrow -> cmd["setArrow", comma_sep[number, (number | string | nullT) {% id %}]] {% (details) => ({ type: "set", target: "arrow", ...id(details) }) %}
 set_hidden -> cmd["setHidden", comma_sep[number, boolean]] {% (details) => ({ type: "set", target: "hidden", ...id(details) }) %}
 
@@ -250,6 +251,7 @@ set_hidden -> cmd["setHidden", comma_sep[number, boolean]] {% (details) => ({ ty
 set_matrix_value -> matrix_cmd["setValue", (number | string | nullT) {% id %}] {% (details) => ({ type: "set_matrix", target: "value", ...id(details) }) %}
 set_matrix_color -> matrix_cmd["setColor", (string | nullT) {% id %}] {% (details) => ({ type: "set_matrix", target: "color", ...id(details) }) %}
 set_matrix_arrow -> matrix_cmd["setArrow", (number | string | nullT) {% id %}] {% (details) => ({ type: "set_matrix", target: "arrow", ...id(details) }) %}
+set_edges -> cmd["setEdges", e_list] {% (details) => ({ type: "set_multiple", target: "edges", ...id(details) }) %}
 
 # Set multiple values in an array
 # Example: arr1.setValue([2,_,4,_,_,_,_])

@@ -337,30 +337,6 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                                 causeCompileError(`Value "${value}" not found in property "${target}" on component "${name}".`, command);
                             }
                         } 
-                        // For objects (nodes, edges), find by matching properties
-                        else if (typeof value === 'object' && value !== null) {
-                            let found = false;
-                            for (let i = body[target].length - 1; i >= 0; i--) {
-                                const item = body[target][i];
-                                // For nodes, compare by name
-                                if (value.name && item.name === value.name) {
-                                    body[target].splice(i, 1);
-                                    removedIndex = i;
-                                    found = true;
-                                    break;
-                                }
-                                // For edges, compare by start and end
-                                else if (value.start && value.end && item.start === value.start && item.end === value.end) {
-                                    body[target].splice(i, 1);
-                                    removedIndex = i;
-                                    found = true;
-                                    break;
-                                }
-                            }
-                            if (!found) {
-                                causeCompileError(`Object not found in property "${target}" on component "${name}".`, command);
-                            }
-                        }
                         
                         // Maintain consistency across all array properties for all component types
                         if (removedIndex > -1) {
