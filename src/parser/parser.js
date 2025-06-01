@@ -84,6 +84,7 @@ var grammar = {
     {"name": "definition$subexpression$1", "symbols": ["comment"]},
     {"name": "definition$subexpression$1", "symbols": ["array_def"]},
     {"name": "definition$subexpression$1", "symbols": ["matrix_def"]},
+    {"name": "definition$subexpression$1", "symbols": ["linkedlist_def"]},
     {"name": "definition$subexpression$1", "symbols": ["graph_def"]},
     {"name": "definition", "symbols": ["definition$subexpression$1"], "postprocess": iid},
     {"name": "array_def$macrocall$2", "symbols": [{"literal":"array"}]},
@@ -182,6 +183,60 @@ var grammar = {
     {"name": "matrix_pair$subexpression$1$macrocall$4", "symbols": ["matrix_pair$subexpression$1$macrocall$5", "colon", "_", "matrix_pair$subexpression$1$macrocall$6"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
     {"name": "matrix_pair$subexpression$1", "symbols": ["matrix_pair$subexpression$1$macrocall$4"]},
     {"name": "matrix_pair", "symbols": ["matrix_pair$subexpression$1"], "postprocess": iid},
+    {"name": "linkedlist_def$macrocall$2", "symbols": [{"literal":"linkedlist"}]},
+    {"name": "linkedlist_def$macrocall$3", "symbols": ["linkedlist_pair"]},
+    {"name": "linkedlist_def$macrocall$1$macrocall$2", "symbols": ["linkedlist_def$macrocall$3"]},
+    {"name": "linkedlist_def$macrocall$1$macrocall$1$ebnf$1", "symbols": []},
+    {"name": "linkedlist_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1", "symbols": ["comma_nlow", "linkedlist_def$macrocall$1$macrocall$2"]},
+    {"name": "linkedlist_def$macrocall$1$macrocall$1$ebnf$1", "symbols": ["linkedlist_def$macrocall$1$macrocall$1$ebnf$1", "linkedlist_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "linkedlist_def$macrocall$1$macrocall$1$ebnf$2", "symbols": ["nlow"], "postprocess": id},
+    {"name": "linkedlist_def$macrocall$1$macrocall$1$ebnf$2", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "linkedlist_def$macrocall$1$macrocall$1", "symbols": ["lbracket", "nlow", "linkedlist_def$macrocall$1$macrocall$2", "linkedlist_def$macrocall$1$macrocall$1$ebnf$1", "linkedlist_def$macrocall$1$macrocall$1$ebnf$2", "rbracket"], "postprocess":  d => {
+            const firstXValue = d[2];
+            const repetitionGroups = d[3];
+            let result = {};
+        
+            // Process the first $X item
+            // Expect firstXValue to be in the format: [[{key: value_obj}]]
+            if (Array.isArray(firstXValue) && firstXValue.length > 0 &&
+                Array.isArray(firstXValue[0]) && firstXValue[0].length > 0 &&
+                firstXValue[0][0] !== null && typeof firstXValue[0][0] === 'object' && !Array.isArray(firstXValue[0][0])) {
+                Object.assign(result, firstXValue[0][0]);
+            }
+        
+            // Process subsequent $X items
+            if (repetitionGroups) {
+                repetitionGroups.forEach(group => {
+                    const subsequentXValue = group[1];
+                    // Expect subsequentXValue to be in the format: [[{key: value_obj}]]
+                    if (Array.isArray(subsequentXValue) && subsequentXValue.length > 0 &&
+                        Array.isArray(subsequentXValue[0]) && subsequentXValue[0].length > 0 &&
+                        subsequentXValue[0][0] !== null && typeof subsequentXValue[0][0] === 'object' && !Array.isArray(subsequentXValue[0][0])) {
+                        Object.assign(result, subsequentXValue[0][0]);
+                    }
+                });
+            }
+            return result;
+        } },
+    {"name": "linkedlist_def$macrocall$1", "symbols": ["linkedlist_def$macrocall$2", "__", "word", "_", "equals", "_", "linkedlist_def$macrocall$1$macrocall$1", "_"], "postprocess": ([type, , word, , , , body]) => ({ ...getDef(type), body: body, ...word })},
+    {"name": "linkedlist_def", "symbols": ["linkedlist_def$macrocall$1"], "postprocess": id},
+    {"name": "linkedlist_pair$subexpression$1$macrocall$2", "symbols": [{"literal":"nodes"}]},
+    {"name": "linkedlist_pair$subexpression$1$macrocall$3", "symbols": ["w_list"]},
+    {"name": "linkedlist_pair$subexpression$1$macrocall$1", "symbols": ["linkedlist_pair$subexpression$1$macrocall$2", "colon", "_", "linkedlist_pair$subexpression$1$macrocall$3"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "linkedlist_pair$subexpression$1", "symbols": ["linkedlist_pair$subexpression$1$macrocall$1"]},
+    {"name": "linkedlist_pair$subexpression$1$macrocall$5", "symbols": [{"literal":"color"}]},
+    {"name": "linkedlist_pair$subexpression$1$macrocall$6", "symbols": ["ns_list"]},
+    {"name": "linkedlist_pair$subexpression$1$macrocall$4", "symbols": ["linkedlist_pair$subexpression$1$macrocall$5", "colon", "_", "linkedlist_pair$subexpression$1$macrocall$6"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "linkedlist_pair$subexpression$1", "symbols": ["linkedlist_pair$subexpression$1$macrocall$4"]},
+    {"name": "linkedlist_pair$subexpression$1$macrocall$8", "symbols": [{"literal":"value"}]},
+    {"name": "linkedlist_pair$subexpression$1$macrocall$9", "symbols": ["nns_list"]},
+    {"name": "linkedlist_pair$subexpression$1$macrocall$7", "symbols": ["linkedlist_pair$subexpression$1$macrocall$8", "colon", "_", "linkedlist_pair$subexpression$1$macrocall$9"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "linkedlist_pair$subexpression$1", "symbols": ["linkedlist_pair$subexpression$1$macrocall$7"]},
+    {"name": "linkedlist_pair$subexpression$1$macrocall$11", "symbols": [{"literal":"arrow"}]},
+    {"name": "linkedlist_pair$subexpression$1$macrocall$12", "symbols": ["nns_list"]},
+    {"name": "linkedlist_pair$subexpression$1$macrocall$10", "symbols": ["linkedlist_pair$subexpression$1$macrocall$11", "colon", "_", "linkedlist_pair$subexpression$1$macrocall$12"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "linkedlist_pair$subexpression$1", "symbols": ["linkedlist_pair$subexpression$1$macrocall$10"]},
+    {"name": "linkedlist_pair", "symbols": ["linkedlist_pair$subexpression$1"], "postprocess": iid},
     {"name": "graph_def$macrocall$2", "symbols": [{"literal":"graph"}]},
     {"name": "graph_def$macrocall$3", "symbols": ["graph_pair"]},
     {"name": "graph_def$macrocall$1$macrocall$2", "symbols": ["graph_def$macrocall$3"]},

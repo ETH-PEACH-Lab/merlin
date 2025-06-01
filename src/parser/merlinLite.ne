@@ -146,6 +146,7 @@ root -> one_per_line[definition] one_per_line[commands] {% ([defs, cmds]) => ({ 
 definition -> (comment 
             | array_def
             | matrix_def
+            | linkedlist_def
             | graph_def
 ) {% iid %}
 
@@ -162,6 +163,15 @@ matrix_def -> definition["matrix", matrix_pair] {% id %}
 matrix_pair -> (
               pair["values", nns_mlist]
             | pair["color", nns_mlist]
+) {% iid %}
+
+# LinkedList Definition
+linkedlist_def -> definition["linkedlist", linkedlist_pair] {% id %}
+linkedlist_pair -> (
+              pair["nodes", w_list]
+            | pair["color", ns_list]
+            | pair["value", nns_list]
+            | pair["arrow", nns_list]
 ) {% iid %}
 
 # Graph Definition

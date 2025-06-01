@@ -37,6 +37,42 @@ function reconstructDefinition(def) {
     return result;
 }
 
+function getMethodName(action, target, isPlural = false) {
+    // Handle special cases for singular forms
+    const singularMap = {
+        'nodes': 'Node',
+        'edges': 'Edge',
+        'values': 'Value',
+        'colors': 'Color',
+        'arrows': 'Arrow',
+        'hidden': 'Hidden'
+    };
+    
+    // Handle special plural cases that don't follow standard rules
+    const pluralExceptions = {
+        'hidden': 'Hidden'  // hidden stays the same in plural
+    };
+    
+    let targetName;
+    if (isPlural) {
+        if (pluralExceptions[target]) {
+            targetName = pluralExceptions[target];
+        } else if (singularMap[target]) {
+            targetName = singularMap[target] + 's';
+        } else {
+            targetName = capitalize(target) + 's';
+        }
+    } else {
+        if (singularMap[target]) {
+            targetName = singularMap[target];
+        } else {
+            targetName = capitalize(target);
+        }
+    }
+    
+    return `${action}${targetName}`;
+}
+
 function reconstructCommand(cmd) {
     switch (cmd.type) {
         case 'page':
@@ -46,42 +82,41 @@ function reconstructCommand(cmd) {
             return `show ${cmd.value}`;
             
         case 'set':
-            const methodName = `set${capitalize(cmd.target)}`;
+            const methodName = getMethodName('set', cmd.target, false);
             const index = cmd.args.index;
             const value = formatValue(cmd.args.value);
             return `${cmd.name}.${methodName}(${index}, ${value})`;
             
         case 'set_multiple':
-            const samePlural = ['hidden']
-            const pluralMethodName = samePlural.includes(cmd.target) ? `set${capitalize(cmd.target)}` : `set${capitalize(cmd.target)}s`;
+            const pluralMethodName = getMethodName('set', cmd.target, true);
             const values = formatValues(cmd.target, cmd.args);
             return `${cmd.name}.${pluralMethodName}(${values})`;
             
         case 'set_matrix':
-            const matrixMethodName = `set${capitalize(cmd.target === 'values' ? 'Value' : capitalize(cmd.target))}`;
+            const matrixMethodName = getMethodName('set', cmd.target === 'values' ? 'values' : cmd.target, false);
             const row = cmd.args.row;
             const col = cmd.args.col;
             const matrixValue = formatValue(cmd.args.value);
             return `${cmd.name}.${matrixMethodName}(${row}, ${col}, ${matrixValue})`;
             
         case 'set_matrix_multiple':
-            const matrixMultipleMethodName = `set${capitalize(cmd.target === 'values' ? 'Values' : capitalize(cmd.target) + 's')}`;
+            const matrixMultipleMethodName = getMethodName('set', cmd.target === 'values' ? 'values' : cmd.target, true);
             const matrixMultipleValue = formatMatrix(cmd.args);
             return `${cmd.name}.${matrixMultipleMethodName}(${matrixMultipleValue})`;
             
         case 'add':
-            const addMethodName = `add${capitalize(cmd.target)}`;
+            const addMethodName = getMethodName('add', cmd.target, false);
             const addValue = formatValue(cmd.args);
             return `${cmd.name}.${addMethodName}(${addValue})`;
             
         case 'insert':
-            const insertMethodName = `insert${capitalize(cmd.target)}`;
+            const insertMethodName = getMethodName('insert', cmd.target, false);
             const insertIndex = cmd.args.index;
             const insertValue = formatValue(cmd.args.value);
             return `${cmd.name}.${insertMethodName}(${insertIndex}, ${insertValue})`;
             
         case 'remove':
-            const removeMethodName = `remove${capitalize(cmd.target)}`;
+            const removeMethodName = getMethodName('remove', cmd.target, false);
             const removeValue = formatValue(cmd.args);
             return `${cmd.name}.${removeMethodName}(${removeValue})`;
 

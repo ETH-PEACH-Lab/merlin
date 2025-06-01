@@ -1,13 +1,20 @@
 export function generateLinkedlist(linkedListComponent) {
-    let result = "linkedList\n@\n";
+    let result = "linkedList\n@";
+    
+    const nodes = linkedListComponent.body.nodes || [];
+    const value = linkedListComponent.body.value || [];
+    const color = linkedListComponent.body.color || [];
+    const arrow = linkedListComponent.body.arrow || [];
 
-    const structure = linkedListComponent.attributes.structure;
-    const value = linkedListComponent.attributes.value || [];
-    const color = linkedListComponent.attributes.color || [];
-    const arrow = linkedListComponent.attributes.arrow || [];
-    for (let i = 0; i < structure.length ; i++) {
-        result += `${structure[i]} {value:"${value[i] || structure[i]}", color:"${color[i] || "null"}", arrow:"${arrow[i] === `empty` ? "" : arrow[i] || "null"}"}\n`;
-      }
-    result += "@\n";
+    for (let i = 0; i < nodes.length; i++) {
+        const node = nodes[i];
+        const nodeValue = i < value.length ? value[i] : null;
+        const nodeColor = i < color.length ? color[i] : null;
+        const nodeArrow = i < arrow.length ? arrow[i] : null;
+        
+        result += `\n${node.name} {value:"${nodeValue || node.name}", color:"${nodeColor || "null"}", arrow:"${nodeArrow === 'empty' ? "" : nodeArrow || "null"}"}`;
+    }
+    
+    result += "\n@\n";
     return result;
 }
