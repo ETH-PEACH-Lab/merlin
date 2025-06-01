@@ -351,6 +351,40 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                 }
                 break;
             }
+            case "remove_at": {
+                const name = command.name;
+                const index = command.args;
+                const targetObject = pages[pages.length - 1].find(comp => comp.name === name);
+
+                if (targetObject) {
+                    const body = targetObject.body;
+                    const arrayProperties = ["arrow", "color", "value", "nodes"];
+                    
+                    // Check if the index is valid for at least one property
+                    let hasValidIndex = false;
+                    arrayProperties.forEach(property => {
+                        if (body[property] && Array.isArray(body[property]) && 
+                            index >= 0 && index < body[property].length) {
+                            hasValidIndex = true;
+                        }
+                    });
+                    
+                    if (!hasValidIndex) {
+                        causeCompileError(`Index ${index} is out of bounds for all array properties on component "${name}".`, command);
+                    }
+                    
+                    // Remove element at the specified index from all array properties
+                    arrayProperties.forEach(property => {
+                        if (body[property] && Array.isArray(body[property]) && 
+                            index >= 0 && index < body[property].length) {
+                            body[property].splice(index, 1);
+                        }
+                    });
+                } else {
+                    causeCompileError(`Component "${name}" not found on the current page.`, command);
+                }
+                break;
+            }
 
         }
     });
@@ -410,7 +444,7 @@ function preCheck(parsedDSL) {
 
     // Check for valid command types
     parsedDSL.cmds.forEach(cmd => {
-        if (!["page", "show", "hide", "set", "set_multiple", "set_matrix", "set_matrix_multiple", "add", "insert", "remove"].includes(cmd.type)) {
+        if (!["page", "show", "hide", "set", "set_multiple", "set_matrix", "set_matrix_multiple", "add", "insert", "remove", "remove_at"].includes(cmd.type)) {
             throw new Error(`Unknown command type: ${cmd.type}`);
         }
     });

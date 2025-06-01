@@ -207,10 +207,10 @@ graph_pair -> (
 # - COMMANDS - #
 # List of all commands
 commands -> (comment
-          | page 
+          | page
           | show
           | hide
-          | set_value 
+          | set_value
           | set_color
           | set_arrow
           | set_hidden
@@ -227,6 +227,7 @@ commands -> (comment
           | remove_value
           | remove_node
           | remove_edge
+          | remove_at
 ) {% iid %}
 
 # Main commands
@@ -272,6 +273,7 @@ insert_edge -> cmd["insertEdge", comma_sep[number, edge]] {% (details) => ({ typ
 remove_value -> cmd["removeValue", (number | string | nullT) {% id %}] {% (details) => ({ type: "remove", target: "value", ...id(details) }) %}
 remove_node -> cmd["removeNode", word] {% (details) => ({ type: "remove", target: "nodes", ...id(details) }) %}
 remove_edge -> cmd["removeEdge", edge] {% (details) => ({ type: "remove", target: "edges", ...id(details) }) %}
+remove_at -> cmd["removeAt", number] {% (details) => ({ type: "remove_at", target: "all", ...id(details) }) %}
 
 # - Lists - #
 nns_list -> list[(nullT | number | string) {% iid %}] {% id %} # Accepts null, number, or string

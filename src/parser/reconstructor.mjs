@@ -119,6 +119,10 @@ function reconstructCommand(cmd) {
             const removeMethodName = getMethodName('remove', cmd.target, false);
             const removeValue = formatValue(cmd.args);
             return `${cmd.name}.${removeMethodName}(${removeValue})`;
+            
+        case 'remove_at':
+            const removeAtIndex = cmd.args;
+            return `${cmd.name}.removeAt(${removeAtIndex})`;
 
         default:
             return null;
