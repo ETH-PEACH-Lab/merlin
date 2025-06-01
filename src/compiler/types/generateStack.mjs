@@ -2,18 +2,22 @@ export function generateStack(stackComponent) {
     let result = "stack\n";
     result += "size: 7\n";
     result += "@\n";
-    // for (const id of arrayComponent.attributes.structure) {
-    //     result += `${id}\n`
-    // }
-    const structure = stackComponent.attributes.structure;
-    const color = stackComponent.attributes.color || [];
-    const arrow = stackComponent.attributes.arrow || [];
-    for (let i = 0; i < structure.length ; i++) {
-        result += `${structure[i]}`;
-        result += ` {color:"${color[i] || ""}"`;
-        result += `, arrow:"${arrow[i] === `empty` ? "" : arrow[i] || "null"}"`;
+    
+    const value = stackComponent.body.value || [];
+    const color = stackComponent.body.color || [];
+    const arrow = stackComponent.body.arrow || [];
+    
+    for (let i = 0; i < value.length; i++) {
+        const stackValue = value[i];
+        const stackColor = i < color.length ? color[i] : null;
+        const stackArrow = i < arrow.length ? arrow[i] : null;
+        
+        result += `${stackValue}`;
+        result += ` {color:"${stackColor || "null"}"`;
+        result += `, arrow:"${stackArrow === 'empty' ? "" : stackArrow || "null"}"`;
         result += `}\n`;
-      }
+    }
+    
     result += "@\n";
     return result;
 }

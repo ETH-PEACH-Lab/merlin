@@ -115,7 +115,7 @@ const lexer = moo.compile({
   equals: "=",
   pass: "_",
   word: { match: /[a-zA-Z_][a-zA-Z0-9_]*/, type: moo.keywords({
-    def: ["array", "matrix", "graph", "linkedlist", "tree"],
+    def: ["array", "matrix", "graph", "linkedlist", "tree", "stack"],
   })},
   comment: { match: /\/\/.*?$/, lineBreaks: true },
   string: { match: /"(?:\\.|[^"\\])*"/, value: s => s.slice(1, -1) },
@@ -148,6 +148,7 @@ definition -> (comment
             | matrix_def
             | linkedlist_def
             | tree_def
+            | stack_def
             | graph_def
 ) {% iid %}
 
@@ -180,6 +181,14 @@ tree_def -> definition["tree", tree_pair] {% id %}
 tree_pair -> (
               pair["nodes", w_list]
             | pair["color", ns_list]
+            | pair["value", nns_list]
+            | pair["arrow", nns_list]
+) {% iid %}
+
+# Stack Definition
+stack_def -> definition["stack", stack_pair] {% id %}
+stack_pair -> (
+              pair["color", ns_list]
             | pair["value", nns_list]
             | pair["arrow", nns_list]
 ) {% iid %}

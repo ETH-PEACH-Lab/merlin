@@ -25,7 +25,7 @@ const lexer = moo.compile({
   equals: "=",
   pass: "_",
   word: { match: /[a-zA-Z_][a-zA-Z0-9_]*/, type: moo.keywords({
-    def: ["array", "matrix", "graph", "linkedlist", "tree"],
+    def: ["array", "matrix", "graph", "linkedlist", "tree", "stack"],
   })},
   comment: { match: /\/\/.*?$/, lineBreaks: true },
   string: { match: /"(?:\\.|[^"\\])*"/, value: s => s.slice(1, -1) },
@@ -86,6 +86,7 @@ var grammar = {
     {"name": "definition$subexpression$1", "symbols": ["matrix_def"]},
     {"name": "definition$subexpression$1", "symbols": ["linkedlist_def"]},
     {"name": "definition$subexpression$1", "symbols": ["tree_def"]},
+    {"name": "definition$subexpression$1", "symbols": ["stack_def"]},
     {"name": "definition$subexpression$1", "symbols": ["graph_def"]},
     {"name": "definition", "symbols": ["definition$subexpression$1"], "postprocess": iid},
     {"name": "array_def$macrocall$2", "symbols": [{"literal":"array"}]},
@@ -292,6 +293,56 @@ var grammar = {
     {"name": "tree_pair$subexpression$1$macrocall$10", "symbols": ["tree_pair$subexpression$1$macrocall$11", "colon", "_", "tree_pair$subexpression$1$macrocall$12"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
     {"name": "tree_pair$subexpression$1", "symbols": ["tree_pair$subexpression$1$macrocall$10"]},
     {"name": "tree_pair", "symbols": ["tree_pair$subexpression$1"], "postprocess": iid},
+    {"name": "stack_def$macrocall$2", "symbols": [{"literal":"stack"}]},
+    {"name": "stack_def$macrocall$3", "symbols": ["stack_pair"]},
+    {"name": "stack_def$macrocall$1$macrocall$2", "symbols": ["stack_def$macrocall$3"]},
+    {"name": "stack_def$macrocall$1$macrocall$1$ebnf$1", "symbols": []},
+    {"name": "stack_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1", "symbols": ["comma_nlow", "stack_def$macrocall$1$macrocall$2"]},
+    {"name": "stack_def$macrocall$1$macrocall$1$ebnf$1", "symbols": ["stack_def$macrocall$1$macrocall$1$ebnf$1", "stack_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "stack_def$macrocall$1$macrocall$1$ebnf$2", "symbols": ["nlow"], "postprocess": id},
+    {"name": "stack_def$macrocall$1$macrocall$1$ebnf$2", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "stack_def$macrocall$1$macrocall$1", "symbols": ["lbracket", "nlow", "stack_def$macrocall$1$macrocall$2", "stack_def$macrocall$1$macrocall$1$ebnf$1", "stack_def$macrocall$1$macrocall$1$ebnf$2", "rbracket"], "postprocess":  d => {
+            const firstXValue = d[2];
+            const repetitionGroups = d[3];
+            let result = {};
+        
+            // Process the first $X item
+            // Expect firstXValue to be in the format: [[{key: value_obj}]]
+            if (Array.isArray(firstXValue) && firstXValue.length > 0 &&
+                Array.isArray(firstXValue[0]) && firstXValue[0].length > 0 &&
+                firstXValue[0][0] !== null && typeof firstXValue[0][0] === 'object' && !Array.isArray(firstXValue[0][0])) {
+                Object.assign(result, firstXValue[0][0]);
+            }
+        
+            // Process subsequent $X items
+            if (repetitionGroups) {
+                repetitionGroups.forEach(group => {
+                    const subsequentXValue = group[1];
+                    // Expect subsequentXValue to be in the format: [[{key: value_obj}]]
+                    if (Array.isArray(subsequentXValue) && subsequentXValue.length > 0 &&
+                        Array.isArray(subsequentXValue[0]) && subsequentXValue[0].length > 0 &&
+                        subsequentXValue[0][0] !== null && typeof subsequentXValue[0][0] === 'object' && !Array.isArray(subsequentXValue[0][0])) {
+                        Object.assign(result, subsequentXValue[0][0]);
+                    }
+                });
+            }
+            return result;
+        } },
+    {"name": "stack_def$macrocall$1", "symbols": ["stack_def$macrocall$2", "__", "word", "_", "equals", "_", "stack_def$macrocall$1$macrocall$1", "_"], "postprocess": ([type, , word, , , , body]) => ({ ...getDef(type), body: body, ...word })},
+    {"name": "stack_def", "symbols": ["stack_def$macrocall$1"], "postprocess": id},
+    {"name": "stack_pair$subexpression$1$macrocall$2", "symbols": [{"literal":"color"}]},
+    {"name": "stack_pair$subexpression$1$macrocall$3", "symbols": ["ns_list"]},
+    {"name": "stack_pair$subexpression$1$macrocall$1", "symbols": ["stack_pair$subexpression$1$macrocall$2", "colon", "_", "stack_pair$subexpression$1$macrocall$3"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "stack_pair$subexpression$1", "symbols": ["stack_pair$subexpression$1$macrocall$1"]},
+    {"name": "stack_pair$subexpression$1$macrocall$5", "symbols": [{"literal":"value"}]},
+    {"name": "stack_pair$subexpression$1$macrocall$6", "symbols": ["nns_list"]},
+    {"name": "stack_pair$subexpression$1$macrocall$4", "symbols": ["stack_pair$subexpression$1$macrocall$5", "colon", "_", "stack_pair$subexpression$1$macrocall$6"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "stack_pair$subexpression$1", "symbols": ["stack_pair$subexpression$1$macrocall$4"]},
+    {"name": "stack_pair$subexpression$1$macrocall$8", "symbols": [{"literal":"arrow"}]},
+    {"name": "stack_pair$subexpression$1$macrocall$9", "symbols": ["nns_list"]},
+    {"name": "stack_pair$subexpression$1$macrocall$7", "symbols": ["stack_pair$subexpression$1$macrocall$8", "colon", "_", "stack_pair$subexpression$1$macrocall$9"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "stack_pair$subexpression$1", "symbols": ["stack_pair$subexpression$1$macrocall$7"]},
+    {"name": "stack_pair", "symbols": ["stack_pair$subexpression$1"], "postprocess": iid},
     {"name": "graph_def$macrocall$2", "symbols": [{"literal":"graph"}]},
     {"name": "graph_def$macrocall$3", "symbols": ["graph_pair"]},
     {"name": "graph_def$macrocall$1$macrocall$2", "symbols": ["graph_def$macrocall$3"]},

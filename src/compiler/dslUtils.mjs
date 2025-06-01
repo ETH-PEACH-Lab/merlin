@@ -74,6 +74,11 @@ export function getComponentFields(componentType) {
       values: ["Values", "number"],
       color: ["Color", "color"],
     },
+    stack: {
+      value: ["Value", "number"],
+      color: ["Color", "color"],
+      arrow: ["Arrow Label", "string"],
+    },
     graph: {
       value: ["Value", "number"],
       color: ["Color", "color"],
