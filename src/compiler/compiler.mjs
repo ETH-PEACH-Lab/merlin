@@ -7,6 +7,55 @@ import { generateTree } from "./types/generateTree.mjs";
 import { generateMatrix } from "./types/generateMatrix.mjs";
 import { generateGraph } from "./types/generateGraph.mjs";
 
+// Helper function to maintain consistency across array properties when modifying arrays
+function maintainArrayPropertyConsistency(body, modifiedProperty, index, operation) {
+    // Define the properties that should be kept in sync for all component types
+    const arrayProperties = ["arrow", "color", "value", "nodes"];
+    
+    // First, find the target length based on the modified property
+    const targetLength = body[modifiedProperty] ? body[modifiedProperty].length : 0;
+    
+    arrayProperties.forEach(property => {
+        if (property !== modifiedProperty && body[property]) {
+            const currentLength = body[property].length;
+            
+            switch (operation) {
+                case "insert":
+                    // Ensure the array is long enough before inserting
+                    while (body[property].length < index) {
+                        body[property].push(null);
+                    }
+                    // Insert null at the same index to maintain alignment
+                    body[property].splice(index, 0, null);
+                    break;
+                case "add":
+                    // Ensure the array has the same length as the target (minus 1 since we just added)
+                    while (body[property].length < targetLength - 1) {
+                        body[property].push(null);
+                    }
+                    // Add null to maintain alignment
+                    body[property].push(null);
+                    break;
+                case "remove":
+                    // Remove element at the same index to maintain alignment
+                    if (index < body[property].length) {
+                        body[property].splice(index, 1);
+                    }
+                    break;
+            }
+        } else if (property !== modifiedProperty && !body[property]) {
+            // If the property doesn't exist, create it with the appropriate length
+            switch (operation) {
+                case "insert":
+                case "add":
+                    body[property] = Array(targetLength).fill(null);
+                    break;
+                // For remove, we don't need to create new arrays
+            }
+        }
+    });
+}
+
 export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
     // Deep copy to avoid mutating the original parsed DSL
     const parsedDSL = JSON.parse(JSON.stringify(parsedDSLOriginal));
@@ -207,7 +256,11 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                     if (!body[target]) {
                         body[target] = [];
                     }
+                    const insertIndex = body[target].length;
                     body[target].push(value);
+                    
+                    // Maintain consistency across all array properties for all component types
+                    maintainArrayPropertyConsistency(body, target, insertIndex, "add");
                 } else {
                     causeCompileError(`Component "${name}" not found on the current page.`, command);
                 }
@@ -229,6 +282,9 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                     const isValidIndex = Number.isInteger(index) && index >= 0 && index <= body[target].length;
                     if (isValidIndex) {
                         body[target].splice(index, 0, value);
+                        
+                        // Maintain consistency across all array properties for all component types
+                        maintainArrayPropertyConsistency(body, target, index, "insert");
                     } else {
                         causeCompileError(`Index ${index} out of bounds for insertion in property "${target}" on component "${name}".`, command);
                     }
@@ -246,11 +302,14 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                 if (targetObject) {
                     const body = targetObject.body;
                     if (body[target]) {
+                        let removedIndex = -1;
+                        
                         // For arrays with primitive values, find by value
                         if (typeof value === 'number' || typeof value === 'string' || typeof value === 'boolean') {
                             const index = body[target].indexOf(value);
                             if (index > -1) {
                                 body[target].splice(index, 1);
+                                removedIndex = index;
                             } else {
                                 causeCompileError(`Value "${value}" not found in property "${target}" on component "${name}".`, command);
                             }
@@ -263,12 +322,14 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                                 // For nodes, compare by name
                                 if (value.name && item.name === value.name) {
                                     body[target].splice(i, 1);
+                                    removedIndex = i;
                                     found = true;
                                     break;
                                 }
                                 // For edges, compare by start and end
                                 else if (value.start && value.end && item.start === value.start && item.end === value.end) {
                                     body[target].splice(i, 1);
+                                    removedIndex = i;
                                     found = true;
                                     break;
                                 }
@@ -276,6 +337,11 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                             if (!found) {
                                 causeCompileError(`Object not found in property "${target}" on component "${name}".`, command);
                             }
+                        }
+                        
+                        // Maintain consistency across all array properties for all component types
+                        if (removedIndex > -1) {
+                            maintainArrayPropertyConsistency(body, target, removedIndex, "remove");
                         }
                     } else {
                         causeCompileError(`Property "${target}" not found on component "${name}".`, command);
