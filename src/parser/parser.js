@@ -25,7 +25,7 @@ const lexer = moo.compile({
   equals: "=",
   pass: "_",
   word: { match: /[a-zA-Z_][a-zA-Z0-9_]*/, type: moo.keywords({
-    def: ["array", "matrix", "graph"],
+    def: ["array", "matrix", "graph", "linkedlist", "tree"],
   })},
   comment: { match: /\/\/.*?$/, lineBreaks: true },
   string: { match: /"(?:\\.|[^"\\])*"/, value: s => s.slice(1, -1) },
@@ -85,6 +85,7 @@ var grammar = {
     {"name": "definition$subexpression$1", "symbols": ["array_def"]},
     {"name": "definition$subexpression$1", "symbols": ["matrix_def"]},
     {"name": "definition$subexpression$1", "symbols": ["linkedlist_def"]},
+    {"name": "definition$subexpression$1", "symbols": ["tree_def"]},
     {"name": "definition$subexpression$1", "symbols": ["graph_def"]},
     {"name": "definition", "symbols": ["definition$subexpression$1"], "postprocess": iid},
     {"name": "array_def$macrocall$2", "symbols": [{"literal":"array"}]},
@@ -237,6 +238,60 @@ var grammar = {
     {"name": "linkedlist_pair$subexpression$1$macrocall$10", "symbols": ["linkedlist_pair$subexpression$1$macrocall$11", "colon", "_", "linkedlist_pair$subexpression$1$macrocall$12"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
     {"name": "linkedlist_pair$subexpression$1", "symbols": ["linkedlist_pair$subexpression$1$macrocall$10"]},
     {"name": "linkedlist_pair", "symbols": ["linkedlist_pair$subexpression$1"], "postprocess": iid},
+    {"name": "tree_def$macrocall$2", "symbols": [{"literal":"tree"}]},
+    {"name": "tree_def$macrocall$3", "symbols": ["tree_pair"]},
+    {"name": "tree_def$macrocall$1$macrocall$2", "symbols": ["tree_def$macrocall$3"]},
+    {"name": "tree_def$macrocall$1$macrocall$1$ebnf$1", "symbols": []},
+    {"name": "tree_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1", "symbols": ["comma_nlow", "tree_def$macrocall$1$macrocall$2"]},
+    {"name": "tree_def$macrocall$1$macrocall$1$ebnf$1", "symbols": ["tree_def$macrocall$1$macrocall$1$ebnf$1", "tree_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "tree_def$macrocall$1$macrocall$1$ebnf$2", "symbols": ["nlow"], "postprocess": id},
+    {"name": "tree_def$macrocall$1$macrocall$1$ebnf$2", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "tree_def$macrocall$1$macrocall$1", "symbols": ["lbracket", "nlow", "tree_def$macrocall$1$macrocall$2", "tree_def$macrocall$1$macrocall$1$ebnf$1", "tree_def$macrocall$1$macrocall$1$ebnf$2", "rbracket"], "postprocess":  d => {
+            const firstXValue = d[2];
+            const repetitionGroups = d[3];
+            let result = {};
+        
+            // Process the first $X item
+            // Expect firstXValue to be in the format: [[{key: value_obj}]]
+            if (Array.isArray(firstXValue) && firstXValue.length > 0 &&
+                Array.isArray(firstXValue[0]) && firstXValue[0].length > 0 &&
+                firstXValue[0][0] !== null && typeof firstXValue[0][0] === 'object' && !Array.isArray(firstXValue[0][0])) {
+                Object.assign(result, firstXValue[0][0]);
+            }
+        
+            // Process subsequent $X items
+            if (repetitionGroups) {
+                repetitionGroups.forEach(group => {
+                    const subsequentXValue = group[1];
+                    // Expect subsequentXValue to be in the format: [[{key: value_obj}]]
+                    if (Array.isArray(subsequentXValue) && subsequentXValue.length > 0 &&
+                        Array.isArray(subsequentXValue[0]) && subsequentXValue[0].length > 0 &&
+                        subsequentXValue[0][0] !== null && typeof subsequentXValue[0][0] === 'object' && !Array.isArray(subsequentXValue[0][0])) {
+                        Object.assign(result, subsequentXValue[0][0]);
+                    }
+                });
+            }
+            return result;
+        } },
+    {"name": "tree_def$macrocall$1", "symbols": ["tree_def$macrocall$2", "__", "word", "_", "equals", "_", "tree_def$macrocall$1$macrocall$1", "_"], "postprocess": ([type, , word, , , , body]) => ({ ...getDef(type), body: body, ...word })},
+    {"name": "tree_def", "symbols": ["tree_def$macrocall$1"], "postprocess": id},
+    {"name": "tree_pair$subexpression$1$macrocall$2", "symbols": [{"literal":"nodes"}]},
+    {"name": "tree_pair$subexpression$1$macrocall$3", "symbols": ["w_list"]},
+    {"name": "tree_pair$subexpression$1$macrocall$1", "symbols": ["tree_pair$subexpression$1$macrocall$2", "colon", "_", "tree_pair$subexpression$1$macrocall$3"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "tree_pair$subexpression$1", "symbols": ["tree_pair$subexpression$1$macrocall$1"]},
+    {"name": "tree_pair$subexpression$1$macrocall$5", "symbols": [{"literal":"color"}]},
+    {"name": "tree_pair$subexpression$1$macrocall$6", "symbols": ["ns_list"]},
+    {"name": "tree_pair$subexpression$1$macrocall$4", "symbols": ["tree_pair$subexpression$1$macrocall$5", "colon", "_", "tree_pair$subexpression$1$macrocall$6"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "tree_pair$subexpression$1", "symbols": ["tree_pair$subexpression$1$macrocall$4"]},
+    {"name": "tree_pair$subexpression$1$macrocall$8", "symbols": [{"literal":"value"}]},
+    {"name": "tree_pair$subexpression$1$macrocall$9", "symbols": ["nns_list"]},
+    {"name": "tree_pair$subexpression$1$macrocall$7", "symbols": ["tree_pair$subexpression$1$macrocall$8", "colon", "_", "tree_pair$subexpression$1$macrocall$9"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "tree_pair$subexpression$1", "symbols": ["tree_pair$subexpression$1$macrocall$7"]},
+    {"name": "tree_pair$subexpression$1$macrocall$11", "symbols": [{"literal":"arrow"}]},
+    {"name": "tree_pair$subexpression$1$macrocall$12", "symbols": ["nns_list"]},
+    {"name": "tree_pair$subexpression$1$macrocall$10", "symbols": ["tree_pair$subexpression$1$macrocall$11", "colon", "_", "tree_pair$subexpression$1$macrocall$12"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "tree_pair$subexpression$1", "symbols": ["tree_pair$subexpression$1$macrocall$10"]},
+    {"name": "tree_pair", "symbols": ["tree_pair$subexpression$1"], "postprocess": iid},
     {"name": "graph_def$macrocall$2", "symbols": [{"literal":"graph"}]},
     {"name": "graph_def$macrocall$3", "symbols": ["graph_pair"]},
     {"name": "graph_def$macrocall$1$macrocall$2", "symbols": ["graph_def$macrocall$3"]},

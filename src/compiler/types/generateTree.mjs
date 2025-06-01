@@ -1,25 +1,21 @@
 export function generateTree(treeComponent) {
     let result = "tree\n@";
 
-    const structure = treeComponent.attributes.structure;
-    const value = treeComponent.attributes.value || [];
-    const color = treeComponent.attributes.color || [];
-    const arrow = treeComponent.attributes.arrow || [];
-    // for (let i = 0; i < structure.length ; i++) {
-    //     result += `${structure[i]} {value:"${value[i] || structure[i]}", color:"${color[i] || ""}", arrow:"${arrow[i] || ""}"}\n`;
-    //   }
-    // console.log("tree arrow\n", console.log(arrow));
+    const nodes = treeComponent.body.nodes || [];
+    const value = treeComponent.body.value || [];
+    const color = treeComponent.body.color || [];
+    const arrow = treeComponent.body.arrow || [];
 
-    result += convertArrayToBinaryTree(structure, value, color, arrow);
+    result += convertArrayToBinaryTree(nodes, value, color, arrow);
 
     result += "\n@\n";
     return result;
 }
 
-function convertArrayToBinaryTree(structure, value, color, arrow) {
-    if (!structure || structure.length === 0) return '';
+function convertArrayToBinaryTree(nodes, value, color, arrow) {
+    if (!nodes || nodes.length === 0) return '';
   
-    let queue = [{ node: structure[0], index: 0 }];
+    let queue = [{ node: nodes[0], index: 0 }];
     
     let result = "";
   
@@ -28,31 +24,33 @@ function convertArrayToBinaryTree(structure, value, color, arrow) {
         let node = current.node;
         let index = current.index;
   
-        if (node === 'none') {
+        if (node === 'none' || !node) {
             result += `\nNone:[None,None]`;
         } else {
             let leftIndex = 2 * index + 1;
             let rightIndex = 2 * index + 2;
             
-            let leftChild = (leftIndex < structure.length && structure[leftIndex] !== 'none') ? structure[leftIndex] : 'None';
-            let rightChild = (rightIndex < structure.length && structure[rightIndex] !== 'none') ? structure[rightIndex] : 'None';
+            let leftChild = (leftIndex < nodes.length && nodes[leftIndex] && nodes[leftIndex] !== 'none') ? 
+                            (nodes[leftIndex].name || nodes[leftIndex]) : 'None';
+            let rightChild = (rightIndex < nodes.length && nodes[rightIndex] && nodes[rightIndex] !== 'none') ? 
+                             (nodes[rightIndex].name || nodes[rightIndex]) : 'None';
             
-            //TODO edit how to generate tree
-            result += `\n${node}:[${leftChild},${rightChild}]`;
-            result += `{value:"${value[index] || node }"`;
+            const nodeName = node.name || node;
+            result += `\n${nodeName}:[${leftChild},${rightChild}]`;
+            result += `{value:"${value[index] || nodeName}"`;
             result += `, color:"${color[index] || "null"}"`;
-            result += `, arrow:"${ arrow[index] === `empty` ? "" : arrow[index] || "null"}"`;
+            result += `, arrow:"${ arrow[index] === 'empty' ? "" : arrow[index] || "null"}"`;
             result += `}`;
   
             if (leftChild !== 'None') {
-                queue.push({ node: leftChild, index: leftIndex });
+                queue.push({ node: nodes[leftIndex], index: leftIndex });
             }
   
             if (rightChild !== 'None') {
-                queue.push({ node: rightChild, index: rightIndex });
+                queue.push({ node: nodes[rightIndex], index: rightIndex });
             }
         }
     }
     console.log("compiler tree: ", result);
     return result;
-  }
+}
