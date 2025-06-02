@@ -76,7 +76,7 @@ network.setArrow(2, "high load")`,
 matrix grid = {
 	value: [[1, 2], [3, 4]]
 	color: [[null, null], [null, "red"]]
-	arrow: [,,,important]
+	arrow: [[null, null],[null,"done"]]
 }
 
 
@@ -91,30 +91,6 @@ grid.setValues([[3, 2], [_, 5]])
 page
 grid.setArrow(1, 1, "target")
 grid.setColors([[null, "blue"], ["green", "orange"]])`,
-  },
-  {
-    id: "linkedListExample",
-    title: "Example - Linked List",
-    userCode: `// LinkedList - Data insertion and manipulation
-linkedlist myList = {
-	nodes: [head,node2,node3,tail]
-	value: [10,20,30,40]
-	color: [null,"blue",null,null]
-	arrow: ["start",null,null,"end"]
-}
-
-
-page
-show myList
-
-page
-myList.addNode(newNode, 25)
-myList.setColor(2, "green")
-myList.setArrow(2, "new")
-
-page
-myList.removeNode(node2)
-myList.setColors([_,null,_,_])`,
   },
   {
     id: "stackExample",
