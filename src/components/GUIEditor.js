@@ -16,381 +16,134 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { fillParsedDsl } from "./fillParsedDSL";
-import { reconstructDSL } from "./reconstructDSL";
-import {
-  findLastDrawCoveringIndex,
-  evaluateExpression,
-  findComponentIdxByName,
-} from "./GuiHelper";
+import { useParseCompile } from "../context/ParseCompileContext";
+import { 
+  parseInspectorIndex, 
+  createUnitData, 
+  getComponentFields, 
+  convertValueToType 
+} from "../compiler/dslUtils.mjs";
+
+const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate }) => {
+  const [label, inputType] = fieldConfig;
+  
+  const handleBlur = () => {
+    if (!value) return;
+    const convertedValue = convertValueToType(value, inputType);
+    onUpdate(fieldKey, convertedValue);
+  };
+
+  const handleKeyDown = (ev) => {
+    if (ev.key === 'Enter') {
+      ev.target.blur();
+      ev.preventDefault();
+    }
+  };
+
+  const handleColorChange = (e) => {
+    const newValue = e.target.value;
+    onChange(fieldKey, newValue);
+    // For color inputs, immediately update since color picker doesn't work well with blur
+    if (inputType === "color") {
+      const convertedValue = convertValueToType(newValue, inputType);
+      onUpdate(fieldKey, convertedValue);
+    }
+  };
+
+  // For boolean inputs, use a Switch component instead of TextField
+  if (inputType === "boolean") {
+    const boolValue = value === "true" || value === true;
+    return (
+      <FormControlLabel
+        control={
+          <Switch
+            checked={boolValue}
+            onChange={(e) => {
+              const newValue = e.target.checked;
+              onChange(fieldKey, newValue);
+              onUpdate(fieldKey, newValue);
+            }}
+            disabled={fieldKey === "id"}
+          />
+        }
+        label={label}
+        sx={{ m: 1, width: "25ch" }}
+      />
+    );
+  }
+
+  return (
+    <TextField
+      label={label}
+      id={`${fieldKey}-input`}
+      value={value !== null && value !== undefined && value !== "null" ? value : (inputType === "color" ? "#ffffff" : "")}
+      size="small"
+      type={inputType === "number" || inputType === "number_or_string" ? "text" : inputType === "color" ? "color" : "text"}
+      disabled={fieldKey === "id"}
+      helperText={fieldKey === "id" ? "The unit id is unchangeable" : inputType === "number_or_string" ? "Accepts numbers or text" : ""}
+      onChange={inputType === "color" ? handleColorChange : (e) => onChange(fieldKey, e.target.value)}
+      onBlur={inputType === "color" ? undefined : handleBlur}
+      onKeyDown={inputType === "color" ? undefined : handleKeyDown}
+    />
+  );
+};
 
 const GUIEditor = ({
   inspectorIndex,
-  setCode1,
-  parsedCode1,
-  setParsedCode1,
-  code1,
   currentPage,
-  totalPages,
   setCurrentPage,
-  setTotalPages,
   dslEditorEditable,
   setDslEditorEditable,
 }) => {
   const defaultUnitValue = {
-    id: "the unit id can't be changed",
-    value: "input unit value",
-    color: "input unit color",
-    arrow: "input arrow label ",
-    hidden: "input false or true",
-    isIndex: false,
+    displayId: "the unit id can't be changed",
+    coordinates: null,
+    type: null,
   };
   const [currentUnitData, setUnitData] = useState(defaultUnitValue);
-  const [currentComponentType, setCurrentComponentType] = useState("undefined");
+  const { pages, addPage, removePage, updateValue } = useParseCompile();
 
   useEffect(() => {
     if (inspectorIndex) {
-      try {
-        // console.log("GUIEditor before filleded parsedCode1:\n", parsedCode1);
-        parsedCode1 = fillParsedDsl(parsedCode1);
-        // console.log("GUIEditor after filleded parsedCode1:\n", parsedCode1);
-      } catch (error) {
-        console.log("GUIEditor error in fillParsedDSL:\n", error);
+      const parsedInfo = parseInspectorIndex(inspectorIndex, pages, currentPage);
+      const unitData = createUnitData(parsedInfo);
+      
+      if (unitData) {
+        setUnitData(unitData);
       }
-
-      let lastPageDraw = findLastDrawCoveringIndex(
-        parsedCode1,
-        parseInt(inspectorIndex.pageID.slice(4))
-      );
-      let page_idx = lastPageDraw["page_index"];
-      let target_page = parseInt(inspectorIndex.pageID.slice(4));
-      let component_idx =
-        lastPageDraw.show[parseInt(inspectorIndex.componentID.slice(10))][
-          "component_index"
-        ];
-      let component_name =
-        lastPageDraw.show[parseInt(inspectorIndex.componentID.slice(10))][
-          "component_name"
-        ];
-      let component_idx_dsl = evaluateExpression(
-        component_idx,
-        page_idx,
-        target_page
-      );
-      let component_id_dsl = findComponentIdxByName(
-        parsedCode1,
-        component_name
-      );
-      let unit_id_dsl = inspectorIndex.unitID.slice(5);
-      const findSelectedComponents = parsedCode1["data"][component_id_dsl];
-      const findSelectedComponents_type =
-        parsedCode1["data"][component_id_dsl]["type"];
-      setCurrentComponentType(findSelectedComponents_type);
-      const findSelectedComponentData = findSelectedComponents["attributes"];
-      let findUnitData = {};
-      switch (findSelectedComponents_type) {
-        case "array":
-        case "stack":
-        case "tree":
-        case "linkedlist":
-          findUnitData = {
-            id: findSelectedComponentData["structure"][component_idx_dsl][
-              parseInt(unit_id_dsl)
-            ],
-            value:
-              findSelectedComponentData["value"][component_idx_dsl][
-                parseInt(unit_id_dsl)
-              ],
-            color:
-              findSelectedComponentData["color"][component_idx_dsl][
-                parseInt(unit_id_dsl)
-              ],
-            arrow:
-              findSelectedComponentData["arrow"][component_idx_dsl][
-                parseInt(unit_id_dsl)
-              ],
-            hidden:
-              findSelectedComponentData["hidden"][component_idx_dsl][
-                parseInt(unit_id_dsl)
-              ],
-            isArrow: false,
-            isIndex: false,
-          };
-          break;
-        case "graph":
-          findUnitData = {
-            id: findSelectedComponentData["id"][component_idx_dsl][
-              parseInt(unit_id_dsl)
-            ],
-            value:
-              findSelectedComponentData["value"][component_idx_dsl][
-                parseInt(unit_id_dsl)
-              ],
-            color:
-              findSelectedComponentData["color"][component_idx_dsl][
-                parseInt(unit_id_dsl)
-              ],
-            arrow:
-              findSelectedComponentData["arrow"][component_idx_dsl][
-                parseInt(unit_id_dsl)
-              ],
-            hidden:
-              findSelectedComponentData["hidden"][component_idx_dsl][
-                parseInt(unit_id_dsl)
-              ],
-            isArrow: false,
-            isIndex: false,
-          };
-          break;
-        case "matrix":
-          let row = parseInt(unit_id_dsl.slice(1, -1).split(",")[0]);
-          let col = parseInt(unit_id_dsl.slice(1, -1).split(",")[1]);
-          findUnitData = {
-            id: findSelectedComponentData["structure"][component_idx_dsl][row][
-              col
-            ],
-            value:
-              findSelectedComponentData["value"][component_idx_dsl][row][col],
-            color:
-              findSelectedComponentData["color"][component_idx_dsl][row][col],
-            arrow:
-              findSelectedComponentData["arrow"][component_idx_dsl][row][col],
-            hidden:
-              findSelectedComponentData["hidden"][component_idx_dsl][row][col],
-            isArrow: false,
-            isIndex: false,
-          };
-          break;
-        default:
-          console.log("GUI EDITOR - findUnitData, no matching component type!");
-      }
-
-      // console.log("findUnitData: ", findUnitData);
-      if (findUnitData) setUnitData(findUnitData);
-      else setUnitData(defaultUnitValue);
     }
-  }, [inspectorIndex]);
+  }, [inspectorIndex, currentPage, pages]);
+
+  const handleFieldChange = (fieldKey, value) => {
+    setUnitData(prev => ({ ...prev, [fieldKey]: value }));
+  };
+
+  const handleFieldUpdate = (fieldKey, value) => {
+    if (inspectorIndex && fieldKey !== "id" && currentUnitData.coordinates) {
+      updateValue(
+        currentUnitData.page,
+        currentUnitData.name,
+        currentUnitData.coordinates,
+        fieldKey,
+        value
+      );
+    }
+  };
 
   const handleAddPage = () => {
-    // TODO: This is the place for handling add page
-    console.log("add a new page, current page: ", `page${currentPage - 1}`);
-
-    let filledParsedCode1 = fillParsedDsl(parsedCode1);
-
-    // console.log('handleAddPage filledParsedCode1:\n', filledParsedCode1);
-
-    let lastPageDraw = findLastDrawCoveringIndex(
-      filledParsedCode1,
-      currentPage - 1
-    );
-    let page_idx = lastPageDraw["page_index"];
-    let target_page = currentPage - 1;
-
-    lastPageDraw.show.forEach((component_show) => {
-      let component_idx = component_show["component_index"];
-      let component_name = component_show["component_name"];
-      let component_idx_dsl = evaluateExpression(
-        component_idx,
-        page_idx,
-        target_page
-      ); // which page to copy in component
-      let component_id_dsl = findComponentIdxByName(
-        filledParsedCode1,
-        component_name
-      ); // which component in data
-
-      let targetAttributes =
-        filledParsedCode1["data"][component_id_dsl]["attributes"];
-
-      // copy target page, edge in graph is a special case
-      Object.entries(targetAttributes).forEach(([key, value]) => {
-        if (!(key === "edge" && component_idx_dsl + 1 > value.length)) {
-          value.splice(
-            component_idx_dsl + 1,
-            0,
-            value[component_idx_dsl].slice()
-          );
-        }
-      });
-
-      console.log(
-        "idx: ",
-        component_idx,
-        "\nname: ",
-        component_name,
-        "\ncomponent_idx_dsl: ",
-        component_idx_dsl,
-        "\ncomponent_id_dsl",
-        component_id_dsl,
-        "\nto copy: ",
-        filledParsedCode1["data"][component_id_dsl],
-        "\nafter copy: ",
-        filledParsedCode1["data"]
-      );
-    });
-    lastPageDraw["range"]["end"] += 1;
-
-    // let component_idx = lastPageDraw.show[parseInt(inspectorIndex.componentID.slice(10))]["component_index"];
-    // let component_name = lastPageDraw.show[parseInt(inspectorIndex.componentID.slice(10))]["component_name"];
-    // let component_idx_dsl = evaluateExpression(component_idx, page_idx, target_page);
-    // let component_id_dsl = findComponentIdxByName(parsedCode1, component_name);
-    // let unit_id_dsl = inspectorIndex.unitID.slice(5);
-
-    let updatedCode1 = reconstructDSL(filledParsedCode1);
-    setCode1(updatedCode1);
-    // setCurrentPage(currentPage => currentPage + 1);
-    // setDslEditorEditable(false);
+    const lengthBefore = pages.length;
+    addPage();
+    setCurrentPage(lengthBefore + 1);
   };
 
   const handleRemovePage = () => {
-    // TODO: This is the place for handling remove page
-    console.log("remove current page: ", currentPage - 1);
-
-    let filledParsedCode1 = fillParsedDsl(parsedCode1);
-
-    // console.log('handleAddPage filledParsedCode1:\n', filledParsedCode1);
-    setCurrentPage((currentPage) => currentPage - 1);
-
-    let lastPageDraw = findLastDrawCoveringIndex(
-      filledParsedCode1,
-      currentPage - 1
-    );
-    let page_idx = lastPageDraw["page_index"];
-    let target_page = currentPage - 1;
-
-    lastPageDraw.show.forEach((component_show) => {
-      let component_idx = component_show["component_index"];
-      let component_name = component_show["component_name"];
-      let component_idx_dsl = evaluateExpression(
-        component_idx,
-        page_idx,
-        target_page
-      ); // which page to copy in component
-      let component_id_dsl = findComponentIdxByName(
-        filledParsedCode1,
-        component_name
-      ); // which component in data
-
-      let targetAttributes =
-        filledParsedCode1["data"][component_id_dsl]["attributes"];
-
-      // delete target page, edge in graph is a special case
-      Object.entries(targetAttributes).forEach(([key, value]) => {
-        if (!(key === "edge" && component_idx_dsl - 1 < 0)) {
-          value.splice(component_idx_dsl, 1);
-        }
-      });
-
-      // console.log("idx: ", component_idx,
-      //     "\nname: ", component_name,
-      //     "\ncomponent_idx_dsl: ", component_idx_dsl,
-      //     "\ncomponent_id_dsl", component_id_dsl,
-      //     "\nto delete: ", filledParsedCode1["data"][component_id_dsl],
-      //     "\nafter delete: ", filledParsedCode1["data"],
-      // );
-    });
-
-    lastPageDraw["range"]["end"] -= 1;
-
-    let updatedCode1 = reconstructDSL(filledParsedCode1);
-    setCode1(updatedCode1);
-    // setDslEditorEditable(false);
-  };
-
-  const handleUpdate = () => {
-    // TODO: This is the place for handling update data values
-    console.log("query index:", inspectorIndex);
-    console.log("new data:", currentUnitData);
-
-    let updatedParsedCode1 = { ...parsedCode1 };
-
-    let lastPageDraw = findLastDrawCoveringIndex(
-      updatedParsedCode1,
-      parseInt(inspectorIndex.pageID.slice(4))
-    );
-    let page_idx = lastPageDraw["page_index"];
-    let target_page = parseInt(inspectorIndex.pageID.slice(4));
-    let component_idx =
-      lastPageDraw.show[parseInt(inspectorIndex.componentID.slice(10))][
-        "component_index"
-      ];
-    let component_name =
-      lastPageDraw.show[parseInt(inspectorIndex.componentID.slice(10))][
-        "component_name"
-      ];
-    let component_idx_dsl = evaluateExpression(
-      component_idx,
-      page_idx,
-      target_page
-    );
-    let component_id_dsl = findComponentIdxByName(
-      updatedParsedCode1,
-      component_name
-    );
-    let unit_id_dsl = inspectorIndex.unitID.slice(5);
-    const findSelectedComponents = updatedParsedCode1["data"][component_id_dsl];
-    const findSelectedComponents_type =
-      updatedParsedCode1["data"][component_id_dsl]["type"];
-    const findSelectedComponentData = findSelectedComponents["attributes"];
-    let findUnitData = {};
-    switch (findSelectedComponents_type) {
-      case "array":
-      case "stack":
-        findSelectedComponentData["structure"][component_idx_dsl][
-          parseInt(unit_id_dsl)
-        ] = currentUnitData.value != "" ? currentUnitData.value : "null";
-        findSelectedComponentData["value"][component_idx_dsl][
-          parseInt(unit_id_dsl)
-        ] = currentUnitData.value != "" ? currentUnitData.value : "null";
-        findSelectedComponentData["color"][component_idx_dsl][
-          parseInt(unit_id_dsl)
-        ] = currentUnitData.color != "" ? currentUnitData.color : "null";
-        findSelectedComponentData["arrow"][component_idx_dsl][
-          parseInt(unit_id_dsl)
-        ] = currentUnitData.arrow != "" ? currentUnitData.arrow : "null";
-        findSelectedComponentData["hidden"][component_idx_dsl][
-          parseInt(unit_id_dsl)
-        ] = currentUnitData.hidden != "" ? currentUnitData.hidden : "false";
-        break;
-      case "tree":
-      case "linkedlist":
-      case "graph":
-        findSelectedComponentData["value"][component_idx_dsl][
-          parseInt(unit_id_dsl)
-        ] = currentUnitData.value != "" ? currentUnitData.value : "null";
-        findSelectedComponentData["color"][component_idx_dsl][
-          parseInt(unit_id_dsl)
-        ] = currentUnitData.color != "" ? currentUnitData.color : "null";
-        findSelectedComponentData["arrow"][component_idx_dsl][
-          parseInt(unit_id_dsl)
-        ] = currentUnitData.arrow != "" ? currentUnitData.arrow : "null";
-        findSelectedComponentData["hidden"][component_idx_dsl][
-          parseInt(unit_id_dsl)
-        ] = currentUnitData.hidden != "" ? currentUnitData.hidden : "false";
-        console.log(
-          "debug findSelectedComponentData\n",
-          findSelectedComponentData
-        );
-        break;
-      case "matrix":
-        let row = parseInt(unit_id_dsl.slice(1, -1).split(",")[0]);
-        let col = parseInt(unit_id_dsl.slice(1, -1).split(",")[1]);
-        findSelectedComponentData["value"][component_idx_dsl][row][col] =
-          currentUnitData.value != "" ? currentUnitData.value : "null";
-        findSelectedComponentData["color"][component_idx_dsl][row][col] =
-          currentUnitData.color != "" ? currentUnitData.color : "null";
-        findSelectedComponentData["arrow"][component_idx_dsl][row][col] =
-          currentUnitData.arrow != "" ? currentUnitData.arrow : "null";
-        findSelectedComponentData["hidden"][component_idx_dsl][row][col] =
-          currentUnitData.hidden != "" ? currentUnitData.hidden : "false";
-        break;
-      default:
-        console.log("GUI EDITOR - findUnitData, no matching component type!");
+    const lengthBefore = pages.length;
+    removePage();
+    if (lengthBefore > 1) {
+      setCurrentPage(lengthBefore - 1);
+    } else {
+      setCurrentPage(1);
     }
-    // console.log('GUIEditor updatedParserdCode1: ', updatedParsedCode1);
-    let updatedCode1 = reconstructDSL(updatedParsedCode1);
-    setCode1(updatedCode1);
-    // setDslEditorEditable(false);
   };
 
   return (
@@ -412,28 +165,32 @@ const GUIEditor = ({
         </Box>
         <Box sx={{ display: "flex" }}>
           <Tooltip title="Add a Page">
-            <IconButton
-              disabled={!(currentPage === totalPages)}
-              onClick={handleAddPage}
-              sx={{ mr: 1 }}
-              size="small"
-            >
-              <AddIcon sx={{ fontSize: 20 }}></AddIcon>
-            </IconButton>
+            <span>
+              <IconButton
+                disabled={!(currentPage === pages.length)}
+                onClick={handleAddPage}
+                sx={{ mr: 1 }}
+                size="small"
+              >
+                <AddIcon sx={{ fontSize: 20 }}></AddIcon>
+              </IconButton>
+            </span>
           </Tooltip>
           <Tooltip title="Remove last Page">
-            <IconButton
-              disabled={!(currentPage === totalPages) || totalPages <= 1}
-              onClick={handleRemovePage}
-              sx={{ mr: 1 }}
-              size="small"
-            >
-              <DeleteIcon sx={{ fontSize: 20 }}></DeleteIcon>
-            </IconButton>
+            <span>
+              <IconButton
+                disabled={!(currentPage === pages.length) || pages.length <= 1}
+                onClick={handleRemovePage}
+                sx={{ mr: 1 }}
+                size="small"
+              >
+                <DeleteIcon sx={{ fontSize: 20 }}></DeleteIcon>
+              </IconButton>
+            </span>
           </Tooltip>
         </Box>
       </Box>
-      {inspectorIndex && (
+      {inspectorIndex ? (
         <Box
           component="form"
           sx={{
@@ -455,80 +212,60 @@ const GUIEditor = ({
           >
             <Box display="flex" alignItems="center">
               <Typography variant="overline">Current Selection:</Typography>
-              <Chip label={inspectorIndex.unitID} size="small" sx={{ ml: 1 }} />
+              <Chip label={`Page ${currentUnitData.page+1}`} size="small" sx={{ ml: 1 }} />
               <Chip
-                label={inspectorIndex.componentID}
+                label={`Component ${currentUnitData.component+1} - ${currentUnitData.name}`}
                 size="small"
                 sx={{ ml: 1 }}
               />
-              <Chip label={inspectorIndex.pageID} size="small" sx={{ ml: 1 }} />
+              <Chip label={`Unit ${currentUnitData.displayId}`} size="small" sx={{ ml: 1 }} />
+              <Chip
+                label={`Type ${currentUnitData.type}`}
+                size="small"
+                sx={{ ml: 1 }}
+              />
             </Box>
-            <Button
-              variant="contained"
-              size="small"
-              onClick={handleUpdate}
-              sx={{ mr: 8 }}
-            >
-              Update
-            </Button>
           </Box>
           <div>
             <div>
-              {(currentComponentType == "graph" ||
-                currentComponentType == "tree" ||
-                currentComponentType == "linkedlist") && (
-                <TextField
-                  label="Id"
-                  disabled="true"
-                  id="outlined-size-small"
-                  helperText="The unit id is unchangeable"
-                  value={currentUnitData.id}
-                  size="small"
-                  onChange={(e) => {
-                    setUnitData({ ...currentUnitData, value: e.target.value });
-                  }}
+              {/* Show ID field for non-array types */}
+              {currentUnitData.type !== "array" && (
+                <DynamicInput
+                  fieldKey="id"
+                  fieldConfig={["Id", "text"]}
+                  value={currentUnitData.displayId}
+                  onChange={handleFieldChange}
+                  onUpdate={handleFieldUpdate}
                 />
               )}
-              <TextField
-                label="Value"
-                id="outlined-size-small"
-                value={currentUnitData.value}
-                size="small"
-                onChange={(e) => {
-                  setUnitData({ ...currentUnitData, value: e.target.value });
-                }}
-              />
-              <TextField
-                label="Unit Color"
-                id="outlined-size-small"
-                value={currentUnitData.color}
-                size="small"
-                onChange={(e) => {
-                  setUnitData({ ...currentUnitData, color: e.target.value });
-                }}
-              />
-              <TextField
-                label="Arrow Label"
-                id="outlined-size-small"
-                value={currentUnitData.arrow}
-                size="small"
-                onChange={(e) => {
-                  setUnitData({ ...currentUnitData, arrow: e.target.value });
-                }}
-              />
-              {currentComponentType == "graph" && (
-                <TextField
-                  label="Hidden"
-                  id="outlined-size-small"
-                  value={currentUnitData.hidden}
-                  size="small"
-                  onChange={(e) => {
-                    setUnitData({ ...currentUnitData, hidden: e.target.value });
-                  }}
-                />
-              )}
+              
+              {/* Dynamically generate inputs based on type definition */}
+              {currentUnitData.type && 
+                Object.entries(getComponentFields(currentUnitData.type)).map(([fieldKey, fieldConfig]) => (
+                  <DynamicInput
+                    key={fieldKey}
+                    fieldKey={fieldKey}
+                    fieldConfig={fieldConfig}
+                    value={currentUnitData[fieldKey]}
+                    onChange={handleFieldChange}
+                    onUpdate={handleFieldUpdate}
+                  />
+                ))
+              }
             </div>
           </div>
+        </Box>
+      ) : (
+        <Box
+          sx={{
+            p: 2,
+            textAlign: "center",
+            color: "text.secondary",
+          }}
+        >
+          <Typography variant="body2">
+            Select a unit to inspect its properties.
+          </Typography>
         </Box>
       )}
     </div>

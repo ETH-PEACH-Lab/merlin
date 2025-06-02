@@ -8,6 +8,7 @@ import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import ImageIcon from '@mui/icons-material/Image';
 import ShapeLineIcon from '@mui/icons-material/ShapeLine';
 import SaveIcon from '@mui/icons-material/Save';
+import { useParseCompile } from "../context/ParseCompileContext";
 
 const RendererSection = ({
   mermaidCode,
@@ -16,23 +17,14 @@ const RendererSection = ({
   mermaidRef,
   exampleSvg,
   updateInspector,
-  totalPages,
-  setTotalPages,
-  setSvgContent,
   currentPage,
   setCurrentPage,
 }) => {
   const [svgElement, updateSvgElement] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);
+  
+  const { pages } = useParseCompile();
 
-
-  // useEffect(() => {
-  //   try {
-  //     console.log("svgElement update:\n", svgElement);
-  //   } catch (err) {
-  //     console.log("Renderer Section line24 error:\n", err);
-  //   }
-  // },[svgElement]);
 
   const handleExpand = (event) => {
     setAnchorEl(event.currentTarget);
@@ -48,7 +40,7 @@ const RendererSection = ({
   };
 
   const handleClickNext = () => {
-    const newCurrentPage = currentPage + 1 <= totalPages? currentPage + 1 : totalPages ;
+    const newCurrentPage = currentPage + 1 <= pages.length ? currentPage + 1 : pages.length;
     setCurrentPage(newCurrentPage);
   };
 
@@ -121,20 +113,27 @@ const RendererSection = ({
         <Card sx={{ width: "100%", borderRadius: '0' }}>
           <CardContent>
             <div ref={mermaidRef}>
-              <MermaidRenderer text={mermaidCode} update={updateSvgElement} exampleSvg={exampleSvg} setTotalPages={setTotalPages} setSvgContent={setSvgContent} currentPage={currentPage} totalPages={totalPages}/>
+              <MermaidRenderer text={mermaidCode} update={updateSvgElement} exampleSvg={exampleSvg}  currentPage={currentPage} />
             </div>
             <ElementEditor svgElement={svgElement} updateInspector={updateInspector} />
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'center',
-                mt: 2, // Optional: adds some margin-top for spacing
-              }}
-            >
-              <Button onClick={handleClickPrev} variant="contained" style={{ fontSize: "12px", marginRight: "15px", maxWidth: '80px', maxHeight: '25px', minWidth: '40px', minHeight: '25px' }}>Prev</Button>
-              <Button onClick={handleClickNext} variant="contained" style={{ fontSize: "12px", marginRight: "15px", maxWidth: '80px', maxHeight: '25px', minWidth: '40px', minHeight: '25px' }}>Next</Button>
-              {currentPage}/{totalPages}
-            </Box>
+            
+            {(pages && pages.length === 0) ? (
+              <Typography sx={{ mt: 2, textAlign: 'center' }}>
+                No pages to show.
+              </Typography>
+            ) : (
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  mt: 2,
+                }}
+              >
+                <Button onClick={handleClickPrev} variant="contained" style={{ fontSize: "12px", marginRight: "15px", maxWidth: '80px', maxHeight: '25px', minWidth: '40px', minHeight: '25px' }}>Prev</Button>
+                <Button onClick={handleClickNext} variant="contained" style={{ fontSize: "12px", marginRight: "15px", maxWidth: '80px', maxHeight: '25px', minWidth: '40px', minHeight: '25px' }}>Next</Button>
+                {currentPage}/{pages.length}
+              </Box>
+            )}
           </CardContent>
         </Card>
       </div>
