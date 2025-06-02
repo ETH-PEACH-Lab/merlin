@@ -43,7 +43,7 @@ bracketlist[X] -> lbracket nlow $X (comma_nlow $X):* nlow:? rbracket {% d => {
 } %}
 
 # Multiple consecutive definitions, one per line
-one_per_line[X] -> nlw:* $X nlw:* (nlw:+ $X nlw:* _):* {% ([, first, ,rest]) => {
+one_per_line[X] -> $X (nlw:+ $X):* {% ([first, rest]) => {
     const firstValue = first[0];
     const restValues = rest.map(([, value]) => value[0]);
     // Remove nulls (comments) from the result
@@ -65,14 +65,14 @@ list_content[X] -> trim[$X] next_list_item[$X]:* {% (([first, rest]) => [...firs
 next_list_item[X] -> comma trim[$X] {% ([, value]) => id(value) %}
 
 # 2D Lists for matrices, e.g. [[1, 2], [3, 4]] - do not flatten
-matrix_2d_list[X] -> lbrac _ matrix_row[$X] (_ comma _ matrix_row[$X]):* _ rbrac {% ([, , first, rest]) => {
+matrix_2d_list[X] -> lbrac nlow:? matrix_row[$X] (nlow:? comma nlow:? matrix_row[$X]):* nlow:? rbrac {% ([, , first, rest]) => {
     const rows = [first];
     if (rest) {
         rest.forEach(([, , , row]) => rows.push(row));
     }
     return rows;
 } %}
-matrix_row[X] -> lbrac _ $X (_ comma _ $X):* _ rbrac {% ([, , first, rest]) => {
+matrix_row[X] -> lbrac nlow:? $X (nlow:? comma nlow:? $X):* nlow:? rbrac {% ([, , first, rest]) => {
     const row = [first[0]];
     if (rest) {
         rest.forEach(([, , , item]) => row.push(item[0]));
@@ -139,7 +139,7 @@ const getDef = ([el]) => {
 # Pass your lexer object using the @lexer option:
 @lexer lexer
 
-root -> one_per_line[definition] one_per_line[commands] {% ([defs, cmds]) => ({ defs: defs.flat(), cmds: cmds.flat() }) %}
+root -> nlw:* one_per_line[definition] nlw:+ one_per_line[commands] nlw:* {% ([, defs, , cmds]) => ({ defs: defs.flat(), cmds: cmds.flat() }) %}
 
 # - DEFINITIONS - #
 # List of all definitions
@@ -222,6 +222,10 @@ commands -> (comment
           | set_matrix_colors
           | set_matrix_arrow
           | set_matrix_arrows
+          | set_values_multiple
+          | set_colors_multiple
+          | set_arrows_multiple
+          | set_hidden_multiple
           | add_value
           | add_node
           | add_edge
@@ -254,11 +258,11 @@ set_matrix_arrow -> matrix_cmd["setArrow", (number | string | nullT) {% id %}] {
 set_edges -> cmd["setEdges", e_list] {% (details) => ({ type: "set_multiple", target: "edges", ...id(details) }) %}
 
 # Set multiple values in an array
-# Example: arr1.setValue([2,_,4,_,_,_,_])
-set_value -> cmd["setValues", list[(number | string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "value", ...id(details) }) %}
-set_color -> cmd["setColors", list[(string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "color", ...id(details) }) %}
-set_arrow -> cmd["setArrows", list[(number | string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "arrow", ...id(details) }) %}
-set_hidden -> cmd["setHidden", list[(boolean | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "hidden", ...id(details) }) %}
+# Example: arr1.setValues([2,_,4,_,_,_,_])
+set_values_multiple -> cmd["setValues", list[(number | string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "value", ...id(details) }) %}
+set_colors_multiple -> cmd["setColors", list[(string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "color", ...id(details) }) %}
+set_arrows_multiple -> cmd["setArrows", list[(number | string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "arrow", ...id(details) }) %}
+set_hidden_multiple -> cmd["setHidden", list[(boolean | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "hidden", ...id(details) }) %}
 
 # Set multiple values in a matrix
 # Example: mat1.setValues([[1, 2], [3, 4]]) or mat1.setValues([[1, _], [_, 4]])
