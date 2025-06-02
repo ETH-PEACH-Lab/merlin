@@ -58,7 +58,7 @@ function maintainArrayPropertyConsistency(body, modifiedProperty, index, operati
 
 export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
     // Deep copy to avoid mutating the original parsed DSL
-    const parsedDSL = JSON.parse(JSON.stringify(parsedDSLOriginal));
+    const parsedDSL = parsedDSLOriginal ? JSON.parse(JSON.stringify(parsedDSLOriginal)) : {};
     
     // Pre-checks to ensure the parsed DSL is valid
     preCheck(parsedDSL);
