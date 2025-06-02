@@ -66,33 +66,33 @@ export function getFieldValue(component, fieldKey, coordinates) {
 export function getComponentFields(componentType) {
   const fieldDefinitions = {
     array: {
-      value: ["Value", "number"],
+      value: ["Value", "number_or_string"],
       color: ["Color", "color"],
       arrow: ["Arrow Label", "string"],
     },
     matrix: {
-      value: ["Value", "number"],
+      value: ["Value", "number_or_string"],
       color: ["Color", "color"],
       arrow: ["Arrow Label", "string"],
     },
     stack: {
-      value: ["Value", "number"],
+      value: ["Value", "number_or_string"],
       color: ["Color", "color"],
       arrow: ["Arrow Label", "string"],
     },
     graph: {
-      value: ["Value", "number"],
+      value: ["Value", "number_or_string"],
       color: ["Color", "color"],
       arrow: ["Arrow Label", "string"],
       hidden: ["Hidden", "boolean"],
     },
     tree: {
-      value: ["Value", "number"],
+      value: ["Value", "number_or_string"],
       color: ["Color", "color"],
       arrow: ["Arrow Label", "string"],
     },
     linkedlist: {
-      value: ["Value", "number"],
+      value: ["Value", "number_or_string"],
       color: ["Color", "color"],
       arrow: ["Arrow Label", "string"],
     },
@@ -158,8 +158,12 @@ export function convertValueToType(value, type) {
   
   switch (type) {
     case "number":
+      const num = Number(value);
+      return isNaN(num) ? null : num;
+    case "number_or_string":
+      // Try to convert to number first, but keep as string if not a valid number
       const numValue = Number(value);
-      return isNaN(numValue) ? null : numValue;
+      return isNaN(numValue) ? String(value) : numValue;
     case "boolean":
       if (typeof value === "boolean") return value;
       if (typeof value === "string") {

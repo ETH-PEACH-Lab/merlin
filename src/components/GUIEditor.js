@@ -78,9 +78,9 @@ const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate }) => {
       id={`${fieldKey}-input`}
       value={value !== null && value !== undefined && value !== "null" ? value : (inputType === "color" ? "#ffffff" : "")}
       size="small"
-      type={inputType === "number" ? "number" : inputType === "color" ? "color" : "text"}
+      type={inputType === "number" || inputType === "number_or_string" ? "text" : inputType === "color" ? "color" : "text"}
       disabled={fieldKey === "id"}
-      helperText={fieldKey === "id" ? "The unit id is unchangeable" : ""}
+      helperText={fieldKey === "id" ? "The unit id is unchangeable" : inputType === "number_or_string" ? "Accepts numbers or text" : ""}
       onChange={inputType === "color" ? handleColorChange : (e) => onChange(fieldKey, e.target.value)}
       onBlur={inputType === "color" ? undefined : handleBlur}
       onKeyDown={inputType === "color" ? undefined : handleKeyDown}

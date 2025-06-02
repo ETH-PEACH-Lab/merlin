@@ -246,7 +246,7 @@ show -> "show" _ wordL {% ([, , wordL]) => ({ type: "show", value: wordL.name, l
 hide -> "hide" _ wordL {% ([, , wordL]) => ({ type: "hide", value: wordL.name, line: wordL.line, col: wordL.col }) %}
 
 # Set a value in an array
-set_value -> cmd["setValue", comma_sep[number , number]] {% (details) => ({ type: "set", target: "value", ...id(details) }) %}
+set_value -> cmd["setValue", comma_sep[number, (number | string | nullT) {% id %}]] {% (details) => ({ type: "set", target: "value", ...id(details) }) %}
 set_color -> cmd["setColor", comma_sep[number, (string | nullT) {% id %}]] {% (details) => ({ type: "set", target: "color", ...id(details) }) %}
 set_arrow -> cmd["setArrow", comma_sep[number, (number | string | nullT) {% id %}]] {% (details) => ({ type: "set", target: "arrow", ...id(details) }) %}
 set_hidden -> cmd["setHidden", comma_sep[number, boolean]] {% (details) => ({ type: "set", target: "hidden", ...id(details) }) %}
