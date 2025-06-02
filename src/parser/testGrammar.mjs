@@ -3,75 +3,34 @@ import grammar from './parser.js';  // Compiled from data_structure_extended_wit
 
 const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar));
 
-const input = `
-
-matrix mr1 = {
-  value: [[1,0,"x",0],
-  [0,0,"x",2],
-  [0,"x",0,0],
-  [0,0,0,0]
-]
-  color: [[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]]
-  arrow: [["start",null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]]
+const input = `// Graph - Network connectivity
+graph network = {
+  nodes: [server1, server2, server3, router]
+  value: [100, 50, 75, 200]
+  edges: [server1-router, server2-router, server3-router]
+  arrow: ["start", null, null, "hub"]
+  color: [null, null, null, "blue"]
+  hidden: [false, false, false, false]
 }
 
 page
-show mr1
+show network
+network.setHidden(0, false)
 
 page
-mr1.setColors([[null,null,"red",null],[null,null,"red",null],[null,"red",null,null],[null,null,null,null]])
+network.addNode(client, 25)
+network.addEdge(client-router)
+network.setColor(4, "green")
 
 page
-mr1.setColor(0,0,"blue")
-mr1.setArrow(0,0,null)
+network.removeEdge(server2-router)
+network.setColor(1, "red")
+network.setArrow(1, "offline")
 
 page
-mr1.setValue(0,1,1)
-mr1.setColor(0,1,"blue")
-
-page
-mr1.setValue(1,1,2)
-mr1.setColor(1,1,"blue")
-
-page
-mr1.setValue(1,0,1)
-mr1.setColor(1,0,"blue")
-
-page
-mr1.setValue(2,0,2)
-mr1.setColor(2,0,"blue")
-
-page
-mr1.setValue(3,0,3)
-mr1.setColor(3,0,"blue")
-
-page
-mr1.setValue(3,1,4)
-mr1.setColor(3,1,"blue")
-
-page
-mr1.setValue(3,2,5)
-mr1.setColor(3,2,"blue")
-
-page
-mr1.setValue(2,2,5)
-mr1.setColor(2,2,"blue")
-
-page
-mr1.setValue(3,3,6)
-mr1.setColor(3,3,"blue")
-
-page
-mr1.setValue(2,3,7)
-mr1.setColor(2,3,"blue")
-
-page
-mr1.setValue(1,3,8)
-mr1.setColor(1,3,"green")
-mr1.setArrow(1,3,"finish")
-
-
-`;
+network.setColor(2, "orange")
+network.setValue(2, 90)
+network.setArrow(2, "high load")`;
 	
 parser.feed(input);
 const parsedData = parser.results[0];  // Parsed output

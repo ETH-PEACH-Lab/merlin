@@ -1,51 +1,173 @@
 export const examples = [
   {
-    id: "graphExample",
-    title: "Example - graph",
-    userCode: `graph gh = {
-  nodes: [n1, n2, n3]
-  value: [1, 2, 3]
-  edges: [n1-n2, n2-n3]
+    id: "arrayExample",
+    title: "Example - Array",
+    userCode: `// Array - Sorting visualization
+array numbers = {
+	value: [64,34,25,12,22,11,90]
+	color: [null,"blue",null,null,null,null,null]
+	arrow: [null,null,"important",null,null,null,null]
 }
 
-page
-show gh
 
 page
-gh.addNode(n4, 4)
-gh.addEdge(n3-n4)
+show numbers
 
 page
-gh.removeNode(n1)`,
+numbers.setColor(0, "green")
+numbers.setColor(1, "red")
+numbers.setArrows(["i","j",null,_])
+
+page
+numbers.setColor(3, "#d95000")
+numbers.setValues([34,64,25,12,22,11,90])
+numbers.setColors([_,"red",null,null,null,null,null])
+
+page
+numbers.insertValue(0, 0)
+
+// Remove a certain Value
+numbers.removeValue(34)
+
+// Or remove at index
+numbers.removeAt(2)
+
+// Clear arrow and color
+numbers.setColor(1, null)
+numbers.setArrow(1, null)`,
   },
   {
-    id: "arrayExample",
-    title: "Example - array",
-    userCode: `array arr1 = {
-  value: [1]
+    id: "graphExample", 
+    title: "Example - Graph",
+    userCode: `// Graph - Network connectivity
+graph network = {
+	nodes: [server1,server2,server3,router]
+	value: [100,50,75,200]
+	edges: [server1-router,server2-router,server3-router]
+	arrow: ["start",null,null,"hub"]
+	color: [null,null,null,"blue"]
+	hidden: [false,false,false,false]
 }
-array arr2 = {
-  value: [3, 2, 1]
+
+
+page
+show network
+network.setHidden(0, false)
+
+page
+network.addNode(client, 25)
+network.addEdge(client-router)
+network.setColor(4, "green")
+
+page
+network.removeEdge(server2-router)
+network.setColor(1, "red")
+network.setArrow(1, "offline")
+
+page
+network.setColor(2, "orange")
+network.setValue(2, 90)
+network.setArrow(2, "high load")`,
+  },
+  {
+    id: "matrixExample",
+    title: "Example - Matrix",
+    userCode: `// Matrix - 2D grid operations
+matrix grid = {
+	value: [[1, 2], [3, 4]]
+	color: [[null, null], [null, "red"]]
+	arrow: [,,,important]
 }
 
-page
-show arr1
-show arr2
 
 page
-arr2.removeValue(3)
-arr1.addValue(2)
+show grid
+grid.setValue(0, 1, 5)
 
 page
-arr2.removeValue(2)
-arr1.addValue(3)`,
+grid.setColor(1, 0, "green")
+grid.setValues([[3, 2], [_, 5]])
+
+page
+grid.setArrow(1, 1, "target")
+grid.setColors([[null, "blue"], ["green", "orange"]])`,
+  },
+  {
+    id: "linkedListExample",
+    title: "Example - Linked List",
+    userCode: `// LinkedList - Data insertion and manipulation
+linkedlist myList = {
+	nodes: [head,node2,node3,tail]
+	value: [10,20,30,40]
+	color: [null,"blue",null,null]
+	arrow: ["start",null,null,"end"]
+}
+
+
+page
+show myList
+
+page
+myList.addNode(newNode, 25)
+myList.setColor(2, "green")
+myList.setArrow(2, "new")
+
+page
+myList.removeNode(node2)
+myList.setColors([_,null,_,_])`,
+  },
+  {
+    id: "stackExample",
+    title: "Example - Stack",
+    userCode: `// Stack - Function call stack
+stack callStack = {
+	value: ["main","process","calculate"]
+	color: [null,"blue",null]
+	arrow: [null,null,"top"]
+}
+
+
+page
+show callStack
+callStack.setColor(0, "green")
+
+page
+callStack.setArrow(2, "peak")
+callStack.setValues([_,_,"validate","execute"])`,
+  },
+  {
+    id: "treeExample", 
+    title: "Example - Tree",
+    userCode: `// Tree - Binary search tree operations
+tree bst = {
+	nodes: [root,left,right,leftLeft]
+	value: [50,30,70,20]
+	color: ["green",null,"blue",null]
+	arrow: [null,"focus",null,null]
+}
+
+
+page
+show bst
+bst.addNode(newNode, 80)
+
+page
+bst.setColor(4, "red")
+bst.setArrow(4, "inserted")
+bst.setValue(1, 35)
+
+page
+bst.setColors([_,"orange",_,_,_])
+bst.removeNode(leftLeft)`,
   },
   {
     id: "TutorialFibonacci",
     title: "Tutorial - Fibonacci",
-    userCode: `array arr1 = {
-  value: [1]
+    userCode: `// Tutorial - Fibonacci sequence
+array arr1 = {
+	value: [1]
 }
+
 
 page
 show arr1

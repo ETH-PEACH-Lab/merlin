@@ -27,7 +27,7 @@ const lexer = moo.compile({
   word: { match: /[a-zA-Z_][a-zA-Z0-9_]*/, type: moo.keywords({
     def: ["array", "matrix", "graph", "linkedlist", "tree", "stack"],
   })},
-  comment: { match: /\/\/.*?$/, lineBreaks: true },
+  comment: { match: /\/\/.*?$/, lineBreaks: true, value: s => s.slice(2).trim() },
   string: { match: /"(?:\\.|[^"\\])*"/, value: s => s.slice(1, -1) },
 });
 
@@ -55,8 +55,8 @@ var grammar = {
     {"name": "root$macrocall$1", "symbols": ["root$macrocall$2", "root$macrocall$1$ebnf$1"], "postprocess":  ([first, rest]) => {
             const firstValue = first[0];
             const restValues = rest.map(([, value]) => value[0]);
-            // Remove nulls (comments) from the result
-            return [firstValue, ...restValues].filter(x => x !== null && x !== undefined);
+            // Include all items, even comments
+            return [firstValue, ...restValues];
         } },
     {"name": "root$ebnf$2", "symbols": ["nlw"]},
     {"name": "root$ebnf$2", "symbols": ["root$ebnf$2", "nlw"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
@@ -69,8 +69,8 @@ var grammar = {
     {"name": "root$macrocall$3", "symbols": ["root$macrocall$4", "root$macrocall$3$ebnf$1"], "postprocess":  ([first, rest]) => {
             const firstValue = first[0];
             const restValues = rest.map(([, value]) => value[0]);
-            // Remove nulls (comments) from the result
-            return [firstValue, ...restValues].filter(x => x !== null && x !== undefined);
+            // Include all items, even comments
+            return [firstValue, ...restValues];
         } },
     {"name": "root$ebnf$3", "symbols": []},
     {"name": "root$ebnf$3", "symbols": ["root$ebnf$3", "nlw"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
@@ -878,7 +878,7 @@ var grammar = {
     {"name": "comma_nlow$subexpression$1", "symbols": ["comma_nlow$subexpression$1$subexpression$1"]},
     {"name": "comma_nlow$subexpression$1", "symbols": ["nlw"]},
     {"name": "comma_nlow", "symbols": ["comma_nlow$subexpression$1"], "postprocess": () => null},
-    {"name": "comment", "symbols": [(lexer.has("comment") ? {type: "comment"} : comment)], "postprocess": () => null},
+    {"name": "comment", "symbols": [(lexer.has("comment") ? {type: "comment"} : comment)], "postprocess": ([value]) => ({ type: "comment", content: value.value, line: value.line, col: value.col })},
     {"name": "lbracket", "symbols": [(lexer.has("lbracket") ? {type: "lbracket"} : lbracket)], "postprocess": () => null},
     {"name": "rbracket", "symbols": [(lexer.has("rbracket") ? {type: "rbracket"} : rbracket)], "postprocess": () => null},
     {"name": "lbrac", "symbols": [(lexer.has("lbrac") ? {type: "lbrac"} : lbrac)], "postprocess": () => null},

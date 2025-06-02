@@ -6,7 +6,11 @@ export default function reconstructDSL(parsedDSL) {
     // Process definitions
     if (parsedDSL.defs) {
         parsedDSL.defs.forEach(def => {
-            lines.push(reconstructDefinition(def));
+            if (def.type === 'comment') {
+                lines.push(`// ${def.content}`);
+            } else {
+                lines.push(reconstructDefinition(def));
+            }
         });
         // Empty line after definitions
         lines.push(''); 
@@ -15,9 +19,13 @@ export default function reconstructDSL(parsedDSL) {
     // Process commands
     if (parsedDSL.cmds) {
         parsedDSL.cmds.forEach(cmd => {
-            const reconstructed = reconstructCommand(cmd);
-            if (reconstructed) {
-                lines.push(reconstructed);
+            if (cmd.type === 'comment') {
+                lines.push(`// ${cmd.content}`);
+            } else {
+                const reconstructed = reconstructCommand(cmd);
+                if (reconstructed) {
+                    lines.push(reconstructed);
+                }
             }
         });
     }
@@ -27,6 +35,11 @@ export default function reconstructDSL(parsedDSL) {
 
 function reconstructDefinition(def) {
     const { type, name, body } = def;
+    if (!body) {
+        console.error(`Error: No body found in definition for ${type} ${name}`);
+        return `${type} ${name} = {}\n`;
+    }
+    
     let result = `${type} ${name} = {\n`;
     
     for (const [key, value] of Object.entries(body)) {
@@ -76,7 +89,7 @@ function getMethodName(action, target, isPlural = false) {
 function reconstructCommand(cmd) {
     switch (cmd.type) {
         case 'page':
-            return 'page';
+            return '\npage';
             
         case 'show':
             return `show ${cmd.value}`;
@@ -144,11 +157,11 @@ function formatMatrix(matrix) {
     
     // Handle 2D arrays for matrix
     if (Array.isArray(matrix[0])) {
-        return `[${matrix.map(row => `[${row.map(formatValue).join(', ')}]`).join(', ')}]`;
+        return `[${matrix.map(row => `[${row.map(item => formatValue(item)).join(', ')}]`).join(', ')}]`;
     }
     
     // Fallback to regular array formatting
-    return `[${matrix.map(formatValue).join(', ')}]`;
+    return `[${matrix.map(item => formatValue(item)).join(', ')}]`;
 }
 
 function formatValues(key, value) {
@@ -157,7 +170,7 @@ function formatValues(key, value) {
     }
     
     // Handle 2D arrays for matrix (value, values, color)
-    if (key === 'value' || key === 'color') {
+    if (key === 'value' || key === 'color' || key === 'arrow') {
         // Check if it's a 2D array (matrix)
         if (Array.isArray(value[0])) {
             return `[${value.map(row => `[${row.map(formatValue).join(', ')}]`).join(', ')}]`;
@@ -175,7 +188,7 @@ function formatValues(key, value) {
             
         default:
             // For other properties (value, color, arrow), use standard array formatting
-            return `[${value.map(formatValue).join(',')}]`;
+            return `[${value.map(item => formatValue(item)).join(', ')}]`;
     }
 }
 

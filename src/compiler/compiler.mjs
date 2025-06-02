@@ -327,13 +327,28 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                     if (body[target]) {
                         let removedIndex = -1;
                         
-                        const index = body[target].indexOf(value);
+                        // Special handling for graph edges which are objects with start and end properties
+                        if (target === "edges" && targetObject.type === "graph" && typeof value === 'object' && value.start && value.end) {
+                            // Find the edge with matching start and end nodes
+                            const edgeIndex = body[target].findIndex(edge => 
+                                edge.start === value.start && edge.end === value.end
+                            );
+                            
+                            if (edgeIndex > -1) {
+                                body[target].splice(edgeIndex, 1);
+                                removedIndex = edgeIndex;
+                            } else {
+                                causeCompileError(`Edge from "${value.start}" to "${value.end}" not found in property "${target}" on component "${name}".`, command);
+                            }
+                        } else {
+                            const index = body[target].indexOf(value);
                             if (index > -1) {
                                 body[target].splice(index, 1);
                                 removedIndex = index;
                             } else {
                                 causeCompileError(`Value "${value}" not found in property "${target}" on component "${name}".`, command);
                             }
+                        }
                         
                         // Maintain consistency across all array properties for all component types
                         if (removedIndex > -1) {
@@ -440,7 +455,7 @@ function preCheck(parsedDSL) {
 
     // Check for valid command types
     parsedDSL.cmds.forEach(cmd => {
-        if (!["page", "show", "hide", "set", "set_multiple", "set_matrix", "set_matrix_multiple", "add", "insert", "remove", "remove_at"].includes(cmd.type)) {
+        if (!["page", "show", "hide", "set", "set_multiple", "set_matrix", "set_matrix_multiple", "add", "insert", "remove", "remove_at", "comment"].includes(cmd.type)) {
             throw new Error(`Unknown command type: ${cmd.type}`);
         }
     });

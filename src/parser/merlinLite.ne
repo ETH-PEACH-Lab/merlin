@@ -46,8 +46,8 @@ bracketlist[X] -> lbracket nlow $X (comma_nlow $X):* nlow:? rbracket {% d => {
 one_per_line[X] -> $X (nlw:+ $X):* {% ([first, rest]) => {
     const firstValue = first[0];
     const restValues = rest.map(([, value]) => value[0]);
-    // Remove nulls (comments) from the result
-    return [firstValue, ...restValues].filter(x => x !== null && x !== undefined);
+    // Include all items, even comments
+    return [firstValue, ...restValues];
 } %}
 
 # Key-value pairs, e.g. key: value
@@ -117,7 +117,7 @@ const lexer = moo.compile({
   word: { match: /[a-zA-Z_][a-zA-Z0-9_]*/, type: moo.keywords({
     def: ["array", "matrix", "graph", "linkedlist", "tree", "stack"],
   })},
-  comment: { match: /\/\/.*?$/, lineBreaks: true },
+  comment: { match: /\/\/.*?$/, lineBreaks: true, value: s => s.slice(2).trim() },
   string: { match: /"(?:\\.|[^"\\])*"/, value: s => s.slice(1, -1) },
 });
 
@@ -315,7 +315,7 @@ comma_nlow -> ((nlow:? comma nlow:?) | nlw) {% () => null %}
 
 # - Tokens - # 
 # Note: Return null to save memory
-comment -> %comment {% () => null %}
+comment -> %comment {% ([value]) => ({ type: "comment", content: value.value, line: value.line, col: value.col }) %}
 lbracket -> %lbracket {% () => null %}
 rbracket -> %rbracket {% () => null %}
 lbrac -> %lbrac {% () => null %}
