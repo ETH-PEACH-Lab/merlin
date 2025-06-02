@@ -84,7 +84,7 @@ function reconstructCommand(cmd) {
         case 'set':
             const methodName = getMethodName('set', cmd.target, false);
             const index = cmd.args.index;
-            const value = formatValue(cmd.args.value);
+            const value = formatValue(cmd.args.value, cmd.target);
             return `${cmd.name}.${methodName}(${index}, ${value})`;
             
         case 'set_multiple':
@@ -109,23 +109,23 @@ function reconstructCommand(cmd) {
             
             // Handle special case for nodes with optional value
             if (cmd.target === 'nodes' && cmd.args && typeof cmd.args === 'object' && cmd.args.index !== undefined) {
-                const nodeName = formatValue(cmd.args.index);
-                const nodeValue = formatValue(cmd.args.value);
+                const nodeName = formatValue(cmd.args.index, cmd.target);
+                const nodeValue = formatValue(cmd.args.value, cmd.target);
                 return `${cmd.name}.${addMethodName}(${nodeName}, ${nodeValue})`;
             } else {
-                const addValue = formatValue(cmd.args);
+                const addValue = formatValue(cmd.args, cmd.target);
                 return `${cmd.name}.${addMethodName}(${addValue})`;
             }
             
         case 'insert':
             const insertMethodName = getMethodName('insert', cmd.target, false);
             const insertIndex = cmd.args.index;
-            const insertValue = formatValue(cmd.args.value);
+            const insertValue = formatValue(cmd.args.value, cmd.target);
             return `${cmd.name}.${insertMethodName}(${insertIndex}, ${insertValue})`;
             
         case 'remove':
             const removeMethodName = getMethodName('remove', cmd.target, false);
-            const removeValue = formatValue(cmd.args);
+            const removeValue = formatValue(cmd.args, cmd.target);
             return `${cmd.name}.${removeMethodName}(${removeValue})`;
             
         case 'remove_at':
@@ -167,7 +167,7 @@ function formatValues(key, value) {
     switch (key) {
         case 'nodes':
             // For nodes, just extract the names without quotes
-            return `[${value.map(node => node.name).join(',')}]`;
+            return `[${value.join(',')}]`;
             
         case 'edges':
             // For edges, format as "start-end"
@@ -179,9 +179,13 @@ function formatValues(key, value) {
     }
 }
 
-function formatValue(value) {
+function formatValue(value, target = null) {
     if (value === '_') {
         return '_';
+    }
+
+    if (target === 'nodes') {
+        return value;
     }
 
     if (value === null || value === undefined) {

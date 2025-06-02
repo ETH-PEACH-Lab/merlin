@@ -327,33 +327,13 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                     if (body[target]) {
                         let removedIndex = -1;
                         
-                        // For arrays with primitive values, find by value
-                        if (typeof value === 'number' || typeof value === 'string' || typeof value === 'boolean') {
-                            const index = body[target].indexOf(value);
+                        const index = body[target].indexOf(value);
                             if (index > -1) {
                                 body[target].splice(index, 1);
                                 removedIndex = index;
                             } else {
                                 causeCompileError(`Value "${value}" not found in property "${target}" on component "${name}".`, command);
                             }
-                        } 
-                        // For objects (like edges), find by comparing properties
-                        else if (typeof value === 'object' && value !== null) {
-                            const index = body[target].findIndex(item => {
-                                // For edges, compare start and end properties
-                                if (target === 'edges' && value.start && value.end) {
-                                    return item.start === value.start && item.end === value.end;
-                                }
-                                // For other objects, do a deep comparison of all properties
-                                return JSON.stringify(item) === JSON.stringify(value);
-                            });
-                            if (index > -1) {
-                                body[target].splice(index, 1);
-                                removedIndex = index;
-                            } else {
-                                causeCompileError(`Object "${JSON.stringify(value)}" not found in property "${target}" on component "${name}".`, command);
-                            }
-                        } 
                         
                         // Maintain consistency across all array properties for all component types
                         if (removedIndex > -1) {

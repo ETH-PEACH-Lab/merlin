@@ -5,8 +5,8 @@
 # --- MACROS --- #
 ##################
 
-# definition[X, Y] -> $X __ word _ equals _ bracketlist[$Y] _ {% ([type, , name, , , , body]) => ({ ...getDef(type), name, body: body }) %}
-definition[X, Y] -> $X __ word _ equals _ bracketlist[$Y] _ {% ([type, , word, , , , body]) => ({ ...getDef(type), body: body, ...word }) %}
+# definition[X, Y] -> $X __ wordL _ equals _ bracketlist[$Y] _ {% ([type, , name, , , , body]) => ({ ...getDef(type), name, body: body }) %}
+definition[X, Y] -> $X __ wordL _ equals _ bracketlist[$Y] _ {% ([type, , wordL, , , , body]) => ({ ...getDef(type), body: body, ...wordL }) %}
 
 # bracketlist: One-per-line definition,
 # e.g. catch all, be lenient with whitespace
@@ -81,10 +81,10 @@ matrix_row[X] -> lbrac nlow:? $X (nlow:? comma nlow:? $X):* nlow:? rbrac {% ([, 
 } %}
 
 # Commands
-cmd[X, Y] -> word dot $X lparen _ $Y _ rparen {% ([word, dot, , , , args]) => ({ args: id(args), ...word }) %}
+cmd[X, Y] -> wordL dot $X lparen _ $Y _ rparen {% ([wordL, dot, , , , args]) => ({ args: id(args), ...wordL }) %}
 
 # Matrix commands with 3 parameters (row, col, value)
-matrix_cmd[X, Y] -> word dot $X lparen _ number _ comma _ number _ comma _ $Y _ rparen {% ([word, , , , , row, , , , col, , , , value]) => ({ args: { row: row, col: col, value: id(value) }, ...word }) %}
+matrix_cmd[X, Y] -> wordL dot $X lparen _ number _ comma _ number _ comma _ $Y _ rparen {% ([wordL, , , , , row, , , , col, , , , value]) => ({ args: { row: row, col: col, value: id(value) }, ...wordL }) %}
 
 # Ignore surrounding whitespace
 trim[X] -> _ $X _ {% ([, value, ]) => id(value) %}
@@ -241,9 +241,9 @@ commands -> (comment
 # Main commands
 page -> "page" {% () => ({ type: "page" }) %}
 
-show -> "show" _ word {% ([, , word]) => ({ type: "show", value: word.name, line: word.line, col: word.col }) %}
+show -> "show" _ wordL {% ([, , wordL]) => ({ type: "show", value: wordL.name, line: wordL.line, col: wordL.col }) %}
 
-hide -> "hide" _ word {% ([, , word]) => ({ type: "hide", value: word.name, line: word.line, col: word.col }) %}
+hide -> "hide" _ wordL {% ([, , wordL]) => ({ type: "hide", value: wordL.name, line: wordL.line, col: wordL.col }) %}
 
 # Set a value in an array
 set_value -> cmd["setValue", comma_sep[number , number]] {% (details) => ({ type: "set", target: "value", ...id(details) }) %}
@@ -300,8 +300,9 @@ nnsp_mlist -> matrix_2d_list[(nullT | number | string | pass) {% iid %}] {% id %
 number -> %number {% ([value]) => parseInt(value.value, 10) %}
 string -> %string {% ([value]) => value.value %}
 boolean -> %boolean {% ([value]) => value.value %}
-edge -> word %dash word {% ([start, , end]) => ({ start: start.name, end: end.name }) %}
-word -> %word {% ([value]) => ({name: value.value, line: value.line, col: value.col}) %}
+edge -> wordL %dash wordL {% ([start, , end]) => ({ start: start.name, end: end.name }) %}
+word -> %word {% ([value]) => value.value %}
+wordL -> %word {% ([value]) => ({name: value.value, line: value.line, col: value.col}) %}
 nullT -> %nullT {% () => null %}
 pass -> %pass {% () => "_" %}
 

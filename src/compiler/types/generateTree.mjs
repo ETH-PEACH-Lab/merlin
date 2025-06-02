@@ -35,7 +35,7 @@ function convertArrayToBinaryTree(nodes, value, color, arrow) {
             let rightChild = (rightIndex < nodes.length && nodes[rightIndex] && nodes[rightIndex] !== 'none') ? 
                              (nodes[rightIndex].name || nodes[rightIndex]) : 'None';
             
-            const nodeName = node.name || node;
+            const nodeName = node;
             result += `\n${nodeName}:[${leftChild},${rightChild}]`;
             result += `{value:"${value[index] ?? nodeName}"`;
             result += `, color:"${color[index] ?? "null"}"`;
