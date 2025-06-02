@@ -37,9 +37,9 @@ function convertArrayToBinaryTree(nodes, value, color, arrow) {
             
             const nodeName = node.name || node;
             result += `\n${nodeName}:[${leftChild},${rightChild}]`;
-            result += `{value:"${value[index] || nodeName}"`;
-            result += `, color:"${color[index] || "null"}"`;
-            result += `, arrow:"${ arrow[index] === 'empty' ? "" : arrow[index] || "null"}"`;
+            result += `{value:"${value[index] ?? nodeName}"`;
+            result += `, color:"${color[index] ?? "null"}"`;
+            result += `, arrow:"${ arrow[index] === 'empty' ? "" : (arrow[index] ?? "null")}"`;
             result += `}`;
   
             if (leftChild !== 'None') {

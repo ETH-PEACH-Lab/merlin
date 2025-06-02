@@ -12,7 +12,7 @@ export function generateLinkedlist(linkedListComponent) {
         const nodeColor = i < color.length ? color[i] : null;
         const nodeArrow = i < arrow.length ? arrow[i] : null;
         
-        result += `\n${node.name} {value:"${nodeValue || node.name}", color:"${nodeColor || "null"}", arrow:"${nodeArrow === 'empty' ? "" : nodeArrow || "null"}"}`;
+        result += `\n${node.name} {value:"${nodeValue ?? node.name}", color:"${nodeColor ?? "null"}", arrow:"${nodeArrow === 'empty' ? "" : (nodeArrow ?? "null")}"}`;
     }
     
     result += "\n@\n";

@@ -13,9 +13,9 @@ export function generateMatrix(matrixComponent) {
             const cellArrow = arrow[row] ? (arrow[row][col] || null) : null;
 
             if (col === 0) {
-                result += `${value} {color:"${cellColor || ""}", arrow:"${cellArrow}"}`;
+                result += `${value} {color:"${cellColor || "null"}",arrow:"${cellArrow || "null"}"}`;
             } else {
-                result += `, ${value} {color:"${cellColor || ""}", arrow:"${cellArrow}"}`;
+                result += `, ${value} {color:"${cellColor || "null"}",arrow:"${cellArrow || "null"}"}`;
             }
         }
     }

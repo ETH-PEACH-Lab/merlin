@@ -9,8 +9,8 @@ import { generateGraph } from "./types/generateGraph.mjs";
 
 // Helper function to maintain consistency across array properties when modifying arrays
 function maintainArrayPropertyConsistency(body, modifiedProperty, index, operation) {
-    // Define the properties that should be kept in sync for all component types
-    const arrayProperties = ["arrow", "color", "value", "nodes"];
+    // Define the properties that should be kept in sync for different component types
+    let arrayProperties = ["arrow", "color", "value", "hidden"];
     
     // First, find the target length based on the modified property
     const targetLength = body[modifiedProperty] ? body[modifiedProperty].length : 0;
@@ -335,6 +335,23 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                                 removedIndex = index;
                             } else {
                                 causeCompileError(`Value "${value}" not found in property "${target}" on component "${name}".`, command);
+                            }
+                        } 
+                        // For objects (like edges), find by comparing properties
+                        else if (typeof value === 'object' && value !== null) {
+                            const index = body[target].findIndex(item => {
+                                // For edges, compare start and end properties
+                                if (target === 'edges' && value.start && value.end) {
+                                    return item.start === value.start && item.end === value.end;
+                                }
+                                // For other objects, do a deep comparison of all properties
+                                return JSON.stringify(item) === JSON.stringify(value);
+                            });
+                            if (index > -1) {
+                                body[target].splice(index, 1);
+                                removedIndex = index;
+                            } else {
+                                causeCompileError(`Object "${JSON.stringify(value)}" not found in property "${target}" on component "${name}".`, command);
                             }
                         } 
                         
