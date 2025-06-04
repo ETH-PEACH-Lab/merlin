@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkonsenui_v2_react_minimum=self.webpackChunkonsenui_v2_react_minimum||[]).push([[8688],{8688:(e,i,a)=>{a.d(i,{createVisualDiagramServices:()=>s.G});var s=a(6979);a(9731),a(1265),a(3615),a(8605),a(6009)}}]);
