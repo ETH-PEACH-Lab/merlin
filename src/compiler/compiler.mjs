@@ -196,13 +196,26 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                         body[property] = [];
                     }
                     
-                    // Ensure the row exists
-                    if (!body[property][row]) {
-                        body[property][row] = [];
+                    // Ensure the matrix has enough rows
+                    while (body[property].length <= row) {
+                        body[property].push([]);
+                    }
+                    
+                    // Ensure the row has enough columns
+                    while (body[property][row].length <= col) {
+                        body[property][row].push(null);
                     }
                     
                     // Set the value
                     body[property][row][col] = newValue;
+                    
+                    // Ensure all rows have the same number of columns
+                    const maxColumns = Math.max(...body[property].map(row => row.length));
+                    for (let r = 0; r < body[property].length; r++) {
+                        while (body[property][r].length < maxColumns) {
+                            body[property][r].push(null);
+                        }
+                    }
                 } else {
                     causeCompileError(`Component "${name}" not found on the current page.`, command);
                 }
@@ -218,17 +231,25 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                     const body = targetObject.body;
                     const currentMatrix = body[property];
                     
-                    // If property does not exist, create 2D array filled with null
+                    // If property does not exist, create 2D array
                     if (!currentMatrix) {
-                        body[property] = Array(newMatrix.length).fill(null).map(() => 
-                            Array(newMatrix[0] ? newMatrix[0].length : 0).fill(null)
-                        );
+                        body[property] = [];
+                    }
+                    
+                    // Calculate dimensions needed
+                    const numRows = newMatrix.length;
+                    const numCols = Math.max(...newMatrix.map(row => row ? row.length : 0));
+                    
+                    // Ensure the matrix has enough rows
+                    while (body[property].length < numRows) {
+                        body[property].push([]);
                     }
                     
                     // Iterate over the matrix and set values, preserving "_" placeholders
                     for (let row = 0; row < newMatrix.length; row++) {
-                        if (!body[property][row]) {
-                            body[property][row] = Array(newMatrix[row] ? newMatrix[row].length : 0).fill(null);
+                        // Ensure the row has enough columns
+                        while (body[property][row].length < numCols) {
+                            body[property][row].push(null);
                         }
                         
                         if (newMatrix[row]) {
@@ -238,6 +259,14 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                                     body[property][row][col] = value;
                                 }
                             }
+                        }
+                    }
+                    
+                    // Ensure all rows have the same number of columns
+                    const maxColumns = Math.max(...body[property].map(row => row.length));
+                    for (let r = 0; r < body[property].length; r++) {
+                        while (body[property][r].length < maxColumns) {
+                            body[property][r].push(null);
                         }
                     }
                 } else {
@@ -396,6 +425,179 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                 }
                 break;
             }
+            case "add_matrix_row": {
+                const name = command.name;
+                const position = command.args; // If null or undefined, will add at the end
+                const targetObject = pages[pages.length - 1].find(comp => comp.name === name);
+
+                if (targetObject) {
+                    const body = targetObject.body;
+                    const matrixProperties = ["value", "color", "arrow"];
+                    
+                    matrixProperties.forEach(property => {
+                        if (body[property]) {
+                            const currentMatrix = body[property];
+                            const numCols = currentMatrix.length > 0 ? Math.max(...currentMatrix.map(row => row.length)) : 0;
+                            const newRow = Array(numCols).fill(null);
+                            
+                            if (position === null || position === undefined || position >= currentMatrix.length) {
+                                // Add at the end
+                                currentMatrix.push(newRow);
+                            } else {
+                                // Add at the specified position
+                                currentMatrix.splice(position, 0, newRow);
+                            }
+                        }
+                    });
+                } else {
+                    causeCompileError(`Component "${name}" not found on the current page.`, command);
+                }
+                break;
+            }
+            
+            case "add_matrix_column": {
+                const name = command.name;
+                const position = command.args; // If null or undefined, will add at the end
+                const targetObject = pages[pages.length - 1].find(comp => comp.name === name);
+
+                if (targetObject) {
+                    const body = targetObject.body;
+                    const matrixProperties = ["value", "color", "arrow"];
+                    
+                    matrixProperties.forEach(property => {
+                        if (body[property]) {
+                            const currentMatrix = body[property];
+                            
+                            for (let i = 0; i < currentMatrix.length; i++) {
+                                const row = currentMatrix[i] || [];
+                                
+                                if (position === null || position === undefined || position >= row.length) {
+                                    // Add at the end
+                                    row.push(null);
+                                } else {
+                                    // Add at the specified position
+                                    row.splice(position, 0, null);
+                                }
+                                
+                                currentMatrix[i] = row;
+                            }
+                        }
+                    });
+                } else {
+                    causeCompileError(`Component "${name}" not found on the current page.`, command);
+                }
+                break;
+            }
+            
+            case "remove_matrix_row": {
+                const name = command.name;
+                const rowIndex = command.args;
+                const targetObject = pages[pages.length - 1].find(comp => comp.name === name);
+
+                if (targetObject) {
+                    const body = targetObject.body;
+                    const matrixProperties = ["value", "color", "arrow"];
+                    
+                    matrixProperties.forEach(property => {
+                        if (body[property]) {
+                            const currentMatrix = body[property];
+                            
+                            if (rowIndex >= 0 && rowIndex < currentMatrix.length) {
+                                currentMatrix.splice(rowIndex, 1);
+                            } else {
+                                causeCompileError(`Row index ${rowIndex} out of bounds for matrix in component "${name}".`, command);
+                            }
+                        }
+                    });
+                } else {
+                    causeCompileError(`Component "${name}" not found on the current page.`, command);
+                }
+                break;
+            }
+            
+            case "remove_matrix_column": {
+                const name = command.name;
+                const colIndex = command.args;
+                const targetObject = pages[pages.length - 1].find(comp => comp.name === name);
+
+                if (targetObject) {
+                    const body = targetObject.body;
+                    const matrixProperties = ["value", "color", "arrow"];
+                    
+                    matrixProperties.forEach(property => {
+                        if (body[property]) {
+                            const currentMatrix = body[property];
+                            let isValidIndex = false;
+                            
+                            for (let i = 0; i < currentMatrix.length; i++) {
+                                const row = currentMatrix[i] || [];
+                                
+                                if (colIndex >= 0 && colIndex < row.length) {
+                                    row.splice(colIndex, 1);
+                                    isValidIndex = true;
+                                }
+                            }
+                            
+                            if (!isValidIndex && currentMatrix.length > 0) {
+                                causeCompileError(`Column index ${colIndex} out of bounds for matrix in component "${name}".`, command);
+                            }
+                        }
+                    });
+                } else {
+                    causeCompileError(`Component "${name}" not found on the current page.`, command);
+                }
+                break;
+            }
+            
+            case "add_matrix_border": {
+                const name = command.name;
+                const args = command.args;
+                const borderValue = args.index !== undefined ? args.index : null;
+                const borderColor = args.value !== undefined ? args.value : null;
+                const targetObject = pages[pages.length - 1].find(comp => comp.name === name);
+
+                if (targetObject) {
+                    const body = targetObject.body;
+                    const matrixProps = ["value", "color", "arrow"];
+                    
+                    // Get the dimensions from value matrix
+                    const valueMatrix = body.value || [];
+                    const isEmpty = valueMatrix.length === 0;
+                    const rows = isEmpty ? 1 : valueMatrix.length;
+                    const cols = isEmpty ? 1 : Math.max(...valueMatrix.map(row => row.length || 0));
+                    
+                    // For each matrix property (value, color, arrow)
+                    matrixProps.forEach(prop => {
+                        if (prop === "value" || body[prop]) {
+                            const borderVal = prop === "value" ? borderValue : 
+                                             prop === "color" ? borderColor : null;
+                            
+                            // Create new matrix with border
+                            const newMatrix = [];
+                            
+                            // Add top border row
+                            newMatrix.push(Array(cols + 2).fill(borderVal));
+                            
+                            // Add middle rows with side borders
+                            for (let i = 0; i < rows; i++) {
+                                const origRow = body[prop] && body[prop][i] ? body[prop][i] : Array(cols).fill(null);
+                                const paddedRow = [...origRow];
+                                while (paddedRow.length < cols) paddedRow.push(null);
+                                newMatrix.push([borderVal, ...paddedRow, borderVal]);
+                            }
+                            
+                            // Add bottom border row
+                            newMatrix.push(Array(cols + 2).fill(borderVal));
+                            
+                            // Update the matrix
+                            body[prop] = newMatrix;
+                        }
+                    });
+                } else {
+                    causeCompileError(`Component "${name}" not found on the current page.`, command);
+                }
+                break;
+            }
 
         }
     });
@@ -455,7 +657,7 @@ function preCheck(parsedDSL) {
 
     // Check for valid command types
     parsedDSL.cmds.forEach(cmd => {
-        if (!["page", "show", "hide", "set", "set_multiple", "set_matrix", "set_matrix_multiple", "add", "insert", "remove", "remove_at", "comment"].includes(cmd.type)) {
+        if (!["page", "show", "hide", "set", "set_multiple", "set_matrix", "set_matrix_multiple", "add", "insert", "remove", "remove_at", "comment", "add_matrix_row", "add_matrix_column", "remove_matrix_row", "remove_matrix_column", "add_matrix_border"].includes(cmd.type)) {
             throw new Error(`Unknown command type: ${cmd.type}`);
         }
     });

@@ -236,6 +236,11 @@ commands -> (comment
           | remove_node
           | remove_edge
           | remove_at
+          | add_matrix_row
+          | add_matrix_column
+          | remove_matrix_row
+          | remove_matrix_column
+          | add_matrix_border
 ) {% iid %}
 
 # Main commands
@@ -285,6 +290,14 @@ remove_value -> cmd["removeValue", (number | string | nullT) {% id %}] {% (detai
 remove_node -> cmd["removeNode", word] {% (details) => ({ type: "remove", target: "nodes", ...id(details) }) %}
 remove_edge -> cmd["removeEdge", edge] {% (details) => ({ type: "remove", target: "edges", ...id(details) }) %}
 remove_at -> cmd["removeAt", number] {% (details) => ({ type: "remove_at", target: "all", ...id(details) }) %}
+
+# Matrix structural editing
+add_matrix_row -> cmd["addRow", ((nullT | number) {% id %}):?] {% (details) => ({ type: "add_matrix_row", target: "value", ...id(details) }) %}
+add_matrix_column -> cmd["addColumn", ((nullT | number) {% id %}):?] {% (details) => ({ type: "add_matrix_column", target: "value", ...id(details) }) %}
+remove_matrix_row -> cmd["removeRow", number] {% (details) => ({ type: "remove_matrix_row", target: "value", ...id(details) }) %}
+remove_matrix_column -> cmd["removeColumn", number] {% (details) => ({ type: "remove_matrix_column", target: "value", ...id(details) }) %}
+add_matrix_border -> cmd["addBorder", comma_sep[(number | string | nullT) {% id %}, (string | nullT) {% id %}]] {% (details) => ({ type: "add_matrix_border", target: "value", ...id(details) }) %}
+add_matrix_border -> cmd["addBorder", (number | string | nullT) {% id %}] {% (details) => ({ type: "add_matrix_border", target: "value", ...id(details) }) %}
 
 # - Lists - #
 nns_list -> list[(nullT | number | string) {% iid %}] {% id %} # Accepts null, number, or string

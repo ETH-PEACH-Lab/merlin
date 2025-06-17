@@ -21,14 +21,14 @@ export function findRelevantCommands(commands, pageStartIndex, pageEndIndex, com
     const commandsToRemove = [];
     
     const targetTypes = isMatrix 
-        ? ["set_matrix", "set_matrix_multiple"]
+        ? ["set_matrix", "set_matrix_multiple", "add_matrix_row", "add_matrix_column", "remove_matrix_row", "remove_matrix_column", "add_matrix_border"]
         : ["set", "set_multiple"];
     
     for (let i = pageStartIndex; i < pageEndIndex; i++) {
         const cmd = commands[i];
         if (targetTypes.includes(cmd.type) && 
             cmd.name === componentName && 
-            cmd.target === fieldKey) {
+            (cmd.target === fieldKey || cmd.type.startsWith("add_matrix_") || cmd.type.startsWith("remove_matrix_"))) {
             relevantCommands.push(cmd);
             commandsToRemove.push(i);
         }
@@ -189,4 +189,18 @@ function createOptimizedMatrixCommand(relevantCommands, componentName, fieldKey,
             col: 0
         };
     }
+}
+
+/**
+ * Creates optimized commands for matrix structure modifications
+ */
+export function createOptimizedMatrixStructureCommand(componentName, commandType, index) {
+    return {
+        type: commandType,
+        target: "value", // Matrix structural changes affect all properties
+        args: index,
+        name: componentName,
+        line: 0,
+        col: 0
+    };
 }
