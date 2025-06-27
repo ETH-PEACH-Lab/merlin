@@ -292,8 +292,8 @@ remove_edge -> cmd["removeEdge", edge] {% (details) => ({ type: "remove", target
 remove_at -> cmd["removeAt", number] {% (details) => ({ type: "remove_at", target: "all", ...id(details) }) %}
 
 # Matrix structural editing
-add_matrix_row -> cmd["addRow", ((nullT | number) {% id %}):?] {% (details) => ({ type: "add_matrix_row", target: "value", ...id(details) }) %}
-add_matrix_column -> cmd["addColumn", ((nullT | number) {% id %}):?] {% (details) => ({ type: "add_matrix_column", target: "value", ...id(details) }) %}
+add_matrix_row -> cmd["addRow", ((nullT | number | nns_list) {% iid %}):?] {% (details) => ({ type: "add_matrix_row", target: "value", ...id(details) }) %}
+add_matrix_column -> cmd["addColumn", ((nullT | number | nns_list) {% iid %}):?] {% (details) => ({ type: "add_matrix_column", target: "value", ...id(details) }) %}
 remove_matrix_row -> cmd["removeRow", number] {% (details) => ({ type: "remove_matrix_row", target: "value", ...id(details) }) %}
 remove_matrix_column -> cmd["removeColumn", number] {% (details) => ({ type: "remove_matrix_column", target: "value", ...id(details) }) %}
 add_matrix_border -> cmd["addBorder", comma_sep[(number | string | nullT) {% id %}, (string | nullT) {% id %}]] {% (details) => ({ type: "add_matrix_border", target: "value", ...id(details) }) %}

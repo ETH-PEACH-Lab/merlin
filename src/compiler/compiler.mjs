@@ -453,27 +453,77 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
             }
             case "add_matrix_row": {
                 const name = command.name;
-                const position = command.args; // If null or undefined, will add at the end
+                const args = command.args; // Can be null, number, or array
                 const targetObject = pages[pages.length - 1].find(comp => comp.name === name);
 
                 if (targetObject) {
                     const body = targetObject.body;
                     const matrixProperties = ["value", "color", "arrow"];
                     
+                    // First, determine the current matrix dimensions
+                    let numCols = 0;
+                    let numRows = 0;
                     matrixProperties.forEach(property => {
-                        if (body[property]) {
-                            const currentMatrix = body[property];
-                            const numCols = currentMatrix.length > 0 ? Math.max(...currentMatrix.map(row => row.length)) : 0;
-                            const newRow = Array(numCols).fill(null);
-                            
-                            if (position === null || position === undefined || position >= currentMatrix.length) {
-                                // Add at the end
-                                currentMatrix.push(newRow);
-                            } else {
-                                // Add at the specified position
-                                currentMatrix.splice(position, 0, newRow);
-                            }
+                        if (body[property] && body[property].length > 0) {
+                            numRows = Math.max(numRows, body[property].length);
+                            numCols = Math.max(numCols, ...body[property].map(row => row.length));
                         }
+                    });
+                    
+                    matrixProperties.forEach(property => {
+                        // Create the property if it doesn't exist
+                        if (!body[property]) {
+                            body[property] = [];
+                        }
+                        
+                        const currentMatrix = body[property];
+                        
+                        // Ensure the matrix has the right dimensions before adding
+                        while (currentMatrix.length < numRows) {
+                            currentMatrix.push(Array(numCols).fill(null));
+                        }
+                        currentMatrix.forEach(row => {
+                            while (row.length < numCols) {
+                                row.push(null);
+                            }
+                        });
+                        
+                        let newRow;
+                        let insertIndex;
+                        
+                        if (Array.isArray(args)) {
+                            // If args is an array, use it as the new row values and add at the end
+                            if (property === "value") {
+                                newRow = [...args];
+                            } else if (property === "color" || property === "arrow") {
+                                // For color and arrow, use null for all values
+                                newRow = Array(args.length).fill(null);
+                            }
+                            // Pad with null if the array is shorter than existing columns
+                            while (newRow.length < numCols) {
+                                newRow.push(null);
+                            }
+                            insertIndex = currentMatrix.length; // Add at the end
+                        } else if (typeof args === 'number') {
+                            // If args is a number, use it as the index position and fill with null
+                            newRow = Array(numCols).fill(null);
+                            insertIndex = Math.max(0, Math.min(args, currentMatrix.length)); // Clamp to valid range
+                        } else {
+                            // If args is null or undefined, add at the end filled with null
+                            newRow = Array(numCols).fill(null);
+                            insertIndex = currentMatrix.length; // Add at the end
+                        }
+                        
+                        // Insert the row at the specified index
+                        currentMatrix.splice(insertIndex, 0, newRow);
+                        
+                        // Ensure all existing rows have the same number of columns as the new row
+                        const maxCols = Math.max(numCols, newRow.length);
+                        currentMatrix.forEach(row => {
+                            while (row.length < maxCols) {
+                                row.push(null);
+                            }
+                        });
                     });
                 } else {
                     causeCompileError(`Component "${name}" not found on the current page.`, command);
@@ -483,28 +533,84 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
             
             case "add_matrix_column": {
                 const name = command.name;
-                const position = command.args; // If null or undefined, will add at the end
+                const args = command.args; // Can be null, number, or array
                 const targetObject = pages[pages.length - 1].find(comp => comp.name === name);
 
                 if (targetObject) {
                     const body = targetObject.body;
                     const matrixProperties = ["value", "color", "arrow"];
                     
+                    // First, determine the current matrix dimensions
+                    let numCols = 0;
+                    let numRows = 0;
                     matrixProperties.forEach(property => {
-                        if (body[property]) {
-                            const currentMatrix = body[property];
+                        if (body[property] && body[property].length > 0) {
+                            numRows = Math.max(numRows, body[property].length);
+                            numCols = Math.max(numCols, ...body[property].map(row => row.length));
+                        }
+                    });
+                    
+                    matrixProperties.forEach(property => {
+                        // Create the property if it doesn't exist
+                        if (!body[property]) {
+                            body[property] = [];
+                        }
+                        
+                        const currentMatrix = body[property];
+                        
+                        // Ensure the matrix has the right dimensions before adding
+                        while (currentMatrix.length < numRows) {
+                            currentMatrix.push(Array(numCols).fill(null));
+                        }
+                        currentMatrix.forEach(row => {
+                            while (row.length < numCols) {
+                                row.push(null);
+                            }
+                        });
+                        
+                        if (Array.isArray(args)) {
+                            // If args is an array, use it as the new column values and add at the end
+                            const targetNumRows = Math.max(numRows, args.length);
+                            
+                            for (let i = 0; i < targetNumRows; i++) {
+                                // Ensure we have enough rows
+                                if (i >= currentMatrix.length) {
+                                    currentMatrix.push(Array(numCols).fill(null));
+                                }
+                                
+                                const row = currentMatrix[i] || [];
+                                let valueToAdd;
+                                
+                                if (property === "value") {
+                                    // For value, use the actual values from the array
+                                    valueToAdd = i < args.length ? args[i] : null;
+                                } else if (property === "color" || property === "arrow") {
+                                    // For color and arrow, use null for all values
+                                    valueToAdd = null;
+                                }
+                                
+                                row.push(valueToAdd);
+                                currentMatrix[i] = row;
+                            }
+                        } else if (typeof args === 'number') {
+                            // If args is a number, use it as the index position and fill with null
+                            const insertIndex = Math.max(0, Math.min(args, numCols)); // Clamp to valid range
                             
                             for (let i = 0; i < currentMatrix.length; i++) {
                                 const row = currentMatrix[i] || [];
-                                
-                                if (position === null || position === undefined || position >= row.length) {
-                                    // Add at the end
+                                // Ensure row has enough columns before inserting
+                                while (row.length < insertIndex) {
                                     row.push(null);
-                                } else {
-                                    // Add at the specified position
-                                    row.splice(position, 0, null);
                                 }
-                                
+                                // Insert null at the specified index
+                                row.splice(insertIndex, 0, null);
+                                currentMatrix[i] = row;
+                            }
+                        } else {
+                            // If args is null or undefined, add at the end filled with null
+                            for (let i = 0; i < currentMatrix.length; i++) {
+                                const row = currentMatrix[i] || [];
+                                row.push(null);
                                 currentMatrix[i] = row;
                             }
                         }
