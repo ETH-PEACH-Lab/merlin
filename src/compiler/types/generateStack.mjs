@@ -1,3 +1,5 @@
+import { formatNodeName } from '../compiler.mjs';
+
 export function generateStack(stackComponent) {
     let result = "stack\n";
     result += "size: 7\n";
@@ -12,7 +14,7 @@ export function generateStack(stackComponent) {
         const stackColor = i < color.length ? color[i] : null;
         const stackArrow = i < arrow.length ? arrow[i] : null;
         
-        result += `${stackValue}`;
+        result += `${formatNodeName(stackValue)}`;
         result += ` {color:"${stackColor || "null"}"`;
         result += `, arrow:"${stackArrow === 'empty' ? "" : stackArrow || "null"}"`;
         result += `}\n`;

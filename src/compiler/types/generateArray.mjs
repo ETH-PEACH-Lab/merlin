@@ -1,3 +1,5 @@
+import { formatNodeName } from '../compiler.mjs';
+
 export function generateArray(arrayComponent) {
   let result = "array\n@\n";
 
@@ -16,7 +18,7 @@ export function generateArray(arrayComponent) {
     // Default to an empty string if neither is defined to avoid "undefined" in output.
     const cellDisplayValue = value[i] !== undefined ? value[i] : (structure[i] !== undefined ? structure[i] : "");
     
-    result += `${cellDisplayValue}`;
+    result += `${formatNodeName(cellDisplayValue)}`;
     result += ` {color:"${color[i] || ""}"`;
     
     // Ensure 'empty' is treated as a string literal for comparison.

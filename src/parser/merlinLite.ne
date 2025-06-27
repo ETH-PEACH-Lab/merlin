@@ -99,7 +99,7 @@ const lexer = moo.compile({
   nlw: { match: /[ \t]*\n[ \t]*/, lineBreaks: true },
   ws:     /[ \t]+/,
   nullT: { match: /null/, value: () => null },
-  number: /[0-9]+/,
+  number: /-?(?:[0-9]*\.[0-9]+|[0-9]+)/,
   boolean: { match: /true|false/, value: s => s === "true" },
   times:  /\*/,
   lbracket: "{",
@@ -310,7 +310,7 @@ nns_mlist -> matrix_2d_list[(nullT | number | string) {% iid %}] {% id %} # 2D a
 nnsp_mlist -> matrix_2d_list[(nullT | number | string | pass) {% iid %}] {% id %} # 2D array for matrix values, accepts null, number, string, or pass
 
 # - Literals - #
-number -> %number {% ([value]) => parseInt(value.value, 10) %}
+number -> %number {% ([value]) => Number(value.value) %}
 string -> %string {% ([value]) => value.value %}
 boolean -> %boolean {% ([value]) => value.value %}
 edge -> wordL %dash wordL {% ([start, , end]) => ({ start: start.name, end: end.name }) %}

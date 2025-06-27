@@ -9,7 +9,7 @@ const lexer = moo.compile({
   nlw: { match: /[ \t]*\n[ \t]*/, lineBreaks: true },
   ws:     /[ \t]+/,
   nullT: { match: /null/, value: () => null },
-  number: /[0-9]+/,
+  number: /-?(?:[0-9]*\.[0-9]+|[0-9]+)/,
   boolean: { match: /true|false/, value: s => s === "true" },
   times:  /\*/,
   lbracket: "{",
@@ -907,7 +907,7 @@ var grammar = {
             return rows;
         } },
     {"name": "nnsp_mlist", "symbols": ["nnsp_mlist$macrocall$1"], "postprocess": id},
-    {"name": "number", "symbols": [(lexer.has("number") ? {type: "number"} : number)], "postprocess": ([value]) => parseInt(value.value, 10)},
+    {"name": "number", "symbols": [(lexer.has("number") ? {type: "number"} : number)], "postprocess": ([value]) => Number(value.value)},
     {"name": "string", "symbols": [(lexer.has("string") ? {type: "string"} : string)], "postprocess": ([value]) => value.value},
     {"name": "boolean", "symbols": [(lexer.has("boolean") ? {type: "boolean"} : boolean)], "postprocess": ([value]) => value.value},
     {"name": "edge", "symbols": ["wordL", (lexer.has("dash") ? {type: "dash"} : dash), "wordL"], "postprocess": ([start, , end]) => ({ start: start.name, end: end.name })},

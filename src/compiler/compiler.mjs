@@ -56,6 +56,32 @@ function maintainArrayPropertyConsistency(body, modifiedProperty, index, operati
     });
 }
 
+// Helper function to properly quote node names when necessary
+function formatNodeName(nodeName) {
+    // If nodeName is null, undefined, or empty, return as is
+    if (nodeName == null || nodeName === "") {
+        return nodeName;
+    }
+    
+    // Convert to string for processing
+    const nodeStr = String(nodeName);
+    
+    // If it's a number (including negative numbers and decimals), don't quote
+    if (/^-?\d+(\.\d+)?$/.test(nodeStr)) {
+        return nodeStr;
+    }
+    
+    // If it contains spaces, special characters, or starts with a quote, wrap in quotes
+    if (/[\s"'`]/.test(nodeStr) || nodeStr !== nodeStr.trim()) {
+        return `"${nodeStr.replace(/"/g, '\\"')}"`;
+    }
+    
+    // For simple alphanumeric strings without spaces, return as is
+    return nodeStr;
+}
+
+export { formatNodeName };
+
 export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
     // Deep copy to avoid mutating the original parsed DSL
     const parsedDSL = parsedDSLOriginal ? JSON.parse(JSON.stringify(parsedDSLOriginal)) : {};
