@@ -547,7 +547,7 @@ var detector27 = /* @__PURE__ */ __name((txt) => {
   return /^\s*visual/.test(txt);
 }, "detector");
 var loader27 = /* @__PURE__ */ __name(async () => {
-  const { diagram: diagram2 } = await import("./chunks/mermaid.core/diagram-H45SFM4E.mjs");
+  const { diagram: diagram2 } = await import("./chunks/mermaid.core/diagram-MITIQ6NO.mjs");
   return { id: id27, diagram: diagram2 };
 }, "loader");
 var visual = {
