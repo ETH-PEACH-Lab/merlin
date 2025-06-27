@@ -38,9 +38,9 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             setPages(compiled_pages);
         } catch (e) {
             if (e.line && e.col) {
-                setError(`[${e.line}:${e.col}] Compile error: ${e.message || e}`);
+                setError(`Compile error on line ${e.line}, col ${e.col}:\n${e.message || e}`);
             } else {
-                setError(`Compile error: ${e.message || e}`);
+                setError(`Compile error:\n${e.message || e}`);
             }
         }
     }, []);

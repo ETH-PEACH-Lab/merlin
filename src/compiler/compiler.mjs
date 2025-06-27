@@ -101,7 +101,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                         body: componentData.body,
                     });
                 } else {
-                    causeCompileError(`Component definition not found for name: ${componentNameToShow}`, command);
+                    causeCompileError(`Component not found\n\nName: ${componentNameToShow}`, command);
                 }
                 break;
             case "hide":
@@ -114,7 +114,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                         pages[pages.length - 1].splice(index, 1);
                     }
                 } else {
-                    causeCompileError(`Component "${componentNameToHide}" not found on the current page.`, command);
+                    causeCompileError(`Component not on page\n\nName: ${componentNameToHide}`, command);
                 }
                 break;
             case "set": {
@@ -137,10 +137,10 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                     } else if (isValidIndex) {
                         currentArray[index] = newValue;
                     } else {
-                        causeCompileError(`Index ${index} out of bounds for property "${property}" on component "${name}".`, command);
+                        causeCompileError(`Index out of bounds\n\nIndex: ${index}\nProperty: ${property}\nComponent: ${name}`, command);
                     }
                 } else {
-                    causeCompileError(`Component "${name}" not found on the current page.`, command);
+                    causeCompileError(`Component not on page\n\nName: ${name}`, command);
                 }
                 break;
             }
@@ -170,12 +170,12 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                             if (isValidIndex) {
                                 body[property][i] = value;
                             } else {
-                                causeCompileError(`Index ${i} out of bounds for property "${property}" on component "${name}".`, command);
+                                causeCompileError(`Index out of bounds\n\nIndex: ${i}\nProperty: ${property}\nComponent: ${name}`, command);
                             }
                         }
                     }
                 } else {
-                    causeCompileError(`Component "${name}" not found on the current page.`, command);
+                    causeCompileError(`Component not on page\n\nName: ${name}`, command);
                 }
                 break;
             }
@@ -204,7 +204,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                     // Set the value
                     body[property][row][col] = newValue;
                 } else {
-                    causeCompileError(`Component "${name}" not found on the current page.`, command);
+                    causeCompileError(`Component not on page\n\nName: ${name}`, command);
                 }
                 break;
             }
@@ -241,7 +241,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                         }
                     }
                 } else {
-                    causeCompileError(`Component "${name}" not found on the current page.`, command);
+                    causeCompileError(`Component not on page\n\nName: ${name}`, command);
                 }
                 break;
             }
@@ -285,7 +285,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                     // Maintain consistency across all array properties for all component types
                     maintainArrayPropertyConsistency(body, target, insertIndex, "add");
                 } else {
-                    causeCompileError(`Component "${name}" not found on the current page.`, command);
+                    causeCompileError(`Component not on page\n\nName: ${name}`, command);
                 }
 
                 break;
@@ -309,10 +309,10 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                         // Maintain consistency across all array properties for all component types
                         maintainArrayPropertyConsistency(body, target, index, "insert");
                     } else {
-                        causeCompileError(`Index ${index} out of bounds for insertion in property "${target}" on component "${name}".`, command);
+                        causeCompileError(`Insert index out of bounds\n\nIndex: ${index}\nProperty: ${target}\nComponent: ${name}`, command);
                     }
                 } else {
-                    causeCompileError(`Component "${name}" not found on the current page.`, command);
+                    causeCompileError(`Component not on page\n\nName: ${name}`, command);
                 }
                 break;
             }
@@ -338,7 +338,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                                 body[target].splice(edgeIndex, 1);
                                 removedIndex = edgeIndex;
                             } else {
-                                causeCompileError(`Edge from "${value.start}" to "${value.end}" not found in property "${target}" on component "${name}".`, command);
+                                causeCompileError(`Edge not found\n\nFrom: ${value.start}\nTo: ${value.end}\nProperty: ${target}\nComponent: ${name}`, command);
                             }
                         } else {
                             const index = body[target].indexOf(value);
@@ -346,7 +346,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                                 body[target].splice(index, 1);
                                 removedIndex = index;
                             } else {
-                                causeCompileError(`Value "${value}" not found in property "${target}" on component "${name}".`, command);
+                                causeCompileError(`Value not found\n\nValue: ${value}\nProperty: ${target}\nComponent: ${name}`, command);
                             }
                         }
                         
@@ -355,10 +355,10 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                             maintainArrayPropertyConsistency(body, target, removedIndex, "remove");
                         }
                     } else {
-                        causeCompileError(`Property "${target}" not found on component "${name}".`, command);
+                        causeCompileError(`Property not found\n\nProperty: ${target}\nComponent: ${name}`, command);
                     }
                 } else {
-                    causeCompileError(`Component "${name}" not found on the current page.`, command);
+                    causeCompileError(`Component not on page\n\nName: ${name}`, command);
                 }
                 break;
             }
@@ -381,7 +381,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                     });
                     
                     if (!hasValidIndex) {
-                        causeCompileError(`Index ${index} is out of bounds for all array properties on component "${name}".`, command);
+                        causeCompileError(`Index out of bounds\n\nIndex: ${index}\nComponent: ${name}`, command);
                     }
                     
                     // Remove element at the specified index from all array properties
@@ -392,7 +392,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                         }
                     });
                 } else {
-                    causeCompileError(`Component "${name}" not found on the current page.`, command);
+                    causeCompileError(`Component not on page\n\nName: ${name}\nPage: ${pages.length - 1}`, command);
                 }
                 break;
             }
@@ -427,7 +427,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                     mermaidString += generateGraph(component);
                     break;
                 default:
-                    console.log(`Compile Error! No matching component type: ${component.type}!`)
+                    console.log(`No matching component type:\n${component.type}!`)
                     break;
             }
         }
@@ -441,14 +441,14 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
 
 function preCheck(parsedDSL) {
     if (!parsedDSL || !parsedDSL.defs || !parsedDSL.cmds) {
-        throw new Error("Nothing to show\nPlease define an object and a page, then show it using the 'show' command");
+        throw new Error("Nothing to show\n\nPlease define an object and a page.\nThen show it using the 'show' command");
     }
 
     // Check for duplicate component names
     const names = new Set();
     parsedDSL.defs.forEach(def => {
         if (names.has(def.name)) {
-            throw new Error(`Duplicate component name found: ${def.name}`);
+            throw new Error(`Duplicate component\n\nAffected: ${def.name} of type ${def.type}`);
         }
         names.add(def.name);
     });
@@ -456,27 +456,26 @@ function preCheck(parsedDSL) {
     // Check for valid command types
     parsedDSL.cmds.forEach(cmd => {
         if (!["page", "show", "hide", "set", "set_multiple", "set_matrix", "set_matrix_multiple", "add", "insert", "remove", "remove_at", "comment"].includes(cmd.type)) {
-            throw new Error(`Unknown command type: ${cmd.type}`);
+            throw new Error(`Unknown command\n\nType: ${cmd.type}`);
         }
     });
 
     // Check if the first command is a page
     if (parsedDSL.cmds[0].type !== "page") {
-        setError("No page command found\nPlease start a page using the 'page' command before using any other commands.");
-        return;
+        throw new Error("Command before page\n\nPlease start a page using 'page'.\nThen use any other commands.");
     }
 }
 
 function postCheck(pages) {
     // Check if there is at least one page
     if (pages.length === 0) {
-        throw new Error("No pages found. Please define at least one page with components.");
+        throw new Error("No pages found\n\nPlease define at least one page\nwith components.");
     }
 
     // For each page, check if it has at least one component
     pages.forEach((page, index) => {
         if (page.length === 0) {
-            throw new Error(`Page ${index + 1} is empty. \nPlease add at least one component to the page using the 'show' command.`);
+            throw new Error(`Page ${index + 1} empty\n\nPlease show a component using:\nshow <component_name>`);
         }
     });
 }
