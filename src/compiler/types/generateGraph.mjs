@@ -1,4 +1,4 @@
-import { formatNodeName } from '../compiler.mjs';
+import { formatNodeName, formatNullValue } from '../compiler.mjs';
 
 export function generateGraph(graphComponent) {
     let result = "graph\n@";
@@ -18,7 +18,7 @@ export function generateGraph(graphComponent) {
         const nodeArrow = idx < arrow.length ? arrow[idx] : null;
         const nodeHidden = idx < hidden.length ? hidden[idx] : null;
         
-        result += `\nnode:${formatNodeName(node)} {value:"${nodeValue || node}", color:"${nodeColor || "null"}", arrow:"${nodeArrow === `empty` ? "" : nodeArrow || "null"}", hidden:"${nodeHidden || "null"}"}`;
+        result += `\nnode:${formatNodeName(node)} {value:"${formatNullValue(nodeValue) || node}", color:"${formatNullValue(nodeColor)}", arrow:"${nodeArrow === `empty` ? "" : formatNullValue(nodeArrow)}", hidden:"${formatNullValue(nodeHidden)}"}`;
     }
 
     for (const edge of edges) {

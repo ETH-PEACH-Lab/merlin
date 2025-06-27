@@ -1,4 +1,4 @@
-import { formatNodeName } from '../compiler.mjs';
+import { formatNodeName, formatNullValue } from '../compiler.mjs';
 
 export function generateTree(treeComponent) {
     let result = "tree\n@";
@@ -39,9 +39,9 @@ function convertArrayToBinaryTree(nodes, value, color, arrow) {
             
             const nodeName = formatNodeName(node);
             result += `\n${nodeName}:[${leftChild},${rightChild}]`;
-            result += `{value:"${value[index] ?? nodeName}"`;
-            result += `, color:"${color[index] ?? "null"}"`;
-            result += `, arrow:"${ arrow[index] === 'empty' ? "" : (arrow[index] ?? "null")}"`;
+            result += `{value:"${formatNullValue(value[index]) ?? nodeName}"`;
+            result += `, color:"${formatNullValue(color[index])}"`;
+            result += `, arrow:"${ arrow[index] === 'empty' ? "" : formatNullValue(arrow[index])}"`;
             result += `}`;
   
             if (leftChild !== 'None') {

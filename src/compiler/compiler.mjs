@@ -80,7 +80,18 @@ function formatNodeName(nodeName) {
     return nodeStr;
 }
 
-export { formatNodeName };
+// Helper function to handle null values vs "null" strings
+function formatNullValue(value) {
+    if (value === null || value === undefined) {
+        return "null";
+    }
+    if (value === "null") {
+        return "\\\\null";
+    }
+    return value;
+}
+
+export { formatNodeName, formatNullValue };
 
 export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
     // Deep copy to avoid mutating the original parsed DSL

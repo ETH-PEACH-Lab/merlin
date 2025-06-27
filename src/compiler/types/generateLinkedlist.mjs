@@ -1,4 +1,4 @@
-import { formatNodeName } from '../compiler.mjs';
+import { formatNodeName, formatNullValue } from '../compiler.mjs';
 
 export function generateLinkedlist(linkedListComponent) {
     let result = "linkedList\n@";
@@ -14,7 +14,7 @@ export function generateLinkedlist(linkedListComponent) {
         const nodeColor = i < color.length ? color[i] : null;
         const nodeArrow = i < arrow.length ? arrow[i] : null;
         
-        result += `\n${formatNodeName(node)} {value:"${nodeValue ?? node}", color:"${nodeColor ?? "null"}", arrow:"${nodeArrow === 'empty' ? "" : (nodeArrow ?? "null")}"}`;
+        result += `\n${formatNodeName(node)} {value:"${formatNullValue(nodeValue) ?? node}", color:"${formatNullValue(nodeColor)}", arrow:"${nodeArrow === 'empty' ? "" : formatNullValue(nodeArrow)}"}`;
     }
     
     result += "\n@\n";

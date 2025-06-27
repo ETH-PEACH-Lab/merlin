@@ -6,6 +6,7 @@ const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar));
 const input = `// Test matrix with addRow and addColumn with arrays
 matrix testMatrix = {
   value: [[1, 2], [3, 4]]
+  color: [[null, "null"]]
 }
 
 page
