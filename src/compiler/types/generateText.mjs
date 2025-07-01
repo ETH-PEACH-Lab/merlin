@@ -1,5 +1,7 @@
 // generateText.mjs - Generate text output for visual diagrams
 
+import { formatPositionForOutput } from '../positionUtils.mjs';
+
 export function generateText(component) {
     const { name, body } = component;
     let result = "text\n";
@@ -11,8 +13,9 @@ export function generateText(component) {
             if (component.placement) {
                 result += `placement: ${component.placement}\n`;
             }
-        } else if (Array.isArray(component.position)) {
-            result += `position: (${component.position[0]},${component.position[1]})\n`;
+        } else {
+            // Handle regular and ranged positions
+            result += formatPositionForOutput(component.position);
         }
     }
     

@@ -97,7 +97,11 @@ function reconstructCommand(cmd) {
             return '\npage';
             
         case 'show':
+            if (cmd.position) {
+                return `show ${cmd.value} ${formatPosition(cmd.position)}`;
+            }
             return `show ${cmd.value}`;
+            
             
         case 'set':
             // Special handling for text components
@@ -161,6 +165,35 @@ function reconstructCommand(cmd) {
         default:
             return null;
     }
+}
+
+function formatPosition(position) {
+    if (!position) {
+        return '';
+    }
+    
+    // Handle the new shape-based position format
+    if (typeof position === 'object' && position.originalPosition) {
+        position = position.originalPosition;
+    }
+    
+    if (!Array.isArray(position)) {
+        return '';
+    }
+    
+    const [x, y] = position;
+    
+    function formatPositionValue(value) {
+        if (value && typeof value === 'object' && value.type === 'range') {
+            return `${value.start}..${value.end}`;
+        }
+        return value;
+    }
+    
+    const xStr = formatPositionValue(x);
+    const yStr = formatPositionValue(y);
+    
+    return `(${xStr}, ${yStr})`;
 }
 
 function formatMatrix(matrix) {

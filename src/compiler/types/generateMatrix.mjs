@@ -1,10 +1,10 @@
+import { formatPositionForOutput } from '../positionUtils.mjs';
+
 export function generateMatrix(matrixComponent) {
     let result = "matrix\n";
     
     // Add position information if available
-    if (matrixComponent.position && Array.isArray(matrixComponent.position)) {
-        result += `position: (${matrixComponent.position[0]},${matrixComponent.position[1]})\n`;
-    }
+    result += formatPositionForOutput(matrixComponent.position);
     
     result += "@";
     

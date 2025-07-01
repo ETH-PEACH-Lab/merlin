@@ -110,6 +110,7 @@ const lexer = moo.compile({
   rparen: ")",
   colon: ":",
   comma: ",",
+  dotdot: "..", // Add range operator before dot to avoid conflicts
   dot: ".",
   dash: "-",
   equals: "=",
@@ -274,10 +275,10 @@ commands -> (comment
 # Main commands
 page -> "page" (_ layout):? {% ([, layoutArg]) => ({ type: "page", layout: layoutArg ? layoutArg[1] : null }) %}
 
-show -> "show" _ wordL (_ tuple[number, number]):? {% ([, , wordL, positionArg]) => ({ 
+show -> "show" _ wordL (_ (ranged_tuple | tuple[number, number])):? {% ([, , wordL, positionArg]) => ({ 
     type: "show", 
     value: wordL.name, 
-    position: positionArg ? positionArg[1] : null,
+    position: positionArg ? positionArg[1][0] : null,
     line: wordL.line, 
     col: wordL.col 
 }) %}
@@ -349,6 +350,15 @@ nullT -> %nullT {% () => null %}
 pass -> %pass {% () => "_" %}
 layout -> number %x number {% ([a, , b]) => [a, b] %}
 
+# Range values, e.g. 0..1
+range_value -> number dotdot number {% ([start, , end]) => ({ type: "range", start: start, end: end }) %}
+
+# Position values that can be numbers or ranges
+position_value -> (range_value | number) {% iid %}
+
+# Ranged tuples, e.g. (0..1, 0) or (0..1, 0..1)
+ranged_tuple -> lparen _ position_value _ comma _ position_value _ rparen {% ([, , x, , , , y, ]) => [x, y] %}
+
 # Whitespace and newlines
 _ -> %ws:? {% () => null %}
 __ -> %ws {% () => null %}
@@ -366,6 +376,7 @@ rbrac -> %rbrac {% () => null %}
 lparen -> %lparen {% () => null %}
 rparen -> %rparen {% () => null %}
 comma -> %comma {% () => null %}
+dotdot -> %dotdot {% () => null %}
 dot -> %dot {% () => null %}
 colon -> %colon {% () => null %}
 equals -> %equals {% () => null %}

@@ -58,6 +58,43 @@ function maintainArrayPropertyConsistency(body, modifiedProperty, index, operati
     });
 }
 
+// Helper function to expand ranged positions into shape dimensions
+function expandRangedPosition(position) {
+    if (!position || !Array.isArray(position)) {
+        return position; // Return as-is if not a position array
+    }
+    
+    const [xPos, yPos] = position;
+    
+    // Helper function to get range dimensions
+    function getRangeDimensions(pos) {
+        if (pos && typeof pos === 'object' && pos.type === 'range') {
+            return {
+                start: pos.start,
+                end: pos.end,
+                size: pos.end - pos.start + 1
+            };
+        }
+        return {
+            start: pos,
+            end: pos,
+            size: 1
+        };
+    }
+    
+    const xDim = getRangeDimensions(xPos);
+    const yDim = getRangeDimensions(yPos);
+    
+    // Return the shape information
+    return {
+        x: xDim.start,
+        y: yDim.start,
+        width: xDim.size,
+        height: yDim.size,
+        originalPosition: position
+    };
+}
+
 export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
     // Deep copy to avoid mutating the original parsed DSL
     const parsedDSL = parsedDSLOriginal ? JSON.parse(JSON.stringify(parsedDSLOriginal)) : {};
@@ -104,6 +141,9 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                 const componentData = findComponentDefinitionByName(definitions, componentNameToShow);
 
                 if (componentData) {
+                    // Expand ranged positions if needed
+                    const expandedPosition = command.position ? expandRangedPosition(command.position) : null;
+                    
                     const component = {
                         type: componentData.type,
                         name: componentData.name,
@@ -111,8 +151,8 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                     };
                     
                     // Add position information if provided
-                    if (command.position) {
-                        component.position = command.position; // [x, y]
+                    if (expandedPosition) {
+                        component.position = expandedPosition;
                     }
                     
                     pages[pages.length - 1].push(component);
