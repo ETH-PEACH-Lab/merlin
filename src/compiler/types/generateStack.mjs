@@ -1,10 +1,10 @@
 import { formatPositionForOutput } from '../positionUtils.mjs';
 
-export function generateStack(stackComponent) {
+export function generateStack(stackComponent, layout = [3, 3]) {
     let result = "stack\n";
     
     // Add position information if available
-    result += formatPositionForOutput(stackComponent.position);
+    result += formatPositionForOutput(stackComponent.position, layout);
     
     result += "size: 7\n";
     result += "@\n";

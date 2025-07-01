@@ -1,10 +1,10 @@
 import { formatPositionForOutput } from '../positionUtils.mjs';
 
-export function generateLinkedlist(linkedListComponent) {
+export function generateLinkedlist(linkedListComponent, layout = [3, 3]) {
     let result = "linkedlist\n";
     
     // Add position information if available
-    result += formatPositionForOutput(linkedListComponent.position);
+    result += formatPositionForOutput(linkedListComponent.position, layout);
     
     result += "@";
     

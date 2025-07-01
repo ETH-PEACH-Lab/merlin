@@ -2,7 +2,7 @@
 
 import { formatPositionForOutput } from '../positionUtils.mjs';
 
-export function generateText(component) {
+export function generateText(component, layout = [3, 3]) {
     const { name, body } = component;
     let result = "text\n";
     
@@ -15,7 +15,7 @@ export function generateText(component) {
             }
         } else {
             // Handle regular and ranged positions
-            result += formatPositionForOutput(component.position);
+            result += formatPositionForOutput(component.position, layout);
         }
     }
     

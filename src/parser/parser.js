@@ -627,6 +627,7 @@ var grammar = {
     {"name": "page$ebnf$1", "symbols": ["page$ebnf$1$subexpression$1"], "postprocess": id},
     {"name": "page$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
     {"name": "page", "symbols": [{"literal":"page"}, "page$ebnf$1"], "postprocess": ([, layoutArg]) => ({ type: "page", layout: layoutArg ? layoutArg[1] : null })},
+    {"name": "show$ebnf$1$subexpression$1$subexpression$1", "symbols": ["position_keyword"]},
     {"name": "show$ebnf$1$subexpression$1$subexpression$1", "symbols": ["ranged_tuple"]},
     {"name": "show$ebnf$1$subexpression$1$subexpression$1$macrocall$2", "symbols": ["number"]},
     {"name": "show$ebnf$1$subexpression$1$subexpression$1$macrocall$3", "symbols": ["number"]},
@@ -1082,6 +1083,29 @@ var grammar = {
     {"name": "position_value$subexpression$1", "symbols": ["number"]},
     {"name": "position_value", "symbols": ["position_value$subexpression$1"], "postprocess": iid},
     {"name": "ranged_tuple", "symbols": ["lparen", "_", "position_value", "_", "comma", "_", "position_value", "_", "rparen"], "postprocess": ([, , x, , , , y, ]) => [x, y]},
+    {"name": "position_keyword$subexpression$1", "symbols": [(lexer.has("word") ? {type: "word"} : word)]},
+    {"name": "position_keyword$subexpression$1", "symbols": [(lexer.has("word") ? {type: "word"} : word), (lexer.has("dash") ? {type: "dash"} : dash), (lexer.has("word") ? {type: "word"} : word)]},
+    {"name": "position_keyword", "symbols": ["position_keyword$subexpression$1"], "postprocess":  (parts) => {
+            const tokens = parts[0]; // Access the actual token array
+            let keywordValue;
+            if (Array.isArray(tokens) && tokens.length === 3) {
+                // Hyphenated keyword like "top-left"
+                keywordValue = tokens[0].value + '-' + tokens[2].value;
+            } else if (Array.isArray(tokens)) {
+                // Single word keyword like "tl"
+                keywordValue = tokens[0].value;
+            } else {
+                // Single token case
+                keywordValue = tokens.value;
+            }
+            const firstToken = Array.isArray(tokens) ? tokens[0] : tokens;
+            return { 
+                type: "keyword", 
+                value: keywordValue, 
+                line: firstToken.line, 
+                col: firstToken.col 
+            };
+        } },
     {"name": "_$ebnf$1", "symbols": [(lexer.has("ws") ? {type: "ws"} : ws)], "postprocess": id},
     {"name": "_$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
     {"name": "_", "symbols": ["_$ebnf$1"], "postprocess": () => null},

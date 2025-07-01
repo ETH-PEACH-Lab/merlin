@@ -1,10 +1,10 @@
 import { formatPositionForOutput } from '../positionUtils.mjs';
 
-export function generateGraph(graphComponent) {
+export function generateGraph(graphComponent, layout = [3, 3]) {
     let result = "graph\n";
     
     // Add position information if available
-    result += formatPositionForOutput(graphComponent.position);
+    result += formatPositionForOutput(graphComponent.position, layout);
     
     result += "@";
     const nodes = graphComponent.body.nodes || [];

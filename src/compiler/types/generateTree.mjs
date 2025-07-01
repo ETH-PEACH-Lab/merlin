@@ -1,10 +1,10 @@
 import { formatPositionForOutput } from '../positionUtils.mjs';
 
-export function generateTree(treeComponent) {
+export function generateTree(treeComponent, layout = [3, 3]) {
     let result = "tree\n";
     
     // Add position information if available
-    result += formatPositionForOutput(treeComponent.position);
+    result += formatPositionForOutput(treeComponent.position, layout);
     
     result += "@";
 

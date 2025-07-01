@@ -1,5 +1,7 @@
 // myCompiler to convert myDSL into mermaid code
 
+import { expandPositionWithLayout, inferLayoutFromKeywords } from './positionUtils.mjs';
+
 import { generateArray } from "./types/generateArray.mjs"
 import { generateLinkedlist } from "./types/generateLinkedlist.mjs";
 import { generateStack } from "./types/generateStack.mjs";
@@ -118,9 +120,34 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
 
     const pages = [];
 
+    // Smart layout inference: collect position keywords to infer minimum layouts
+    function inferSmartLayouts() {
+        let currentPageIndex = -1;
+        const pageKeywords = []; // Array of arrays - one per page
+        
+        // First pass: collect all position keywords per page
+        commands.forEach((command) => {
+            if (command.type === "page") {
+                currentPageIndex++;
+                pageKeywords[currentPageIndex] = [];
+            } else if (command.type === "show" && command.position && command.position.type === 'keyword') {
+                if (currentPageIndex >= 0) {
+                    pageKeywords[currentPageIndex].push(command.position);
+                }
+            }
+        });
+        
+        return pageKeywords.map(keywords => inferLayoutFromKeywords(keywords));
+    }
+    
+    const inferredLayouts = inferSmartLayouts();
+    let currentInferredLayoutIndex = -1;
+
     commands.forEach((command) => {
         switch (command.type) {
             case "page":
+                currentInferredLayoutIndex++;
+                
                 // Keep previous page if exists
                 if (pages.length > 0) {
                     const lastPage = JSON.parse(JSON.stringify(pages[pages.length - 1]));
@@ -130,10 +157,13 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                 }
                 
                 // Store layout information on the page
+                const currentPage = pages[pages.length - 1];
                 if (command.layout) {
-                    // Set layout on the last page - we'll use this later in generation
-                    const currentPage = pages[pages.length - 1];
+                    // Explicit layout provided
                     currentPage._layout = command.layout; // [cols, rows]
+                } else if (inferredLayouts[currentInferredLayoutIndex]) {
+                    // Use inferred layout based on position keywords
+                    currentPage._layout = inferredLayouts[currentInferredLayoutIndex];
                 }
                 break;
             case "show":
@@ -141,8 +171,17 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                 const componentData = findComponentDefinitionByName(definitions, componentNameToShow);
 
                 if (componentData) {
-                    // Expand ranged positions if needed
-                    const expandedPosition = command.position ? expandRangedPosition(command.position) : null;
+                    // Get current page layout for keyword translation
+                    const currentPage = pages[pages.length - 1];
+                    const currentLayout = currentPage._layout || [2, 2]; // Default to 2x2
+                    
+                    // First expand keywords with layout context, then expand ranged positions
+                    let expandedPosition = null;
+                    if (command.position) {
+                        const keywordExpanded = expandPositionWithLayout(command.position, currentLayout);
+                        expandedPosition = keywordExpanded.type === 'keyword' ? 
+                            keywordExpanded : expandRangedPosition(keywordExpanded);
+                    }
                     
                     const component = {
                         type: componentData.type,
@@ -520,27 +559,29 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
         for (const component of page) {
             // Skip internal page properties
             if (component.type) {
+                const currentLayout = page._layout || [3, 3]; // Default to 3x3
+                
                 switch (component.type) {
                     case "array":
-                        mermaidString += generateArray(component);
+                        mermaidString += generateArray(component, currentLayout);
                         break;
                     case "linkedlist":
-                        mermaidString += generateLinkedlist(component);
+                        mermaidString += generateLinkedlist(component, currentLayout);
                         break;
                     case "stack":
-                        mermaidString += generateStack(component);
+                        mermaidString += generateStack(component, currentLayout);
                         break;
                     case "tree":
-                        mermaidString += generateTree(component);
+                        mermaidString += generateTree(component, currentLayout);
                         break;
                     case "matrix":
-                        mermaidString += generateMatrix(component);
+                        mermaidString += generateMatrix(component, currentLayout);
                         break;
                     case "graph":
-                        mermaidString += generateGraph(component);
+                        mermaidString += generateGraph(component, currentLayout);
                         break;
                     case "text":
-                        mermaidString += generateText(component);
+                        mermaidString += generateText(component, currentLayout);
                         break;
                     default:
                         console.log(`Compile Error! No matching component type: ${component.type}!`)

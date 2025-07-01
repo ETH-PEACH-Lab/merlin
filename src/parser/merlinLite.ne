@@ -275,7 +275,7 @@ commands -> (comment
 # Main commands
 page -> "page" (_ layout):? {% ([, layoutArg]) => ({ type: "page", layout: layoutArg ? layoutArg[1] : null }) %}
 
-show -> "show" _ wordL (_ (ranged_tuple | tuple[number, number])):? {% ([, , wordL, positionArg]) => ({ 
+show -> "show" _ wordL (_ (position_keyword | ranged_tuple | tuple[number, number])):? {% ([, , wordL, positionArg]) => ({ 
     type: "show", 
     value: wordL.name, 
     position: positionArg ? positionArg[1][0] : null,
@@ -358,6 +358,30 @@ position_value -> (range_value | number) {% iid %}
 
 # Ranged tuples, e.g. (0..1, 0) or (0..1, 0..1)
 ranged_tuple -> lparen _ position_value _ comma _ position_value _ rparen {% ([, , x, , , , y, ]) => [x, y] %}
+
+# Position keywords, e.g. top-left, tl, center, etc.
+# Allow hyphenated keywords by combining word tokens with dashes
+position_keyword -> (%word | %word %dash %word) {% (parts) => {
+    const tokens = parts[0]; // Access the actual token array
+    let keywordValue;
+    if (Array.isArray(tokens) && tokens.length === 3) {
+        // Hyphenated keyword like "top-left"
+        keywordValue = tokens[0].value + '-' + tokens[2].value;
+    } else if (Array.isArray(tokens)) {
+        // Single word keyword like "tl"
+        keywordValue = tokens[0].value;
+    } else {
+        // Single token case
+        keywordValue = tokens.value;
+    }
+    const firstToken = Array.isArray(tokens) ? tokens[0] : tokens;
+    return { 
+        type: "keyword", 
+        value: keywordValue, 
+        line: firstToken.line, 
+        col: firstToken.col 
+    };
+} %}
 
 # Whitespace and newlines
 _ -> %ws:? {% () => null %}

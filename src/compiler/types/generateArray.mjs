@@ -1,10 +1,10 @@
 import { formatPositionForOutput } from '../positionUtils.mjs';
 
-export function generateArray(arrayComponent) {
+export function generateArray(arrayComponent, layout = [3, 3]) {
   let result = "array\n";
   
   // Add position information if available
-  result += formatPositionForOutput(arrayComponent.position);
+  result += formatPositionForOutput(arrayComponent.position, layout);
   
   result += "@\n";
 
