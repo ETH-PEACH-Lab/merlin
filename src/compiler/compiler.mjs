@@ -144,13 +144,18 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
     let currentInferredLayoutIndex = -1;
 
     // Helper function to check if a position/slot is already occupied
-    function checkSlotOccupancy(currentPage, layout, position) {
+    function checkSlotOccupancy(currentPage, layout, position, excludeComponentName = null) {
         if (!position || !currentPage._layout) return;
         
         const occupiedSlots = new Set();
         
         // Track occupied positions for all existing components on the page
         currentPage.forEach(component => {
+            // Skip the component that's being updated
+            if (excludeComponentName && component.name === excludeComponentName) {
+                return;
+            }
+            
             if (component.position && component.position.x !== undefined && component.position.y !== undefined) {
                 // Handle ranged positions
                 for (let x = component.position.x; x < component.position.x + (component.position.width || 1); x++) {
@@ -208,6 +213,9 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                     const currentPage = pages[pages.length - 1];
                     const currentLayout = currentPage._layout || [2, 2]; // Default to 2x2
                     
+                    // Check if component is already present on current page
+                    const existingComponentIndex = currentPage.findIndex(comp => comp.name === componentNameToShow);
+                    
                     // First expand keywords with layout context, then expand ranged positions
                     let expandedPosition = null;
                     if (command.position) {
@@ -215,25 +223,48 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                         expandedPosition = keywordExpanded.type === 'keyword' ? 
                             keywordExpanded : expandRangedPosition(keywordExpanded);
                         
-                        // Check for slot occupancy
-                        const occupancyError = checkSlotOccupancy(currentPage, currentLayout, expandedPosition);
-                        if (occupancyError) {
-                            causeCompileError(occupancyError, command);
+                        // Check for slot occupancy only if it's a new component or position is changing
+                        let shouldCheckOccupancy = true;
+                        if (existingComponentIndex !== -1) {
+                            const existingComponent = currentPage[existingComponentIndex];
+                            // If position is the same, no need to check occupancy
+                            if (JSON.stringify(existingComponent.position) === JSON.stringify(expandedPosition)) {
+                                shouldCheckOccupancy = false;
+                            }
+                        }
+                        
+                        if (shouldCheckOccupancy) {
+                            const excludeComponent = existingComponentIndex !== -1 ? componentNameToShow : null;
+                            const occupancyError = checkSlotOccupancy(currentPage, currentLayout, expandedPosition, excludeComponent);
+                            if (occupancyError) {
+                                causeCompileError(occupancyError, command);
+                            }
                         }
                     }
                     
-                    const component = {
-                        type: componentData.type,
-                        name: componentData.name,
-                        body: componentData.body,
-                    };
-                    
-                    // Add position information if provided
-                    if (expandedPosition) {
-                        component.position = expandedPosition;
+                    if (existingComponentIndex !== -1) {
+                        // Component already exists on page - only update position
+                        if (expandedPosition) {
+                            currentPage[existingComponentIndex].position = expandedPosition;
+                        } else {
+                            // Remove position if no position specified
+                            delete currentPage[existingComponentIndex].position;
+                        }
+                    } else {
+                        // Component doesn't exist - add new component
+                        const component = {
+                            type: componentData.type,
+                            name: componentData.name,
+                            body: componentData.body,
+                        };
+                        
+                        // Add position information if provided
+                        if (expandedPosition) {
+                            component.position = expandedPosition;
+                        }
+                        
+                        pages[pages.length - 1].push(component);
                     }
-                    
-                    pages[pages.length - 1].push(component);
                     
                     // Handle placement text components (above, below, left, right)
                     const placementDirections = ['above', 'below', 'left', 'right'];
