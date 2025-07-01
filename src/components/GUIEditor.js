@@ -119,14 +119,27 @@ const GUIEditor = ({
   };
 
   const handleFieldUpdate = (fieldKey, value) => {
-    if (inspectorIndex && fieldKey !== "id" && currentUnitData.coordinates) {
-      updateValue(
-        currentUnitData.page,
-        currentUnitData.name,
-        currentUnitData.coordinates,
-        fieldKey,
-        value
-      );
+    if (inspectorIndex && fieldKey !== "id") {
+      // Handle position field (no coordinates needed)
+      if (fieldKey === "position") {
+        updateValue(
+          currentUnitData.page,
+          currentUnitData.name,
+          null, // No coordinates for position field
+          fieldKey,
+          value
+        );
+      }
+      // Handle array/matrix fields (coordinates required)
+      else if (currentUnitData.coordinates) {
+        updateValue(
+          currentUnitData.page,
+          currentUnitData.name,
+          currentUnitData.coordinates,
+          fieldKey,
+          value
+        );
+      }
     }
   };
 

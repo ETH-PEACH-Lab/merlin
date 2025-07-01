@@ -72,20 +72,25 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         (page, componentName, coordinates, fieldKey, value) => {
             if (!parsedCode) return;
             
-            // Check if the value is already set to the same value
-            const currentComponent = pages[page]?.find(comp => comp.name === componentName);
-            if (currentComponent) {
-                let currentValue;
-                if (coordinates.isMatrix) {
-                    const { row, col } = coordinates;
-                    currentValue = currentComponent.body[fieldKey]?.[row]?.[col];
-                } else {
-                    const { index } = coordinates;
-                    currentValue = currentComponent.body[fieldKey]?.[index];
-                }
-                
-                if (currentValue === value && value !== "_") {
-                    return;
+            // Handle position field updates (no coordinates needed)
+            if (fieldKey === "position") {
+                // No need to check current value for position fields - they're simple replacements
+            } else {
+                // Check if the value is already set to the same value for array/matrix fields
+                const currentComponent = pages[page]?.find(comp => comp.name === componentName);
+                if (currentComponent) {
+                    let currentValue;
+                    if (coordinates?.isMatrix) {
+                        const { row, col } = coordinates;
+                        currentValue = currentComponent.body[fieldKey]?.[row]?.[col];
+                    } else if (coordinates?.index !== undefined) {
+                        const { index } = coordinates;
+                        currentValue = currentComponent.body[fieldKey]?.[index];
+                    }
+                    
+                    if (currentValue === value && value !== "_") {
+                        return;
+                    }
                 }
             }
             
@@ -110,17 +115,16 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
                 console.error(`Page ${page} not found`);
                 return;
             }
-            
-            // Use unified command optimization for both arrays and matrices
+             // Use unified command optimization for arrays, matrices, and position fields
             const { relevantCommands, commandsToRemove } = findRelevantCommands(
                 parsedCode.cmds, 
                 pageStartIndex, 
                 pageEndIndex, 
                 componentName, 
                 fieldKey,
-                coordinates.isMatrix
+                coordinates?.isMatrix || false
             );
-            
+
             const newCommand = createOptimizedCommand(
                 relevantCommands, 
                 componentName, 

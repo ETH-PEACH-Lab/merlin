@@ -143,6 +143,39 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
     const inferredLayouts = inferSmartLayouts();
     let currentInferredLayoutIndex = -1;
 
+    // Helper function to check if a position/slot is already occupied
+    function checkSlotOccupancy(currentPage, layout, position) {
+        if (!position || !currentPage._layout) return;
+        
+        const occupiedSlots = new Set();
+        
+        // Track occupied positions for all existing components on the page
+        currentPage.forEach(component => {
+            if (component.position && component.position.x !== undefined && component.position.y !== undefined) {
+                // Handle ranged positions
+                for (let x = component.position.x; x < component.position.x + (component.position.width || 1); x++) {
+                    for (let y = component.position.y; y < component.position.y + (component.position.height || 1); y++) {
+                        occupiedSlots.add(`${x},${y}`);
+                    }
+                }
+            }
+        });
+        
+        // Check if the new position conflicts
+        if (position.x !== undefined && position.y !== undefined) {
+            for (let x = position.x; x < position.x + (position.width || 1); x++) {
+                for (let y = position.y; y < position.y + (position.height || 1); y++) {
+                    const slotKey = `${x},${y}`;
+                    if (occupiedSlots.has(slotKey)) {
+                        return `Slot already occupied\n\nPosition: (${x},${y})`;
+                    }
+                }
+            }
+        }
+        
+        return null; // No conflict
+    }
+
     commands.forEach((command) => {
         switch (command.type) {
             case "page":
@@ -181,6 +214,12 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                         const keywordExpanded = expandPositionWithLayout(command.position, currentLayout);
                         expandedPosition = keywordExpanded.type === 'keyword' ? 
                             keywordExpanded : expandRangedPosition(keywordExpanded);
+                        
+                        // Check for slot occupancy
+                        const occupancyError = checkSlotOccupancy(currentPage, currentLayout, expandedPosition);
+                        if (occupancyError) {
+                            causeCompileError(occupancyError, command);
+                        }
                     }
                     
                     const component = {
@@ -231,7 +270,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                         }
                     });
                 } else {
-                    causeCompileError(`Component definition not found for name: ${componentNameToShow}`, command);
+                    causeCompileError(`Component not found\n\nName: ${componentNameToShow}`, command);
                 }
                 break;
             case "hide":

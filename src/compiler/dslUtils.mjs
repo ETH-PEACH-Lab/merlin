@@ -69,35 +69,42 @@ export function getComponentFields(componentType) {
       value: ["Value", "number_or_string"],
       color: ["Color", "color"],
       arrow: ["Arrow Label", "string"],
+      position: ["Position", "position"],
     },
     matrix: {
       value: ["Value", "number_or_string"],
       color: ["Color", "color"],
       arrow: ["Arrow Label", "string"],
+      position: ["Position", "position"],
     },
     stack: {
       value: ["Value", "number_or_string"],
       color: ["Color", "color"],
       arrow: ["Arrow Label", "string"],
+      position: ["Position", "position"],
     },
     graph: {
       value: ["Value", "number_or_string"],
       color: ["Color", "color"],
       arrow: ["Arrow Label", "string"],
       hidden: ["Hidden", "boolean"],
+      position: ["Position", "position"],
     },
     tree: {
       value: ["Value", "number_or_string"],
       color: ["Color", "color"],
       arrow: ["Arrow Label", "string"],
+      position: ["Position", "position"],
     },
     linkedlist: {
       value: ["Value", "number_or_string"],
       color: ["Color", "color"],
       arrow: ["Arrow Label", "string"],
+      position: ["Position", "position"],
     },
     text: {
       value: ["Value", "string"],
+      position: ["Position", "position"],
     },
   };
 
@@ -174,6 +181,9 @@ export function convertValueToType(value, type) {
         return lowerValue === "true" || lowerValue === "1";
       }
       return Boolean(value);
+    case "position":
+      // Position can be a string representation like "(1,2)" or "center" or "1..3,2"
+      return String(value);
     case "color":
     case "string":
     default:

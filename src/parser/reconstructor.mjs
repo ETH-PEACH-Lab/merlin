@@ -94,6 +94,9 @@ function isTextComponent(cmd) {
 function reconstructCommand(cmd) {
     switch (cmd.type) {
         case 'page':
+            if (cmd.layout && Array.isArray(cmd.layout) && cmd.layout.length === 2) {
+                return `\npage ${cmd.layout[0]}x${cmd.layout[1]}`;
+            }
             return '\npage';
             
         case 'show':
@@ -172,28 +175,35 @@ function formatPosition(position) {
         return '';
     }
     
+    // Handle keyword-type positions
+    if (typeof position === 'object' && position.type === 'keyword') {
+        return position.value;
+    }
+    
     // Handle the new shape-based position format
     if (typeof position === 'object' && position.originalPosition) {
         position = position.originalPosition;
     }
     
-    if (!Array.isArray(position)) {
-        return '';
-    }
-    
-    const [x, y] = position;
-    
-    function formatPositionValue(value) {
-        if (value && typeof value === 'object' && value.type === 'range') {
-            return `${value.start}..${value.end}`;
+    // Handle array-type positions (coordinate tuples)
+    if (Array.isArray(position)) {
+        const [x, y] = position;
+        
+        function formatPositionValue(value) {
+            if (value && typeof value === 'object' && value.type === 'range') {
+                return `${value.start}..${value.end}`;
+            }
+            return value;
         }
-        return value;
+        
+        const xStr = formatPositionValue(x);
+        const yStr = formatPositionValue(y);
+        
+        return `(${xStr}, ${yStr})`;
     }
     
-    const xStr = formatPositionValue(x);
-    const yStr = formatPositionValue(y);
-    
-    return `(${xStr}, ${yStr})`;
+    // For any other format, return as-is (fallback)
+    return '';
 }
 
 function formatMatrix(matrix) {
