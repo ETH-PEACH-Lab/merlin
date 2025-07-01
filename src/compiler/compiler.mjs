@@ -7,6 +7,7 @@ import { generateTree } from "./types/generateTree.mjs";
 import { generateMatrix } from "./types/generateMatrix.mjs";
 import { generateGraph } from "./types/generateGraph.mjs";
 import { generateText } from "./types/generateText.mjs";
+import { getMermaidContainerSize } from "./cssUtils.mjs";
 
 // Helper function to maintain consistency across array properties when modifying arrays
 function maintainArrayPropertyConsistency(body, modifiedProperty, index, operation) {
@@ -415,8 +416,10 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
 
     postCheck(pages);
 
-    // Generate the mermaid string
+    // Generate the mermaid string with dynamic sizing
+    const { width, height } = getMermaidContainerSize();
     let mermaidString = "visual\n";
+    mermaidString += `size: (${width},${height})\n`;
     for (const page of pages) {
         mermaidString += "page\n"
         for (const component of page) {
