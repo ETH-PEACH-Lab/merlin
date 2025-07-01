@@ -512,7 +512,7 @@ var detector7 = /* @__PURE__ */ __name((txt) => {
   return /^\s*info/.test(txt);
 }, "detector");
 var loader7 = /* @__PURE__ */ __name(async () => {
-  const { diagram: diagram2 } = await import("./chunks/mermaid.esm/infoDiagram-D4GN3L4R.mjs");
+  const { diagram: diagram2 } = await import("./chunks/mermaid.esm/infoDiagram-K74X2FM5.mjs");
   return { id: id7, diagram: diagram2 };
 }, "loader");
 var info = {
@@ -527,7 +527,7 @@ var detector8 = /* @__PURE__ */ __name((txt) => {
   return /^\s*pie/.test(txt);
 }, "detector");
 var loader8 = /* @__PURE__ */ __name(async () => {
-  const { diagram: diagram2 } = await import("./chunks/mermaid.esm/pieDiagram-6BFJAFOG.mjs");
+  const { diagram: diagram2 } = await import("./chunks/mermaid.esm/pieDiagram-7D6BOVOS.mjs");
   return { id: id8, diagram: diagram2 };
 }, "loader");
 var pie = {
@@ -827,7 +827,7 @@ var detector22 = /* @__PURE__ */ __name((txt) => {
   return /^\s*packet-beta/.test(txt);
 }, "detector");
 var loader22 = /* @__PURE__ */ __name(async () => {
-  const { diagram: diagram2 } = await import("./chunks/mermaid.esm/diagram-NDGF43P5.mjs");
+  const { diagram: diagram2 } = await import("./chunks/mermaid.esm/diagram-HVVZRWUU.mjs");
   return { id: id22, diagram: diagram2 };
 }, "loader");
 var packet = {
@@ -842,7 +842,7 @@ var detector23 = /* @__PURE__ */ __name((txt) => {
   return /^\s*array/.test(txt);
 }, "detector");
 var loader23 = /* @__PURE__ */ __name(async () => {
-  const { diagram: diagram2 } = await import("./chunks/mermaid.esm/diagram-DE55DPEM.mjs");
+  const { diagram: diagram2 } = await import("./chunks/mermaid.esm/diagram-EXUYDRX6.mjs");
   return { id: id23, diagram: diagram2 };
 }, "loader");
 var array = {
@@ -857,7 +857,7 @@ var detector24 = /* @__PURE__ */ __name((txt) => {
   return /^\s*matrix/.test(txt);
 }, "detector");
 var loader24 = /* @__PURE__ */ __name(async () => {
-  const { diagram: diagram2 } = await import("./chunks/mermaid.esm/diagram-SWKQUOT5.mjs");
+  const { diagram: diagram2 } = await import("./chunks/mermaid.esm/diagram-KIPQBYQR.mjs");
   return { id: id24, diagram: diagram2 };
 }, "loader");
 var matrix = {
@@ -872,7 +872,7 @@ var detector25 = /* @__PURE__ */ __name((txt) => {
   return /^\s*testslides/.test(txt);
 }, "detector");
 var loader25 = /* @__PURE__ */ __name(async () => {
-  const { diagram: diagram2 } = await import("./chunks/mermaid.esm/diagram-OPXTPC4K.mjs");
+  const { diagram: diagram2 } = await import("./chunks/mermaid.esm/diagram-IHNKBXZT.mjs");
   return { id: id25, diagram: diagram2 };
 }, "loader");
 var testslides = {
@@ -887,7 +887,7 @@ var detector26 = /* @__PURE__ */ __name((txt) => {
   return /^\s*visslides/.test(txt);
 }, "detector");
 var loader26 = /* @__PURE__ */ __name(async () => {
-  const { diagram: diagram2 } = await import("./chunks/mermaid.esm/diagram-6MIPJB6M.mjs");
+  const { diagram: diagram2 } = await import("./chunks/mermaid.esm/diagram-NMLL2E4Q.mjs");
   return { id: id26, diagram: diagram2 };
 }, "loader");
 var visslides = {
@@ -902,7 +902,7 @@ var detector27 = /* @__PURE__ */ __name((txt) => {
   return /^\s*visual/.test(txt);
 }, "detector");
 var loader27 = /* @__PURE__ */ __name(async () => {
-  const { diagram: diagram2 } = await import("./chunks/mermaid.esm/diagram-GZMNIUDK.mjs");
+  const { diagram: diagram2 } = await import("./chunks/mermaid.esm/diagram-6NZAQ3FO.mjs");
   return { id: id27, diagram: diagram2 };
 }, "loader");
 var visual = {
