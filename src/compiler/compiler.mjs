@@ -91,16 +91,65 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                 } else {
                     pages.push([]);
                 }
+                
+                // Store layout information on the page
+                if (command.layout) {
+                    // Set layout on the last page - we'll use this later in generation
+                    const currentPage = pages[pages.length - 1];
+                    currentPage._layout = command.layout; // [cols, rows]
+                }
                 break;
             case "show":
                 const componentNameToShow = command.value;
                 const componentData = findComponentDefinitionByName(definitions, componentNameToShow);
 
                 if (componentData) {
-                    pages[pages.length - 1].push({
+                    const component = {
                         type: componentData.type,
                         name: componentData.name,
                         body: componentData.body,
+                    };
+                    
+                    // Add position information if provided
+                    if (command.position) {
+                        component.position = command.position; // [x, y]
+                    }
+                    
+                    pages[pages.length - 1].push(component);
+                    
+                    // Handle placement text components (above, below, left, right)
+                    const placementDirections = ['above', 'below', 'left', 'right'];
+                    placementDirections.forEach(direction => {
+                        if (componentData.body[direction]) {
+                            const placementValue = componentData.body[direction];
+                            let textComponent;
+                            
+                            // First, try to find a referenced component by name
+                            const referencedComponent = findComponentDefinitionByName(definitions, placementValue);
+                            if (referencedComponent && referencedComponent.type === 'text') {
+                                // It's a reference to another text object
+                                textComponent = {
+                                    type: 'text',
+                                    name: referencedComponent.name,
+                                    body: referencedComponent.body,
+                                    position: 'previous',
+                                    placement: direction
+                                };
+                            } else {
+                                // It's a direct string (no matching component found)
+                                textComponent = {
+                                    type: 'text',
+                                    name: `${componentData.name}_${direction}`, // Generate a unique name
+                                    body: { value: placementValue },
+                                    position: 'previous',
+                                    placement: direction
+                                };
+                            }
+                            
+                            if (textComponent) {
+                                pages[pages.length - 1].push(textComponent);
+                            }
+                        }
                     });
                 } else {
                     causeCompileError(`Component definition not found for name: ${componentNameToShow}`, command);
@@ -422,32 +471,41 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
     mermaidString += `size: (${width},${height})\n`;
     for (const page of pages) {
         mermaidString += "page\n"
+        
+        // Add layout information if available
+        if (page._layout) {
+            mermaidString += `layout: (${page._layout[0]},${page._layout[1]})\n`;
+        }
+        
         for (const component of page) {
-            switch (component.type) {
-                case "array":
-                    mermaidString += generateArray(component);
-                    break;
-                case "linkedlist":
-                    mermaidString += generateLinkedlist(component);
-                    break;
-                case "stack":
-                    mermaidString += generateStack(component);
-                    break;
-                case "tree":
-                    mermaidString += generateTree(component);
-                    break;
-                case "matrix":
-                    mermaidString += generateMatrix(component);
-                    break;
-                case "graph":
-                    mermaidString += generateGraph(component);
-                    break;
-                case "text":
-                    mermaidString += generateText(component);
-                    break;
-                default:
-                    console.log(`Compile Error! No matching component type: ${component.type}!`)
-                    break;
+            // Skip internal page properties
+            if (component.type) {
+                switch (component.type) {
+                    case "array":
+                        mermaidString += generateArray(component);
+                        break;
+                    case "linkedlist":
+                        mermaidString += generateLinkedlist(component);
+                        break;
+                    case "stack":
+                        mermaidString += generateStack(component);
+                        break;
+                    case "tree":
+                        mermaidString += generateTree(component);
+                        break;
+                    case "matrix":
+                        mermaidString += generateMatrix(component);
+                        break;
+                    case "graph":
+                        mermaidString += generateGraph(component);
+                        break;
+                    case "text":
+                        mermaidString += generateText(component);
+                        break;
+                    default:
+                        console.log(`Compile Error! No matching component type: ${component.type}!`)
+                        break;
+                }
             }
         }
     }

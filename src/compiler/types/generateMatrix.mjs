@@ -1,5 +1,12 @@
 export function generateMatrix(matrixComponent) {
-    let result = "matrix\n@";
+    let result = "matrix\n";
+    
+    // Add position information if available
+    if (matrixComponent.position && Array.isArray(matrixComponent.position)) {
+        result += `position: (${matrixComponent.position[0]},${matrixComponent.position[1]})\n`;
+    }
+    
+    result += "@";
     
     const values = matrixComponent.body.value || [];
     const color = matrixComponent.body.color || [];

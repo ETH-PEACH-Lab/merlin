@@ -1,5 +1,12 @@
 export function generateTree(treeComponent) {
-    let result = "tree\n@";
+    let result = "tree\n";
+    
+    // Add position information if available
+    if (treeComponent.position && Array.isArray(treeComponent.position)) {
+        result += `position: (${treeComponent.position[0]},${treeComponent.position[1]})\n`;
+    }
+    
+    result += "@";
 
     const nodes = treeComponent.body.nodes || [];
     const value = treeComponent.body.value || [];

@@ -1,5 +1,12 @@
 export function generateArray(arrayComponent) {
-  let result = "array\n@\n";
+  let result = "array\n";
+  
+  // Add position information if available
+  if (arrayComponent.position && Array.isArray(arrayComponent.position)) {
+    result += `position: (${arrayComponent.position[0]},${arrayComponent.position[1]})\n`;
+  }
+  
+  result += "@\n";
 
   const structure = arrayComponent.body.structure || [];
   const color = arrayComponent.body.color || [];

@@ -57,7 +57,7 @@ pair[X, Y] -> $X colon _ $Y {% ([key, , , value]) => ({ [key]: id(value) }) %}
 comma_sep[X, Y] -> $X _ comma _ $Y {% ([x, , , , y]) => ({ index: id(x), value: id(y) }) %}
 
 # Tuples, e.g. (1, 2)
-tuple[X, Y] -> lparen _ $X _ comma _ $Y _ rparen {% ([, , x, , , y, ]) => [id(x), id(y)] %}
+tuple[X, Y] -> lparen _ $X _ comma _ $Y _ rparen {% ([, , x, , , , y, ]) => [x[0], y[0]] %}
 
 # Lists, e.g. [1, 2, 3]
 list[X] -> lbrac list_content[$X] rbrac {% ([, content]) => content.flat() %}
@@ -114,6 +114,7 @@ const lexer = moo.compile({
   dash: "-",
   equals: "=",
   pass: "_",
+  x: "x",
   word: { match: /[a-zA-Z_][a-zA-Z0-9_]*/, type: moo.keywords({
     def: ["array", "matrix", "graph", "linkedlist", "tree", "stack", "text"],
   })},
@@ -159,6 +160,10 @@ array_pair -> (
               pair["color", ns_list] 
             | pair["value", nns_list]
             | pair["arrow", nns_list]
+            | pair["above", (string | word) {% id %}]
+            | pair["below", (string | word) {% id %}]
+            | pair["left", (string | word) {% id %}]
+            | pair["right", (string | word) {% id %}]
 ) {% iid %}
 
 # Matrix Definition
@@ -167,6 +172,10 @@ matrix_pair -> (
               pair["value", nns_mlist]
             | pair["color", nns_mlist]
             | pair["arrow", nns_mlist]
+            | pair["above", (string | word) {% id %}]
+            | pair["below", (string | word) {% id %}]
+            | pair["left", (string | word) {% id %}]
+            | pair["right", (string | word) {% id %}]
 ) {% iid %}
 
 # LinkedList Definition
@@ -176,6 +185,10 @@ linkedlist_pair -> (
             | pair["color", ns_list]
             | pair["value", nns_list]
             | pair["arrow", nns_list]
+            | pair["above", (string | word) {% id %}]
+            | pair["below", (string | word) {% id %}]
+            | pair["left", (string | word) {% id %}]
+            | pair["right", (string | word) {% id %}]
 ) {% iid %}
 
 # Tree Definition
@@ -185,6 +198,10 @@ tree_pair -> (
             | pair["color", ns_list]
             | pair["value", nns_list]
             | pair["arrow", nns_list]
+            | pair["above", (string | word) {% id %}]
+            | pair["below", (string | word) {% id %}]
+            | pair["left", (string | word) {% id %}]
+            | pair["right", (string | word) {% id %}]
 ) {% iid %}
 
 # Stack Definition
@@ -193,6 +210,10 @@ stack_pair -> (
               pair["color", ns_list]
             | pair["value", nns_list]
             | pair["arrow", nns_list]
+            | pair["above", (string | word) {% id %}]
+            | pair["below", (string | word) {% id %}]
+            | pair["left", (string | word) {% id %}]
+            | pair["right", (string | word) {% id %}]
 ) {% iid %}
 
 # Graph Definition
@@ -204,6 +225,10 @@ graph_pair -> (
             | pair["arrow", nns_list]
             | pair["edges", e_list]
             | pair["hidden", b_list]
+            | pair["above", (string | word) {% id %}]
+            | pair["below", (string | word) {% id %}]
+            | pair["left", (string | word) {% id %}]
+            | pair["right", (string | word) {% id %}]
 ) {% iid %}
 
 # Text Definition
@@ -247,9 +272,15 @@ commands -> (comment
 ) {% iid %}
 
 # Main commands
-page -> "page" {% () => ({ type: "page" }) %}
+page -> "page" (_ layout):? {% ([, layoutArg]) => ({ type: "page", layout: layoutArg ? layoutArg[1] : null }) %}
 
-show -> "show" _ wordL {% ([, , wordL]) => ({ type: "show", value: wordL.name, line: wordL.line, col: wordL.col }) %}
+show -> "show" _ wordL (_ tuple[number, number]):? {% ([, , wordL, positionArg]) => ({ 
+    type: "show", 
+    value: wordL.name, 
+    position: positionArg ? positionArg[1] : null,
+    line: wordL.line, 
+    col: wordL.col 
+}) %}
 
 hide -> "hide" _ wordL {% ([, , wordL]) => ({ type: "hide", value: wordL.name, line: wordL.line, col: wordL.col }) %}
 
@@ -316,6 +347,7 @@ word -> %word {% ([value]) => value.value %}
 wordL -> %word {% ([value]) => ({name: value.value, line: value.line, col: value.col}) %}
 nullT -> %nullT {% () => null %}
 pass -> %pass {% () => "_" %}
+layout -> number %x number {% ([a, , b]) => [a, b] %}
 
 # Whitespace and newlines
 _ -> %ws:? {% () => null %}

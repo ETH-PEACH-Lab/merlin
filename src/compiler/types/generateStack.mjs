@@ -1,5 +1,11 @@
 export function generateStack(stackComponent) {
     let result = "stack\n";
+    
+    // Add position information if available
+    if (stackComponent.position && Array.isArray(stackComponent.position)) {
+        result += `position: (${stackComponent.position[0]},${stackComponent.position[1]})\n`;
+    }
+    
     result += "size: 7\n";
     result += "@\n";
     

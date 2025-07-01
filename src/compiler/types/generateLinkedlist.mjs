@@ -1,5 +1,12 @@
 export function generateLinkedlist(linkedListComponent) {
-    let result = "linkedList\n@";
+    let result = "linkedList\n";
+    
+    // Add position information if available
+    if (linkedListComponent.position && Array.isArray(linkedListComponent.position)) {
+        result += `position: (${linkedListComponent.position[0]},${linkedListComponent.position[1]})\n`;
+    }
+    
+    result += "@";
     
     const nodes = linkedListComponent.body.nodes || [];
     const value = linkedListComponent.body.value || [];

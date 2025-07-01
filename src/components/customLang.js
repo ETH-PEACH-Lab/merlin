@@ -13,7 +13,7 @@ export function registerCustomLanguage(monaco) {
   const component = ['array', 'matrix', 'linkedlist', 'stack', 'tree', 'graph', 'text'];
   const componentPattern = new RegExp(`\\b(${component.join('|')})\\b`);
 
-  const attribute = ['id', 'value', 'color', 'arrow', 'nodes', 'edges', 'hidden'];
+  const attribute = ['id', 'value', 'color', 'arrow', 'nodes', 'edges', 'hidden', 'above', 'below', 'left', 'right'];
   const attributePattern = new RegExp(`\\b(${attribute.join('|')})\\b`);
 
   const setCommand = new RegExp(`\\b(set)\\w*\\b`);
@@ -23,6 +23,12 @@ export function registerCustomLanguage(monaco) {
 
   // EExample of edge: n1-n2
   const edgePattern = /([a-zA-Z_][a-zA-Z0-9_]*)-([a-zA-Z_][a-zA-Z0-9_]*)/;
+
+  // Layout pattern: 2x3
+  const layoutPattern = /\b\d+x\d+\b/;
+
+  // Tuple pattern: (1,2)
+  const tuplePattern = /\(\s*\d+\s*,\s*\d+\s*\)/;
 
   // Register a tokens provider for the language
   monaco.languages.setMonarchTokensProvider("customLang", {
@@ -42,6 +48,8 @@ export function registerCustomLanguage(monaco) {
         [removeCommand, 'dot-command'],
         [componentPattern, 'component'],
         [attributePattern, 'attribute'],
+        [layoutPattern, 'number'],
+        [tuplePattern, 'number'],
         [edgePattern, 'variable'],
         [/\b[a-zA-Z_][a-zA-Z0-9_]*\b/, 'variable'],
         [/\b\d+(\.\d+)?\b/, 'number'],

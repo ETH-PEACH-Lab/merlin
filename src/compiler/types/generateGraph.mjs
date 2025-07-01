@@ -1,5 +1,12 @@
 export function generateGraph(graphComponent) {
-    let result = "graph\n@";
+    let result = "graph\n";
+    
+    // Add position information if available
+    if (graphComponent.position && Array.isArray(graphComponent.position)) {
+        result += `position: (${graphComponent.position[0]},${graphComponent.position[1]})\n`;
+    }
+    
+    result += "@";
     const nodes = graphComponent.body.nodes || [];
     const edges = graphComponent.body.edges || [];
     const value = graphComponent.body.value || [];
