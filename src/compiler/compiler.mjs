@@ -6,6 +6,7 @@ import { generateStack } from "./types/generateStack.mjs";
 import { generateTree } from "./types/generateTree.mjs";
 import { generateMatrix } from "./types/generateMatrix.mjs";
 import { generateGraph } from "./types/generateGraph.mjs";
+import { generateText } from "./types/generateText.mjs";
 
 // Helper function to maintain consistency across array properties when modifying arrays
 function maintainArrayPropertyConsistency(body, modifiedProperty, index, operation) {
@@ -128,16 +129,28 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                 // Check if in bounds
                 if (targetObject) {
                     const body = targetObject.body;
-                    const currentArray = body[property]
                     
-                    // If property does not exist, create array of null of length property "value"
-                    if (!currentArray) {
-                        body[property] = Array(newValue.length).fill(null);
-                        body[property][index] = newValue;
-                    } else if (isValidIndex) {
-                        currentArray[index] = newValue;
+                    // Special handling for text components which don't use arrays
+                    if (targetObject.type === "text") {
+                        // For text components, set properties directly
+                        if (property === "value") {
+                            body[property] = newValue;
+                        } else {
+                            causeCompileError(`Invalid property for text component\n\nProperty: ${property}\nComponent: ${name}`, command);
+                        }
                     } else {
-                        causeCompileError(`Index ${index} out of bounds for property "${property}" on component "${name}".`, command);
+                        // Original array-based handling for other components
+                        const currentArray = body[property]
+                        
+                        // If property does not exist, create array of null of length property "value"
+                        if (!currentArray) {
+                            body[property] = Array(newValue.length).fill(null);
+                            body[property][index] = newValue;
+                        } else if (isValidIndex) {
+                            currentArray[index] = newValue;
+                        } else {
+                            causeCompileError(`Index out of bounds\n\nIndex: ${index}\nProperty: ${property}\nComponent: ${name}`, command);
+                        }
                     }
                 } else {
                     causeCompileError(`Component "${name}" not found on the current page.`, command);
@@ -425,6 +438,9 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                     break;
                 case "graph":
                     mermaidString += generateGraph(component);
+                    break;
+                case "text":
+                    mermaidString += generateText(component);
                     break;
                 default:
                     console.log(`Compile Error! No matching component type: ${component.type}!`)

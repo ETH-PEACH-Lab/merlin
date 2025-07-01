@@ -115,7 +115,7 @@ const lexer = moo.compile({
   equals: "=",
   pass: "_",
   word: { match: /[a-zA-Z_][a-zA-Z0-9_]*/, type: moo.keywords({
-    def: ["array", "matrix", "graph", "linkedlist", "tree", "stack"],
+    def: ["array", "matrix", "graph", "linkedlist", "tree", "stack", "text"],
   })},
   comment: { match: /\/\/.*?$/, lineBreaks: true, value: s => s.slice(2).trim() },
   string: { match: /"(?:\\.|[^"\\])*"/, value: s => s.slice(1, -1) },
@@ -150,6 +150,7 @@ definition -> (comment
             | tree_def
             | stack_def
             | graph_def
+            | text_def
 ) {% iid %}
 
 # Array Definition
@@ -205,6 +206,12 @@ graph_pair -> (
             | pair["hidden", b_list]
 ) {% iid %}
 
+# Text Definition
+text_def -> definition["text", text_pair] {% id %}
+text_pair -> (
+              pair["value", string]
+) {% iid %}
+
 # - COMMANDS - #
 # List of all commands
 commands -> (comment
@@ -236,6 +243,7 @@ commands -> (comment
           | remove_node
           | remove_edge
           | remove_at
+          | set_text_value
 ) {% iid %}
 
 # Main commands
@@ -285,6 +293,9 @@ remove_value -> cmd["removeValue", (number | string | nullT) {% id %}] {% (detai
 remove_node -> cmd["removeNode", word] {% (details) => ({ type: "remove", target: "nodes", ...id(details) }) %}
 remove_edge -> cmd["removeEdge", edge] {% (details) => ({ type: "remove", target: "edges", ...id(details) }) %}
 remove_at -> cmd["removeAt", number] {% (details) => ({ type: "remove_at", target: "all", ...id(details) }) %}
+
+# Text commands
+set_text_value -> cmd["setValue", string] {% (details) => ({ type: "set", target: "value", ...id(details) }) %}
 
 # - Lists - #
 nns_list -> list[(nullT | number | string) {% iid %}] {% id %} # Accepts null, number, or string

@@ -86,6 +86,11 @@ function getMethodName(action, target, isPlural = false) {
     return `${action}${targetName}`;
 }
 
+function isTextComponent(cmd) {
+    // Simple check - could be enhanced to actually verify component type
+    return cmd.target === 'value' && typeof cmd.args === 'string';
+}
+
 function reconstructCommand(cmd) {
     switch (cmd.type) {
         case 'page':
@@ -95,10 +100,18 @@ function reconstructCommand(cmd) {
             return `show ${cmd.value}`;
             
         case 'set':
-            const methodName = getMethodName('set', cmd.target, false);
-            const index = cmd.args.index;
-            const value = formatValue(cmd.args.value, cmd.target);
-            return `${cmd.name}.${methodName}(${index}, ${value})`;
+            // Special handling for text components
+            if (cmd.target === 'value' && isTextComponent(cmd)) {
+                const methodName = 'setValue';
+                const value = formatValue(cmd.args, cmd.target);
+                return `${cmd.name}.${methodName}(${value})`;
+            } else {
+                // Original array-based handling
+                const methodName = getMethodName('set', cmd.target, false);
+                const index = cmd.args.index;
+                const value = formatValue(cmd.args.value, cmd.target);
+                return `${cmd.name}.${methodName}(${index}, ${value})`;
+            }
             
         case 'set_multiple':
             const pluralMethodName = getMethodName('set', cmd.target, true);

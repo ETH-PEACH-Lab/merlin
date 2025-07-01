@@ -96,6 +96,9 @@ export function getComponentFields(componentType) {
       color: ["Color", "color"],
       arrow: ["Arrow Label", "string"],
     },
+    text: {
+      value: ["Value", "string"],
+    },
   };
 
   return fieldDefinitions[componentType] || {};

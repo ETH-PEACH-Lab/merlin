@@ -25,7 +25,7 @@ const lexer = moo.compile({
   equals: "=",
   pass: "_",
   word: { match: /[a-zA-Z_][a-zA-Z0-9_]*/, type: moo.keywords({
-    def: ["array", "matrix", "graph", "linkedlist", "tree", "stack"],
+    def: ["array", "matrix", "graph", "linkedlist", "tree", "stack", "text"],
   })},
   comment: { match: /\/\/.*?$/, lineBreaks: true, value: s => s.slice(2).trim() },
   string: { match: /"(?:\\.|[^"\\])*"/, value: s => s.slice(1, -1) },
@@ -82,6 +82,7 @@ var grammar = {
     {"name": "definition$subexpression$1", "symbols": ["tree_def"]},
     {"name": "definition$subexpression$1", "symbols": ["stack_def"]},
     {"name": "definition$subexpression$1", "symbols": ["graph_def"]},
+    {"name": "definition$subexpression$1", "symbols": ["text_def"]},
     {"name": "definition", "symbols": ["definition$subexpression$1"], "postprocess": iid},
     {"name": "array_def$macrocall$2", "symbols": [{"literal":"array"}]},
     {"name": "array_def$macrocall$3", "symbols": ["array_pair"]},
@@ -403,6 +404,48 @@ var grammar = {
     {"name": "graph_pair$subexpression$1$macrocall$16", "symbols": ["graph_pair$subexpression$1$macrocall$17", "colon", "_", "graph_pair$subexpression$1$macrocall$18"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
     {"name": "graph_pair$subexpression$1", "symbols": ["graph_pair$subexpression$1$macrocall$16"]},
     {"name": "graph_pair", "symbols": ["graph_pair$subexpression$1"], "postprocess": iid},
+    {"name": "text_def$macrocall$2", "symbols": [{"literal":"text"}]},
+    {"name": "text_def$macrocall$3", "symbols": ["text_pair"]},
+    {"name": "text_def$macrocall$1$macrocall$2", "symbols": ["text_def$macrocall$3"]},
+    {"name": "text_def$macrocall$1$macrocall$1$ebnf$1", "symbols": []},
+    {"name": "text_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1", "symbols": ["comma_nlow", "text_def$macrocall$1$macrocall$2"]},
+    {"name": "text_def$macrocall$1$macrocall$1$ebnf$1", "symbols": ["text_def$macrocall$1$macrocall$1$ebnf$1", "text_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "text_def$macrocall$1$macrocall$1$ebnf$2", "symbols": ["nlow"], "postprocess": id},
+    {"name": "text_def$macrocall$1$macrocall$1$ebnf$2", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "text_def$macrocall$1$macrocall$1", "symbols": ["lbracket", "nlow", "text_def$macrocall$1$macrocall$2", "text_def$macrocall$1$macrocall$1$ebnf$1", "text_def$macrocall$1$macrocall$1$ebnf$2", "rbracket"], "postprocess":  d => {
+            const firstXValue = d[2];
+            const repetitionGroups = d[3];
+            let result = {};
+        
+            // Process the first $X item
+            // Expect firstXValue to be in the format: [[{key: value_obj}]]
+            if (Array.isArray(firstXValue) && firstXValue.length > 0 &&
+                Array.isArray(firstXValue[0]) && firstXValue[0].length > 0 &&
+                firstXValue[0][0] !== null && typeof firstXValue[0][0] === 'object' && !Array.isArray(firstXValue[0][0])) {
+                Object.assign(result, firstXValue[0][0]);
+            }
+        
+            // Process subsequent $X items
+            if (repetitionGroups) {
+                repetitionGroups.forEach(group => {
+                    const subsequentXValue = group[1];
+                    // Expect subsequentXValue to be in the format: [[{key: value_obj}]]
+                    if (Array.isArray(subsequentXValue) && subsequentXValue.length > 0 &&
+                        Array.isArray(subsequentXValue[0]) && subsequentXValue[0].length > 0 &&
+                        subsequentXValue[0][0] !== null && typeof subsequentXValue[0][0] === 'object' && !Array.isArray(subsequentXValue[0][0])) {
+                        Object.assign(result, subsequentXValue[0][0]);
+                    }
+                });
+            }
+            return result;
+        } },
+    {"name": "text_def$macrocall$1", "symbols": ["text_def$macrocall$2", "__", "wordL", "_", "equals", "_", "text_def$macrocall$1$macrocall$1", "_"], "postprocess": ([type, , wordL, , , , body]) => ({ ...getDef(type), body: body, ...wordL })},
+    {"name": "text_def", "symbols": ["text_def$macrocall$1"], "postprocess": id},
+    {"name": "text_pair$subexpression$1$macrocall$2", "symbols": [{"literal":"value"}]},
+    {"name": "text_pair$subexpression$1$macrocall$3", "symbols": ["string"]},
+    {"name": "text_pair$subexpression$1$macrocall$1", "symbols": ["text_pair$subexpression$1$macrocall$2", "colon", "_", "text_pair$subexpression$1$macrocall$3"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "text_pair$subexpression$1", "symbols": ["text_pair$subexpression$1$macrocall$1"]},
+    {"name": "text_pair", "symbols": ["text_pair$subexpression$1"], "postprocess": iid},
     {"name": "commands$subexpression$1", "symbols": ["comment"]},
     {"name": "commands$subexpression$1", "symbols": ["page"]},
     {"name": "commands$subexpression$1", "symbols": ["show"]},
@@ -432,6 +475,7 @@ var grammar = {
     {"name": "commands$subexpression$1", "symbols": ["remove_node"]},
     {"name": "commands$subexpression$1", "symbols": ["remove_edge"]},
     {"name": "commands$subexpression$1", "symbols": ["remove_at"]},
+    {"name": "commands$subexpression$1", "symbols": ["set_text_value"]},
     {"name": "commands", "symbols": ["commands$subexpression$1"], "postprocess": iid},
     {"name": "page", "symbols": [{"literal":"page"}], "postprocess": () => ({ type: "page" })},
     {"name": "show", "symbols": [{"literal":"show"}, "_", "wordL"], "postprocess": ([, , wordL]) => ({ type: "show", value: wordL.name, line: wordL.line, col: wordL.col })},
@@ -651,6 +695,10 @@ var grammar = {
     {"name": "remove_at$macrocall$3", "symbols": ["number"]},
     {"name": "remove_at$macrocall$1", "symbols": ["wordL", "dot", "remove_at$macrocall$2", "lparen", "_", "remove_at$macrocall$3", "_", "rparen"], "postprocess": ([wordL, dot, , , , args]) => ({ args: id(args), ...wordL })},
     {"name": "remove_at", "symbols": ["remove_at$macrocall$1"], "postprocess": (details) => ({ type: "remove_at", target: "all", ...id(details) })},
+    {"name": "set_text_value$macrocall$2", "symbols": [{"literal":"setValue"}]},
+    {"name": "set_text_value$macrocall$3", "symbols": ["string"]},
+    {"name": "set_text_value$macrocall$1", "symbols": ["wordL", "dot", "set_text_value$macrocall$2", "lparen", "_", "set_text_value$macrocall$3", "_", "rparen"], "postprocess": ([wordL, dot, , , , args]) => ({ args: id(args), ...wordL })},
+    {"name": "set_text_value", "symbols": ["set_text_value$macrocall$1"], "postprocess": (details) => ({ type: "set", target: "value", ...id(details) })},
     {"name": "nns_list$macrocall$2$subexpression$1", "symbols": ["nullT"]},
     {"name": "nns_list$macrocall$2$subexpression$1", "symbols": ["number"]},
     {"name": "nns_list$macrocall$2$subexpression$1", "symbols": ["string"]},
