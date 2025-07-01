@@ -106,6 +106,10 @@ export function formatPositionForOutput(position, layout = [3, 3]) {
             
             function formatPositionValue(pos) {
                 if (pos && typeof pos === 'object' && pos.type === 'range') {
+                    // If start and end are the same, just return the single value
+                    if (pos.start === pos.end) {
+                        return pos.start;
+                    }
                     return `${pos.start}..${pos.end}`;
                 }
                 return pos;
@@ -120,6 +124,10 @@ export function formatPositionForOutput(position, layout = [3, 3]) {
         
         function formatPositionValue(pos) {
             if (pos && typeof pos === 'object' && pos.type === 'range') {
+                // If start and end are the same, just return the single value
+                if (pos.start === pos.end) {
+                    return pos.start;
+                }
                 return `${pos.start}..${pos.end}`;
             }
             return pos;
@@ -135,6 +143,10 @@ export function formatPositionForOutput(position, layout = [3, 3]) {
         
         function formatPositionValue(pos) {
             if (pos && typeof pos === 'object' && pos.type === 'range') {
+                // If start and end are the same, just return the single value
+                if (pos.start === pos.end) {
+                    return pos.start;
+                }
                 return `${pos.start}..${pos.end}`;
             }
             return pos;
