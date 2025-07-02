@@ -748,7 +748,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
     postCheck(pages);
 
     // Generate the mermaid string
-    let mermaidString = "visual\n";
+    let mermaidString = "visual\nsize: (800,400)\n";
     for (const page of pages) {
         mermaidString += "page\n"
         for (const component of page) {
