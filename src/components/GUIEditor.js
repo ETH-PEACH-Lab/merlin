@@ -130,6 +130,16 @@ const GUIEditor = ({
           value
         );
       }
+      // Handle text global properties (no coordinates needed)
+      else if (currentUnitData.type === "text" && ["lineSpacing", "width", "height"].includes(fieldKey)) {
+        updateValue(
+          currentUnitData.page,
+          currentUnitData.name,
+          null, // No coordinates for global text properties
+          fieldKey,
+          value
+        );
+      }
       // Handle array/matrix fields (coordinates required)
       else if (currentUnitData.coordinates) {
         updateValue(

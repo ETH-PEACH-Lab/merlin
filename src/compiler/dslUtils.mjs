@@ -1,6 +1,8 @@
 // DSL utilities for handling matrix coordinates and component operations
 // This file handles all DSL-specific parsing and coordinate transformation
 
+import { formatPosition } from '../parser/reconstructor.mjs';
+
 /**
  * Parses the inspectorIndex to extract component and unit information
  * Supports both 1D (unit_5) and 2D (unit_(0,1)) formats
@@ -27,6 +29,10 @@ export function parseInspectorIndex(inspectorIndex, pages, currentPage) {
     const col = parseInt(matrixMatch[2]);
     coordinates = { row, col, isMatrix: true };
     displayId = `(${row},${col})`;
+  } else if (unitIdPart === "component") {
+    // Component-level selection (for text components without array indices)
+    coordinates = null;
+    displayId = "component";
   } else {
     // Array format: unit_5
     const index = parseInt(unitIdPart, 10);
@@ -51,6 +57,24 @@ export function parseInspectorIndex(inspectorIndex, pages, currentPage) {
 export function getFieldValue(component, fieldKey, coordinates) {
   if (!component.body?.[fieldKey]) return null;
   
+  // For text components, handle differently based on whether coordinates are provided
+  if (component.type === "text") {
+    // If coordinates are provided and the field is an array
+    if (coordinates && !coordinates.isMatrix && coordinates.index !== undefined) {
+      const value = component.body[fieldKey];
+      if (Array.isArray(value)) {
+        return value[coordinates.index] ?? null;
+      } else {
+        // Single value but index requested - return the value for index 0, null for others
+        return coordinates.index === 0 ? value : null;
+      }
+    } else {
+      // No coordinates or non-array field - return the value directly
+      return component.body[fieldKey];
+    }
+  }
+  
+  // Original logic for other component types
   if (coordinates.isMatrix) {
     const { row, col } = coordinates;
     return component.body[fieldKey]?.[row]?.[col] ?? null;
@@ -104,6 +128,14 @@ export function getComponentFields(componentType) {
     },
     text: {
       value: ["Value", "string"],
+      fontSize: ["Font Size", "number"],
+      color: ["Color", "color"],
+      fontWeight: ["Font Weight", "string"],
+      fontFamily: ["Font Family", "string"],
+      align: ["Alignment", "string"],
+      lineSpacing: ["Line Spacing", "number"],
+      width: ["Width", "number"],
+      height: ["Height", "number"],
       position: ["Position", "position"],
     },
   };
@@ -131,7 +163,47 @@ export function createUnitData(parsedInfo) {
   // Add fields based on type definition
   const fields = getComponentFields(componentType);
   Object.keys(fields).forEach(fieldKey => {
-    unitData[fieldKey] = getFieldValue(component, fieldKey, coordinates) ?? "null";
+    let value = null;
+    
+    // Skip position field for auto-generated placement text components
+    // These are text components with names ending in _above, _below, _left, _right
+    // These components are auto-positioned relative to their parent and shouldn't be manually positioned
+    if (fieldKey === "position" && componentType === "text") {
+      const placementSuffixes = ['_above', '_below', '_left', '_right'];
+      const isPlacementText = placementSuffixes.some(suffix => componentName.endsWith(suffix));
+      if (isPlacementText) {
+        return; // Skip this field entirely - these components are auto-positioned
+      }
+    }
+    
+    // For text components, handle field values specially
+    if (componentType === "text") {
+      // Global properties should always show their actual value regardless of line selection
+      if (["lineSpacing", "width", "height"].includes(fieldKey)) {
+        value = component.body[fieldKey];
+      } else if (fieldKey === "position") {
+        // Position is stored at component level, not in body
+        // Format position object to readable string
+        value = component.position ? formatPosition(component.position) : null;
+      } else if (coordinates && coordinates.index !== undefined) {
+        // Get value for specific index (multi-line text editing)
+        value = getFieldValue(component, fieldKey, coordinates);
+      } else {
+        // Get the whole value (single value or entire array)
+        value = component.body[fieldKey];
+      }
+    } else {
+      // Use coordinates for other component types
+      if (fieldKey === "position") {
+        // Position is stored at component level for all component types
+        // Format position object to readable string
+        value = component.position ? formatPosition(component.position) : null;
+      } else {
+        value = getFieldValue(component, fieldKey, coordinates);
+      }
+    }
+    
+    unitData[fieldKey] = value ?? "null";
   });
 
   return unitData;

@@ -366,13 +366,46 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                 if (targetObject) {
                     const body = targetObject.body;
                     
-                    // Special handling for text components which don't use arrays
+                    // Special handling for text components
                     if (targetObject.type === "text") {
-                        // For text components, set properties directly
                         if (property === "value") {
-                            body[property] = newValue;
+                            // For text components, check if we're setting an array element or the whole value
+                            if (isValidIndex) {
+                                // Setting a specific line in a multi-line text
+                                if (!Array.isArray(body[property])) {
+                                    // Convert single string to array if needed
+                                    body[property] = [body[property] || ""];
+                                }
+                                // Ensure array is long enough
+                                while (body[property].length <= index) {
+                                    body[property].push("");
+                                }
+                                body[property][index] = newValue;
+                            } else {
+                                // Setting the entire value (could be string or array)
+                                body[property] = newValue;
+                            }
                         } else {
-                            causeCompileError(`Invalid property for text component\n\nProperty: ${property}\nComponent: ${name}`, command);
+                            // For other text properties (fontSize, color, etc.)
+                            if (isValidIndex) {
+                                // Setting array-based property
+                                if (!Array.isArray(body[property])) {
+                                    // Convert single value to array, preserving existing value
+                                    const existingValue = body[property];
+                                    body[property] = [];
+                                    if (existingValue !== undefined && existingValue !== null) {
+                                        body[property][0] = existingValue;
+                                    }
+                                }
+                                // Ensure array is long enough
+                                while (body[property].length <= index) {
+                                    body[property].push(null);
+                                }
+                                body[property][index] = newValue;
+                            } else {
+                                // Setting single value property
+                                body[property] = newValue;
+                            }
                         }
                     } else {
                         // Original array-based handling for other components
@@ -406,20 +439,46 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
 
                 if (targetObject) {
                     const body = targetObject.body;
-                    const currentArray = body[property];
-                    // If property does not exist, create array of null of length args
-                    if (!currentArray) {
-                        body[property] = Array(args.length).fill(null);
-                    }
-                    // Iterate over args and set the values
-                    for (let i = 0; i < args.length; i++) {
-                        const value = args[i];
-                        const isValidIndex = Number.isInteger(i) && i >= 0;
-                        if (value !== "_") {
-                            if (isValidIndex) {
-                                body[property][i] = value;
-                            } else {
-                                causeCompileError(`Index out of bounds\n\nIndex: ${i}\nProperty: ${property}\nComponent: ${name}`, command);
+                    
+                    // Special handling for text components
+                    if (targetObject.type === "text") {
+                        // If property does not exist, create array of null of length args
+                        if (!body[property]) {
+                            body[property] = Array(args.length).fill(null);
+                        }
+                        // Iterate over args and set the values
+                        for (let i = 0; i < args.length; i++) {
+                            const value = args[i];
+                            const isValidIndex = Number.isInteger(i) && i >= 0;
+                            if (value !== "_") {
+                                if (isValidIndex) {
+                                    // Ensure array is long enough
+                                    while (body[property].length <= i) {
+                                        body[property].push(null);
+                                    }
+                                    body[property][i] = value;
+                                } else {
+                                    causeCompileError(`Index out of bounds\n\nIndex: ${i}\nProperty: ${property}\nComponent: ${name}`, command);
+                                }
+                            }
+                        }
+                    } else {
+                        // Original handling for other components
+                        const currentArray = body[property];
+                        // If property does not exist, create array of null of length args
+                        if (!currentArray) {
+                            body[property] = Array(args.length).fill(null);
+                        }
+                        // Iterate over args and set the values
+                        for (let i = 0; i < args.length; i++) {
+                            const value = args[i];
+                            const isValidIndex = Number.isInteger(i) && i >= 0;
+                            if (value !== "_") {
+                                if (isValidIndex) {
+                                    body[property][i] = value;
+                                } else {
+                                    causeCompileError(`Index out of bounds\n\nIndex: ${i}\nProperty: ${property}\nComponent: ${name}`, command);
+                                }
                             }
                         }
                     }

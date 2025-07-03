@@ -58,12 +58,23 @@ function getMethodName(action, target, isPlural = false) {
         'values': 'Value',
         'colors': 'Color',
         'arrows': 'Arrow',
-        'hidden': 'Hidden'
+        'hidden': 'Hidden',
+        'fontSize': 'FontSize',
+        'fontWeight': 'FontWeight',
+        'fontFamily': 'FontFamily',
+        'align': 'Align',
+        'lineSpacing': 'LineSpacing',
+        'width': 'Width',
+        'height': 'Height'
     };
     
     // Handle special plural cases that don't follow standard rules
     const pluralExceptions = {
-        'hidden': 'Hidden'  // hidden stays the same in plural
+        'hidden': 'Hidden',  // hidden stays the same in plural
+        'fontSize': 'FontSizes',  // fontSize -> FontSizes
+        'fontWeight': 'FontWeights',  // fontWeight -> FontWeights  
+        'fontFamily': 'FontFamilies',  // fontFamily -> FontFamilies
+        'align': 'Aligns'  // align -> Aligns
     };
     
     let targetName;
@@ -87,8 +98,11 @@ function getMethodName(action, target, isPlural = false) {
 }
 
 function isTextComponent(cmd) {
-    // Simple check - could be enhanced to actually verify component type
-    return cmd.target === 'value' && typeof cmd.args === 'string';
+    // For now, check if the command has specific properties that indicate it's for a text component
+    // This could be enhanced to actually look up the component type in the parsed DSL
+    return cmd.target === 'value' && typeof cmd.args === 'string' ||
+           cmd.target === 'value' && cmd.args && typeof cmd.args.value === 'string' ||
+           ['fontSize', 'fontWeight', 'fontFamily', 'align', 'lineSpacing', 'width', 'height'].includes(cmd.target);
 }
 
 function reconstructCommand(cmd) {
@@ -108,12 +122,22 @@ function reconstructCommand(cmd) {
             
         case 'set':
             // Special handling for text components
-            if (cmd.target === 'value' && isTextComponent(cmd)) {
-                const methodName = 'setValue';
-                const value = formatValue(cmd.args, cmd.target);
-                return `${cmd.name}.${methodName}(${value})`;
+            if (isTextComponent(cmd)) {
+                // Check if it's an indexed operation or direct property setting
+                if (cmd.args.index !== undefined) {
+                    // Array-style operation with index
+                    const methodName = getMethodName('set', cmd.target, false);
+                    const index = cmd.args.index;
+                    const value = formatValue(cmd.args.value, cmd.target);
+                    return `${cmd.name}.${methodName}(${index}, ${value})`;
+                } else {
+                    // Direct property setting (no index)
+                    const methodName = getMethodName('set', cmd.target, false);
+                    const value = formatValue(cmd.args, cmd.target);
+                    return `${cmd.name}.${methodName}(${value})`;
+                }
             } else {
-                // Original array-based handling
+                // Original array-based handling for other components
                 const methodName = getMethodName('set', cmd.target, false);
                 const index = cmd.args.index;
                 const value = formatValue(cmd.args.value, cmd.target);
@@ -189,7 +213,7 @@ function reconstructCommand(cmd) {
     }
 }
 
-function formatPosition(position) {
+export function formatPosition(position) {
     if (!position) {
         return '';
     }
@@ -263,6 +287,10 @@ function formatValues(key, value) {
             
         default:
             // For other properties (value, color, arrow), use standard array formatting
+            // For text properties, if all elements are strings, format accordingly
+            if (key === 'value' && value.every(v => typeof v === 'string' || v === null)) {
+                return `[${value.map(item => formatValue(item)).join(', ')}]`;
+            }
             return `[${value.map(item => formatValue(item)).join(', ')}]`;
     }
 }

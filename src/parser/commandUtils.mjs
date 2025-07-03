@@ -9,6 +9,11 @@ export function createOptimizedCommand(relevantCommands, componentName, fieldKey
         return createOptimizedPositionCommand(relevantCommands, componentName, value);
     }
     
+    // Handle global text properties (no coordinates)
+    if (!coordinates) {
+        return createOptimizedGlobalCommand(relevantCommands, componentName, fieldKey, value);
+    }
+    
     const isMatrix = coordinates.isMatrix;
     
     if (isMatrix) {
@@ -21,7 +26,7 @@ export function createOptimizedCommand(relevantCommands, componentName, fieldKey
 /**
  * Finds commands that affect a specific component and field on a page
  */
-export function findRelevantCommands(commands, pageStartIndex, pageEndIndex, componentName, fieldKey, isMatrix = false) {
+export function findRelevantCommands(commands, pageStartIndex, pageEndIndex, componentName, fieldKey, isMatrix = false, coordinates = null) {
     const relevantCommands = [];
     const commandsToRemove = [];
     
@@ -32,6 +37,26 @@ export function findRelevantCommands(commands, pageStartIndex, pageEndIndex, com
         for (let i = pageStartIndex; i < pageEndIndex; i++) {
             const cmd = commands[i];
             if (targetTypes.includes(cmd.type) && cmd.value === componentName) {
+                relevantCommands.push(cmd);
+                commandsToRemove.push(i);
+            }
+        }
+        
+        return { relevantCommands, commandsToRemove };
+    }
+    
+    // Check if this is a global property (coordinates is null)
+    if (coordinates === null) {
+        // For global properties, look for simple set commands (without index)
+        const targetTypes = ["set"];
+        
+        for (let i = pageStartIndex; i < pageEndIndex; i++) {
+            const cmd = commands[i];
+            if (targetTypes.includes(cmd.type) && 
+                cmd.name === componentName && 
+                cmd.target === fieldKey &&
+                // Global set commands have args as direct value, not object with index
+                (typeof cmd.args !== 'object' || !cmd.args.hasOwnProperty('index'))) {
                 relevantCommands.push(cmd);
                 commandsToRemove.push(i);
             }
@@ -55,6 +80,28 @@ export function findRelevantCommands(commands, pageStartIndex, pageEndIndex, com
     }
     
     return { relevantCommands, commandsToRemove };
+}
+
+/**
+ * Internal function for global command optimization (properties without coordinates)
+ */
+function createOptimizedGlobalCommand(relevantCommands, componentName, fieldKey, value) {
+    // For global properties, we just create a single command
+    // No need to merge multiple commands since it's a single value
+    
+    // If value is null, undefined, or empty string, don't create a command (effectively clearing the property)
+    if (value === null || value === undefined || value === "" || value === "null") {
+        return null;
+    }
+    
+    return {
+        type: "set",
+        target: fieldKey,
+        args: value,  // For global properties, args is just the value, not an object with index
+        name: componentName,
+        line: 0,
+        col: 0
+    };
 }
 
 /**

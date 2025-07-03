@@ -122,7 +122,8 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
                 pageEndIndex, 
                 componentName, 
                 fieldKey,
-                coordinates?.isMatrix || false
+                coordinates?.isMatrix || false,
+                coordinates  // Pass coordinates to distinguish global vs per-element properties
             );
 
             const newCommand = createOptimizedCommand(
@@ -138,9 +139,30 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
                 parsedCode.cmds.splice(index, 1);
             });
             
-            // Add the new command at the end of the page (if there is one)
+            // Add the new command at appropriate position
             if (newCommand) {
-                const insertIndex = pageEndIndex - commandsToRemove.length;
+                let insertIndex;
+                
+                // For show commands, insert before any other commands 
+                // that reference the same component to avoid "Component not on page" errors
+                if (newCommand.type === "show") {
+                    // Find the earliest command in the page that references this component
+                    let earliestCommandIndex = pageEndIndex - commandsToRemove.length;
+                    
+                    for (let i = pageStartIndex; i < pageEndIndex - commandsToRemove.length; i++) {
+                        const cmd = parsedCode.cmds[i];
+                        if (cmd && cmd.name === componentName && cmd.type !== "show") {
+                            earliestCommandIndex = i;
+                            break;
+                        }
+                    }
+                    
+                    insertIndex = earliestCommandIndex;
+                } else {
+                    // For other commands, insert at the end of the page
+                    insertIndex = pageEndIndex - commandsToRemove.length;
+                }
+                
                 parsedCode.cmds.splice(insertIndex, 0, newCommand);
             }
             

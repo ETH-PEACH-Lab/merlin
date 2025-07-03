@@ -235,7 +235,15 @@ graph_pair -> (
 # Text Definition
 text_def -> definition["text", text_pair] {% id %}
 text_pair -> (
-              pair["value", string]
+              pair["value", (string | s_list) {% id %}]
+            | pair["fontSize", (number | n_list) {% id %}]
+            | pair["color", (string | ns_list) {% id %}]
+            | pair["fontWeight", (string | ns_list) {% id %}]
+            | pair["fontFamily", (string | ns_list) {% id %}]
+            | pair["align", (string | ns_list) {% id %}]
+            | pair["lineSpacing", number]
+            | pair["width", number]
+            | pair["height", number]
 ) {% iid %}
 
 # - COMMANDS - #
@@ -270,6 +278,20 @@ commands -> (comment
           | remove_edge
           | remove_at
           | set_text_value
+          | set_text_fontSize
+          | set_text_color
+          | set_text_fontWeight
+          | set_text_fontFamily
+          | set_text_align
+          | set_text_lineSpacing
+          | set_text_width
+          | set_text_height
+          | set_text_values_multiple
+          | set_text_fontSizes_multiple
+          | set_text_colors_multiple
+          | set_text_fontWeights_multiple
+          | set_text_fontFamilies_multiple
+          | set_text_aligns_multiple
           | add_matrix_row
           | add_matrix_column
           | remove_matrix_row
@@ -332,7 +354,23 @@ remove_edge -> cmd["removeEdge", edge] {% (details) => ({ type: "remove", target
 remove_at -> cmd["removeAt", number] {% (details) => ({ type: "remove_at", target: "all", ...id(details) }) %}
 
 # Text commands
-set_text_value -> cmd["setValue", string] {% (details) => ({ type: "set", target: "value", ...id(details) }) %}
+set_text_value -> cmd["setValue", (string | comma_sep[number, (string | nullT) {% id %}]) {% id %}] {% (details) => ({ type: "set", target: "value", ...id(details) }) %}
+set_text_fontSize -> cmd["setFontSize", (number | comma_sep[number, (number | nullT) {% id %}]) {% id %}] {% (details) => ({ type: "set", target: "fontSize", ...id(details) }) %}
+set_text_color -> cmd["setColor", (string | comma_sep[number, (string | nullT) {% id %}]) {% id %}] {% (details) => ({ type: "set", target: "color", ...id(details) }) %}
+set_text_fontWeight -> cmd["setFontWeight", (string | comma_sep[number, (string | nullT) {% id %}]) {% id %}] {% (details) => ({ type: "set", target: "fontWeight", ...id(details) }) %}
+set_text_fontFamily -> cmd["setFontFamily", (string | comma_sep[number, (string | nullT) {% id %}]) {% id %}] {% (details) => ({ type: "set", target: "fontFamily", ...id(details) }) %}
+set_text_align -> cmd["setAlign", (string | comma_sep[number, (string | nullT) {% id %}]) {% id %}] {% (details) => ({ type: "set", target: "align", ...id(details) }) %}
+set_text_lineSpacing -> cmd["setLineSpacing", number] {% (details) => ({ type: "set", target: "lineSpacing", ...id(details) }) %}
+set_text_width -> cmd["setWidth", number] {% (details) => ({ type: "set", target: "width", ...id(details) }) %}
+set_text_height -> cmd["setHeight", number] {% (details) => ({ type: "set", target: "height", ...id(details) }) %}
+
+# Text multiple set commands
+set_text_values_multiple -> cmd["setValues", list[(string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "value", ...id(details) }) %}
+set_text_fontSizes_multiple -> cmd["setFontSizes", list[(number | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "fontSize", ...id(details) }) %}
+set_text_colors_multiple -> cmd["setColors", list[(string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "color", ...id(details) }) %}
+set_text_fontWeights_multiple -> cmd["setFontWeights", list[(string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "fontWeight", ...id(details) }) %}
+set_text_fontFamilies_multiple -> cmd["setFontFamilies", list[(string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "fontFamily", ...id(details) }) %}
+set_text_aligns_multiple -> cmd["setAligns", list[(string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "align", ...id(details) }) %}
 
 # Matrix structural editing
 add_matrix_row -> cmd["addRow", ((nullT | number | nns_list) {% iid %}):?] {% (details) => ({ type: "add_matrix_row", target: "value", ...id(details) }) %}
@@ -345,6 +383,7 @@ add_matrix_border -> cmd["addBorder", (number | string | nullT) {% id %}] {% (de
 # - Lists - #
 nns_list -> list[(nullT | number | string) {% iid %}] {% id %} # Accepts null, number, or string
 ns_list -> list[(nullT | string) {% iid %}] {% id %} # Accepts null or string
+n_list -> list[(nullT | number) {% iid %}] {% id %} # Accepts null or number
 s_list -> list[string {% id %}] {% id %} # Accepts only strings
 w_list -> list[word {% id %}] {% id %} # Accepts only words
 e_list -> list[edge {% id %}] {% id %} # Accepts only edges
