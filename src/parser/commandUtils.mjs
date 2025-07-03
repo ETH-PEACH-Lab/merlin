@@ -127,8 +127,8 @@ function createOptimizedArrayCommand(relevantCommands, componentName, fieldKey, 
     }
     
     // Handle the new modification
-    if (value === "_") {
-        // Remove the modification (undo)
+    if (value === "_" || value === null || value === undefined || value === "" || value === "null") {
+        // Remove the modification (undo/clear)
         mergedModifications.delete(idx);
     } else {
         // Add the new modification
@@ -139,7 +139,8 @@ function createOptimizedArrayCommand(relevantCommands, componentName, fieldKey, 
     if (mergedModifications.size === 0) {
         // No modifications left, don't add any command
         return null;
-    } else if (mergedModifications.size === 1 && mergedModifications.has(idx) && value !== "_") {
+    } else if (mergedModifications.size === 1 && mergedModifications.has(idx) && 
+               !(value === "_" || value === null || value === undefined || value === "" || value === "null")) {
         // Only one modification, use "set"
         return {
             type: "set",
@@ -201,8 +202,8 @@ function createOptimizedMatrixCommand(relevantCommands, componentName, fieldKey,
     
     // Handle the new modification
     const currentKey = `${row},${col}`;
-    if (value === "_") {
-        // Remove the modification (undo)
+    if (value === "_" || value === null || value === undefined || value === "" || value === "null") {
+        // Remove the modification (undo/clear)
         mergedModifications.delete(currentKey);
     } else {
         // Add the new modification
@@ -213,7 +214,8 @@ function createOptimizedMatrixCommand(relevantCommands, componentName, fieldKey,
     if (mergedModifications.size === 0) {
         // No modifications left, don't add any command
         return null;
-    } else if (mergedModifications.size === 1 && mergedModifications.has(currentKey) && value !== "_") {
+    } else if (mergedModifications.size === 1 && mergedModifications.has(currentKey) && 
+               !(value === "_" || value === null || value === undefined || value === "" || value === "null")) {
         // Only one modification, use "set_matrix"
         return {
             type: "set_matrix",

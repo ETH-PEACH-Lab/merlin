@@ -199,6 +199,16 @@ const GUIEditor = ({
           value
         );
       }
+      // Handle text per-line properties (need coordinates, but use null coordinates if not available)
+      else if (currentUnitData.type === "text" && ["value", "fontSize", "color", "fontWeight", "fontFamily", "align"].includes(fieldKey)) {
+        updateValue(
+          currentUnitData.page,
+          currentUnitData.name,
+          currentUnitData.coordinates, // Use coordinates if available, null if not
+          fieldKey,
+          value
+        );
+      }
       // Handle array/matrix fields (coordinates required)
       else if (currentUnitData.coordinates) {
         updateValue(
