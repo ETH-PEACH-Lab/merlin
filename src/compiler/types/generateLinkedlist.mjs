@@ -1,3 +1,4 @@
+import { formatNodeName, formatNullValue } from '../compiler.mjs';
 import { formatPositionForOutput } from '../positionUtils.mjs';
 
 export function generateLinkedlist(linkedListComponent, layout = [3, 3]) {
@@ -19,7 +20,7 @@ export function generateLinkedlist(linkedListComponent, layout = [3, 3]) {
         const nodeColor = i < color.length ? color[i] : null;
         const nodeArrow = i < arrow.length ? arrow[i] : null;
         
-        result += `\n${node} {value:"${nodeValue ?? node}", color:"${nodeColor ?? "null"}", arrow:"${nodeArrow === 'empty' ? "" : (nodeArrow ?? "null")}"}`;
+        result += `\n${formatNodeName(node)} {value:"${formatNullValue(nodeValue) ?? node}", color:"${formatNullValue(nodeColor)}", arrow:"${nodeArrow === 'empty' ? "" : formatNullValue(nodeArrow)}"}`;
     }
     
     result += "\n@\n";

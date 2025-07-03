@@ -90,7 +90,38 @@ grid.setValues([[3, 2], [_, 5]])
 
 page
 grid.setArrow(1, 1, "target")
-grid.setColors([[null, "blue"], ["green", "orange"]])`,
+grid.setColors([[null, "blue"], ["green", "orange"]])
+
+page
+// Dynamic resizing - setValue will expand the matrix automatically
+grid.setValue(2, 2, 9)
+grid.setColor(2, 2, "purple")
+
+page
+// Structural editing - Add a new row at the end
+grid.addRow()
+grid.setValue(3, 0, 7)
+grid.setValue(3, 1, 8)
+grid.setValue(3, 2, 9)
+
+page
+// Add a new column at position 1
+grid.addColumn(1)
+grid.setValues([[1, 10, 5], [3, 11, 5], [_, 12, 9], [7, 13, 9]])
+grid.setColors([[null, "yellow", "blue"], ["green", "yellow", "orange"], [null, "yellow", "purple"], [null, "yellow", null]])
+
+page
+// Remove row at index 1
+grid.removeRow(1)
+
+page
+// Remove column at index 2
+grid.removeColumn(2)
+
+page
+// Add border around the matrix with specified value and color
+// This will add a border of zeros with gray color around the matrix
+grid.addBorder(0, "gray")`,
   },
   {
     id: "stackExample",

@@ -1,3 +1,4 @@
+import { formatNodeName, formatNullValue } from '../compiler.mjs';
 import { formatPositionForOutput } from '../positionUtils.mjs';
 
 export function generateStack(stackComponent, layout = [3, 3]) {
@@ -18,9 +19,9 @@ export function generateStack(stackComponent, layout = [3, 3]) {
         const stackColor = i < color.length ? color[i] : null;
         const stackArrow = i < arrow.length ? arrow[i] : null;
         
-        result += `${stackValue}`;
-        result += ` {color:"${stackColor || "null"}"`;
-        result += `, arrow:"${stackArrow === 'empty' ? "" : stackArrow || "null"}"`;
+        result += `${formatNodeName(stackValue)}`;
+        result += ` {color:"${formatNullValue(stackColor)}"`;
+        result += `, arrow:"${stackArrow === 'empty' ? "" : formatNullValue(stackArrow)}"`;
         result += `}\n`;
     }
     

@@ -1,3 +1,4 @@
+import { formatNodeName, formatNullValue } from '../compiler.mjs';
 import { formatPositionForOutput } from '../positionUtils.mjs';
 
 export function generateArray(arrayComponent, layout = [3, 3]) {
@@ -23,12 +24,12 @@ export function generateArray(arrayComponent, layout = [3, 3]) {
     // Default to an empty string if neither is defined to avoid "undefined" in output.
     const cellDisplayValue = value[i] !== undefined ? value[i] : (structure[i] !== undefined ? structure[i] : "");
     
-    result += `${cellDisplayValue}`;
-    result += ` {color:"${color[i] || ""}"`;
+    result += `${formatNodeName(cellDisplayValue)}`;
+    result += ` {color:"${formatNullValue(color[i] || null)}"`;
     
     // Ensure 'empty' is treated as a string literal for comparison.
-    const arrowValue = arrow[i] === 'empty' ? "" : (arrow[i] || "null");
-    result += `, arrow:"${arrowValue}`;
+    const arrowValue = arrow[i] === 'empty' ? "" : formatNullValue(arrow[i] || null);
+    result += `, arrow:"${arrowValue}"`;
     result += `"}\n`;
   }
   result += "@\n";

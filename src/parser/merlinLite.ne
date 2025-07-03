@@ -99,7 +99,7 @@ const lexer = moo.compile({
   nlw: { match: /[ \t]*\n[ \t]*/, lineBreaks: true },
   ws:     /[ \t]+/,
   nullT: { match: /null/, value: () => null },
-  number: /[0-9]+/,
+  number: /-?(?:[0-9]*\.[0-9]+|[0-9]+)/,
   boolean: { match: /true|false/, value: s => s === "true" },
   times:  /\*/,
   lbracket: "{",
@@ -270,6 +270,11 @@ commands -> (comment
           | remove_edge
           | remove_at
           | set_text_value
+          | add_matrix_row
+          | add_matrix_column
+          | remove_matrix_row
+          | remove_matrix_column
+          | add_matrix_border
 ) {% iid %}
 
 # Main commands
@@ -329,6 +334,14 @@ remove_at -> cmd["removeAt", number] {% (details) => ({ type: "remove_at", targe
 # Text commands
 set_text_value -> cmd["setValue", string] {% (details) => ({ type: "set", target: "value", ...id(details) }) %}
 
+# Matrix structural editing
+add_matrix_row -> cmd["addRow", ((nullT | number | nns_list) {% iid %}):?] {% (details) => ({ type: "add_matrix_row", target: "value", ...id(details) }) %}
+add_matrix_column -> cmd["addColumn", ((nullT | number | nns_list) {% iid %}):?] {% (details) => ({ type: "add_matrix_column", target: "value", ...id(details) }) %}
+remove_matrix_row -> cmd["removeRow", number] {% (details) => ({ type: "remove_matrix_row", target: "value", ...id(details) }) %}
+remove_matrix_column -> cmd["removeColumn", number] {% (details) => ({ type: "remove_matrix_column", target: "value", ...id(details) }) %}
+add_matrix_border -> cmd["addBorder", comma_sep[(number | string | nullT) {% id %}, (string | nullT) {% id %}]] {% (details) => ({ type: "add_matrix_border", target: "value", ...id(details) }) %}
+add_matrix_border -> cmd["addBorder", (number | string | nullT) {% id %}] {% (details) => ({ type: "add_matrix_border", target: "value", ...id(details) }) %}
+
 # - Lists - #
 nns_list -> list[(nullT | number | string) {% iid %}] {% id %} # Accepts null, number, or string
 ns_list -> list[(nullT | string) {% iid %}] {% id %} # Accepts null or string
@@ -340,7 +353,7 @@ nns_mlist -> matrix_2d_list[(nullT | number | string) {% iid %}] {% id %} # 2D a
 nnsp_mlist -> matrix_2d_list[(nullT | number | string | pass) {% iid %}] {% id %} # 2D array for matrix values, accepts null, number, string, or pass
 
 # - Literals - #
-number -> %number {% ([value]) => parseInt(value.value, 10) %}
+number -> %number {% ([value]) => Number(value.value) %}
 string -> %string {% ([value]) => value.value %}
 boolean -> %boolean {% ([value]) => value.value %}
 edge -> wordL %dash wordL {% ([start, , end]) => ({ start: start.name, end: end.name }) %}
