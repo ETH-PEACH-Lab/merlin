@@ -144,6 +144,25 @@ function reconstructCommand(cmd) {
         case 'remove_at':
             const removeAtIndex = cmd.args;
             return `${cmd.name}.removeAt(${removeAtIndex})`;
+            
+        case 'add_matrix_row':
+            const addRowValue = cmd.args !== null && cmd.args !== undefined ? cmd.args : '';
+            return `${cmd.name}.addRow(${addRowValue})`;
+            
+        case 'add_matrix_column':
+            const addColValue = cmd.args !== null && cmd.args !== undefined ? cmd.args : '';
+            return `${cmd.name}.addColumn(${addColValue})`;
+            
+        case 'remove_matrix_row':
+            return `${cmd.name}.removeRow(${cmd.args})`;
+            
+        case 'remove_matrix_column':
+            return `${cmd.name}.removeColumn(${cmd.args})`;
+            
+        case 'add_matrix_border':
+            const borderValue = formatValue(cmd.args.index);
+            const borderColor = formatValue(cmd.args.value);
+            return `${cmd.name}.addBorder(${borderValue}, ${borderColor})`;
 
         default:
             return null;

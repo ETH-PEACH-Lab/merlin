@@ -1,3 +1,5 @@
+import { formatNodeName, formatNullValue } from '../compiler.mjs';
+
 export function generateTree(treeComponent) {
     let result = "tree\n@";
 
@@ -31,15 +33,15 @@ function convertArrayToBinaryTree(nodes, value, color, arrow) {
             let rightIndex = 2 * index + 2;
             
             let leftChild = (leftIndex < nodes.length && nodes[leftIndex] && nodes[leftIndex] !== 'none') ? 
-                            (nodes[leftIndex].name || nodes[leftIndex]) : 'None';
+                            formatNodeName(nodes[leftIndex].name || nodes[leftIndex]) : 'None';
             let rightChild = (rightIndex < nodes.length && nodes[rightIndex] && nodes[rightIndex] !== 'none') ? 
-                             (nodes[rightIndex].name || nodes[rightIndex]) : 'None';
+                             formatNodeName(nodes[rightIndex].name || nodes[rightIndex]) : 'None';
             
-            const nodeName = node;
+            const nodeName = formatNodeName(node);
             result += `\n${nodeName}:[${leftChild},${rightChild}]`;
-            result += `{value:"${value[index] ?? nodeName}"`;
-            result += `, color:"${color[index] ?? "null"}"`;
-            result += `, arrow:"${ arrow[index] === 'empty' ? "" : (arrow[index] ?? "null")}"`;
+            result += `{value:"${formatNullValue(value[index]) ?? nodeName}"`;
+            result += `, color:"${formatNullValue(color[index])}"`;
+            result += `, arrow:"${ arrow[index] === 'empty' ? "" : formatNullValue(arrow[index])}"`;
             result += `}`;
   
             if (leftChild !== 'None') {

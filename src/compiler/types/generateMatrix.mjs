@@ -1,3 +1,5 @@
+import { formatNodeName, formatNullValue } from '../compiler.mjs';
+
 export function generateMatrix(matrixComponent) {
     let result = "matrix\n@";
     
@@ -13,9 +15,9 @@ export function generateMatrix(matrixComponent) {
             const cellArrow = arrow[row] ? (arrow[row][col] || null) : null;
 
             if (col === 0) {
-                result += `${value} {color:"${cellColor || "null"}",arrow:"${cellArrow || "null"}"}`;
+                result += `${formatNodeName(value)} {color:"${formatNullValue(cellColor)}",arrow:"${formatNullValue(cellArrow)}"}`;
             } else {
-                result += `, ${value} {color:"${cellColor || "null"}",arrow:"${cellArrow || "null"}"}`;
+                result += `, ${formatNodeName(value)} {color:"${formatNullValue(cellColor)}",arrow:"${formatNullValue(cellArrow)}"}`;
             }
         }
     }

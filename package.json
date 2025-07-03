@@ -21,9 +21,10 @@
     "jspdf": "^2.5.1",
     "langium": "^3.1.2",
     "langium-cli": "^3.1.0",
-    "mermaid": "^10.9.1",
+    "@eth-peach-lab/mermaid-merlin": "github:ETH-PEACH-Lab/mermaid-merlin#develop",
     "monaca-plugin-monaca-core": "3.3.1",
     "monaco-editor": "^0.50.0",
+    "moo": "^0.5.2",
     "nearley": "^2.20.1",
     "prop-types": "^15.8.1",
     "react": "^18.3.1",
@@ -42,7 +43,8 @@
     "build": "webpack --mode production",
     "watch": "webpack serve --mode development",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d www"
+    "deploy": "gh-pages -d www",
+    "postinstall": "node scripts/install-mermaid-merlin.js"
   },
   "cordova": {
     "plugins": {
