@@ -30,7 +30,7 @@ export function generateArray(arrayComponent, layout = [3, 3]) {
     // Ensure 'empty' is treated as a string literal for comparison.
     const arrowValue = arrow[i] === 'empty' ? "" : formatNullValue(arrow[i] || null);
     result += `, arrow:"${arrowValue}"`;
-    result += `"}\n`;
+    result += `}\n`;
   }
   result += "@\n";
   return result;
