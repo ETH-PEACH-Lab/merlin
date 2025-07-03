@@ -799,16 +799,28 @@ function preCheck(parsedDSL) {
     });
 
     // Check for valid command types
-    parsedDSL.cmds.forEach(cmd => {
+    // parsedDSL.cmds.forEach(cmd => {
 // <<<<<<< HEAD
 //         if (!["page", "show", "hide", "set", "set_multiple", "set_matrix", "set_matrix_multiple", "add", "insert", "remove", "remove_at", "comment", "add_matrix_row", "add_matrix_column", "remove_matrix_row", "remove_matrix_column", "add_matrix_border"].includes(cmd.type)) {
 //             throw new Error(`Unknown command type: ${cmd.type}`);
 // =======
-        if (!["page", "show", "hide", "set", "set_multiple", "set_matrix", "set_matrix_multiple", "add", "insert", "remove", "remove_at", "comment"].includes(cmd.type)) {
-            throw new Error(`Unknown command\n\nType: ${cmd.type}`);
+        // if (!["page", "show", "hide", "set", "set_multiple", "set_matrix", "set_matrix_multiple", "add", "insert", "remove", "remove_at", "comment"].includes(cmd.type)) {
+        //     throw new Error(`Unknown command\n\nType: ${cmd.type}`);
 // >>>>>>> 9e31aa3 (fix: Rewrite error messages to be max 40 characters wide.)
+    //     }
+    // });
+    parsedDSL.cmds.forEach(cmd => {
+        if (![
+            "page", "show", "hide", "set", "set_multiple", "set_matrix", "set_matrix_multiple",
+            "add", "insert", "remove", "remove_at", "comment",
+            "add_matrix_row", "add_matrix_column", "remove_matrix_row", "remove_matrix_column", "add_matrix_border"
+        ].includes(cmd.type)) {
+            throw new Error(
+                `Unknown command\n\nType: ${cmd.type}`
+            );
         }
     });
+
 
     // Check if the first command is a page
     if (parsedDSL.cmds[0].type !== "page") {
