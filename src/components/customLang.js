@@ -13,7 +13,7 @@ export function registerCustomLanguage(monaco) {
   const component = ['array', 'matrix', 'linkedlist', 'stack', 'tree', 'graph', 'text'];
   const componentPattern = new RegExp(`\\b(${component.join('|')})\\b`);
 
-  const attribute = ['id', 'value', 'color', 'arrow', 'nodes', 'edges', 'hidden', 'above', 'below'];
+  const attribute = ['id', 'value', 'color', 'arrow', 'nodes', 'edges', 'hidden', 'above', 'below', 'left', 'right', 'fontSize', 'fontWeight', 'fontFamily', 'align', 'lineSpacing', 'width', 'height'];
   const attributePattern = new RegExp(`\\b(${attribute.join('|')})\\b`);
 
   // Position keywords - support all current position keywords

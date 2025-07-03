@@ -185,7 +185,7 @@ text belowNumbers = {
     fontFamily: "Georgia"
     align: "center"
     lineSpacing: 10
-    width: 280
+    width: 100
     height: 40
 }
 
@@ -203,7 +203,7 @@ text randomText = {
     fontFamily: ["Helvetica", null, null]
     align: ["left", "right", "center"]
     lineSpacing: 30
-    width: 300
+    width: 500
     height: 100
 }
 
@@ -224,6 +224,10 @@ show numbers (0,0)
 show myGraph (0,1)
 show randomText (1,1)
 show randomTextToo
+
+page
+hide randomText
+hide randomTextToo
 `,
   },
   {
