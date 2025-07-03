@@ -13,6 +13,10 @@ import {
   TextField,
   FormControlLabel,
   Switch,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -21,7 +25,8 @@ import {
   parseInspectorIndex, 
   createUnitData, 
   getComponentFields, 
-  convertValueToType 
+  convertValueToType,
+  getFieldDropdownOptions
 } from "../compiler/dslUtils.mjs";
 
 const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate }) => {
@@ -50,6 +55,16 @@ const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate }) => {
     }
   };
 
+  const handleSelectChange = (e) => {
+    const newValue = e.target.value;
+    onChange(fieldKey, newValue);
+    onUpdate(fieldKey, newValue);
+  };
+
+  // Define dropdown options for specific text properties
+  const dropdownOptions = getFieldDropdownOptions(fieldKey);
+  const useDropdown = dropdownOptions.length > 0;
+
   // For boolean inputs, use a Switch component instead of TextField
   if (inputType === "boolean") {
     const boolValue = value === "true" || value === true;
@@ -72,6 +87,30 @@ const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate }) => {
     );
   }
 
+  // For dropdown fields, use Select component
+  if (useDropdown) {
+    return (
+      <FormControl sx={{ m: 1, width: "25ch" }} size="small">
+        <InputLabel id={`${fieldKey}-select-label`}>{label}</InputLabel>
+        <Select
+          labelId={`${fieldKey}-select-label`}
+          id={`${fieldKey}-select`}
+          value={value !== null && value !== undefined && value !== "null" ? value : ""}
+          label={label}
+          onChange={handleSelectChange}
+          disabled={fieldKey === "id"}
+        >
+          {dropdownOptions.map((option) => (
+            <MenuItem key={option.value} value={option.value}>
+              {option.label}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+    );
+  }
+
+  // Regular text/number inputs
   return (
     <TextField
       label={label}
@@ -80,8 +119,28 @@ const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate }) => {
       size="small"
       type={inputType === "number" || inputType === "number_or_string" ? "text" : inputType === "color" ? "color" : "text"}
       disabled={fieldKey === "id"}
-      helperText={fieldKey === "id" ? "The unit id is unchangeable" : inputType === "number_or_string" ? "Accepts numbers or text" : ""}
-      onChange={inputType === "color" ? handleColorChange : (e) => onChange(fieldKey, e.target.value)}
+      helperText={
+        fieldKey === "id" 
+          ? "The unit id is unchangeable" 
+          : inputType === "number_or_string" 
+            ? "Accepts numbers or text" 
+            : (fieldKey === "fontSize" || fieldKey === "lineSpacing" || fieldKey === "width" || fieldKey === "height")
+              ? "Enter a positive number"
+              : ""
+      }
+      onChange={inputType === "color" ? handleColorChange : (e) => {
+        let newValue = e.target.value;
+        
+        // Validate number inputs for text properties
+        if ((fieldKey === "fontSize" || fieldKey === "lineSpacing" || fieldKey === "width" || fieldKey === "height") && newValue !== "") {
+          // Allow only positive numbers and decimal points
+          if (!/^\d*\.?\d*$/.test(newValue)) {
+            return; // Don't update if invalid
+          }
+        }
+        
+        onChange(fieldKey, newValue);
+      }}
       onBlur={inputType === "color" ? undefined : handleBlur}
       onKeyDown={inputType === "color" ? undefined : handleKeyDown}
     />

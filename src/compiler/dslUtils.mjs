@@ -85,6 +85,52 @@ export function getFieldValue(component, fieldKey, coordinates) {
 }
 
 /**
+ * Dropdown options for specific field types
+ */
+export function getFieldDropdownOptions(fieldKey) {
+  const dropdownOptions = {
+    fontWeight: [
+      { value: '', label: 'Default (normal)' },
+      { value: 'normal', label: 'Normal' },
+      { value: 'bold', label: 'Bold' },
+      { value: 'bolder', label: 'Bolder' },
+      { value: 'lighter', label: 'Lighter' },
+      { value: '100', label: '100' },
+      { value: '200', label: '200' },
+      { value: '300', label: '300' },
+      { value: '400', label: '400' },
+      { value: '500', label: '500' },
+      { value: '600', label: '600' },
+      { value: '700', label: '700' },
+      { value: '800', label: '800' },
+      { value: '900', label: '900' },
+    ],
+    fontFamily: [
+      { value: '', label: 'Default (sans-serif)' },
+      { value: 'sans-serif', label: 'Sans-serif' },
+      { value: 'serif', label: 'Serif' },
+      { value: 'monospace', label: 'Monospace' },
+      { value: 'Arial', label: 'Arial' },
+      { value: 'Helvetica', label: 'Helvetica' },
+      { value: 'Times New Roman', label: 'Times New Roman' },
+      { value: 'Times', label: 'Times' },
+      { value: 'Courier New', label: 'Courier New' },
+      { value: 'Courier', label: 'Courier' },
+      { value: 'Georgia', label: 'Georgia' },
+      { value: 'Verdana', label: 'Verdana' },
+    ],
+    align: [
+      { value: '', label: 'Default (left)' },
+      { value: 'left', label: 'Left' },
+      { value: 'center', label: 'Center' },
+      { value: 'right', label: 'Right' },
+    ],
+  };
+
+  return dropdownOptions[fieldKey] || [];
+}
+
+/**
  * Determines which fields are available for a component type
  */
 export function getComponentFields(componentType) {
