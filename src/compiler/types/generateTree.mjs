@@ -1,7 +1,13 @@
 import { formatNodeName, formatNullValue } from '../compiler.mjs';
+import { formatPositionForOutput } from '../positionUtils.mjs';
 
-export function generateTree(treeComponent) {
-    let result = "tree\n@";
+export function generateTree(treeComponent, layout = [3, 3]) {
+    let result = "tree\n";
+    
+    // Add position information if available
+    result += formatPositionForOutput(treeComponent.position, layout);
+    
+    result += "@";
 
     const nodes = treeComponent.body.nodes || [];
     const value = treeComponent.body.value || [];

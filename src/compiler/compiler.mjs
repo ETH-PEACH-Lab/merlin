@@ -1,11 +1,15 @@
 // myCompiler to convert myDSL into mermaid code
 
+import { expandPositionWithLayout, inferLayoutFromKeywords } from './positionUtils.mjs';
+
 import { generateArray } from "./types/generateArray.mjs"
 import { generateLinkedlist } from "./types/generateLinkedlist.mjs";
 import { generateStack } from "./types/generateStack.mjs";
 import { generateTree } from "./types/generateTree.mjs";
 import { generateMatrix } from "./types/generateMatrix.mjs";
 import { generateGraph } from "./types/generateGraph.mjs";
+import { generateText } from "./types/generateText.mjs";
+import { getMermaidContainerSize } from "./cssUtils.mjs";
 
 // Helper function to maintain consistency across array properties when modifying arrays
 function maintainArrayPropertyConsistency(body, modifiedProperty, index, operation) {
@@ -54,6 +58,43 @@ function maintainArrayPropertyConsistency(body, modifiedProperty, index, operati
             }
         }
     });
+}
+
+// Helper function to expand ranged positions into shape dimensions
+function expandRangedPosition(position) {
+    if (!position || !Array.isArray(position)) {
+        return position; // Return as-is if not a position array
+    }
+    
+    const [xPos, yPos] = position;
+    
+    // Helper function to get range dimensions
+    function getRangeDimensions(pos) {
+        if (pos && typeof pos === 'object' && pos.type === 'range') {
+            return {
+                start: pos.start,
+                end: pos.end,
+                size: pos.end - pos.start + 1
+            };
+        }
+        return {
+            start: pos,
+            end: pos,
+            size: 1
+        };
+    }
+    
+    const xDim = getRangeDimensions(xPos);
+    const yDim = getRangeDimensions(yPos);
+    
+    // Return the shape information
+    return {
+        x: xDim.start,
+        y: yDim.start,
+        width: xDim.size,
+        height: yDim.size,
+        originalPosition: position
+    };
 }
 
 // Helper function to properly quote node names when necessary
@@ -116,9 +157,72 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
 
     const pages = [];
 
+    // Smart layout inference: collect position keywords to infer minimum layouts
+    function inferSmartLayouts() {
+        let currentPageIndex = -1;
+        const pageKeywords = []; // Array of arrays - one per page
+        
+        // First pass: collect all position keywords per page
+        commands.forEach((command) => {
+            if (command.type === "page") {
+                currentPageIndex++;
+                pageKeywords[currentPageIndex] = [];
+            } else if (command.type === "show" && command.position && command.position.type === 'keyword') {
+                if (currentPageIndex >= 0) {
+                    pageKeywords[currentPageIndex].push(command.position);
+                }
+            }
+        });
+        
+        return pageKeywords.map(keywords => inferLayoutFromKeywords(keywords));
+    }
+    
+    const inferredLayouts = inferSmartLayouts();
+    let currentInferredLayoutIndex = -1;
+
+    // Helper function to check if a position/slot is already occupied
+    function checkSlotOccupancy(currentPage, layout, position, excludeComponentName = null) {
+        if (!position || !currentPage._layout) return;
+        
+        const occupiedSlots = new Set();
+        
+        // Track occupied positions for all existing components on the page
+        currentPage.forEach(component => {
+            // Skip the component that's being updated
+            if (excludeComponentName && component.name === excludeComponentName) {
+                return;
+            }
+            
+            if (component.position && component.position.x !== undefined && component.position.y !== undefined) {
+                // Handle ranged positions
+                for (let x = component.position.x; x < component.position.x + (component.position.width || 1); x++) {
+                    for (let y = component.position.y; y < component.position.y + (component.position.height || 1); y++) {
+                        occupiedSlots.add(`${x},${y}`);
+                    }
+                }
+            }
+        });
+        
+        // Check if the new position conflicts
+        if (position.x !== undefined && position.y !== undefined) {
+            for (let x = position.x; x < position.x + (position.width || 1); x++) {
+                for (let y = position.y; y < position.y + (position.height || 1); y++) {
+                    const slotKey = `${x},${y}`;
+                    if (occupiedSlots.has(slotKey)) {
+                        return `Slot already occupied\n\nPosition: (${x},${y})`;
+                    }
+                }
+            }
+        }
+        
+        return null; // No conflict
+    }
+
     commands.forEach((command) => {
         switch (command.type) {
             case "page":
+                currentInferredLayoutIndex++;
+                
                 // Keep previous page if exists
                 if (pages.length > 0) {
                     const lastPage = JSON.parse(JSON.stringify(pages[pages.length - 1]));
@@ -126,16 +230,112 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                 } else {
                     pages.push([]);
                 }
+                
+                // Store layout information on the page
+                const currentPage = pages[pages.length - 1];
+                if (command.layout) {
+                    // Explicit layout provided
+                    currentPage._layout = command.layout; // [cols, rows]
+                } else if (inferredLayouts[currentInferredLayoutIndex]) {
+                    // Use inferred layout based on position keywords
+                    currentPage._layout = inferredLayouts[currentInferredLayoutIndex];
+                }
                 break;
             case "show":
                 const componentNameToShow = command.value;
                 const componentData = findComponentDefinitionByName(definitions, componentNameToShow);
 
                 if (componentData) {
-                    pages[pages.length - 1].push({
-                        type: componentData.type,
-                        name: componentData.name,
-                        body: componentData.body,
+                    // Get current page layout for keyword translation
+                    const currentPage = pages[pages.length - 1];
+                    const currentLayout = currentPage._layout || [2, 2]; // Default to 2x2
+                    
+                    // Check if component is already present on current page
+                    const existingComponentIndex = currentPage.findIndex(comp => comp.name === componentNameToShow);
+                    
+                    // First expand keywords with layout context, then expand ranged positions
+                    let expandedPosition = null;
+                    if (command.position) {
+                        const keywordExpanded = expandPositionWithLayout(command.position, currentLayout);
+                        expandedPosition = keywordExpanded.type === 'keyword' ? 
+                            keywordExpanded : expandRangedPosition(keywordExpanded);
+                        
+                        // Check for slot occupancy only if it's a new component or position is changing
+                        let shouldCheckOccupancy = true;
+                        if (existingComponentIndex !== -1) {
+                            const existingComponent = currentPage[existingComponentIndex];
+                            // If position is the same, no need to check occupancy
+                            if (JSON.stringify(existingComponent.position) === JSON.stringify(expandedPosition)) {
+                                shouldCheckOccupancy = false;
+                            }
+                        }
+                        
+                        if (shouldCheckOccupancy) {
+                            const excludeComponent = existingComponentIndex !== -1 ? componentNameToShow : null;
+                            const occupancyError = checkSlotOccupancy(currentPage, currentLayout, expandedPosition, excludeComponent);
+                            if (occupancyError) {
+                                causeCompileError(occupancyError, command);
+                            }
+                        }
+                    }
+                    
+                    if (existingComponentIndex !== -1) {
+                        // Component already exists on page - only update position
+                        if (expandedPosition) {
+                            currentPage[existingComponentIndex].position = expandedPosition;
+                        } else {
+                            // Remove position if no position specified
+                            delete currentPage[existingComponentIndex].position;
+                        }
+                    } else {
+                        // Component doesn't exist - add new component
+                        const component = {
+                            type: componentData.type,
+                            name: componentData.name,
+                            body: componentData.body,
+                        };
+                        
+                        // Add position information if provided
+                        if (expandedPosition) {
+                            component.position = expandedPosition;
+                        }
+                        
+                        pages[pages.length - 1].push(component);
+                    }
+                    
+                    // Handle placement text components (above, below, left, right)
+                    const placementDirections = ['above', 'below', 'left', 'right'];
+                    placementDirections.forEach(direction => {
+                        if (componentData.body[direction]) {
+                            const placementValue = componentData.body[direction];
+                            let textComponent;
+                            
+                            // First, try to find a referenced component by name
+                            const referencedComponent = findComponentDefinitionByName(definitions, placementValue);
+                            if (referencedComponent && referencedComponent.type === 'text') {
+                                // It's a reference to another text object
+                                textComponent = {
+                                    type: 'text',
+                                    name: referencedComponent.name,
+                                    body: referencedComponent.body,
+                                    position: 'previous',
+                                    placement: direction
+                                };
+                            } else {
+                                // It's a direct string (no matching component found)
+                                textComponent = {
+                                    type: 'text',
+                                    name: `${componentData.name}_${direction}`, // Generate a unique name
+                                    body: { value: placementValue },
+                                    position: 'previous',
+                                    placement: direction
+                                };
+                            }
+                            
+                            if (textComponent) {
+                                pages[pages.length - 1].push(textComponent);
+                            }
+                        }
                     });
                 } else {
                     causeCompileError(`Component not found\n\nName: ${componentNameToShow}`, command);
@@ -165,16 +365,61 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                 // Check if in bounds
                 if (targetObject) {
                     const body = targetObject.body;
-                    const currentArray = body[property]
                     
-                    // If property does not exist, create array of null of length property "value"
-                    if (!currentArray) {
-                        body[property] = Array(newValue.length).fill(null);
-                        body[property][index] = newValue;
-                    } else if (isValidIndex) {
-                        currentArray[index] = newValue;
+                    // Special handling for text components
+                    if (targetObject.type === "text") {
+                        if (property === "value") {
+                            // For text components, check if we're setting an array element or the whole value
+                            if (isValidIndex) {
+                                // Setting a specific line in a multi-line text
+                                if (!Array.isArray(body[property])) {
+                                    // Convert single string to array if needed
+                                    body[property] = [body[property] || ""];
+                                }
+                                // Ensure array is long enough
+                                while (body[property].length <= index) {
+                                    body[property].push("");
+                                }
+                                body[property][index] = newValue;
+                            } else {
+                                // Setting the entire value (could be string or array)
+                                body[property] = newValue;
+                            }
+                        } else {
+                            // For other text properties (fontSize, color, etc.)
+                            if (isValidIndex) {
+                                // Setting array-based property
+                                if (!Array.isArray(body[property])) {
+                                    // Convert single value to array, preserving existing value
+                                    const existingValue = body[property];
+                                    body[property] = [];
+                                    if (existingValue !== undefined && existingValue !== null) {
+                                        body[property][0] = existingValue;
+                                    }
+                                }
+                                // Ensure array is long enough
+                                while (body[property].length <= index) {
+                                    body[property].push(null);
+                                }
+                                body[property][index] = newValue;
+                            } else {
+                                // Setting single value property
+                                body[property] = newValue;
+                            }
+                        }
                     } else {
-                        causeCompileError(`Index out of bounds\n\nIndex: ${index}\nProperty: ${property}\nComponent: ${name}`, command);
+                        // Original array-based handling for other components
+                        const currentArray = body[property]
+                        
+                        // If property does not exist, create array of null of length property "value"
+                        if (!currentArray) {
+                            body[property] = Array(newValue.length).fill(null);
+                            body[property][index] = newValue;
+                        } else if (isValidIndex) {
+                            currentArray[index] = newValue;
+                        } else {
+                            causeCompileError(`Index out of bounds\n\nIndex: ${index}\nProperty: ${property}\nComponent: ${name}`, command);
+                        }
                     }
                 } else {
                     causeCompileError(`Component not on page\n\nName: ${name}`, command);
@@ -194,20 +439,46 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
 
                 if (targetObject) {
                     const body = targetObject.body;
-                    const currentArray = body[property];
-                    // If property does not exist, create array of null of length args
-                    if (!currentArray) {
-                        body[property] = Array(args.length).fill(null);
-                    }
-                    // Iterate over args and set the values
-                    for (let i = 0; i < args.length; i++) {
-                        const value = args[i];
-                        const isValidIndex = Number.isInteger(i) && i >= 0;
-                        if (value !== "_") {
-                            if (isValidIndex) {
-                                body[property][i] = value;
-                            } else {
-                                causeCompileError(`Index out of bounds\n\nIndex: ${i}\nProperty: ${property}\nComponent: ${name}`, command);
+                    
+                    // Special handling for text components
+                    if (targetObject.type === "text") {
+                        // If property does not exist, create array of null of length args
+                        if (!body[property]) {
+                            body[property] = Array(args.length).fill(null);
+                        }
+                        // Iterate over args and set the values
+                        for (let i = 0; i < args.length; i++) {
+                            const value = args[i];
+                            const isValidIndex = Number.isInteger(i) && i >= 0;
+                            if (value !== "_") {
+                                if (isValidIndex) {
+                                    // Ensure array is long enough
+                                    while (body[property].length <= i) {
+                                        body[property].push(null);
+                                    }
+                                    body[property][i] = value;
+                                } else {
+                                    causeCompileError(`Index out of bounds\n\nIndex: ${i}\nProperty: ${property}\nComponent: ${name}`, command);
+                                }
+                            }
+                        }
+                    } else {
+                        // Original handling for other components
+                        const currentArray = body[property];
+                        // If property does not exist, create array of null of length args
+                        if (!currentArray) {
+                            body[property] = Array(args.length).fill(null);
+                        }
+                        // Iterate over args and set the values
+                        for (let i = 0; i < args.length; i++) {
+                            const value = args[i];
+                            const isValidIndex = Number.isInteger(i) && i >= 0;
+                            if (value !== "_") {
+                                if (isValidIndex) {
+                                    body[property][i] = value;
+                                } else {
+                                    causeCompileError(`Index out of bounds\n\nIndex: ${i}\nProperty: ${property}\nComponent: ${name}`, command);
+                                }
                             }
                         }
                     }
@@ -747,33 +1018,49 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
 
     postCheck(pages);
 
-    // Generate the mermaid string
+    // Generate the mermaid string with dynamic sizing
+    const { width, height } = getMermaidContainerSize();
     let mermaidString = "visual\n";
+    mermaidString += `size: (${width},${height})\n`;
     for (const page of pages) {
         mermaidString += "page\n"
+        
+        // Add layout information if available
+        if (page._layout) {
+            mermaidString += `layout: (${page._layout[0]},${page._layout[1]})\n`;
+        }
+        
         for (const component of page) {
-            switch (component.type) {
-                case "array":
-                    mermaidString += generateArray(component);
-                    break;
-                case "linkedlist":
-                    mermaidString += generateLinkedlist(component);
-                    break;
-                case "stack":
-                    mermaidString += generateStack(component);
-                    break;
-                case "tree":
-                    mermaidString += generateTree(component);
-                    break;
-                case "matrix":
-                    mermaidString += generateMatrix(component);
-                    break;
-                case "graph":
-                    mermaidString += generateGraph(component);
-                    break;
-                default:
-                    console.log(`No matching component type:\n${component.type}!`)
-                    break;
+            // Skip internal page properties
+            if (component.type) {
+                const currentLayout = page._layout || [3, 3]; // Default to 3x3
+                
+                switch (component.type) {
+                    case "array":
+                        mermaidString += generateArray(component, currentLayout);
+                        break;
+                    case "linkedlist":
+                        mermaidString += generateLinkedlist(component, currentLayout);
+                        break;
+                    case "stack":
+                        mermaidString += generateStack(component, currentLayout);
+                        break;
+                    case "tree":
+                        mermaidString += generateTree(component, currentLayout);
+                        break;
+                    case "matrix":
+                        mermaidString += generateMatrix(component, currentLayout);
+                        break;
+                    case "graph":
+                        mermaidString += generateGraph(component, currentLayout);
+                        break;
+                    case "text":
+                        mermaidString += generateText(component, currentLayout);
+                        break;
+                    default:
+                        console.log(`No matching component type:\n${component.type}!`)
+                        break;
+                }
             }
         }
     }

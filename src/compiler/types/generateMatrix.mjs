@@ -1,7 +1,13 @@
 import { formatNodeName, formatNullValue } from '../compiler.mjs';
+import { formatPositionForOutput } from '../positionUtils.mjs';
 
-export function generateMatrix(matrixComponent) {
-    let result = "matrix\n@";
+export function generateMatrix(matrixComponent, layout = [3, 3]) {
+    let result = "matrix\n";
+    
+    // Add position information if available
+    result += formatPositionForOutput(matrixComponent.position, layout);
+    
+    result += "@";
     
     const values = matrixComponent.body.value || [];
     const color = matrixComponent.body.color || [];

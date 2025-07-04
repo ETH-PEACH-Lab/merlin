@@ -57,7 +57,7 @@ pair[X, Y] -> $X colon _ $Y {% ([key, , , value]) => ({ [key]: id(value) }) %}
 comma_sep[X, Y] -> $X _ comma _ $Y {% ([x, , , , y]) => ({ index: id(x), value: id(y) }) %}
 
 # Tuples, e.g. (1, 2)
-tuple[X, Y] -> lparen _ $X _ comma _ $Y _ rparen {% ([, , x, , , y, ]) => [id(x), id(y)] %}
+tuple[X, Y] -> lparen _ $X _ comma _ $Y _ rparen {% ([, , x, , , , y, ]) => [x[0], y[0]] %}
 
 # Lists, e.g. [1, 2, 3]
 list[X] -> lbrac list_content[$X] rbrac {% ([, content]) => content.flat() %}
@@ -110,12 +110,14 @@ const lexer = moo.compile({
   rparen: ")",
   colon: ":",
   comma: ",",
+  dotdot: "..", // Add range operator before dot to avoid conflicts
   dot: ".",
   dash: "-",
   equals: "=",
   pass: "_",
+  x: "x",
   word: { match: /[a-zA-Z_][a-zA-Z0-9_]*/, type: moo.keywords({
-    def: ["array", "matrix", "graph", "linkedlist", "tree", "stack"],
+    def: ["array", "matrix", "graph", "linkedlist", "tree", "stack", "text"],
   })},
   comment: { match: /\/\/.*?$/, lineBreaks: true, value: s => s.slice(2).trim() },
   string: { match: /"(?:\\.|[^"\\])*"/, value: s => s.slice(1, -1) },
@@ -150,6 +152,7 @@ definition -> (comment
             | tree_def
             | stack_def
             | graph_def
+            | text_def
 ) {% iid %}
 
 # Array Definition
@@ -158,6 +161,10 @@ array_pair -> (
               pair["color", ns_list] 
             | pair["value", nns_list]
             | pair["arrow", nns_list]
+            | pair["above", (string | word) {% id %}]
+            | pair["below", (string | word) {% id %}]
+            | pair["left", (string | word) {% id %}]
+            | pair["right", (string | word) {% id %}]
 ) {% iid %}
 
 # Matrix Definition
@@ -166,6 +173,10 @@ matrix_pair -> (
               pair["value", nns_mlist]
             | pair["color", nns_mlist]
             | pair["arrow", nns_mlist]
+            | pair["above", (string | word) {% id %}]
+            | pair["below", (string | word) {% id %}]
+            | pair["left", (string | word) {% id %}]
+            | pair["right", (string | word) {% id %}]
 ) {% iid %}
 
 # LinkedList Definition
@@ -175,6 +186,10 @@ linkedlist_pair -> (
             | pair["color", ns_list]
             | pair["value", nns_list]
             | pair["arrow", nns_list]
+            | pair["above", (string | word) {% id %}]
+            | pair["below", (string | word) {% id %}]
+            | pair["left", (string | word) {% id %}]
+            | pair["right", (string | word) {% id %}]
 ) {% iid %}
 
 # Tree Definition
@@ -184,6 +199,10 @@ tree_pair -> (
             | pair["color", ns_list]
             | pair["value", nns_list]
             | pair["arrow", nns_list]
+            | pair["above", (string | word) {% id %}]
+            | pair["below", (string | word) {% id %}]
+            | pair["left", (string | word) {% id %}]
+            | pair["right", (string | word) {% id %}]
 ) {% iid %}
 
 # Stack Definition
@@ -192,6 +211,10 @@ stack_pair -> (
               pair["color", ns_list]
             | pair["value", nns_list]
             | pair["arrow", nns_list]
+            | pair["above", (string | word) {% id %}]
+            | pair["below", (string | word) {% id %}]
+            | pair["left", (string | word) {% id %}]
+            | pair["right", (string | word) {% id %}]
 ) {% iid %}
 
 # Graph Definition
@@ -203,6 +226,24 @@ graph_pair -> (
             | pair["arrow", nns_list]
             | pair["edges", e_list]
             | pair["hidden", b_list]
+            | pair["above", (string | word) {% id %}]
+            | pair["below", (string | word) {% id %}]
+            | pair["left", (string | word) {% id %}]
+            | pair["right", (string | word) {% id %}]
+) {% iid %}
+
+# Text Definition
+text_def -> definition["text", text_pair] {% id %}
+text_pair -> (
+              pair["value", (string | s_list) {% id %}]
+            | pair["fontSize", (number | n_list) {% id %}]
+            | pair["color", (string | ns_list) {% id %}]
+            | pair["fontWeight", (string | ns_list) {% id %}]
+            | pair["fontFamily", (string | ns_list) {% id %}]
+            | pair["align", (string | ns_list) {% id %}]
+            | pair["lineSpacing", number]
+            | pair["width", number]
+            | pair["height", number]
 ) {% iid %}
 
 # - COMMANDS - #
@@ -236,6 +277,21 @@ commands -> (comment
           | remove_node
           | remove_edge
           | remove_at
+          | set_text_value
+          | set_text_fontSize
+          | set_text_color
+          | set_text_fontWeight
+          | set_text_fontFamily
+          | set_text_align
+          | set_text_lineSpacing
+          | set_text_width
+          | set_text_height
+          | set_text_values_multiple
+          | set_text_fontSizes_multiple
+          | set_text_colors_multiple
+          | set_text_fontWeights_multiple
+          | set_text_fontFamilies_multiple
+          | set_text_aligns_multiple
           | add_matrix_row
           | add_matrix_column
           | remove_matrix_row
@@ -244,9 +300,15 @@ commands -> (comment
 ) {% iid %}
 
 # Main commands
-page -> "page" {% () => ({ type: "page" }) %}
+page -> "page" (_ layout):? {% ([, layoutArg]) => ({ type: "page", layout: layoutArg ? layoutArg[1] : null }) %}
 
-show -> "show" _ wordL {% ([, , wordL]) => ({ type: "show", value: wordL.name, line: wordL.line, col: wordL.col }) %}
+show -> "show" _ wordL (_ (position_keyword | ranged_tuple | tuple[number, number])):? {% ([, , wordL, positionArg]) => ({ 
+    type: "show", 
+    value: wordL.name, 
+    position: positionArg ? positionArg[1][0] : null,
+    line: wordL.line, 
+    col: wordL.col 
+}) %}
 
 hide -> "hide" _ wordL {% ([, , wordL]) => ({ type: "hide", value: wordL.name, line: wordL.line, col: wordL.col }) %}
 
@@ -291,6 +353,25 @@ remove_node -> cmd["removeNode", word] {% (details) => ({ type: "remove", target
 remove_edge -> cmd["removeEdge", edge] {% (details) => ({ type: "remove", target: "edges", ...id(details) }) %}
 remove_at -> cmd["removeAt", number] {% (details) => ({ type: "remove_at", target: "all", ...id(details) }) %}
 
+# Text commands
+set_text_value -> cmd["setValue", (string | comma_sep[number, (string | nullT) {% id %}]) {% id %}] {% (details) => ({ type: "set", target: "value", ...id(details) }) %}
+set_text_fontSize -> cmd["setFontSize", (number | comma_sep[number, (number | nullT) {% id %}]) {% id %}] {% (details) => ({ type: "set", target: "fontSize", ...id(details) }) %}
+set_text_color -> cmd["setColor", (string | comma_sep[number, (string | nullT) {% id %}]) {% id %}] {% (details) => ({ type: "set", target: "color", ...id(details) }) %}
+set_text_fontWeight -> cmd["setFontWeight", (string | comma_sep[number, (string | nullT) {% id %}]) {% id %}] {% (details) => ({ type: "set", target: "fontWeight", ...id(details) }) %}
+set_text_fontFamily -> cmd["setFontFamily", (string | comma_sep[number, (string | nullT) {% id %}]) {% id %}] {% (details) => ({ type: "set", target: "fontFamily", ...id(details) }) %}
+set_text_align -> cmd["setAlign", (string | comma_sep[number, (string | nullT) {% id %}]) {% id %}] {% (details) => ({ type: "set", target: "align", ...id(details) }) %}
+set_text_lineSpacing -> cmd["setLineSpacing", number] {% (details) => ({ type: "set", target: "lineSpacing", ...id(details) }) %}
+set_text_width -> cmd["setWidth", number] {% (details) => ({ type: "set", target: "width", ...id(details) }) %}
+set_text_height -> cmd["setHeight", number] {% (details) => ({ type: "set", target: "height", ...id(details) }) %}
+
+# Text multiple set commands
+set_text_values_multiple -> cmd["setValues", list[(string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "value", ...id(details) }) %}
+set_text_fontSizes_multiple -> cmd["setFontSizes", list[(number | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "fontSize", ...id(details) }) %}
+set_text_colors_multiple -> cmd["setColors", list[(string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "color", ...id(details) }) %}
+set_text_fontWeights_multiple -> cmd["setFontWeights", list[(string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "fontWeight", ...id(details) }) %}
+set_text_fontFamilies_multiple -> cmd["setFontFamilies", list[(string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "fontFamily", ...id(details) }) %}
+set_text_aligns_multiple -> cmd["setAligns", list[(string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "align", ...id(details) }) %}
+
 # Matrix structural editing
 add_matrix_row -> cmd["addRow", ((nullT | number | nns_list) {% iid %}):?] {% (details) => ({ type: "add_matrix_row", target: "value", ...id(details) }) %}
 add_matrix_column -> cmd["addColumn", ((nullT | number | nns_list) {% iid %}):?] {% (details) => ({ type: "add_matrix_column", target: "value", ...id(details) }) %}
@@ -302,6 +383,7 @@ add_matrix_border -> cmd["addBorder", (number | string | nullT) {% id %}] {% (de
 # - Lists - #
 nns_list -> list[(nullT | number | string) {% iid %}] {% id %} # Accepts null, number, or string
 ns_list -> list[(nullT | string) {% iid %}] {% id %} # Accepts null or string
+n_list -> list[(nullT | number) {% iid %}] {% id %} # Accepts null or number
 s_list -> list[string {% id %}] {% id %} # Accepts only strings
 w_list -> list[word {% id %}] {% id %} # Accepts only words
 e_list -> list[edge {% id %}] {% id %} # Accepts only edges
@@ -318,6 +400,40 @@ word -> %word {% ([value]) => value.value %}
 wordL -> %word {% ([value]) => ({name: value.value, line: value.line, col: value.col}) %}
 nullT -> %nullT {% () => null %}
 pass -> %pass {% () => "_" %}
+layout -> number %x number {% ([a, , b]) => [a, b] %}
+
+# Range values, e.g. 0..1
+range_value -> number dotdot number {% ([start, , end]) => ({ type: "range", start: start, end: end }) %}
+
+# Position values that can be numbers or ranges
+position_value -> (range_value | number) {% iid %}
+
+# Ranged tuples, e.g. (0..1, 0) or (0..1, 0..1)
+ranged_tuple -> lparen _ position_value _ comma _ position_value _ rparen {% ([, , x, , , , y, ]) => [x, y] %}
+
+# Position keywords, e.g. top-left, tl, center, etc.
+# Allow hyphenated keywords by combining word tokens with dashes
+position_keyword -> (%word | %word %dash %word) {% (parts) => {
+    const tokens = parts[0]; // Access the actual token array
+    let keywordValue;
+    if (Array.isArray(tokens) && tokens.length === 3) {
+        // Hyphenated keyword like "top-left"
+        keywordValue = tokens[0].value + '-' + tokens[2].value;
+    } else if (Array.isArray(tokens)) {
+        // Single word keyword like "tl"
+        keywordValue = tokens[0].value;
+    } else {
+        // Single token case
+        keywordValue = tokens.value;
+    }
+    const firstToken = Array.isArray(tokens) ? tokens[0] : tokens;
+    return { 
+        type: "keyword", 
+        value: keywordValue, 
+        line: firstToken.line, 
+        col: firstToken.col 
+    };
+} %}
 
 # Whitespace and newlines
 _ -> %ws:? {% () => null %}
@@ -336,6 +452,7 @@ rbrac -> %rbrac {% () => null %}
 lparen -> %lparen {% () => null %}
 rparen -> %rparen {% () => null %}
 comma -> %comma {% () => null %}
+dotdot -> %dotdot {% () => null %}
 dot -> %dot {% () => null %}
 colon -> %colon {% () => null %}
 equals -> %equals {% () => null %}

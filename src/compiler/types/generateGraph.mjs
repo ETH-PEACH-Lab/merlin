@@ -1,7 +1,13 @@
 import { formatNodeName, formatNullValue } from '../compiler.mjs';
+import { formatPositionForOutput } from '../positionUtils.mjs';
 
-export function generateGraph(graphComponent) {
-    let result = "graph\n@";
+export function generateGraph(graphComponent, layout = [3, 3]) {
+    let result = "graph\n";
+    
+    // Add position information if available
+    result += formatPositionForOutput(graphComponent.position, layout);
+    
+    result += "@";
     const nodes = graphComponent.body.nodes || [];
     const edges = graphComponent.body.edges || [];
     const value = graphComponent.body.value || [];

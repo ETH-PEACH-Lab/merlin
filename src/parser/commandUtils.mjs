@@ -1,9 +1,19 @@
 // This file defines some functions to handle GUI Editor changes and merging commands, it operates on the parsed code structure to create optimized commands for value updates.
 
 /**
- * Creates optimized commands for both array and matrix value updates
+ * Creates optimized commands for array, matrix, and position field value updates
  */
 export function createOptimizedCommand(relevantCommands, componentName, fieldKey, coordinates, value) {
+    // Handle position field updates
+    if (fieldKey === "position") {
+        return createOptimizedPositionCommand(relevantCommands, componentName, value);
+    }
+    
+    // Handle global text properties (no coordinates)
+    if (!coordinates) {
+        return createOptimizedGlobalCommand(relevantCommands, componentName, fieldKey, value);
+    }
+    
     const isMatrix = coordinates.isMatrix;
     
     if (isMatrix) {
@@ -16,9 +26,44 @@ export function createOptimizedCommand(relevantCommands, componentName, fieldKey
 /**
  * Finds commands that affect a specific component and field on a page
  */
-export function findRelevantCommands(commands, pageStartIndex, pageEndIndex, componentName, fieldKey, isMatrix = false) {
+export function findRelevantCommands(commands, pageStartIndex, pageEndIndex, componentName, fieldKey, isMatrix = false, coordinates = null) {
     const relevantCommands = [];
     const commandsToRemove = [];
+    
+    // Handle position field commands
+    if (fieldKey === "position") {
+        const targetTypes = ["show"];
+        
+        for (let i = pageStartIndex; i < pageEndIndex; i++) {
+            const cmd = commands[i];
+            if (targetTypes.includes(cmd.type) && cmd.value === componentName) {
+                relevantCommands.push(cmd);
+                commandsToRemove.push(i);
+            }
+        }
+        
+        return { relevantCommands, commandsToRemove };
+    }
+    
+    // Check if this is a global property (coordinates is null)
+    if (coordinates === null) {
+        // For global properties, look for simple set commands (without index)
+        const targetTypes = ["set"];
+        
+        for (let i = pageStartIndex; i < pageEndIndex; i++) {
+            const cmd = commands[i];
+            if (targetTypes.includes(cmd.type) && 
+                cmd.name === componentName && 
+                cmd.target === fieldKey &&
+                // Global set commands have args as direct value, not object with index
+                (typeof cmd.args !== 'object' || !cmd.args.hasOwnProperty('index'))) {
+                relevantCommands.push(cmd);
+                commandsToRemove.push(i);
+            }
+        }
+        
+        return { relevantCommands, commandsToRemove };
+    }
     
     const targetTypes = isMatrix 
         ? ["set_matrix", "set_matrix_multiple", "add_matrix_row", "add_matrix_column", "remove_matrix_row", "remove_matrix_column", "add_matrix_border"]
@@ -35,6 +80,28 @@ export function findRelevantCommands(commands, pageStartIndex, pageEndIndex, com
     }
     
     return { relevantCommands, commandsToRemove };
+}
+
+/**
+ * Internal function for global command optimization (properties without coordinates)
+ */
+function createOptimizedGlobalCommand(relevantCommands, componentName, fieldKey, value) {
+    // For global properties, we just create a single command
+    // No need to merge multiple commands since it's a single value
+    
+    // If value is null, undefined, or empty string, don't create a command (effectively clearing the property)
+    if (value === null || value === undefined || value === "" || value === "null") {
+        return null;
+    }
+    
+    return {
+        type: "set",
+        target: fieldKey,
+        args: value,  // For global properties, args is just the value, not an object with index
+        name: componentName,
+        line: 0,
+        col: 0
+    };
 }
 
 /**
@@ -60,8 +127,8 @@ function createOptimizedArrayCommand(relevantCommands, componentName, fieldKey, 
     }
     
     // Handle the new modification
-    if (value === "_") {
-        // Remove the modification (undo)
+    if (value === "_" || value === null || value === undefined || value === "" || value === "null") {
+        // Remove the modification (undo/clear)
         mergedModifications.delete(idx);
     } else {
         // Add the new modification
@@ -72,7 +139,8 @@ function createOptimizedArrayCommand(relevantCommands, componentName, fieldKey, 
     if (mergedModifications.size === 0) {
         // No modifications left, don't add any command
         return null;
-    } else if (mergedModifications.size === 1 && mergedModifications.has(idx) && value !== "_") {
+    } else if (mergedModifications.size === 1 && mergedModifications.has(idx) && 
+               !(value === "_" || value === null || value === undefined || value === "" || value === "null")) {
         // Only one modification, use "set"
         return {
             type: "set",
@@ -134,8 +202,8 @@ function createOptimizedMatrixCommand(relevantCommands, componentName, fieldKey,
     
     // Handle the new modification
     const currentKey = `${row},${col}`;
-    if (value === "_") {
-        // Remove the modification (undo)
+    if (value === "_" || value === null || value === undefined || value === "" || value === "null") {
+        // Remove the modification (undo/clear)
         mergedModifications.delete(currentKey);
     } else {
         // Add the new modification
@@ -146,7 +214,8 @@ function createOptimizedMatrixCommand(relevantCommands, componentName, fieldKey,
     if (mergedModifications.size === 0) {
         // No modifications left, don't add any command
         return null;
-    } else if (mergedModifications.size === 1 && mergedModifications.has(currentKey) && value !== "_") {
+    } else if (mergedModifications.size === 1 && mergedModifications.has(currentKey) && 
+               !(value === "_" || value === null || value === undefined || value === "" || value === "null")) {
         // Only one modification, use "set_matrix"
         return {
             type: "set_matrix",
@@ -189,6 +258,98 @@ function createOptimizedMatrixCommand(relevantCommands, componentName, fieldKey,
             col: 0
         };
     }
+}
+
+/**
+ * Internal function for position command optimization
+ */
+function createOptimizedPositionCommand(relevantCommands, componentName, value) {
+    // Find the most recent show command for this component
+    let baseShowCommand = null;
+    
+    for (const cmd of relevantCommands) {
+        if (cmd.type === "show" && cmd.value === componentName) {
+            baseShowCommand = cmd;
+        }
+    }
+    
+    // Create the base command structure, preserving existing properties if available
+    const newCommand = {
+        type: "show",
+        value: componentName,
+        line: baseShowCommand?.line || 0,
+        col: baseShowCommand?.col || 0
+    };
+    
+    // Preserve any other properties from the base command (except position)
+    if (baseShowCommand) {
+        Object.keys(baseShowCommand).forEach(key => {
+            if (key !== "type" && key !== "value" && key !== "position" && key !== "line" && key !== "col") {
+                newCommand[key] = baseShowCommand[key];
+            }
+        });
+    }
+    
+    // Handle position value
+    if (value && value.trim() !== "") {
+        newCommand.position = parsePositionValue(value);
+    }
+    // If no position value, the command will not have a position property (removing position)
+    
+    return newCommand;
+}
+
+/**
+ * Parse position value from string to proper structure expected by reconstructor
+ */
+function parsePositionValue(value) {
+    if (!value || typeof value !== 'string') {
+        return value;
+    }
+    
+    const trimmed = value.trim();
+    
+    // Handle position keywords (like "center", "top-left", "tl")
+    const keywordMatch = trimmed.match(/^([a-zA-Z]+(?:-[a-zA-Z]+)?)$/);
+    if (keywordMatch) {
+        return {
+            type: "keyword",
+            value: keywordMatch[1],
+            line: 0,
+            col: 0
+        };
+    }
+    
+    // Handle coordinate tuple format "(x,y)" where x or y can be ranges
+    const tupleMatch = trimmed.match(/^\(([^,]+),\s*([^)]+)\)$/);
+    if (tupleMatch) {
+        const xStr = tupleMatch[1].trim();
+        const yStr = tupleMatch[2].trim();
+        
+        const parsePositionComponent = (str) => {
+            // Check for range format like "0..1"
+            const rangeMatch = str.match(/^(\d+)\.\.(\d+)$/);
+            if (rangeMatch) {
+                return {
+                    type: "range",
+                    start: parseInt(rangeMatch[1]),
+                    end: parseInt(rangeMatch[2])
+                };
+            }
+            // Simple number
+            const numMatch = str.match(/^\d+$/);
+            if (numMatch) {
+                return parseInt(str);
+            }
+            // Return as-is if not recognized
+            return str;
+        };
+        
+        return [parsePositionComponent(xStr), parsePositionComponent(yStr)];
+    }
+    
+    // If we can't parse it, return as-is
+    return value;
 }
 
 /**
