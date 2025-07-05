@@ -16,7 +16,7 @@ importers:
         version: 11.13.0(@emotion/react@11.13.0(@types/react@18.3.3)(react@18.3.1))(@types/react@18.3.3)(react@18.3.1)
       '@eth-peach-lab/mermaid-merlin':
         specifier: github:ETH-PEACH-Lab/mermaid-merlin#develop
-        version: mermaid-monorepo@https://codeload.github.com/ETH-PEACH-Lab/mermaid-merlin/tar.gz/94c984863d9bf031a7504106a5552c6a34e6a4d5
+        version: mermaid-monorepo@https://codeload.github.com/ETH-PEACH-Lab/mermaid-merlin/tar.gz/1d1d36713aff8fff1caa9a7f15dcf131c7a59945
       '@fontsource/roboto':
         specifier: ^5.0.13
         version: 5.0.14
@@ -4755,8 +4755,8 @@ packages:
     resolution: {integrity: sha512-8q7VEgMJW4J8tcfVPy8g09NcQwZdbwFEqhe/WZkoIzjn/3TGDwtOCYtXGxA3O8tPzpczCCDgv+P2P5y00ZJOOg==}
     engines: {node: '>= 8'}
 
-  mermaid-monorepo@https://codeload.github.com/ETH-PEACH-Lab/mermaid-merlin/tar.gz/94c984863d9bf031a7504106a5552c6a34e6a4d5:
-    resolution: {tarball: https://codeload.github.com/ETH-PEACH-Lab/mermaid-merlin/tar.gz/94c984863d9bf031a7504106a5552c6a34e6a4d5}
+  mermaid-monorepo@https://codeload.github.com/ETH-PEACH-Lab/mermaid-merlin/tar.gz/1d1d36713aff8fff1caa9a7f15dcf131c7a59945:
+    resolution: {tarball: https://codeload.github.com/ETH-PEACH-Lab/mermaid-merlin/tar.gz/1d1d36713aff8fff1caa9a7f15dcf131c7a59945}
     version: 10.2.4
 
   methods@1.1.2:
@@ -13244,7 +13244,7 @@ snapshots:
 
   merge2@1.4.1: {}
 
-  mermaid-monorepo@https://codeload.github.com/ETH-PEACH-Lab/mermaid-merlin/tar.gz/94c984863d9bf031a7504106a5552c6a34e6a4d5: {}
+  mermaid-monorepo@https://codeload.github.com/ETH-PEACH-Lab/mermaid-merlin/tar.gz/1d1d36713aff8fff1caa9a7f15dcf131c7a59945: {}
 
   methods@1.1.2: {}
 
