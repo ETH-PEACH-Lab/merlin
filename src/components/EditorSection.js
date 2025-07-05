@@ -1,6 +1,6 @@
 import React from "react";
 import CodeEditor from "./CodeEditor";
-import DslEditor from "./DSLEditor";
+import DslEditor from "./DslEditor";
 import MermaidEditor from "./MermaidEditor";
 import { ResizableBox } from "react-resizable";
 import "react-resizable/css/styles.css";
