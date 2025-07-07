@@ -172,8 +172,24 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         [parsedCode, pages, reconstructMerlinLite]
     );
 
-    const addPage = useCallback(() => {
-        parsedCode?.cmds.push({ type: "page" });
+    const addPage = useCallback((currentPage) => {
+        console.log(currentPage);
+        if (currentPage == pages.length){
+            parsedCode?.cmds.push({ type: "page" });
+        }
+        else {
+            let count = pages.length;
+            for (var i = parsedCode?.cmds.length - 1; i >= 0; i--) {
+                const currentCommand = parsedCode.cmds[i];
+                if (currentCommand.type === "page") {
+                    count--;
+                }
+                if (count == currentPage){
+                    parsedCode.cmds.splice(i, 0, { type: "page" });
+                    break;
+                }
+            }
+        }
         reconstructMerlinLite();
     }, [parsedCode]);
 
