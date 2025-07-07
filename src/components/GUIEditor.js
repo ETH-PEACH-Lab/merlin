@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import {
   Button,
   Box,
-  Tooltip,
   Typography,
   Chip,
   AppBar,
@@ -18,8 +17,6 @@ import {
   FormControl,
   InputLabel,
 } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
-import DeleteIcon from "@mui/icons-material/Delete";
 import { useParseCompile } from "../context/ParseCompileContext";
 import { 
   parseInspectorIndex, 
@@ -160,7 +157,7 @@ const GUIEditor = ({
     type: null,
   };
   const [currentUnitData, setUnitData] = useState(defaultUnitValue);
-  const { pages, addPage, removePage, updateValue } = useParseCompile();
+  const { pages, updateValue } = useParseCompile();
 
   useEffect(() => {
     if (inspectorIndex) {
@@ -222,22 +219,6 @@ const GUIEditor = ({
     }
   };
 
-  const handleAddPage = () => {
-    const pageBefore = currentPage;
-    addPage(pageBefore);
-    setCurrentPage(pageBefore + 1);
-  };
-
-  const handleRemovePage = () => {
-    const pageBefore = currentPage;
-    removePage(pageBefore);
-    if (pageBefore > 1) {
-      setCurrentPage(pageBefore - 1);
-    } else {
-      setCurrentPage(1);
-    }
-  };
-
   return (
     <div>
       <Box
@@ -254,31 +235,6 @@ const GUIEditor = ({
           <Typography variant="overline" sx={{ pl: 2 }}>
             Unit Inspector
           </Typography>
-        </Box>
-        <Box sx={{ display: "flex" }}>
-          <Tooltip title="Add a Page">
-            <span>
-              <IconButton
-                onClick={handleAddPage}
-                sx={{ mr: 1 }}
-                size="small"
-              >
-                <AddIcon sx={{ fontSize: 20 }}></AddIcon>
-              </IconButton>
-            </span>
-          </Tooltip>
-          <Tooltip title="Remove Current Page">
-            <span>
-              <IconButton
-                disabled={currentPage === 1}
-                onClick={handleRemovePage}
-                sx={{ mr: 1 }}
-                size="small"
-              >
-                <DeleteIcon sx={{ fontSize: 20 }}></DeleteIcon>
-              </IconButton>
-            </span>
-          </Tooltip>
         </Box>
       </Box>
       {inspectorIndex ? (

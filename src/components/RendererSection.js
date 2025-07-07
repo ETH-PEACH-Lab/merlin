@@ -2,13 +2,15 @@ import React, { useEffect, useState } from "react";
 import MermaidRenderer from "./MermaidRenderer";
 import { ElementEditor } from "./ElementEditor";
 import Button from '@mui/material/Button';
-import { Box, Typography, Card, CardContent, ListItemIcon, ListItemText, Popover, ListItem, List, IconButton, ButtonGroup, Snackbar, Alert } from "@mui/material";
+import { Box, Typography, Card, CardContent, ListItemIcon, ListItemText, Popover, ListItem, List, IconButton, ButtonGroup, Tooltip, Snackbar, Alert } from "@mui/material";
 import DownloadIcon from '@mui/icons-material/Download';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import ImageIcon from '@mui/icons-material/Image';
 import ShapeLineIcon from '@mui/icons-material/ShapeLine';
 import SaveIcon from '@mui/icons-material/Save';
 import ShareIcon from '@mui/icons-material/Share';
+import AddIcon from "@mui/icons-material/Add";
+import DeleteIcon from "@mui/icons-material/Delete";
 import { useParseCompile } from "../context/ParseCompileContext";
 import { createShareableUrl, copyToClipboard } from "../utils/urlSharing";
 
@@ -28,8 +30,24 @@ const RendererSection = ({
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
   
-  const { pages, unparsedCode } = useParseCompile();
+  const { pages, addPage, removePage, unparsedCode } = useParseCompile();
 
+  const handleAddPage = () => {
+    console.log(currentPage)
+    const pageBefore = currentPage;
+    addPage(pageBefore);
+    setCurrentPage(pageBefore + 1);
+  };
+
+  const handleRemovePage = () => {
+    const pageBefore = currentPage;
+    removePage(pageBefore);
+    if (pageBefore > 1) {
+      setCurrentPage(pageBefore - 1);
+    } else {
+      setCurrentPage(1);
+    }
+  };
 
   const handleExpand = (event) => {
     setAnchorEl(event.currentTarget);
@@ -91,50 +109,111 @@ const RendererSection = ({
     >
       <Box sx={{
         paddingRight: 1,
-        display: "flex",
-        justifyContent: "space-between",
+        display: "grid",
+        gridAutoFlow: "column",
+        gridAutoColumns: "1fr",
         alignItems: "center",
         borderBottom: "1px solid #444"
       }}>
-        <Box display="flex" flexGrow={1} alignItems={'center'}>
-          <Typography variant="overline" sx={{ pl: 2 }}>Diagram Renderer</Typography>
+        <Box display="flex">
+          <Box display="flex" flex={"1 1 0px"} alignItems={'center'}>
+            <Typography variant="overline" sx={{ pl: 2 }}>Page Controls</Typography>
+          </Box>
+          <Box sx={{ display: "flex", borderRight: "1px solid #444" }}>
+            <Tooltip title="Add a Page">
+            <span>
+              <IconButton
+                disabled={currentPage === 1 || pages.length === 0}
+                onClick={handleAddPage}
+                sx={{ mr: 1 }}
+                size="small"
+              >
+                <AddIcon sx={{ fontSize: 20 }}></AddIcon>
+              </IconButton>
+            </span>
+          </Tooltip>
+          <Tooltip title="Remove Current Page">
+            <span>
+              <IconButton
+                disabled={currentPage === 1 || pages.length === 0}
+                onClick={handleRemovePage}
+                sx={{ mr: 1 }}
+                size="small"
+              >
+                <DeleteIcon sx={{ fontSize: 20 }}></DeleteIcon>
+              </IconButton>
+            </span>
+          </Tooltip>
+          </Box>
         </Box>
-        <Box sx={{ display: "flex" }}>
-          <IconButton aria-describedby={id} onClick={handleExpand} sx={{ mr: 1 }} size="small">
-            <DownloadIcon sx={{ fontSize: 20 }}></DownloadIcon>
-          </IconButton>
-          <Popover id={id}
-            open={open}
-            anchorEl={anchorEl}
-            onClose={handleClose}
-            anchorOrigin={{
-              vertical: 'bottom',
-              horizontal: 'left',
-            }}>
-            <List>
-              <ListItem>
-                <Button onClick={() => { handleExport('svg') }} startIcon={<ShapeLineIcon />}>
-                  <ListItemText>SVG</ListItemText>
-                </Button>
-              </ListItem>
-              <ListItem>
-                <Button onClick={() => handleExport('png')} startIcon={<ImageIcon />}>
-                  <ListItemText>PNG</ListItemText>
-                </Button>
-              </ListItem>
-              <ListItem>
-                <Button onClick={() => handleExport('pdf')} startIcon={<PictureAsPdfIcon />}>
-                  <ListItemText>PDF</ListItemText>
-                </Button>
-              </ListItem>
-            </List>
-          </Popover>
-          <IconButton onClick={handleShare} size="small" sx={{ mr: 1 }} title="Share via URL">
-            <ShareIcon sx={{ fontSize: 20 }}></ShareIcon>
-          </IconButton>
-          <IconButton onClick={handleSave} size="small">
-            <SaveIcon sx={{ fontSize: 20 }}></SaveIcon>
-          </IconButton>
+        <Box display="flex">
+          <Box display="flex" flex={"1 1 0px"} alignItems={'center'} borderLeft={"1px solid #444"} >
+            <Typography variant="overline" sx={{ pl: 2 }}>Export Controls</Typography>
+          </Box>
+          <Box sx={{ display: "flex" }}>
+            <Tooltip title="Download">
+              <span>
+                <IconButton
+                  aria-describedby={id}
+                  onClick={handleExpand}
+                  sx={{ mr: 1 }}
+                  size="small"
+                >
+                  <DownloadIcon sx={{ fontSize: 20 }}></DownloadIcon>
+                </IconButton>
+              </span>
+            </Tooltip>
+            <Popover id={id}
+              open={open}
+              anchorEl={anchorEl}
+              onClose={handleClose}
+              anchorOrigin={{
+                vertical: 'bottom',
+                horizontal: 'left',
+              }}>
+              <List>
+                <ListItem>
+                  <Button onClick={() => { handleExport('svg') }} startIcon={<ShapeLineIcon />}>
+                    <ListItemText>SVG</ListItemText>
+                  </Button>
+                </ListItem>
+                <ListItem>
+                  <Button onClick={() => handleExport('png')} startIcon={<ImageIcon />}>
+                    <ListItemText>PNG</ListItemText>
+                  </Button>
+                </ListItem>
+                <ListItem>
+                  <Button onClick={() => handleExport('pdf')} startIcon={<PictureAsPdfIcon />}>
+                    <ListItemText>PDF</ListItemText>
+                  </Button>
+                </ListItem>
+              </List>
+            </Popover>
+            <Tooltip title="Share via URL">
+              <span>
+                <IconButton
+                  aria-describedby={id}
+                  onClick={handleShare}
+                  sx={{ mr: 1 }}
+                  size="small"
+                >
+                  <ShareIcon sx={{ fontSize: 20 }}></ShareIcon>
+                </IconButton>
+              </span>
+            </Tooltip>
+            <Tooltip title="Save">
+              <span>
+                <IconButton
+                  aria-describedby={id}
+                  onClick={handleSave}
+                  sx={{ mr: 1 }}
+                  size="small"
+                >
+                  <SaveIcon sx={{ fontSize: 20 }}></SaveIcon>
+                </IconButton>
+              </span>
+            </Tooltip>
+          </Box>
         </Box>
       </Box>
 

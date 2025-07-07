@@ -70,11 +70,12 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
 
     // Find the start and end indices of the specified page
     const findPageBeginningAndEnd = (pageNumber) => {
+        if (!parsedCode) return;
         let pageStartIndex = -1;
         let pageEndIndex = parsedCode.cmds.length;
         let currentPage = 0;
         
-        for (let i = 0; i < parsedCode.cmds.length; i++) {
+        for (let i = 0; i < parsedCode?.cmds.length; i++) {
             if (parsedCode.cmds[i].type === "page") {
                 if (currentPage === pageNumber) {
                     pageStartIndex = i + 1;
@@ -186,7 +187,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         }
         else {
             const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(currentPage - 1);
-            parsedCode.cmds.splice(pageEndIndex, 0, { type: "page" });
+            parsedCode?.cmds.splice(pageEndIndex, 0, { type: "page" });
         }
         reconstructMerlinLite();
     }, [parsedCode]);
