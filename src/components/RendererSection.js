@@ -10,6 +10,7 @@ import ShapeLineIcon from '@mui/icons-material/ShapeLine';
 import SaveIcon from '@mui/icons-material/Save';
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
+import RectangleOutlinedIcon from '@mui/icons-material/RectangleOutlined';
 import { useParseCompile } from "../context/ParseCompileContext";
 
 const RendererSection = ({
@@ -168,6 +169,73 @@ const RendererSection = ({
               </span>
             </Tooltip>
           </Box>
+        </Box>
+      </Box>
+      <Box sx={{
+        paddingRight: 1,
+        display: "flex",
+        flexGrow: "space-between",
+        alignItems: "center",
+        borderBottom: "1px solid #444"
+      }}>
+        <Box display="flex" flex={"1 1 0px"} alignItems={'center'}>
+          <Typography variant="overline" sx={{ pl: 2 }}>Component Controls</Typography>
+        </Box>
+        <Box sx={{ display: "flex" }}>
+          <Tooltip title="Create a Component">
+            <span>
+              <IconButton
+                aria-describedby={id}
+                onClick={handleExpand}
+                sx={{ mr: 1 }}
+                size="small"
+              >
+                <Typography aria-describedby={id} variant="overline" >New</Typography>
+                <AddIcon sx={{ fontSize: 20 }}></AddIcon>
+              </IconButton>
+            </span>
+          </Tooltip>
+          <Popover id={id}
+            open={open}
+            anchorEl={anchorEl}
+            onClose={handleClose}
+            anchorOrigin={{
+              vertical: 'bottom',
+              horizontal: 'left',
+            }}>
+            <List>
+              <ListItem>
+                <Button onClick={() => handleCreateArray} startIcon={<RectangleOutlinedIcon />}>
+                  <ListItemText>Array</ListItemText>
+                </Button>
+              </ListItem>
+              <ListItem>
+                <Button onClick={() => handleCreateStack} startIcon={<RectangleOutlinedIcon />}>
+                  <ListItemText>Stack</ListItemText>
+                </Button>
+              </ListItem>
+              <ListItem>
+                <Button onClick={() => handleCreateTree} startIcon={<RectangleOutlinedIcon />}>
+                  <ListItemText>Tree</ListItemText>
+                </Button>
+              </ListItem>
+              <ListItem>
+                <Button onClick={() => handleCreateLinkedList} startIcon={<RectangleOutlinedIcon />}>
+                  <ListItemText>Linked List</ListItemText>
+                </Button>
+              </ListItem>
+              <ListItem>
+                <Button onClick={() => handleCreateMatrix} startIcon={<RectangleOutlinedIcon />}>
+                  <ListItemText>Matrix</ListItemText>
+                </Button>
+              </ListItem>
+              <ListItem>
+                <Button onClick={() => handleCreateGraph} startIcon={<RectangleOutlinedIcon />}>
+                  <ListItemText>Graph</ListItemText>
+                </Button>
+              </ListItem>
+            </List>
+          </Popover>
         </Box>
       </Box>
 
