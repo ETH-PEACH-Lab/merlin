@@ -68,6 +68,31 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         }
     }, [parsedCode, parseAndCompile]);  
 
+    // Find the start and end indices of the specified page
+    const findPageBeginningAndEnd = (pageNumber) => {
+        let pageStartIndex = -1;
+        let pageEndIndex = parsedCode.cmds.length;
+        let currentPage = 0;
+        
+        for (let i = 0; i < parsedCode.cmds.length; i++) {
+            if (parsedCode.cmds[i].type === "page") {
+                if (currentPage === pageNumber) {
+                    pageStartIndex = i + 1;
+                } else if (currentPage === pageNumber + 1) {
+                    pageEndIndex = i;
+                    break;
+                }
+                currentPage++;
+            }
+        }
+        
+        if (pageStartIndex === -1) {
+            console.error(`Page ${pageNumber} not found`);
+            return;
+        }
+        return [pageStartIndex, pageEndIndex];
+    };
+
     const updateValue = useCallback(
         (page, componentName, coordinates, fieldKey, value) => {
             if (!parsedCode) return;
@@ -93,29 +118,11 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
                     }
                 }
             }
+
+            const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
             
-            // Find the start and end indices of the specified page
-            let pageStartIndex = -1;
-            let pageEndIndex = parsedCode.cmds.length;
-            let currentPage = 0;
             
-            for (let i = 0; i < parsedCode.cmds.length; i++) {
-                if (parsedCode.cmds[i].type === "page") {
-                    if (currentPage === page) {
-                        pageStartIndex = i + 1;
-                    } else if (currentPage === page + 1) {
-                        pageEndIndex = i;
-                        break;
-                    }
-                    currentPage++;
-                }
-            }
-            
-            if (pageStartIndex === -1) {
-                console.error(`Page ${page} not found`);
-                return;
-            }
-             // Use unified command optimization for arrays, matrices, and position fields
+            // Use unified command optimization for both arrays and matrices
             const { relevantCommands, commandsToRemove } = findRelevantCommands(
                 parsedCode.cmds, 
                 pageStartIndex, 
@@ -172,36 +179,22 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         [parsedCode, pages, reconstructMerlinLite]
     );
 
+    // Add a page after the current page
     const addPage = useCallback((currentPage) => {
-        console.log(currentPage);
         if (currentPage == pages.length){
             parsedCode?.cmds.push({ type: "page" });
         }
         else {
-            let count = pages.length;
-            for (var i = parsedCode?.cmds.length - 1; i >= 0; i--) {
-                const currentCommand = parsedCode.cmds[i];
-                if (currentCommand.type === "page") {
-                    count--;
-                }
-                if (count == currentPage){
-                    parsedCode.cmds.splice(i, 0, { type: "page" });
-                    break;
-                }
-            }
+            const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(currentPage - 1);
+            parsedCode.cmds.splice(pageEndIndex, 0, { type: "page" });
         }
         reconstructMerlinLite();
     }, [parsedCode]);
 
-    const removePage = useCallback(() => {
-        while (parsedCode?.cmds.length > 0) {
-            const lastCommand = parsedCode.cmds[parsedCode.cmds.length - 1];
-            if (lastCommand.type === "page") {
-                parsedCode.cmds.pop();
-                break;
-            }
-            parsedCode.cmds.pop();
-        }
+    // Remove the current page
+    const removePage = useCallback((currentPage) => {
+        const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(currentPage - 1);
+        parsedCode?.cmds.splice(pageStartIndex - 1, pageEndIndex - pageStartIndex + 1);
         reconstructMerlinLite();
     }, [parsedCode]);
 

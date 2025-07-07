@@ -229,10 +229,10 @@ const GUIEditor = ({
   };
 
   const handleRemovePage = () => {
-    const lengthBefore = pages.length;
-    removePage();
-    if (lengthBefore > 1) {
-      setCurrentPage(lengthBefore - 1);
+    const pageBefore = currentPage;
+    removePage(pageBefore);
+    if (pageBefore > 1) {
+      setCurrentPage(pageBefore - 1);
     } else {
       setCurrentPage(1);
     }
@@ -267,10 +267,10 @@ const GUIEditor = ({
               </IconButton>
             </span>
           </Tooltip>
-          <Tooltip title="Remove last Page">
+          <Tooltip title="Remove Current Page">
             <span>
               <IconButton
-                disabled={!(currentPage === pages.length) || pages.length <= 1}
+                disabled={currentPage === 1}
                 onClick={handleRemovePage}
                 sx={{ mr: 1 }}
                 size="small"
