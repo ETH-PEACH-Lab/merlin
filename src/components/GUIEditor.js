@@ -131,9 +131,9 @@ const GUIEditor = ({
   };
 
   const handleAddPage = () => {
-    const lengthBefore = pages.length;
-    addPage();
-    setCurrentPage(lengthBefore + 1);
+    const pageBefore = currentPage;
+    addPage(pageBefore);
+    setCurrentPage(pageBefore + 1);
   };
 
   const handleRemovePage = () => {
@@ -167,7 +167,6 @@ const GUIEditor = ({
           <Tooltip title="Add a Page">
             <span>
               <IconButton
-                disabled={!(currentPage === pages.length)}
                 onClick={handleAddPage}
                 sx={{ mr: 1 }}
                 size="small"
