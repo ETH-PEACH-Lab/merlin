@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
 import MermaidRenderer from "./MermaidRenderer";
 import { ElementEditor } from "./ElementEditor";
+import ComponentEditor from "./ComponentEditor";
 import Button from '@mui/material/Button';
-import { Box, Typography, Card, CardContent, ListItemIcon, ListItemText, Popover, ListItem, List, IconButton, ButtonGroup, Tooltip, Snackbar, Alert } from "@mui/material";
+import { Box, Typography, Card, CardContent, ListItemIcon, ListItemText, Popover, ListItem, List, IconButton, ButtonGroup,
+         Tooltip, TextField, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Snackbar, Alert } from "@mui/material";
 import DownloadIcon from '@mui/icons-material/Download';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import ImageIcon from '@mui/icons-material/Image';
@@ -30,6 +32,9 @@ const RendererSection = ({
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
+  const [anchorEl1, setAnchorEl1] = useState(null);
+  const [anchorEl2, setAnchorEl2] = useState(null);
+  const [anchorEl3, setAnchorEl3] = useState(null);
   
   const { pages, addPage, removePage, unparsedCode } = useParseCompile();
 
@@ -50,12 +55,48 @@ const RendererSection = ({
     }
   };
 
-  const handleExpand = (event) => {
-    setAnchorEl(event.currentTarget);
+  const handleExpand1 = (event) => {
+    setAnchorEl1(event.currentTarget);
   };
 
-  const handleClose = () => {
-    setAnchorEl(null);
+  const handleClose1 = () => {
+    setAnchorEl1(null);
+  };
+
+  const handleExpand2 = (event) => {
+    setAnchorEl2(event.currentTarget);
+  };
+
+  const handleClose2 = () => {
+    setAnchorEl2(null);
+  };
+
+    const handleExpand3 = (event) => {
+    setAnchorEl3(event.currentTarget);
+  };
+
+  const handleClose3 = () => {
+    setAnchorEl3(null);
+    setAnchorEl2(null);
+  };
+
+  const [open4, setOpen4] = React.useState(false);
+
+  const handleClickOpen4 = () => {
+    setOpen4(true);
+  };
+
+  const handleClose4 = () => {
+    setOpen4(false);
+  };
+
+  const handleSubmit4 = (event) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const formJson = Object.fromEntries(formData.entries());
+    const values = formJson.values;
+    console.log(values);
+    handleClose4();
   };
 
   const handleClickPrev = () => {
@@ -98,6 +139,13 @@ const RendererSection = ({
 
   const open = Boolean(anchorEl);
   const id = open ? 'simple-popover' : undefined;
+  const open1 = Boolean(anchorEl1);
+  const id1 = open1 ? 'simple-popover1' : undefined;
+  const open2 = Boolean(anchorEl2);
+  const id2 = open2 ? 'simple-popover2' : undefined;
+  const open3 = Boolean(anchorEl3);
+  const id3 = open3 ? 'simple-popover3' : undefined;
+
 
   return (
     <div
@@ -155,8 +203,8 @@ const RendererSection = ({
             <Tooltip title="Download">
               <span>
                 <IconButton
-                  aria-describedby={id}
-                  onClick={handleExpand}
+                  aria-describedby={id1}
+                  onClick={handleExpand1}
                   sx={{ mr: 1 }}
                   size="small"
                 >
@@ -164,10 +212,10 @@ const RendererSection = ({
                 </IconButton>
               </span>
             </Tooltip>
-            <Popover id={id}
-              open={open}
-              anchorEl={anchorEl}
-              onClose={handleClose}
+            <Popover id={id1}
+              open={open1}
+              anchorEl={anchorEl1}
+              onClose={handleClose1}
               anchorOrigin={{
                 vertical: 'bottom',
                 horizontal: 'left',
@@ -204,12 +252,7 @@ const RendererSection = ({
             </Tooltip>
             <Tooltip title="Save">
               <span>
-                <IconButton
-                  aria-describedby={id}
-                  onClick={handleSave}
-                  sx={{ mr: 1 }}
-                  size="small"
-                >
+                <IconButton onClick={handleSave} size="small">
                   <SaveIcon sx={{ fontSize: 20 }}></SaveIcon>
                 </IconButton>
               </span>
@@ -231,55 +274,71 @@ const RendererSection = ({
           <Tooltip title="Create a Component">
             <span>
               <IconButton
-                aria-describedby={id}
-                onClick={handleExpand}
+                aria-describedby={id2}
+                onClick={handleExpand2}
                 sx={{ mr: 1 }}
                 size="small"
               >
-                <Typography aria-describedby={id} variant="overline" >New</Typography>
+                <Typography aria-describedby={id2} variant="overline" >New</Typography>
                 <AddIcon sx={{ fontSize: 20 }}></AddIcon>
               </IconButton>
             </span>
           </Tooltip>
-          <Popover id={id}
-            open={open}
-            anchorEl={anchorEl}
-            onClose={handleClose}
+          <Popover id={id2}
+            open={open2}
+            anchorEl={anchorEl2}
+            onClose={handleClose2}
             anchorOrigin={{
               vertical: 'bottom',
               horizontal: 'left',
             }}>
             <List>
               <ListItem>
-                <Button onClick={() => handleCreateArray} startIcon={<RectangleOutlinedIcon />}>
+                <Button aria-describedby={id3} onClick={handleExpand3} startIcon={<RectangleOutlinedIcon />}>
                   <ListItemText>Array</ListItemText>
                 </Button>
               </ListItem>
+              <Popover
+                id={id3}
+                open={open3}
+                anchorReference="anchorPosition"
+                anchorPosition={{ top: 400, left: 400 }}
+                onClose={handleClose3}
+                anchorOrigin={{
+                  vertical: 'bottom',
+                  horizontal: 'left',
+                }}
+              >
+                <Typography sx={{ p: 2 }}>This will be a form for the array</Typography>
+              </Popover>
               <ListItem>
-                <Button onClick={() => handleCreateStack} startIcon={<RectangleOutlinedIcon />}>
+                <Button onClick={handleClickOpen4} startIcon={<RectangleOutlinedIcon />}>
                   <ListItemText>Stack</ListItemText>
                 </Button>
               </ListItem>
-              <ListItem>
-                <Button onClick={() => handleCreateTree} startIcon={<RectangleOutlinedIcon />}>
-                  <ListItemText>Tree</ListItemText>
-                </Button>
-              </ListItem>
-              <ListItem>
-                <Button onClick={() => handleCreateLinkedList} startIcon={<RectangleOutlinedIcon />}>
-                  <ListItemText>Linked List</ListItemText>
-                </Button>
-              </ListItem>
-              <ListItem>
-                <Button onClick={() => handleCreateMatrix} startIcon={<RectangleOutlinedIcon />}>
-                  <ListItemText>Matrix</ListItemText>
-                </Button>
-              </ListItem>
-              <ListItem>
-                <Button onClick={() => handleCreateGraph} startIcon={<RectangleOutlinedIcon />}>
-                  <ListItemText>Graph</ListItemText>
-                </Button>
-              </ListItem>
+              <Dialog open={open4} onClose={handleClose4}>
+                <DialogContent sx={{ paddingBottom: 0 }}>
+                <DialogContentText>
+                  Enter the values of the array comma-separated.
+                </DialogContentText>
+                <form onSubmit={handleSubmit4}>
+                  <TextField
+                    autoFocus
+                    required
+                    margin="dense"
+                    id="name"
+                    name="values"
+                    label="Values"
+                    fullWidth
+                    variant="standard"
+                  />
+                  <DialogActions>
+                    <Button onClick={handleClose4}>Cancel</Button>
+                    <Button type="submit">Save</Button>
+                  </DialogActions>
+                </form>
+              </DialogContent>
+            </Dialog>
             </List>
           </Popover>
         </Box>
