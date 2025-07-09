@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Button, Dialog, DialogActions, DialogContent, DialogContentText, 
          ListItem, ListItemText,TextField } from "@mui/material";
 
-export const CreateComponentItem = ({name, icon, createFunction}) => {
+export const CreateComponentItem = ({name, icon, text, formFields, createFunction}) => {
   const [openPopup, setOpenPopup] = React.useState(false);
 
   const handleOpenPopup = () => {
@@ -31,12 +31,10 @@ export const CreateComponentItem = ({name, icon, createFunction}) => {
       <Dialog open={openPopup} onClose={handleClosePopup}>
         <DialogContent sx={{ paddingBottom: 0 }}>
         <DialogContentText>
-          Enter the values of the {name.toLowerCase()} comma-separated.
+          {text}
         </DialogContentText>
         <form onSubmit={handleCreateComponent}>
-          <TextField autoFocus required margin="dense" id="name"
-            name="values" label="Values" fullWidth variant="standard"
-          />
+          {formFields}
           <DialogActions>
             <Button onClick={handleClosePopup}>Cancel</Button>
             <Button type="submit">Save</Button>
