@@ -264,6 +264,10 @@ const RendererSection = ({
               <CreateComponentItem 
                 name={"Array"} 
                 icon={<RectangleOutlinedIcon />}
+                text={"Enter the values of the array comma-separated. Eg: 1, 2, 3"}
+                formFields={<TextField autoFocus required margin="dense"
+                  name="values" label="Values" fullWidth variant="standard"/>
+                }
                 createFunction={(formJson) => {
                   const values = formJson.values.split(',').map(( value ) => value.trim());
                   const colors = Array(values.length).fill(null);
@@ -276,12 +280,33 @@ const RendererSection = ({
               <CreateComponentItem 
                 name={"Stack"} 
                 icon={<RectangleOutlinedIcon />}
+                text={"Enter the values of the stack comma-separated. Eg: 1, 2, 3"}
+                formFields={<TextField autoFocus required margin="dense"
+                  name="values" label="Values" fullWidth variant="standard"/>
+                }
                 createFunction={(formJson) => {
                   const values = formJson.values.split(',').map(( value ) => value.trim());
                   const colors = Array(values.length).fill(null);
                   const arrows = Array(values.length).fill(null);
 
                   createComponent("stack", {value: values, color: colors, arrow: arrows}, currentPage);
+                  handleClose2();
+                }} 
+              />
+              <CreateComponentItem 
+                name={"Matrix"} 
+                icon={<RectangleOutlinedIcon />}
+                text={`Enter the values in a row comma-separated and use a semicolon
+                        to begin a new row. Eg: 1, 2, 3; 4, 5, 6`}
+                formFields={<TextField autoFocus required margin="dense"
+                  name="values" label="Values" fullWidth variant="standard"/>
+                }
+                createFunction={(formJson) => {
+                  const values = formJson.values.split(';').map((x)=>x.split(','));
+                  const colors = Array(values.length).fill(Array(values[0].length).fill(null));
+                  const arrows = Array(values.length).fill(Array(values[0].length).fill(null));
+
+                  createComponent("matrix", {value: values, color: colors, arrow: arrows}, currentPage);
                   handleClose2();
                 }} 
               />
