@@ -302,11 +302,29 @@ const RendererSection = ({
                   name="values" label="Values" fullWidth variant="standard"/>
                 }
                 createFunction={(formJson) => {
+                  // TODO maybe also trim the strings
                   const values = formJson.values.split(';').map((x)=>x.split(','));
                   const colors = Array(values.length).fill(Array(values[0].length).fill(null));
                   const arrows = Array(values.length).fill(Array(values[0].length).fill(null));
 
                   createComponent("matrix", {value: values, color: colors, arrow: arrows}, currentPage);
+                  handleClose2();
+                }} 
+              />
+              <CreateComponentItem 
+                name={"Linked List"} 
+                icon={<RectangleOutlinedIcon />}
+                text={"Enter the values of the linked list comma-separated. Eg: 1, 2, 3"}
+                formFields={<TextField autoFocus required margin="dense"
+                  name="values" label="Values" fullWidth variant="standard"/>
+                }
+                createFunction={(formJson) => {
+                  const values = formJson.values.split(',').map(( value ) => value.trim());
+                  const nodes = [...Array(values.length).keys()]
+                  const colors = Array(values.length).fill(null);
+                  const arrows = Array(values.length).fill(null);
+
+                  createComponent("linkedlist", {nodes: nodes, value: values, color: colors, arrow: arrows}, currentPage);
                   handleClose2();
                 }} 
               />
