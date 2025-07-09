@@ -1,5 +1,12 @@
-export function generateStack(stackComponent) {
+import { formatNodeName, formatNullValue } from '../compiler.mjs';
+import { formatPositionForOutput } from '../positionUtils.mjs';
+
+export function generateStack(stackComponent, layout = [3, 3]) {
     let result = "stack\n";
+    
+    // Add position information if available
+    result += formatPositionForOutput(stackComponent.position, layout);
+    
     result += "size: 7\n";
     result += "@\n";
     
@@ -12,9 +19,9 @@ export function generateStack(stackComponent) {
         const stackColor = i < color.length ? color[i] : null;
         const stackArrow = i < arrow.length ? arrow[i] : null;
         
-        result += `${stackValue}`;
-        result += ` {color:"${stackColor || "null"}"`;
-        result += `, arrow:"${stackArrow === 'empty' ? "" : stackArrow || "null"}"`;
+        result += `${formatNodeName(stackValue)}`;
+        result += ` {color:"${formatNullValue(stackColor)}"`;
+        result += `, arrow:"${stackArrow === 'empty' ? "" : formatNullValue(stackArrow)}"`;
         result += `}\n`;
     }
     

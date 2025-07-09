@@ -1,5 +1,13 @@
-export function generateGraph(graphComponent) {
-    let result = "graph\n@";
+import { formatNodeName, formatNullValue } from '../compiler.mjs';
+import { formatPositionForOutput } from '../positionUtils.mjs';
+
+export function generateGraph(graphComponent, layout = [3, 3]) {
+    let result = "graph\n";
+    
+    // Add position information if available
+    result += formatPositionForOutput(graphComponent.position, layout);
+    
+    result += "@";
     const nodes = graphComponent.body.nodes || [];
     const edges = graphComponent.body.edges || [];
     const value = graphComponent.body.value || [];
@@ -16,11 +24,11 @@ export function generateGraph(graphComponent) {
         const nodeArrow = idx < arrow.length ? arrow[idx] : null;
         const nodeHidden = idx < hidden.length ? hidden[idx] : null;
         
-        result += `\nnode:${node} {value:"${nodeValue || node}", color:"${nodeColor || "null"}", arrow:"${nodeArrow === `empty` ? "" : nodeArrow || "null"}", hidden:"${nodeHidden || "null"}"}`;
+        result += `\nnode:${formatNodeName(node)} {value:"${formatNullValue(nodeValue) || node}", color:"${formatNullValue(nodeColor)}", arrow:"${nodeArrow === `empty` ? "" : formatNullValue(nodeArrow)}", hidden:"${formatNullValue(nodeHidden)}"}`;
     }
 
     for (const edge of edges) {
-        result += `\nedge:(${edge.start},${edge.end})`;
+        result += `\nedge:(${formatNodeName(edge.start)},${formatNodeName(edge.end)})`;
     }
     result += "\n@\n";
     return result;

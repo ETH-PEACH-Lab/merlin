@@ -1,5 +1,13 @@
-export function generateMatrix(matrixComponent) {
-    let result = "matrix\n@";
+import { formatNodeName, formatNullValue } from '../compiler.mjs';
+import { formatPositionForOutput } from '../positionUtils.mjs';
+
+export function generateMatrix(matrixComponent, layout = [3, 3]) {
+    let result = "matrix\n";
+    
+    // Add position information if available
+    result += formatPositionForOutput(matrixComponent.position, layout);
+    
+    result += "@";
     
     const values = matrixComponent.body.value || [];
     const color = matrixComponent.body.color || [];
@@ -13,9 +21,9 @@ export function generateMatrix(matrixComponent) {
             const cellArrow = arrow[row] ? (arrow[row][col] || null) : null;
 
             if (col === 0) {
-                result += `${value} {color:"${cellColor || "null"}",arrow:"${cellArrow || "null"}"}`;
+                result += `${formatNodeName(value)} {color:"${formatNullValue(cellColor)}",arrow:"${formatNullValue(cellArrow)}"}`;
             } else {
-                result += `, ${value} {color:"${cellColor || "null"}",arrow:"${cellArrow || "null"}"}`;
+                result += `, ${formatNodeName(value)} {color:"${formatNullValue(cellColor)}",arrow:"${formatNullValue(cellArrow)}"}`;
             }
         }
     }

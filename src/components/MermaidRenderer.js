@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import mermaid from "../libs/mermaid.esm.mjs";
+import mermaid from '@eth-peach-lab/mermaid-merlin/packages/mermaid/dist/mermaid.esm.mjs'
 import { ElementEditor } from "./ElementEditor";
 
 const MermaidRenderer = ({

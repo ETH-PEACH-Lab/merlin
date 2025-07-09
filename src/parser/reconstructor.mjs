@@ -58,12 +58,23 @@ function getMethodName(action, target, isPlural = false) {
         'values': 'Value',
         'colors': 'Color',
         'arrows': 'Arrow',
-        'hidden': 'Hidden'
+        'hidden': 'Hidden',
+        'fontSize': 'FontSize',
+        'fontWeight': 'FontWeight',
+        'fontFamily': 'FontFamily',
+        'align': 'Align',
+        'lineSpacing': 'LineSpacing',
+        'width': 'Width',
+        'height': 'Height'
     };
     
     // Handle special plural cases that don't follow standard rules
     const pluralExceptions = {
-        'hidden': 'Hidden'  // hidden stays the same in plural
+        'hidden': 'Hidden',  // hidden stays the same in plural
+        'fontSize': 'FontSizes',  // fontSize -> FontSizes
+        'fontWeight': 'FontWeights',  // fontWeight -> FontWeights  
+        'fontFamily': 'FontFamilies',  // fontFamily -> FontFamilies
+        'align': 'Aligns'  // align -> Aligns
     };
     
     let targetName;
@@ -86,19 +97,52 @@ function getMethodName(action, target, isPlural = false) {
     return `${action}${targetName}`;
 }
 
+function isTextComponent(cmd) {
+    // For now, check if the command has specific properties that indicate it's for a text component
+    // This could be enhanced to actually look up the component type in the parsed DSL
+    return cmd.target === 'value' && typeof cmd.args === 'string' ||
+           cmd.target === 'value' && cmd.args && typeof cmd.args.value === 'string' ||
+           ['fontSize', 'fontWeight', 'fontFamily', 'align', 'lineSpacing', 'width', 'height'].includes(cmd.target);
+}
+
 function reconstructCommand(cmd) {
     switch (cmd.type) {
         case 'page':
+            if (cmd.layout && Array.isArray(cmd.layout) && cmd.layout.length === 2) {
+                return `\npage ${cmd.layout[0]}x${cmd.layout[1]}`;
+            }
             return '\npage';
             
         case 'show':
+            if (cmd.position) {
+                return `show ${cmd.value} ${formatPosition(cmd.position)}`;
+            }
             return `show ${cmd.value}`;
             
+            
         case 'set':
-            const methodName = getMethodName('set', cmd.target, false);
-            const index = cmd.args.index;
-            const value = formatValue(cmd.args.value, cmd.target);
-            return `${cmd.name}.${methodName}(${index}, ${value})`;
+            // Special handling for text components
+            if (isTextComponent(cmd)) {
+                // Check if it's an indexed operation or direct property setting
+                if (cmd.args.index !== undefined) {
+                    // Array-style operation with index
+                    const methodName = getMethodName('set', cmd.target, false);
+                    const index = cmd.args.index;
+                    const value = formatValue(cmd.args.value, cmd.target);
+                    return `${cmd.name}.${methodName}(${index}, ${value})`;
+                } else {
+                    // Direct property setting (no index)
+                    const methodName = getMethodName('set', cmd.target, false);
+                    const value = formatValue(cmd.args, cmd.target);
+                    return `${cmd.name}.${methodName}(${value})`;
+                }
+            } else {
+                // Original array-based handling for other components
+                const methodName = getMethodName('set', cmd.target, false);
+                const index = cmd.args.index;
+                const value = formatValue(cmd.args.value, cmd.target);
+                return `${cmd.name}.${methodName}(${index}, ${value})`;
+            }
             
         case 'set_multiple':
             const pluralMethodName = getMethodName('set', cmd.target, true);
@@ -144,10 +188,65 @@ function reconstructCommand(cmd) {
         case 'remove_at':
             const removeAtIndex = cmd.args;
             return `${cmd.name}.removeAt(${removeAtIndex})`;
+            
+        case 'add_matrix_row':
+            const addRowValue = cmd.args !== null && cmd.args !== undefined ? cmd.args : '';
+            return `${cmd.name}.addRow(${addRowValue})`;
+            
+        case 'add_matrix_column':
+            const addColValue = cmd.args !== null && cmd.args !== undefined ? cmd.args : '';
+            return `${cmd.name}.addColumn(${addColValue})`;
+            
+        case 'remove_matrix_row':
+            return `${cmd.name}.removeRow(${cmd.args})`;
+            
+        case 'remove_matrix_column':
+            return `${cmd.name}.removeColumn(${cmd.args})`;
+            
+        case 'add_matrix_border':
+            const borderValue = formatValue(cmd.args.index);
+            const borderColor = formatValue(cmd.args.value);
+            return `${cmd.name}.addBorder(${borderValue}, ${borderColor})`;
 
         default:
             return null;
     }
+}
+
+export function formatPosition(position) {
+    if (!position) {
+        return '';
+    }
+    
+    // Handle keyword-type positions
+    if (typeof position === 'object' && position.type === 'keyword') {
+        return position.value;
+    }
+    
+    // Handle the new shape-based position format
+    if (typeof position === 'object' && position.originalPosition) {
+        position = position.originalPosition;
+    }
+    
+    // Handle array-type positions (coordinate tuples)
+    if (Array.isArray(position)) {
+        const [x, y] = position;
+        
+        function formatPositionValue(value) {
+            if (value && typeof value === 'object' && value.type === 'range') {
+                return `${value.start}..${value.end}`;
+            }
+            return value;
+        }
+        
+        const xStr = formatPositionValue(x);
+        const yStr = formatPositionValue(y);
+        
+        return `(${xStr}, ${yStr})`;
+    }
+    
+    // For any other format, return as-is (fallback)
+    return '';
 }
 
 function formatMatrix(matrix) {
@@ -188,6 +287,10 @@ function formatValues(key, value) {
             
         default:
             // For other properties (value, color, arrow), use standard array formatting
+            // For text properties, if all elements are strings, format accordingly
+            if (key === 'value' && value.every(v => typeof v === 'string' || v === null)) {
+                return `[${value.map(item => formatValue(item)).join(', ')}]`;
+            }
             return `[${value.map(item => formatValue(item)).join(', ')}]`;
     }
 }

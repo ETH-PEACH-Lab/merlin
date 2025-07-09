@@ -1,5 +1,13 @@
-export function generateArray(arrayComponent) {
-  let result = "array\n@\n";
+import { formatNodeName, formatNullValue } from '../compiler.mjs';
+import { formatPositionForOutput } from '../positionUtils.mjs';
+
+export function generateArray(arrayComponent, layout = [3, 3]) {
+  let result = "array\n";
+  
+  // Add position information if available
+  result += formatPositionForOutput(arrayComponent.position, layout);
+  
+  result += "@\n";
 
   const structure = arrayComponent.body.structure || [];
   const color = arrayComponent.body.color || [];
@@ -16,13 +24,13 @@ export function generateArray(arrayComponent) {
     // Default to an empty string if neither is defined to avoid "undefined" in output.
     const cellDisplayValue = value[i] !== undefined ? value[i] : (structure[i] !== undefined ? structure[i] : "");
     
-    result += `${cellDisplayValue}`;
-    result += ` {color:"${color[i] || ""}"`;
+    result += `${formatNodeName(cellDisplayValue)}`;
+    result += ` {color:"${formatNullValue(color[i] || null)}"`;
     
     // Ensure 'empty' is treated as a string literal for comparison.
-    const arrowValue = arrow[i] === 'empty' ? "" : (arrow[i] || "null");
-    result += `, arrow:"${arrowValue}`;
-    result += `"}\n`;
+    const arrowValue = arrow[i] === 'empty' ? "" : formatNullValue(arrow[i] || null);
+    result += `, arrow:"${arrowValue}"`;
+    result += `}\n`;
   }
   result += "@\n";
   return result;
