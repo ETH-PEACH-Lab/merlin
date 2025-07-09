@@ -36,10 +36,9 @@ const RendererSection = ({
   const [anchorEl2, setAnchorEl2] = useState(null);
   const [anchorEl3, setAnchorEl3] = useState(null);
   
-  const { pages, addPage, removePage, unparsedCode } = useParseCompile();
+  const { pages, addPage, removePage, unparsedCode, createComponent } = useParseCompile();
 
   const handleAddPage = () => {
-    console.log(currentPage)
     const pageBefore = currentPage;
     addPage(pageBefore);
     setCurrentPage(pageBefore + 1);
@@ -75,11 +74,6 @@ const RendererSection = ({
     setAnchorEl3(event.currentTarget);
   };
 
-  const handleClose3 = () => {
-    setAnchorEl3(null);
-    setAnchorEl2(null);
-  };
-
   const [open4, setOpen4] = React.useState(false);
 
   const handleClickOpen4 = () => {
@@ -88,14 +82,20 @@ const RendererSection = ({
 
   const handleClose4 = () => {
     setOpen4(false);
+    setAnchorEl2(null);
   };
 
-  const handleSubmit4 = (event) => {
+  const handleCreateStack = (event) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     const formJson = Object.fromEntries(formData.entries());
-    const values = formJson.values;
-    console.log(values);
+    const values = formJson.values.split(',');
+    const valuesCleaned = values.map(( value ) => value.trim());
+
+    const colors = Array(values.length).fill(null);
+    const arrows = Array(values.length).fill(null);
+
+    createComponent("stack", {value: valuesCleaned, color: colors, arrow: arrows}, currentPage);
     handleClose4();
   };
 
@@ -294,24 +294,6 @@ const RendererSection = ({
             }}>
             <List>
               <ListItem>
-                <Button aria-describedby={id3} onClick={handleExpand3} startIcon={<RectangleOutlinedIcon />}>
-                  <ListItemText>Array</ListItemText>
-                </Button>
-              </ListItem>
-              <Popover
-                id={id3}
-                open={open3}
-                anchorReference="anchorPosition"
-                anchorPosition={{ top: 400, left: 400 }}
-                onClose={handleClose3}
-                anchorOrigin={{
-                  vertical: 'bottom',
-                  horizontal: 'left',
-                }}
-              >
-                <Typography sx={{ p: 2 }}>This will be a form for the array</Typography>
-              </Popover>
-              <ListItem>
                 <Button onClick={handleClickOpen4} startIcon={<RectangleOutlinedIcon />}>
                   <ListItemText>Stack</ListItemText>
                 </Button>
@@ -319,18 +301,11 @@ const RendererSection = ({
               <Dialog open={open4} onClose={handleClose4}>
                 <DialogContent sx={{ paddingBottom: 0 }}>
                 <DialogContentText>
-                  Enter the values of the array comma-separated.
+                  Enter the values of the stack comma-separated.
                 </DialogContentText>
-                <form onSubmit={handleSubmit4}>
-                  <TextField
-                    autoFocus
-                    required
-                    margin="dense"
-                    id="name"
-                    name="values"
-                    label="Values"
-                    fullWidth
-                    variant="standard"
+                <form onSubmit={(e) => {handleCreateStack(e);}}>
+                  <TextField autoFocus required margin="dense" id="name"
+                    name="values" label="Values" fullWidth variant="standard"
                   />
                   <DialogActions>
                     <Button onClick={handleClose4}>Cancel</Button>

@@ -17,6 +17,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
     const [parsedCode, setParsedCode] = useState(null);
     const [compiledMerlin, setCompiledMerlin] = useState(null);
     const [pages, setPages] = useState([]);
+    const [componentCount, setcomponentCount] = useState(1);
     const [error, setError] = useState(null);
 
     // Parse and compile whenever unparsedCode changes
@@ -180,15 +181,29 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         [parsedCode, pages, reconstructMerlinLite]
     );
 
-    // Add a page after the current page
-    const addPage = useCallback((currentPage) => {
-        if (currentPage == pages.length){
-            parsedCode?.cmds.push({ type: "page" });
+    // Create a new component and show it
+    const createComponent = useCallback((componentType, componentBody, page) => {
+        if (!parsedCode) {
+            // TODO figure out this case
+            console.log("NO PARSED CODE");
         }
         else {
-            const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(currentPage - 1);
-            parsedCode?.cmds.splice(pageEndIndex, 0, { type: "page" });
+            const componentName = componentType + `${ componentCount }`;
+            setcomponentCount(componentCount + 1);
+            parsedCode.defs.push({ class: "def", type: componentType, 
+                name: componentName, body: componentBody
+            });
+            const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page - 1);
+            parsedCode.cmds.splice(pageEndIndex, 0, { type: "show", value: componentName });
         }
+
+        reconstructMerlinLite();
+    }, [parsedCode]);
+
+    // Add a page after the current page
+    const addPage = useCallback((currentPage) => {
+        const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(currentPage - 1);
+        parsedCode?.cmds.splice(pageEndIndex, 0, { type: "page" });
         reconstructMerlinLite();
     }, [parsedCode]);
 
@@ -209,6 +224,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             pages,
             updateUnparsedCode,
             reconstructMerlinLite,
+            createComponent,
             updateValue,
             addPage,
             removePage,
@@ -221,6 +237,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             pages,
             updateUnparsedCode,
             reconstructMerlinLite,
+            createComponent,
             updateValue,
             addPage,
             removePage,
