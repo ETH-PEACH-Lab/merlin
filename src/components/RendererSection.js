@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import MermaidRenderer from "./MermaidRenderer";
 import { ElementEditor } from "./ElementEditor";
-import ComponentEditor from "./ComponentEditor";
+import { CreateComponentItem } from "./CreateComponentItem";
 import Button from '@mui/material/Button';
 import { Box, Typography, Card, CardContent, ListItemIcon, ListItemText, Popover, ListItem, List, IconButton, ButtonGroup,
          Tooltip, TextField, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Snackbar, Alert } from "@mui/material";
@@ -34,7 +34,6 @@ const RendererSection = ({
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
   const [anchorEl1, setAnchorEl1] = useState(null);
   const [anchorEl2, setAnchorEl2] = useState(null);
-  const [anchorEl3, setAnchorEl3] = useState(null);
   
   const { pages, addPage, removePage, unparsedCode, createComponent } = useParseCompile();
 
@@ -68,35 +67,6 @@ const RendererSection = ({
 
   const handleClose2 = () => {
     setAnchorEl2(null);
-  };
-
-    const handleExpand3 = (event) => {
-    setAnchorEl3(event.currentTarget);
-  };
-
-  const [open4, setOpen4] = React.useState(false);
-
-  const handleClickOpen4 = () => {
-    setOpen4(true);
-  };
-
-  const handleClose4 = () => {
-    setOpen4(false);
-    setAnchorEl2(null);
-  };
-
-  const handleCreateStack = (event) => {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    const formJson = Object.fromEntries(formData.entries());
-    const values = formJson.values.split(',');
-    const valuesCleaned = values.map(( value ) => value.trim());
-
-    const colors = Array(values.length).fill(null);
-    const arrows = Array(values.length).fill(null);
-
-    createComponent("stack", {value: valuesCleaned, color: colors, arrow: arrows}, currentPage);
-    handleClose4();
   };
 
   const handleClickPrev = () => {
@@ -143,8 +113,6 @@ const RendererSection = ({
   const id1 = open1 ? 'simple-popover1' : undefined;
   const open2 = Boolean(anchorEl2);
   const id2 = open2 ? 'simple-popover2' : undefined;
-  const open3 = Boolean(anchorEl3);
-  const id3 = open3 ? 'simple-popover3' : undefined;
 
 
   return (
@@ -293,27 +261,30 @@ const RendererSection = ({
               horizontal: 'left',
             }}>
             <List>
-              <ListItem>
-                <Button onClick={handleClickOpen4} startIcon={<RectangleOutlinedIcon />}>
-                  <ListItemText>Stack</ListItemText>
-                </Button>
-              </ListItem>
-              <Dialog open={open4} onClose={handleClose4}>
-                <DialogContent sx={{ paddingBottom: 0 }}>
-                <DialogContentText>
-                  Enter the values of the stack comma-separated.
-                </DialogContentText>
-                <form onSubmit={(e) => {handleCreateStack(e);}}>
-                  <TextField autoFocus required margin="dense" id="name"
-                    name="values" label="Values" fullWidth variant="standard"
-                  />
-                  <DialogActions>
-                    <Button onClick={handleClose4}>Cancel</Button>
-                    <Button type="submit">Save</Button>
-                  </DialogActions>
-                </form>
-              </DialogContent>
-            </Dialog>
+              <CreateComponentItem 
+                name={"Array"} 
+                icon={<RectangleOutlinedIcon />}
+                createFunction={(formJson) => {
+                  const values = formJson.values.split(',').map(( value ) => value.trim());
+                  const colors = Array(values.length).fill(null);
+                  const arrows = Array(values.length).fill(null);
+
+                  createComponent("array", {value: values, color: colors, arrow: arrows}, currentPage);
+                  handleClose2();
+                }} 
+              />
+              <CreateComponentItem 
+                name={"Stack"} 
+                icon={<RectangleOutlinedIcon />}
+                createFunction={(formJson) => {
+                  const values = formJson.values.split(',').map(( value ) => value.trim());
+                  const colors = Array(values.length).fill(null);
+                  const arrows = Array(values.length).fill(null);
+
+                  createComponent("stack", {value: values, color: colors, arrow: arrows}, currentPage);
+                  handleClose2();
+                }} 
+              />
             </List>
           </Popover>
         </Box>
