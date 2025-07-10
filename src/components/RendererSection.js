@@ -327,7 +327,25 @@ const RendererSection = ({
                   createComponent("linkedlist", {nodes: nodes, value: values, color: colors, arrow: arrows}, currentPage);
                   handleClose2();
                 }} 
+              />              
+              <CreateComponentItem 
+                name={"Tree"} 
+                icon={<RectangleOutlinedIcon />}
+                text={"Enter the values of the tree comma-separated in level order."}
+                formFields={<TextField autoFocus required margin="dense"
+                  name="values" label="Values" fullWidth variant="standard"/>
+                }
+                createFunction={(formJson) => {
+                  const values = formJson.values.split(',').map(( value ) => value.trim());
+                  const nodes = [...Array(values.length).keys()].map(( value ) => `n_${value}`);
+                  const colors = Array(values.length).fill(null);
+                  const arrows = Array(values.length).fill(null);
+
+                  createComponent("tree", {nodes: nodes, value: values, color: colors, arrow: arrows}, currentPage);
+                  handleClose2();
+                }} 
               />
+
             </List>
           </Popover>
         </Box>
