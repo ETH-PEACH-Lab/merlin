@@ -1,12 +1,12 @@
-export const examples = [
+const examples = [
   {
     id: "arrayExample",
     title: "Example - Array",
     userCode: `// Array - Sorting visualization
 array numbers = {
-	value: [64,34,25,12,22,11,90]
-	color: [null,"blue",null,null,null,null,null]
-	arrow: [null,null,"important",null,null,null,null]
+  value: [64,34,25,12,22,11,90]
+  color: [null,"blue",null,null,null,null,null]
+  arrow: [null,null,"important",null,null,null,null]
 }
 
 
@@ -41,12 +41,12 @@ numbers.setArrow(1, null)`,
     title: "Example - Graph",
     userCode: `// Graph - Network connectivity
 graph network = {
-	nodes: [server1,server2,server3,router]
-	value: [100,50,75,200]
-	edges: [server1-router,server2-router,server3-router]
-	arrow: ["start",null,null,"hub"]
-	color: [null,null,null,"blue"]
-	hidden: [false,false,false,false]
+  nodes: [server1,server2,server3,router]
+  value: [100,50,75,200]
+  edges: [server1-router,server2-router,server3-router]
+  arrow: ["start",null,null,"hub"]
+  color: [null,null,null,"blue"]
+  hidden: [false,false,false,false]
 }
 
 
@@ -74,9 +74,9 @@ network.setArrow(2, "high load")`,
     title: "Example - Matrix",
     userCode: `// Matrix - 2D grid operations
 matrix grid = {
-	value: [[1, 2], [3, 4]]
-	color: [[null, null], [null, "red"]]
-	arrow: [[null, null],[null,"done"]]
+  value: [[1, 2], [3, 4]]
+  color: [[null, null], [null, "red"]]
+  arrow: [[null, null],[null,"done"]]
 }
 
 
@@ -128,9 +128,9 @@ grid.addBorder(0, "gray")`,
     title: "Example - Stack",
     userCode: `// Stack - Function call stack
 stack callStack = {
-	value: ["main","process","calculate"]
-	color: [null,"blue",null]
-	arrow: [null,null,"top"]
+  value: ["main","process","calculate"]
+  color: [null,"blue",null]
+  arrow: [null,null,"top"]
 }
 
 
@@ -147,10 +147,10 @@ callStack.setValues([_,_,"validate","execute"])`,
     title: "Example - Tree",
     userCode: `// Tree - Binary search tree operations
 tree bst = {
-	nodes: [root,left,right,leftLeft]
-	value: [50,30,70,20]
-	color: ["green",null,"blue",null]
-	arrow: [null,"focus",null,null]
+  nodes: [root,left,right,leftLeft]
+  value: [50,30,70,20]
+  color: ["green",null,"blue",null]
+  arrow: [null,"focus",null,null]
 }
 
 
@@ -235,7 +235,7 @@ hide randomTextToo
     title: "Tutorial - Fibonacci",
     userCode: `// Tutorial - Fibonacci sequence
 array arr1 = {
-	value: [1]
+  value: [1]
 }
 
 
@@ -435,12 +435,12 @@ arr.setArrow(5, "hi")`,
     id: "04",
     title: "arithmetic-slices",
     userCode: `array arr1 = {
-	value: [1,3,5,6,10,15,20,25,28,29]
-	color: [null,null,null,null,null,null,null,null,null,null]
+  value: [1,3,5,6,10,15,20,25,28,29]
+  color: [null,null,null,null,null,null,null,null,null,null]
 }
 array arr2 = {
-	value: [0,0,0,0,0,0,0,0,0,0]
-	color: [null,null,null,null,null,null,null,null,null,null]
+  value: [0,0,0,0,0,0,0,0,0,0]
+  color: [null,null,null,null,null,null,null,null,null,null]
 }
 
 page
@@ -873,19 +873,19 @@ page
 tr1.setColor(0, "pink")
 
 page
-tr1.setColors(["pink","pink","null","null","null","null","null"])
+tr1.setColors(["pink","pink",null,null,null,null,null])
 
 page
-tr1.setColors(["pink","pink","pink","null","null","null","null"])
+tr1.setColors(["pink","pink","pink",null,null,null,null])
 
 page
-tr1.setColors(["pink","pink","pink","pink","null","null","null"])
+tr1.setColors(["pink","pink","pink","pink",null,null,null])
 
 page
-tr1.setColors(["pink","pink","pink","pink","pink","null","null"])
+tr1.setColors(["pink","pink","pink","pink","pink",null,null])
 
 page
-tr1.setColors(["pink","pink","pink","pink","pink","pink","null"])
+tr1.setColors(["pink","pink","pink","pink","pink","pink",null])
 
 page
 tr1.setColors(["pink","pink","pink","pink","pink","pink","pink"])`,
@@ -904,21 +904,21 @@ array arr1 = {
 page
 show mr1
 show arr1
-mr1.setColors([["yellow","green","green","green","green"],["orange","null","null","null","null"],["null","null","null","null","null"],["null","null","null","null","null"]])
+mr1.setColors([["yellow","green","green","green","green"],["orange",null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]])
 
 page
-mr1.setColors([["yellow","green","green","green","green"],["orange","null","null","null","null"],["orange","null","null","null","null"],["null","null","null","null","null"]])
+mr1.setColors([["yellow","green","green","green","green"],["orange",null,null,null,null],["orange",null,null,null,null],[null,null,null,null,null]])
 arr1.setValues(["T","F","N"])
 
 page
-mr1.setColors([["green","green","yellow","green","green"],["null","orange","null","null","null"],["null","null","null","null","null"],["null","null","null","null","null"]])
+mr1.setColors([["green","green","yellow","green","green"],[null,"orange",null,null,null],[null,null,null,null,null],[null,null,null,null,null]])
 arr1.setValues(["F","N","N"])
 
 page
-mr1.setColors([["green","green","green","yellow","green"],["null","orange","null","null","null"],["null","orange","null","null","null"],["null","null","null","null","null"]])
+mr1.setColors([["green","green","green","yellow","green"],[null,"orange",null,null,null],[null,"orange",null,null,null],[null,null,null,null,null]])
 
 page
-mr1.setColors([["green","green","green","green","yellow"],["null","null","orange","null","null"],["null","orange","null","null","null"],["null","null","orange","null","null"]])
+mr1.setColors([["green","green","green","green","yellow"],[null,null,"orange",null,null],[null,"orange",null,null,null],[null,null,"orange",null,null]])
 arr1.setValues(["T","T","T"])
 arr1.setColors(["green","green","green"])`,
   },
@@ -931,14 +931,14 @@ arr1.setColors(["green","green","green"])`,
 
 page
 show mr1
-mr1.setColors([["null","null","null","pink"],["null","null","null","null"],["null","null","null","null"],["pink","null","null","null"]])
+mr1.setColors([[null,null,null,"pink"],[null,null,null,null],[null,null,null,null],["pink",null,null,null]])
 
 page
-mr1.setColors([["null","null","green","pink"],["null","null","null","green"],["green","null","null","null"],["pink","green","null","null"]])
+mr1.setColors([[null,null,"green","pink"],[null,null,null,"green"],["green",null,null,null],["pink","green",null,null]])
 
 page
 mr1.setValues([[1,2,1,0],[2,1,2,1],[1,2,1,2],[0,1,2,1]])
-mr1.setColors([["null","blue","green","pink"],["blue","null","blue","green"],["green","blue","null","blue"],["pink","green","blue","null"]])
+mr1.setColors([[null,"blue","green","pink"],["blue",null,"blue","green"],["green","blue",null,"blue"],["pink","green","blue",null]])
 
 page
 mr1.setValues([[3,2,1,0],[2,3,2,1],[1,2,3,2],[0,1,2,3]])
@@ -955,16 +955,16 @@ page
 show mr1
 
 page
-mr1.setArrows([["null","null","null","null","start"],["null","null","null","null","null"],["null","null","null","null","null"],["null","null","null","null","null"]])
+mr1.setArrows([[null,null,null,null,"start"],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]])
 
 page
-mr1.setColors([["null","null","null","null","pink"],["null","null","null","null","pink"],["null","null","null","null","pink"],["null","null","null","null","pink"]])
+mr1.setColors([[null,null,null,null,"pink"],[null,null,null,null,"pink"],[null,null,null,null,"pink"],[null,null,null,null,"pink"]])
 
 page
-mr1.setArrows([["null","null","null","null","null"],["null","start","null","null","null"],["null","null","null","null","null"],["null","null","null","null","null"]])
+mr1.setArrows([[null,null,null,null,null],[null,"start",null,null,null],[null,null,null,null,null],[null,null,null,null,null]])
 
 page
-mr1.setColors([["null","null","null","null","pink"],["null","purple","purple","null","pink"],["null","purple","purple","null","pink"],["null","null","null","null","pink"]])`,
+mr1.setColors([[null,null,null,null,"pink"],[null,"purple","purple",null,"pink"],[null,"purple","purple",null,"pink"],[null,null,null,null,"pink"]])`,
   },
   {
     id: "21",
@@ -975,25 +975,25 @@ mr1.setColors([["null","null","null","null","pink"],["null","purple","purple","n
 
 page
 show mr1
-mr1.setArrows([["null","null","null","null","root"],["null","null","null","null","null"],["null","null","null","null","null"],["null","null","null","null","null"],["null","null","null","null","null"]])
+mr1.setArrows([[null,null,null,null,"root"],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]])
 
 page
-mr1.setColors([["null","null","null","null","red"],["null","null","null","null","null"],["null","null","null","null","null"],["null","null","null","null","null"],["null","null","null","null","null"]])
+mr1.setColors([[null,null,null,null,"red"],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]])
 
 page
-mr1.setColors([["null","null","null","null","red"],["null","null","null","null","red"],["null","null","null","null","null"],["null","null","null","null","null"],["null","null","null","null","null"]])
+mr1.setColors([[null,null,null,null,"red"],[null,null,null,null,"red"],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]])
 
 page
-mr1.setColors([["null","null","null","null","red"],["null","null","null","null","red"],["null","null","null","null","red"],["null","null","null","null","null"],["null","null","null","null","null"]])
+mr1.setColors([[null,null,null,null,"red"],[null,null,null,null,"red"],[null,null,null,null,"red"],[null,null,null,null,null],[null,null,null,null,null]])
 
 page
-mr1.setArrows([["null","null","null","null","null"],["null","null","null","null","null"],["null","null","null","null","null"],["null","null","null","null","null"],["null","null","null","root","null"]])
+mr1.setArrows([[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,"root",null]])
 
 page
-mr1.setColors([["null","null","null","null","red"],["null","null","null","null","red"],["null","null","null","null","red"],["null","null","null","red","null"],["null","null","null","red","red"]])
+mr1.setColors([[null,null,null,null,"red"],[null,null,null,null,"red"],[null,null,null,null,"red"],[null,null,null,"red",null],[null,null,null,"red","red"]])
 
 page
-mr1.setColors([["null","null","null","null","red"],["null","null","green","null","red"],["null","green","null","null","red"],["null","green","null","red","null"],["null","null","null","red","red"]])`,
+mr1.setColors([[null,null,null,null,"red"],[null,null,"green",null,"red"],[null,"green",null,null,"red"],[null,"green",null,"red",null],[null,null,null,"red","red"]])`,
   },
   {
     id: "22",
@@ -1004,34 +1004,34 @@ mr1.setColors([["null","null","null","null","red"],["null","null","green","null"
 
 page
 show mr1
-mr1.setArrows([["start","null","null"],["null","null","null"],["null","null","null"],["null","null","null"]])
+mr1.setArrows([["start",null,null],[null,null,null],[null,null,null],[null,null,null]])
 
 page
-mr1.setColors([["blue","null","null"],["null","null","null"],["null","null","null"],["null","null","null"]])
+mr1.setColors([["blue",null,null],[null,null,null],[null,null,null],[null,null,null]])
 
 page
-mr1.setColors([["blue","blue","null"],["null","null","null"],["null","null","null"],["null","null","null"]])
+mr1.setColors([["blue","blue",null],[null,null,null],[null,null,null],[null,null,null]])
 
 page
-mr1.setColors([["blue","blue","null"],["null","blue","null"],["null","null","null"],["null","null","null"]])
+mr1.setColors([["blue","blue",null],[null,"blue",null],[null,null,null],[null,null,null]])
 
 page
-mr1.setColors([["blue","blue","blue"],["null","blue","null"],["null","null","null"],["null","null","null"]])
+mr1.setColors([["blue","blue","blue"],[null,"blue",null],[null,null,null],[null,null,null]])
 
 page
-mr1.setArrows([["null","null","null"],["null","null","null"],["start","null","null"],["null","null","null"]])
+mr1.setArrows([[null,null,null],[null,null,null],["start",null,null],[null,null,null]])
 
 page
-mr1.setColors([["blue","blue","blue"],["null","blue","null"],["pink","null","null"],["null","null","null"]])
+mr1.setColors([["blue","blue","blue"],[null,"blue",null],["pink",null,null],[null,null,null]])
 
 page
-mr1.setColors([["blue","blue","blue"],["null","blue","null"],["pink","null","null"],["pink","null","null"]])
+mr1.setColors([["blue","blue","blue"],[null,"blue",null],["pink",null,null],["pink",null,null]])
 
 page
-mr1.setArrows([["null","null","null"],["null","null","null"],["null","null","null"],["null","null","start"]])
+mr1.setArrows([[null,null,null],[null,null,null],[null,null,null],[null,null,"start"]])
 
 page
-mr1.setColors([["blue","blue","blue"],["null","blue","null"],["pink","null","null"],["pink","null","green"]])`,
+mr1.setColors([["blue","blue","blue"],[null,"blue",null],["pink",null,null],["pink",null,"green"]])`,
   },
   {
     id: "24",
@@ -1044,19 +1044,19 @@ page
 show mr1
 
 page
-mr1.setColors([["blue","blue","blue","blue","blue","blue","blue","blue","blue"],["blue","null","null","null","null","null","null","null","null"],["blue","null","null","null","null","null","null","null","null"],["blue","null","null","null","null","null","null","null","null"],["blue","null","null","null","null","null","null","null","null"]])
+mr1.setColors([["blue","blue","blue","blue","blue","blue","blue","blue","blue"],["blue",null,null,null,null,null,null,null,null],["blue",null,null,null,null,null,null,null,null],["blue",null,null,null,null,null,null,null,null],["blue",null,null,null,null,null,null,null,null]])
 
 page
-mr1.setColors([["blue","blue","blue","blue","blue","blue","blue","blue","blue"],["blue","blue","blue","blue","blue","blue","blue","blue","blue"],["blue","blue","blue","null","null","null","blue","null","blue"],["blue","blue","null","null","null","null","blue","null","null"],["blue","null","null","null","null","null","null","null","null"]])
+mr1.setColors([["blue","blue","blue","blue","blue","blue","blue","blue","blue"],["blue","blue","blue","blue","blue","blue","blue","blue","blue"],["blue","blue","blue",null,null,null,"blue",null,"blue"],["blue","blue",null,null,null,null,"blue",null,null],["blue",null,null,null,null,null,null,null,null]])
 
 page
-mr1.setColors([["blue","blue","blue","blue","blue","blue","blue","blue","yellow"],["blue","blue","blue","blue","blue","blue","blue","blue","yellow"],["blue","blue","blue","null","null","null","blue","null","yellow"],["blue","blue","null","null","null","null","blue","null","yellow"],["yellow","yellow","yellow","yellow","yellow","yellow","yellow","yellow","yellow"]])
+mr1.setColors([["blue","blue","blue","blue","blue","blue","blue","blue","yellow"],["blue","blue","blue","blue","blue","blue","blue","blue","yellow"],["blue","blue","blue",null,null,null,"blue",null,"yellow"],["blue","blue",null,null,null,null,"blue",null,"yellow"],["yellow","yellow","yellow","yellow","yellow","yellow","yellow","yellow","yellow"]])
 
 page
-mr1.setColors([["blue","blue","blue","blue","blue","blue","blue","blue","yellow"],["blue","blue","blue","blue","blue","blue","blue","blue","yellow"],["blue","blue","yellow","null","null","null","blue","null","yellow"],["yellow","yellow","yellow","yellow","yellow","null","yellow","yellow","yellow"],["yellow","yellow","yellow","yellow","yellow","yellow","yellow","yellow","yellow"]])
+mr1.setColors([["blue","blue","blue","blue","blue","blue","blue","blue","yellow"],["blue","blue","blue","blue","blue","blue","blue","blue","yellow"],["blue","blue","yellow",null,null,null,"blue",null,"yellow"],["yellow","yellow","yellow","yellow","yellow",null,"yellow","yellow","yellow"],["yellow","yellow","yellow","yellow","yellow","yellow","yellow","yellow","yellow"]])
 
 page
-mr1.setColors([["blue","blue","blue","blue","blue","blue","blue","blue","yellow"],["blue","blue","blue","blue","blue","blue","blue","blue","yellow"],["blue","blue","yellow","null","null","null","blue","null","yellow"],["yellow","yellow","green","green","green","null","yellow","green","green"],["yellow","green","green","green","green","green","green","green","green"]])`,
+mr1.setColors([["blue","blue","blue","blue","blue","blue","blue","blue","yellow"],["blue","blue","blue","blue","blue","blue","blue","blue","yellow"],["blue","blue","yellow",null,null,null,"blue",null,"yellow"],["yellow","yellow","green","green","green",null,"yellow","green","green"],["yellow","green","green","green","green","green","green","green","green"]])`,
   },
   {
     id: "25",
@@ -1067,23 +1067,23 @@ mr1.setColors([["blue","blue","blue","blue","blue","blue","blue","blue","yellow"
 
 page
 show mr1
-mr1.setColors([["pink","null","null","null"],["null","null","null","null"],["null","null","null","null"]])
+mr1.setColors([["pink",null,null,null],[null,null,null,null],[null,null,null,null]])
 
 page
 mr1.setValues([[1,1,0,0],[1,0,1,0],[1,1,0,0]])
-mr1.setColors([["blue","blue","blue","blue"],["null","null","null","null"],["null","null","null","null"]])
+mr1.setColors([["blue","blue","blue","blue"],[null,null,null,null],[null,null,null,null]])
 
 page
-mr1.setColors([["blue","blue","blue","blue"],["green","null","null","null"],["null","null","null","null"]])
+mr1.setColors([["blue","blue","blue","blue"],["green",null,null,null],[null,null,null,null]])
 
 page
-mr1.setColors([["blue","blue","blue","blue"],["green","null","null","null"],["green","null","null","null"]])
+mr1.setColors([["blue","blue","blue","blue"],["green",null,null,null],["green",null,null,null]])
 
 page
-mr1.setColors([["blue","green","blue","blue"],["green","pink","null","null"],["green","green","null","null"]])
+mr1.setColors([["blue","green","blue","blue"],["green","pink",null,null],["green","green",null,null]])
 
 page
-mr1.setColors([["blue","green","pink","blue"],["green","pink","green","null"],["green","green","pink","null"]])
+mr1.setColors([["blue","green","pink","blue"],["green","pink","green",null],["green","green","pink",null]])
 
 page
 mr1.setValues([[1,1,1,0],[1,0,0,0],[1,1,1,0]])
@@ -1100,48 +1100,48 @@ mr1.setColors([["blue","green","pink","orange"],["green","pink","green","orange"
 
 page
 show mr1
-mr1.setArrows([["null","null","null","null"],["null","start","null","null"],["null","null","null","null"]])
+mr1.setArrows([[null,null,null,null],[null,"start",null,null],[null,null,null,null]])
 
 page
 mr1.setValues([[0,0,0,0],[0,1,2,0],[0,0,0,0]])
-mr1.setColors([["null","null","null","null"],["null","pink","pink","null"],["null","null","null","null"]])
-mr1.setArrows([["null","null","null","null"],["null","null","null","null"],["null","null","null","null"]])
+mr1.setColors([[null,null,null,null],[null,"pink","pink",null],[null,null,null,null]])
+mr1.setArrows([[null,null,null,null],[null,null,null,null],[null,null,null,null]])
 
 page
 mr1.setValues([[0,0,0,0],[0,1,2,3],[0,0,0,0]])
-mr1.setColors([["null","null","null","null"],["null","pink","pink","pink"],["null","null","null","null"]])
+mr1.setColors([[null,null,null,null],[null,"pink","pink","pink"],[null,null,null,null]])
 
 page
 mr1.setValues([[0,0,0,0],[0,1,2,3],[4,0,0,0]])
-mr1.setColors([["null","null","null","null"],["null","pink","pink","pink"],["pink","null","null","null"]])
+mr1.setColors([[null,null,null,null],[null,"pink","pink","pink"],["pink",null,null,null]])
 
 page
 mr1.setValues([[0,0,0,0],[0,1,2,3],[4,5,0,0]])
-mr1.setColors([["null","null","null","null"],["null","pink","pink","pink"],["pink","pink","null","null"]])
+mr1.setColors([[null,null,null,null],[null,"pink","pink","pink"],["pink","pink",null,null]])
 
 page
 mr1.setValues([[0,0,0,0],[0,1,2,3],[4,5,6,0]])
-mr1.setColors([["null","null","null","null"],["null","pink","pink","pink"],["pink","pink","pink","null"]])
+mr1.setColors([[null,null,null,null],[null,"pink","pink","pink"],["pink","pink","pink",null]])
 
 page
 mr1.setValues([[0,0,0,0],[0,1,2,3],[4,5,6,7]])
-mr1.setColors([["null","null","null","null"],["null","pink","pink","pink"],["pink","pink","pink","pink"]])
+mr1.setColors([[null,null,null,null],[null,"pink","pink","pink"],["pink","pink","pink","pink"]])
 
 page
 mr1.setValues([[8,0,0,0],[0,1,2,3],[4,5,6,7]])
-mr1.setColors([["pink","null","null","null"],["null","pink","pink","pink"],["pink","pink","pink","pink"]])
+mr1.setColors([["pink",null,null,null],[null,"pink","pink","pink"],["pink","pink","pink","pink"]])
 
 page
 mr1.setValues([[8,9,0,0],[0,1,2,3],[4,5,6,7]])
-mr1.setColors([["pink","pink","null","null"],["null","pink","pink","pink"],["pink","pink","pink","pink"]])
+mr1.setColors([["pink","pink",null,null],[null,"pink","pink","pink"],["pink","pink","pink","pink"]])
 
 page
 mr1.setValues([[8,9,10,0],[0,1,2,3],[4,5,6,7]])
-mr1.setColors([["pink","pink","pink","null"],["null","pink","pink","pink"],["pink","pink","pink","pink"]])
+mr1.setColors([["pink","pink","pink",null],[null,"pink","pink","pink"],["pink","pink","pink","pink"]])
 
 page
 mr1.setValues([[8,9,10,11],[0,1,2,3],[4,5,6,7]])
-mr1.setColors([["pink","pink","pink","pink"],["null","pink","pink","pink"],["pink","pink","pink","pink"]])
+mr1.setColors([["pink","pink","pink","pink"],[null,"pink","pink","pink"],["pink","pink","pink","pink"]])
 
 page
 mr1.setValues([[8,9,10,11],[12,1,2,3],[4,5,6,7]])
@@ -1156,25 +1156,25 @@ mr1.setColors([["pink","pink","pink","pink"],["pink","pink","pink","pink"],["pin
 
 page
 show mr1
-mr1.setColors([["red","red","red","red"],["red","red","red","red"],["null","null","null","null"],["red","null","null","null"]])
+mr1.setColors([["red","red","red","red"],["red","red","red","red"],[null,null,null,null],["red",null,null,null]])
 
 page
-mr1.setColors([["red","red","red","red"],["red","red","red","red"],["blue","null","null","null"],["red","null","null","null"]])
+mr1.setColors([["red","red","red","red"],["red","red","red","red"],["blue",null,null,null],["red",null,null,null]])
 
 page
-mr1.setColors([["red","red","red","red"],["red","red","red","red"],["blue","blue","null","null"],["red","null","null","null"]])
+mr1.setColors([["red","red","red","red"],["red","red","red","red"],["blue","blue",null,null],["red",null,null,null]])
 
 page
-mr1.setColors([["red","red","red","red"],["red","red","red","red"],["blue","blue","blue","null"],["red","null","null","null"]])
+mr1.setColors([["red","red","red","red"],["red","red","red","red"],["blue","blue","blue",null],["red",null,null,null]])
 
 page
-mr1.setColors([["red","red","red","red"],["red","red","red","red"],["blue","blue","blue","blue"],["red","null","null","null"]])
+mr1.setColors([["red","red","red","red"],["red","red","red","red"],["blue","blue","blue","blue"],["red",null,null,null]])
 
 page
-mr1.setColors([["red","red","red","red"],["red","red","red","red"],["blue","blue","blue","blue"],["red","null","null","blue"]])
+mr1.setColors([["red","red","red","red"],["red","red","red","red"],["blue","blue","blue","blue"],["red",null,null,"blue"]])
 
 page
-mr1.setColors([["red","red","red","red"],["red","red","red","red"],["blue","blue","blue","blue"],["red","null","blue","blue"]])
+mr1.setColors([["red","red","red","red"],["red","red","red","red"],["blue","blue","blue","blue"],["red",null,"blue","blue"]])
 
 page
 mr1.setColors([["red","red","red","red"],["red","red","red","red"],["blue","blue","blue","blue"],["red","blue","blue","blue"]])`,
@@ -1188,28 +1188,28 @@ mr1.setColors([["red","red","red","red"],["red","red","red","red"],["blue","blue
 
 page
 show mr1
-mr1.setArrows([["start","null","null","null"],["null","null","null","null"],["null","null","null","null"],["null","null","null","null"]])
+mr1.setArrows([["start",null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]])
 
 page
-mr1.setColors([["red","null","null","null"],["null","null","null","null"],["null","null","null","null"],["null","null","null","null"]])
-mr1.setArrows([["start","null","null","null"],["null","null","null","null"],["null","null","null","null"],["null","null","null","null"]])
+mr1.setColors([["red",null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]])
+mr1.setArrows([["start",null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]])
 
 page
 mr1.setValues([[0,1,0,0],[0,0,0,2],[0,0,0,0],[0,0,0,0]])
-mr1.setColors([["red","red","null","null"],["null","null","null","null"],["null","null","null","null"],["null","null","null","null"]])
-mr1.setArrows([["null","null","null","null"],["null","null","null","null"],["null","null","null","null"],["null","null","null","null"]])
+mr1.setColors([["red","red",null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]])
+mr1.setArrows([[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]])
 
 page
 mr1.setValues([[0,0,1,0],[0,0,0,2],[0,0,0,0],[0,0,0,0]])
-mr1.setColors([["red","red","red","null"],["null","null","null","null"],["null","null","null","null"],["null","null","null","null"]])
+mr1.setColors([["red","red","red",null],[null,null,null,null],[null,null,null,null],[null,null,null,null]])
 
 page
 mr1.setValues([[0,0,0,1],[0,0,0,2],[0,0,0,0],[0,0,0,0]])
-mr1.setColors([["red","red","red","red"],["null","null","null","null"],["null","null","null","null"],["null","null","null","null"]])
+mr1.setColors([["red","red","red","red"],[null,null,null,null],[null,null,null,null],[null,null,null,null]])
 
 page
 mr1.setValues([[0,0,0,0],[0,0,0,2],[0,0,0,0],[0,0,0,0]])
-mr1.setColors([["red","red","red","red"],["null","null","null","green"],["null","null","null","null"],["null","null","null","null"]])`,
+mr1.setColors([["red","red","red","red"],[null,null,null,"green"],[null,null,null,null],[null,null,null,null]])`,
   },
   {
     id: "30",
@@ -1225,28 +1225,28 @@ matrix mr2 = {
 page
 show mr1
 show mr2
-mr1.setColors([["green","null","null","null"]])
+mr1.setColors([["green",null,null,null]])
 
 page
-mr2.setColors([["null","null","null","null"],["null","green","null","null"],["null","null","null","null"],["null","null","null","null"]])
-mr1.setColors([["green","null","null","null"]])
-mr2.setColors([["null","null","null","null"],["null","green","null","null"],["null","null","null","null"],["null","null","null","null"]])
+mr2.setColors([[null,null,null,null],[null,"green",null,null],[null,null,null,null],[null,null,null,null]])
+mr1.setColors([["green",null,null,null]])
+mr2.setColors([[null,null,null,null],[null,"green",null,null],[null,null,null,null],[null,null,null,null]])
 
 page
-mr1.setColors([["green","green","null","null"]])
-mr2.setColors([["null","null","null","null"],["null","green","green","null"],["null","null","null","null"],["null","null","null","null"]])
+mr1.setColors([["green","green",null,null]])
+mr2.setColors([[null,null,null,null],[null,"green","green",null],[null,null,null,null],[null,null,null,null]])
 
 page
-mr1.setColors([["green","green","red","null"]])
-mr2.setColors([["null","null","null","null"],["null","green","green","red"],["null","null","null","null"],["null","null","null","null"]])
+mr1.setColors([["green","green","red",null]])
+mr2.setColors([[null,null,null,null],[null,"green","green","red"],[null,null,null,null],[null,null,null,null]])
 
 page
-mr1.setColors([["green","green","green","null"]])
-mr2.setColors([["null","null","null","null"],["null","green","green","red"],["null","null","green","null"],["null","null","null","null"]])
+mr1.setColors([["green","green","green",null]])
+mr2.setColors([[null,null,null,null],[null,"green","green","red"],[null,null,"green",null],[null,null,null,null]])
 
 page
 mr1.setColors([["green","green","green","green"]])
-mr2.setColors([["null","null","null","null"],["null","green","green","red"],["null","null","green","green"],["null","null","null","null"]])`,
+mr2.setColors([[null,null,null,null],[null,"green","green","red"],[null,null,"green","green"],[null,null,null,null]])`,
   },
   {
     id: "31",
@@ -1294,16 +1294,16 @@ arr2.setColors([null,null,null,null,"green",null,null])`,
 
 page
 show tr1
-tr1.setColors(["blue","null","null","null","null","null","null"])
+tr1.setColors(["blue",null,null,null,null,null,null])
 
 page
-tr1.setColors(["blue","red","null","red","red","null","null"])
+tr1.setColors(["blue","red",null,"red","red",null,null])
 
 page
 tr1.setColors(["blue","red","green","red","red","green","green"])
 
 page
-tr1.setArrows(["null","null","notBST","null","null","null","null"])`,
+tr1.setArrows([null,null,"notBST",null,null,null,null])`,
   },
   {
     id: "33",
@@ -1327,18 +1327,18 @@ page
 show li1
 show li2
 show li3
-li1.setColors(["red","null","null","null"])
-li2.setColors(["red","null","null"])
-li3.setColors(["green","null"])
+li1.setColors(["red",null,null,null])
+li2.setColors(["red",null,null])
+li3.setColors(["green",null])
 
 page
-li1.setColors(["red","red","null","null"])
-li2.setColors(["red","red","null"])
+li1.setColors(["red","red",null,null])
+li2.setColors(["red","red",null])
 li3.addNode(n3, 1)
 li3.setColors(["green","green","green"])
 
 page
-li1.setColors(["red","red","red","null"])
+li1.setColors(["red","red","red",null])
 li2.setColors(["red","red","red"])
 li3.addNode(n4, 0)
 li3.setValues([7,0,8,0])
@@ -1356,7 +1356,7 @@ li2.setColors(["red","red","red"])
 li3.addNode(n5, 0)
 li3.setValues([7,0,8,7,0])
 li3.setColors(["green","green","green","green","green"])
-li3.setArrows(["null","null","null","null","return"])`,
+li3.setArrows([null,null,null,null,"return"])`,
   },
   {
     id: "34",
@@ -1373,28 +1373,28 @@ stack stk = {
 page
 show li
 show stk
-li.setColors(["green","null","null"])
+li.setColors(["green",null,null])
 stk.setColors(["green"])
 
 page
-li.setColors(["null","green","null"])
+li.setColors([null,"green",null])
 stk.setValues([2,1])
-stk.setColors(["green","null"])
+stk.setColors(["green",null])
 
 page
-li.setColors(["null","null","green"])
+li.setColors([null,null,"green"])
 stk.setValues([3,2,1])
-stk.setColors(["green","null","null"])
+stk.setColors(["green",null,null])
 
 page
-li.setColors(["null","null","red"])
+li.setColors([null,null,"red"])
 stk.removeAt(0)
-stk.setColors(["null","null"])
+stk.setColors([null,null])
 
 page
-li.setColors(["null","red","null"])
+li.setColors([null,"red",null])
 stk.removeAt(0)
-stk.setColors(["null"])`,
+stk.setColors([null])`,
   },
   {
     id: "36",
@@ -2050,6 +2050,7 @@ mr1.setArrow(1,3,"finish")`,
     "userCode" : ``,
   },
 ];
+module.exports = { examples };
 
 /*
 {
