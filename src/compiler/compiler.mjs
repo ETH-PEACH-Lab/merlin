@@ -1086,16 +1086,6 @@ function preCheck(parsedDSL) {
     });
 
     // Check for valid command types
-    // parsedDSL.cmds.forEach(cmd => {
-// <<<<<<< HEAD
-//         if (!["page", "show", "hide", "set", "set_multiple", "set_matrix", "set_matrix_multiple", "add", "insert", "remove", "remove_at", "comment", "add_matrix_row", "add_matrix_column", "remove_matrix_row", "remove_matrix_column", "add_matrix_border"].includes(cmd.type)) {
-//             throw new Error(`Unknown command type: ${cmd.type}`);
-// =======
-        // if (!["page", "show", "hide", "set", "set_multiple", "set_matrix", "set_matrix_multiple", "add", "insert", "remove", "remove_at", "comment"].includes(cmd.type)) {
-        //     throw new Error(`Unknown command\n\nType: ${cmd.type}`);
-// >>>>>>> 9e31aa3 (fix: Rewrite error messages to be max 40 characters wide.)
-    //     }
-    // });
     parsedDSL.cmds.forEach(cmd => {
         if (![
             "page", "show", "hide", "set", "set_multiple", "set_matrix", "set_matrix_multiple",
@@ -1120,11 +1110,4 @@ function postCheck(pages) {
     if (pages.length === 0) {
         throw new Error("No pages found\n\nPlease define at least one page\nwith components.");
     }
-
-    // For each page, check if it has at least one component
-    pages.forEach((page, index) => {
-        if (page.length === 0) {
-            throw new Error(`Page ${index + 1} empty\n\nPlease show a component using:\nshow <component_name>`);
-        }
-    });
 }

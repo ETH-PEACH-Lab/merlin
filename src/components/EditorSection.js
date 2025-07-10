@@ -114,22 +114,68 @@ const EditorSection = ({
           </Tooltip>
         </Box>
         <div style={{ flexGrow: 1, overflow: "auto" }}>
-          {// Use terminal-like font and don't wrap lines
-            error ? (
-              <div
-                style={{
-                  fontFamily: "monospace",
-                  color: "rgb(255, 118, 118)",
-                  fontSize: "14px",
-                  padding: "30px",
-                  whiteSpace: "pre",
-                }}
-              >
-                {error}
-              </div>
-            ) : (
-              <MermaidEditor value={compiledMerlin} onChange={() => {}} />
-            )}
+          {
+            error
+              ? error.startsWith("Compile error:\nNothing to show\n")
+                ? (
+                  <div
+                    style={{
+                      fontFamily: "inherit",
+                      color: "#999",
+                      fontSize: "15px",
+                      padding: "30px",
+                      whiteSpace: "pre-line",
+                    }}
+                  >
+                    Nothing to show yet. Please enter some code above.
+                    <br />
+                    <br />
+                    <b>Example input format:</b>
+                    <div
+                      style={{
+                        fontFamily: "monospace",
+                        fontSize: "14px",
+                        padding: "14px 18px",
+                        margin: "10px 0",
+                        background: "#23272f",
+                        color: "#e0e0e0",
+                        borderRadius: "7px",
+                        whiteSpace: "pre",
+                        overflowX: "auto",
+                      }}
+                    >
+                      &lt;type&gt; &lt;component_name&gt; {`{`} <br />
+                        &nbsp;&nbsp;... <br />
+                      {`}`} <br />
+                      <br />
+                      page <br />
+                      show &lt;component_name&gt;
+                    </div>
+                    <span style={{ fontSize: "13px" }}>
+                      • <b>&lt;type&gt;</b>: The type of component (e.g., <i>array</i>, <i>graph</i>, etc.)<br />
+                      • <b>&lt;component_name&gt;</b>: A name you choose for your component<br />
+                    </span>
+                    <br />
+                    For more information, please visit the documentation.
+                  </div>
+                )
+                : (
+                  <div
+                    style={{
+                      fontFamily: "monospace",
+                      color: "rgb(255, 118, 118)",
+                      fontSize: "14px",
+                      padding: "30px",
+                      whiteSpace: "pre",
+                    }}
+                  >
+                    {error}
+                  </div>
+                )
+              : (
+                <MermaidEditor value={compiledMerlin} onChange={() => {}} />
+              )
+          }
         </div>
       </Box>
     </div>
