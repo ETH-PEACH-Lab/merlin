@@ -65,7 +65,7 @@ const RendererSection = ({
     setAnchorEl2(event.currentTarget);
   };
 
-  const handleClose2 = () => {
+  const handleCloseDropdown = () => {
     setAnchorEl2(null);
   };
 
@@ -255,7 +255,7 @@ const RendererSection = ({
           <Popover id={id2}
             open={open2}
             anchorEl={anchorEl2}
-            onClose={handleClose2}
+            onClose={handleCloseDropdown}
             anchorOrigin={{
               vertical: 'bottom',
               horizontal: 'left',
@@ -274,7 +274,7 @@ const RendererSection = ({
                   const arrows = Array(values.length).fill(null);
 
                   createComponent("array", {value: values, color: colors, arrow: arrows}, currentPage);
-                  handleClose2();
+                  handleCloseDropdown();
                 }} 
               />
               <CreateComponentItem 
@@ -290,7 +290,7 @@ const RendererSection = ({
                   const arrows = Array(values.length).fill(null);
 
                   createComponent("stack", {value: values, color: colors, arrow: arrows}, currentPage);
-                  handleClose2();
+                  handleCloseDropdown();
                 }} 
               />
               <CreateComponentItem 
@@ -308,7 +308,7 @@ const RendererSection = ({
                   const arrows = Array(values.length).fill(Array(values[0].length).fill(null));
 
                   createComponent("matrix", {value: values, color: colors, arrow: arrows}, currentPage);
-                  handleClose2();
+                  handleCloseDropdown();
                 }} 
               />
               <CreateComponentItem 
@@ -325,13 +325,13 @@ const RendererSection = ({
                   const arrows = Array(values.length).fill(null);
 
                   createComponent("linkedlist", {nodes: nodes, value: values, color: colors, arrow: arrows}, currentPage);
-                  handleClose2();
+                  handleCloseDropdown();
                 }} 
               />              
               <CreateComponentItem 
                 name={"Tree"} 
                 icon={<RectangleOutlinedIcon />}
-                text={"Enter the values of the tree comma-separated in level order."}
+                text={"Enter the values of the tree comma-separated in level order. Eg: 1, 2, 3"}
                 formFields={<TextField autoFocus required margin="dense"
                   name="values" label="Values" fullWidth variant="standard"/>
                 }
@@ -342,10 +342,56 @@ const RendererSection = ({
                   const arrows = Array(values.length).fill(null);
 
                   createComponent("tree", {nodes: nodes, value: values, color: colors, arrow: arrows}, currentPage);
-                  handleClose2();
+                  handleCloseDropdown();
                 }} 
               />
+              <CreateComponentItem 
+                name={"Graph"} 
+                icon={<RectangleOutlinedIcon />}
+                text={`Enter the edges separated by a - (Eg n1-n2, n2-n3) and optionally give the nodes 
+                  a value (Eg n1: 1, n2: 2).`}
+                formFields={
+                  <React.Fragment>
+                    <TextField autoFocus required margin="dense"
+                      name="edges" label="Edges" fullWidth variant="standard"/>
+                    <TextField autoFocus margin="dense"
+                      name="values" label="Values" fullWidth variant="standard"/>
+                  </React.Fragment>
+                }
+                createFunction={(formJson) => {
+                  const edgeStrings = formJson.edges.split(',').map(( value ) => value.replace(" ", ""));
+                  let nodesSet = new Set();
+                  let edgeSet = new Set();
 
+                  edgeStrings.forEach(edge => {
+                    var node1 = edge.split('-')[0];
+                    var node2 = edge.split('-')[1];
+                    nodesSet.add(node1);
+                    nodesSet.add(node2);
+                    edgeSet.add({start: node1, end: node2});
+                  });
+
+                  const nodes = Array.from(nodesSet);
+                  const edges = Array.from(edgeSet);
+                  const values = Array(nodes.length).fill(null);
+
+                  const nodesValuesMap = formJson.values.split(',').map(( value ) => value.replace(" ", ""));
+                  nodesValuesMap.forEach(function (item) {
+                    var index = nodes.indexOf(item.split(':')[0]);
+                    if (index != -1) {
+                      values[index] = item.split(':')[1];
+                    }
+                  }); 
+
+                  const colors = Array(nodes.length).fill(null);
+                  const arrows = Array(nodes.length).fill(null);
+                  const hidden = Array(nodes.length).fill(false);
+
+                  createComponent("graph", {nodes: nodes, edges: edges, value: values, color: colors, 
+                    arrow: arrows, hidden: hidden}, currentPage);
+                  handleCloseDropdown();
+                }} 
+              />
             </List>
           </Popover>
         </Box>
