@@ -141,7 +141,7 @@ const getDef = ([el]) => {
 # Pass your lexer object using the @lexer option:
 @lexer lexer
 
-root -> nlw:* one_per_line[definition] nlw:+ one_per_line[commands] nlw:* {% ([, defs, , cmds]) => ({ defs: defs.flat(), cmds: cmds.flat() }) %}
+root -> nlw:* one_per_line[definition]:? nlw:* one_per_line[commands] nlw:* {% ([, defs, , cmds]) => ({ defs: (defs ?? []).flat(), cmds: (cmds ?? []).flat() }) %}
 
 # - DEFINITIONS - #
 # List of all definitions

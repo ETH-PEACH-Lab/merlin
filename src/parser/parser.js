@@ -48,7 +48,23 @@ var grammar = {
     ParserRules: [
     {"name": "root$ebnf$1", "symbols": []},
     {"name": "root$ebnf$1", "symbols": ["root$ebnf$1", "nlw"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
-    {"name": "root$macrocall$2", "symbols": ["definition"]},
+    {"name": "root$ebnf$2$macrocall$2", "symbols": ["definition"]},
+    {"name": "root$ebnf$2$macrocall$1$ebnf$1", "symbols": []},
+    {"name": "root$ebnf$2$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "symbols": ["nlw"]},
+    {"name": "root$ebnf$2$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "symbols": ["root$ebnf$2$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "nlw"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "root$ebnf$2$macrocall$1$ebnf$1$subexpression$1", "symbols": ["root$ebnf$2$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "root$ebnf$2$macrocall$2"]},
+    {"name": "root$ebnf$2$macrocall$1$ebnf$1", "symbols": ["root$ebnf$2$macrocall$1$ebnf$1", "root$ebnf$2$macrocall$1$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "root$ebnf$2$macrocall$1", "symbols": ["root$ebnf$2$macrocall$2", "root$ebnf$2$macrocall$1$ebnf$1"], "postprocess":  ([first, rest]) => {
+            const firstValue = first[0];
+            const restValues = rest.map(([, value]) => value[0]);
+            // Include all items, even comments
+            return [firstValue, ...restValues];
+        } },
+    {"name": "root$ebnf$2", "symbols": ["root$ebnf$2$macrocall$1"], "postprocess": id},
+    {"name": "root$ebnf$2", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "root$ebnf$3", "symbols": []},
+    {"name": "root$ebnf$3", "symbols": ["root$ebnf$3", "nlw"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "root$macrocall$2", "symbols": ["commands"]},
     {"name": "root$macrocall$1$ebnf$1", "symbols": []},
     {"name": "root$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "symbols": ["nlw"]},
     {"name": "root$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "symbols": ["root$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "nlw"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
@@ -60,23 +76,9 @@ var grammar = {
             // Include all items, even comments
             return [firstValue, ...restValues];
         } },
-    {"name": "root$ebnf$2", "symbols": ["nlw"]},
-    {"name": "root$ebnf$2", "symbols": ["root$ebnf$2", "nlw"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
-    {"name": "root$macrocall$4", "symbols": ["commands"]},
-    {"name": "root$macrocall$3$ebnf$1", "symbols": []},
-    {"name": "root$macrocall$3$ebnf$1$subexpression$1$ebnf$1", "symbols": ["nlw"]},
-    {"name": "root$macrocall$3$ebnf$1$subexpression$1$ebnf$1", "symbols": ["root$macrocall$3$ebnf$1$subexpression$1$ebnf$1", "nlw"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
-    {"name": "root$macrocall$3$ebnf$1$subexpression$1", "symbols": ["root$macrocall$3$ebnf$1$subexpression$1$ebnf$1", "root$macrocall$4"]},
-    {"name": "root$macrocall$3$ebnf$1", "symbols": ["root$macrocall$3$ebnf$1", "root$macrocall$3$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
-    {"name": "root$macrocall$3", "symbols": ["root$macrocall$4", "root$macrocall$3$ebnf$1"], "postprocess":  ([first, rest]) => {
-            const firstValue = first[0];
-            const restValues = rest.map(([, value]) => value[0]);
-            // Include all items, even comments
-            return [firstValue, ...restValues];
-        } },
-    {"name": "root$ebnf$3", "symbols": []},
-    {"name": "root$ebnf$3", "symbols": ["root$ebnf$3", "nlw"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
-    {"name": "root", "symbols": ["root$ebnf$1", "root$macrocall$1", "root$ebnf$2", "root$macrocall$3", "root$ebnf$3"], "postprocess": ([, defs, , cmds]) => ({ defs: defs.flat(), cmds: cmds.flat() })},
+    {"name": "root$ebnf$4", "symbols": []},
+    {"name": "root$ebnf$4", "symbols": ["root$ebnf$4", "nlw"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "root", "symbols": ["root$ebnf$1", "root$ebnf$2", "root$ebnf$3", "root$macrocall$1", "root$ebnf$4"], "postprocess": ([, defs, , cmds]) => ({ defs: (defs ?? []).flat(), cmds: (cmds ?? []).flat() })},
     {"name": "definition$subexpression$1", "symbols": ["comment"]},
     {"name": "definition$subexpression$1", "symbols": ["array_def"]},
     {"name": "definition$subexpression$1", "symbols": ["matrix_def"]},
