@@ -277,18 +277,14 @@ commands -> (comment
           | remove_node
           | remove_edge
           | remove_at
-          | set_text_value
           | set_text_fontSize
-          | set_text_color
           | set_text_fontWeight
           | set_text_fontFamily
           | set_text_align
           | set_text_lineSpacing
           | set_text_width
           | set_text_height
-          | set_text_values_multiple
           | set_text_fontSizes_multiple
-          | set_text_colors_multiple
           | set_text_fontWeights_multiple
           | set_text_fontFamilies_multiple
           | set_text_aligns_multiple
@@ -302,7 +298,7 @@ commands -> (comment
 # Main commands
 page -> "page" (_ layout):? {% ([, layoutArg]) => ({ type: "page", layout: layoutArg ? layoutArg[1] : null }) %}
 
-show -> "show" _ wordL (_ (position_keyword | ranged_tuple | tuple[number, number])):? {% ([, , wordL, positionArg]) => ({ 
+show -> "show" _ wordL (_ (position_keyword | ranged_tuple)):? {% ([, , wordL, positionArg]) => ({ 
     type: "show", 
     value: wordL.name, 
     position: positionArg ? positionArg[1][0] : null,
@@ -324,6 +320,16 @@ set_matrix_color -> matrix_cmd["setColor", (string | nullT) {% id %}] {% (detail
 set_matrix_arrow -> matrix_cmd["setArrow", (number | string | nullT) {% id %}] {% (details) => ({ type: "set_matrix", target: "arrow", ...id(details) }) %}
 set_edges -> cmd["setEdges", e_list] {% (details) => ({ type: "set_multiple", target: "edges", ...id(details) }) %}
 
+# Set a value in a text
+set_text_fontSize -> cmd["setFontSize", (number | comma_sep[number, (number | nullT) {% id %}]) {% id %}] {% (details) => ({ type: "set", target: "fontSize", ...id(details) }) %}
+set_text_color -> cmd["setColor", (string | comma_sep[number, (string | nullT) {% id %}]) {% id %}] {% (details) => ({ type: "set", target: "color", ...id(details) }) %}
+set_text_fontWeight -> cmd["setFontWeight", (string | comma_sep[number, (string | nullT) {% id %}]) {% id %}] {% (details) => ({ type: "set", target: "fontWeight", ...id(details) }) %}
+set_text_fontFamily -> cmd["setFontFamily", (string | comma_sep[number, (string | nullT) {% id %}]) {% id %}] {% (details) => ({ type: "set", target: "fontFamily", ...id(details) }) %}
+set_text_align -> cmd["setAlign", (string | comma_sep[number, (string | nullT) {% id %}]) {% id %}] {% (details) => ({ type: "set", target: "align", ...id(details) }) %}
+set_text_lineSpacing -> cmd["setLineSpacing", number] {% (details) => ({ type: "set", target: "lineSpacing", ...id(details) }) %}
+set_text_width -> cmd["setWidth", number] {% (details) => ({ type: "set", target: "width", ...id(details) }) %}
+set_text_height -> cmd["setHeight", number] {% (details) => ({ type: "set", target: "height", ...id(details) }) %}
+
 # Set multiple values in an array
 # Example: arr1.setValues([2,_,4,_,_,_,_])
 set_values_multiple -> cmd["setValues", list[(number | string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "value", ...id(details) }) %}
@@ -336,6 +342,12 @@ set_hidden_multiple -> cmd["setHidden", list[(boolean | pass) {% id %}]] {% (det
 set_matrix_values -> cmd["setValues", nnsp_mlist] {% (details) => ({ type: "set_matrix_multiple", target: "value", ...id(details) }) %}
 set_matrix_colors -> cmd["setColors", nnsp_mlist] {% (details) => ({ type: "set_matrix_multiple", target: "color", ...id(details) }) %}
 set_matrix_arrows -> cmd["setArrows", nnsp_mlist] {% (details) => ({ type: "set_matrix_multiple", target: "arrow", ...id(details) }) %}
+
+# Set multiple values in a text
+set_text_fontSizes_multiple -> cmd["setFontSizes", list[(number | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "fontSize", ...id(details) }) %}
+set_text_fontWeights_multiple -> cmd["setFontWeights", list[(string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "fontWeight", ...id(details) }) %}
+set_text_fontFamilies_multiple -> cmd["setFontFamilies", list[(string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "fontFamily", ...id(details) }) %}
+set_text_aligns_multiple -> cmd["setAligns", list[(string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "align", ...id(details) }) %}
 
 # Add functions
 add_value -> cmd["addValue", (number | string | nullT) {% id %}] {% (details) => ({ type: "add", target: "value", ...id(details) }) %}
@@ -352,25 +364,6 @@ remove_value -> cmd["removeValue", (number | string | nullT) {% id %}] {% (detai
 remove_node -> cmd["removeNode", word] {% (details) => ({ type: "remove", target: "nodes", ...id(details) }) %}
 remove_edge -> cmd["removeEdge", edge] {% (details) => ({ type: "remove", target: "edges", ...id(details) }) %}
 remove_at -> cmd["removeAt", number] {% (details) => ({ type: "remove_at", target: "all", ...id(details) }) %}
-
-# Text commands
-set_text_value -> cmd["setValue", (string | comma_sep[number, (string | nullT) {% id %}]) {% id %}] {% (details) => ({ type: "set", target: "value", ...id(details) }) %}
-set_text_fontSize -> cmd["setFontSize", (number | comma_sep[number, (number | nullT) {% id %}]) {% id %}] {% (details) => ({ type: "set", target: "fontSize", ...id(details) }) %}
-set_text_color -> cmd["setColor", (string | comma_sep[number, (string | nullT) {% id %}]) {% id %}] {% (details) => ({ type: "set", target: "color", ...id(details) }) %}
-set_text_fontWeight -> cmd["setFontWeight", (string | comma_sep[number, (string | nullT) {% id %}]) {% id %}] {% (details) => ({ type: "set", target: "fontWeight", ...id(details) }) %}
-set_text_fontFamily -> cmd["setFontFamily", (string | comma_sep[number, (string | nullT) {% id %}]) {% id %}] {% (details) => ({ type: "set", target: "fontFamily", ...id(details) }) %}
-set_text_align -> cmd["setAlign", (string | comma_sep[number, (string | nullT) {% id %}]) {% id %}] {% (details) => ({ type: "set", target: "align", ...id(details) }) %}
-set_text_lineSpacing -> cmd["setLineSpacing", number] {% (details) => ({ type: "set", target: "lineSpacing", ...id(details) }) %}
-set_text_width -> cmd["setWidth", number] {% (details) => ({ type: "set", target: "width", ...id(details) }) %}
-set_text_height -> cmd["setHeight", number] {% (details) => ({ type: "set", target: "height", ...id(details) }) %}
-
-# Text multiple set commands
-set_text_values_multiple -> cmd["setValues", list[(string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "value", ...id(details) }) %}
-set_text_fontSizes_multiple -> cmd["setFontSizes", list[(number | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "fontSize", ...id(details) }) %}
-set_text_colors_multiple -> cmd["setColors", list[(string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "color", ...id(details) }) %}
-set_text_fontWeights_multiple -> cmd["setFontWeights", list[(string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "fontWeight", ...id(details) }) %}
-set_text_fontFamilies_multiple -> cmd["setFontFamilies", list[(string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "fontFamily", ...id(details) }) %}
-set_text_aligns_multiple -> cmd["setAligns", list[(string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "align", ...id(details) }) %}
 
 # Matrix structural editing
 add_matrix_row -> cmd["addRow", ((nullT | number | nns_list) {% iid %}):?] {% (details) => ({ type: "add_matrix_row", target: "value", ...id(details) }) %}
