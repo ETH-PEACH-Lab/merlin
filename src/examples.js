@@ -147,9 +147,10 @@ callStack.setValues([_,_,"validate","execute"])`,
     title: "Example - Tree",
     userCode: `// Tree - Binary search tree operations
 tree bst = {
-  nodes: [root,left,right,leftLeft]
+  nodes: [root,a,b,c]
   value: [50,30,70,20]
   color: ["green",null,"blue",null]
+  children: [root-a, root-b, root-c]
   arrow: [null,"focus",null,null]
 }
 
@@ -165,7 +166,7 @@ bst.setValue(1, 35)
 
 page
 bst.setColors([_,"orange",_,_,_])
-bst.removeNode(leftLeft)`,
+bst.removeNode(c)`,
   },
   {
     id: "textAndFormattingExample",

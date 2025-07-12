@@ -55,6 +55,7 @@ function getMethodName(action, target, isPlural = false) {
     const singularMap = {
         'nodes': 'Node',
         'edges': 'Edge',
+        'children': 'Child',
         'values': 'Value',
         'colors': 'Color',
         'arrows': 'Arrow',
@@ -284,6 +285,10 @@ function formatValues(key, value) {
         case 'edges':
             // For edges, format as "start-end"
             return `[${value.map(edge => `${edge.start}-${edge.end}`).join(',')}]`;
+            
+        case 'children':
+            // For children (tree), format as "parent-child"
+            return `[${value.map(child => `${child.start}-${child.end}`).join(',')}]`;
             
         default:
             // For other properties (value, color, arrow), use standard array formatting

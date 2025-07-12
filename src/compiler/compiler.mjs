@@ -12,9 +12,14 @@ import { generateText } from "./types/generateText.mjs";
 import { getMermaidContainerSize } from "./cssUtils.mjs";
 
 // Helper function to maintain consistency across array properties when modifying arrays
-function maintainArrayPropertyConsistency(body, modifiedProperty, index, operation) {
+function maintainArrayPropertyConsistency(body, modifiedProperty, index, operation, componentType = null) {
     // Define the properties that should be kept in sync for different component types
     let arrayProperties = ["arrow", "color", "value", "hidden"];
+    
+    // Add specific properties for certain component types
+    if (componentType === "tree") {
+        arrayProperties.push("children");
+    }
     
     // First, find the target length based on the modified property
     const targetLength = body[modifiedProperty] ? body[modifiedProperty].length : 0;
@@ -620,7 +625,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                     }
                     
                     // Maintain consistency across all array properties for all component types
-                    maintainArrayPropertyConsistency(body, target, insertIndex, "add");
+                    maintainArrayPropertyConsistency(body, target, insertIndex, "add", targetObject.type);
                 } else {
                     causeCompileError(`Component not on page\n\nName: ${name}`, command);
                 }
@@ -644,7 +649,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                         body[target].splice(index, 0, value);
                         
                         // Maintain consistency across all array properties for all component types
-                        maintainArrayPropertyConsistency(body, target, index, "insert");
+                        maintainArrayPropertyConsistency(body, target, index, "insert", targetObject.type);
                     } else {
                         causeCompileError(`Insert index out of bounds\n\nIndex: ${index}\nProperty: ${target}\nComponent: ${name}`, command);
                     }
@@ -663,7 +668,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                     const body = targetObject.body;
                     if (body[target]) {
                         let removedIndex = -1;
-                        
+
                         // Special handling for graph edges which are objects with start and end properties
                         if (target === "edges" && targetObject.type === "graph" && typeof value === 'object' && value.start && value.end) {
                             // Find the edge with matching start and end nodes
@@ -677,6 +682,37 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                             } else {
                                 causeCompileError(`Edge not found\n\nFrom: ${value.start}\nTo: ${value.end}\nProperty: ${target}\nComponent: ${name}`, command);
                             }
+                        } 
+                        // Special handling for tree children which are objects with start (parent) and end (child) properties
+                        else if (target === "children" && targetObject.type === "tree" && typeof value === 'object' && value.start && value.end) {
+                            // Find the child relationship with matching parent and child nodes
+                            const childIndex = body[target].findIndex(child => 
+                                child.start === value.start && child.end === value.end
+                            );
+                            
+                            if (childIndex > -1) {
+                                body[target].splice(childIndex, 1);
+                                removedIndex = childIndex;
+                            } else {
+                                causeCompileError(`Child relationship not found\n\nParent: ${value.start}\nChild: ${value.end}\nProperty: ${target}\nComponent: ${name}`, command);
+                            }
+                        } 
+                        // Special handling for removing a node from a tree: also remove all children relations involving that node
+                        else if (target === "nodes" && targetObject.type === "tree") {
+                            const index = body[target].indexOf(value);
+                            if (index > -1) {
+                                body[target].splice(index, 1);
+                                removedIndex = index;
+                                // Remove all children relations where start or end matches the removed node
+                                if (Array.isArray(body.children)) {
+                                    body.children = body.children.filter(child => {
+                                        if (!child || typeof child !== 'object') return false;
+                                        return child.start !== value && child.end !== value;
+                                    });
+                                }
+                            } else {
+                                causeCompileError(`Value not found\n\nValue: ${value}\nProperty: ${target}\nComponent: ${name}`, command);
+                            }
                         } else {
                             const index = body[target].indexOf(value);
                             if (index > -1) {
@@ -686,10 +722,10 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                                 causeCompileError(`Value not found\n\nValue: ${value}\nProperty: ${target}\nComponent: ${name}`, command);
                             }
                         }
-                        
+
                         // Maintain consistency across all array properties for all component types
                         if (removedIndex > -1) {
-                            maintainArrayPropertyConsistency(body, target, removedIndex, "remove");
+                            maintainArrayPropertyConsistency(body, target, removedIndex, "remove", targetObject.type);
                         }
                     } else {
                         causeCompileError(`Property not found\n\nProperty: ${target}\nComponent: ${name}`, command);

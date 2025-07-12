@@ -199,6 +199,7 @@ tree_pair -> (
             | pair["color", ns_list]
             | pair["value", nns_list]
             | pair["arrow", nns_list]
+            | pair["children", e_list]
             | pair["above", (string | word) {% id %}]
             | pair["below", (string | word) {% id %}]
             | pair["left", (string | word) {% id %}]
@@ -270,12 +271,14 @@ commands -> (comment
           | add_value
           | add_node
           | add_edge
+          | add_child
           | insert_value
           | insert_node
           | insert_edge
           | remove_value
           | remove_node
           | remove_edge
+          | remove_child
           | remove_at
           | set_text_fontSize
           | set_text_fontWeight
@@ -353,6 +356,7 @@ set_text_aligns_multiple -> cmd["setAligns", list[(string | nullT | pass) {% id 
 add_value -> cmd["addValue", (number | string | nullT) {% id %}] {% (details) => ({ type: "add", target: "value", ...id(details) }) %}
 add_node -> cmd["addNode", (word | comma_sep[word, (number | string | nullT) {% id %}]) {% id %}] {% (details) => ({ type: "add", target: "nodes", ...id(details) }) %}
 add_edge -> cmd["addEdge", edge] {% (details) => ({ type: "add", target: "edges", ...id(details) }) %}
+add_child -> cmd["addChild", edge] {% (details) => ({ type: "add", target: "children", ...id(details) }) %}
 
 # Insert functions
 insert_value -> cmd["insertValue", comma_sep[number, (number | string | nullT) {% id %}]] {% (details) => ({ type: "insert", target: "value", ...id(details) }) %}
@@ -363,6 +367,7 @@ insert_edge -> cmd["insertEdge", comma_sep[number, edge]] {% (details) => ({ typ
 remove_value -> cmd["removeValue", (number | string | nullT) {% id %}] {% (details) => ({ type: "remove", target: "value", ...id(details) }) %}
 remove_node -> cmd["removeNode", word] {% (details) => ({ type: "remove", target: "nodes", ...id(details) }) %}
 remove_edge -> cmd["removeEdge", edge] {% (details) => ({ type: "remove", target: "edges", ...id(details) }) %}
+remove_child -> cmd["removeChild", edge] {% (details) => ({ type: "remove", target: "children", ...id(details) }) %}
 remove_at -> cmd["removeAt", number] {% (details) => ({ type: "remove_at", target: "all", ...id(details) }) %}
 
 # Matrix structural editing
