@@ -218,6 +218,43 @@ function initializeValueArrayWithNodeNames(body) {
     }
     return false;
 }
+    
+// Helper function to detect cycles in a tree
+function hasTreeCycle(nodes, children) {
+    if (!Array.isArray(nodes) || !Array.isArray(children)) return false;
+    // Build adjacency list
+    const adj = {};
+    nodes.forEach(n => { adj[n] = []; });
+    children.forEach(edge => {
+        if (edge && edge.start && edge.end) {
+            adj[edge.start].push(edge.end);
+        }
+    });
+    // DFS to detect cycle
+    const visited = new Set();
+    const recStack = new Set();
+    function dfs(node) {
+        if (!adj[node]) return false;
+        if (recStack.has(node)) return true;
+        if (visited.has(node)) return false;
+        visited.add(node);
+        recStack.add(node);
+        for (const child of adj[node]) {
+            if (dfs(child)) return true;
+        }
+        recStack.delete(node);
+        return false;
+    }
+    // Check all roots (nodes not listed as any child)
+    const allChildren = new Set(children.map(e => e && e.end).filter(Boolean));
+    const roots = nodes.filter(n => !allChildren.has(n));
+    // If no root, just check all nodes
+    const startNodes = roots.length ? roots : nodes;
+    for (const node of startNodes) {
+        if (dfs(node)) return true;
+    }
+    return false;
+}
 
 export { formatNodeName, formatNullValue };
 
@@ -1352,6 +1389,12 @@ function preCheck(parsedDSL) {
             throw new Error(`Duplicate component\n\nAffected: ${def.name} of type ${def.type}`);
         }
         names.add(def.name);
+        // Tree cycle check
+        if (def.type === "tree" && def.body && def.body.nodes && def.body.children) {
+            if (hasTreeCycle(def.body.nodes, def.body.children)) {
+                throw new Error(`Cycle detected in tree '${def.name}'. The structure is not a valid tree.`);
+            }
+        }
     });
 
     // Check for valid command types
