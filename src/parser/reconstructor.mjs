@@ -161,7 +161,22 @@ function reconstructCommand(cmd) {
             const matrixMultipleMethodName = getMethodName('set', cmd.target, true);
             const matrixMultipleValue = formatMatrix(cmd.args);
             return `${cmd.name}.${matrixMultipleMethodName}(${matrixMultipleValue})`;
-            
+        case 'add_child':
+            // Handles both addChild(parent-child) and addChild(parent-child, value)
+            if (cmd.args && cmd.args.start && cmd.args.end) {
+                return `${cmd.name}.addChild(${cmd.args.start}-${cmd.args.end})`;
+            } else if (cmd.args && cmd.args.index && cmd.args.value !== undefined && cmd.args.index.start && cmd.args.index.end) {
+                return `${cmd.name}.addChild(${cmd.args.index.start}-${cmd.args.index.end}, ${formatValue(cmd.args.value)})`;
+            }
+            return null;
+
+        case 'set_child':
+            // setChild(child, parent)
+            if (cmd.args && cmd.args.start && cmd.args.end) {
+                return `${cmd.name}.setChild(${cmd.args.start}-${cmd.args.end})`;
+            }
+            return null;
+
         case 'add':
             const addMethodName = getMethodName('add', cmd.target, false);
             

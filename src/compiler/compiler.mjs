@@ -1049,6 +1049,70 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                 break;
             }
 
+                        case "add_child":
+                // args can be: {start, end} or {index: {start, end}, value: ...}
+                const name = command.name;
+                const args = command.args;
+                const targetObject = pages[pages.length - 1].find(comp => comp.name === name);
+                if (!targetObject) {
+                    causeCompileError(`Component not on page\n\nName: ${name}`, command);
+                    break;
+                }
+                const body = targetObject.body;
+                if (!body.nodes) body.nodes = [];
+                if (!body.children) body.children = [];
+                let parent, child, value;
+                if (args.start && args.end) {
+                    parent = args.start;
+                    child = args.end;
+                } else if (args.index && args.value !== undefined && args.index.start && args.index.end) {
+                    parent = args.index.start;
+                    child = args.index.end;
+                    value = args.value;
+                }
+                // Add child node if not present
+                if (!body.nodes.includes(child)) {
+                    body.nodes.push(child);
+                    if (value !== undefined) {
+                        if (!body.value) body.value = [];
+                        while (body.value.length < body.nodes.length - 1) body.value.push(null);
+                        body.value.push(value);
+                    }
+                }
+                // Add parent node if not present
+                if (!body.nodes.includes(parent)) {
+                    body.nodes.push(parent);
+                }
+                // Add child edge if not present
+                if (!body.children.some(e => e.start === parent && e.end === child)) {
+                    body.children.push({start: parent, end: child});
+                }
+                break;
+
+            case "set_child":
+                // args: {start: parent, end: child}
+                console.log("set_child command", command);
+                const name2 = command.name;
+                const edge = command.args;
+                const targetObject2 = pages[pages.length - 1].find(comp => comp.name === name2);
+                if (!targetObject2) {
+                    causeCompileError(`Component not on page\n\nName: ${name2}`, command);
+                    break;
+                }
+                const body2 = targetObject2.body;
+                if (!body2.children) body2.children = [];
+                const parent2 = edge.start;
+                const child2 = edge.end;
+                // Remove all previous parent edges for this child
+                body2.children = body2.children.filter(e => !(e.end === child2));
+                // Add new edge
+                body2.children.push({start: parent2, end: child2});
+                // Optionally: ensure both nodes exist
+                if (!body2.nodes) body2.nodes = [];
+                if (!body2.nodes.includes(child2)) body2.nodes.push(child2);
+                if (!body2.nodes.includes(parent2)) body2.nodes.push(parent2);
+                break;
+
         }
     });
 
@@ -1126,7 +1190,7 @@ function preCheck(parsedDSL) {
         if (![
             "page", "show", "hide", "set", "set_multiple", "set_matrix", "set_matrix_multiple",
             "add", "insert", "remove", "remove_at", "comment",
-            "add_matrix_row", "add_matrix_column", "remove_matrix_row", "remove_matrix_column", "add_matrix_border"
+            "add_matrix_row", "add_matrix_column", "remove_matrix_row", "remove_matrix_column", "add_matrix_border", "add_child", "set_child"
         ].includes(cmd.type)) {
             throw new Error(
                 `Unknown command\n\nType: ${cmd.type}`
