@@ -355,10 +355,10 @@ stack stk = {
   value: [20]
 }
 
-page
+page 2x2
 show arr1
 show arr2
-show stk
+show stk bottom
 
 page
 arr1.setColor(4, "yellow")
