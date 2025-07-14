@@ -2,13 +2,15 @@ import React, { useEffect, useState } from "react";
 import MermaidRenderer from "./MermaidRenderer";
 import { ElementEditor } from "./ElementEditor";
 import Button from '@mui/material/Button';
-import { Box, Typography, Card, CardContent, ListItemIcon, ListItemText, Popover, ListItem, List, IconButton, ButtonGroup } from "@mui/material";
+import { Box, Typography, Card, CardContent, ListItemIcon, ListItemText, Popover, ListItem, List, IconButton, ButtonGroup, Snackbar, Alert } from "@mui/material";
 import DownloadIcon from '@mui/icons-material/Download';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import ImageIcon from '@mui/icons-material/Image';
 import ShapeLineIcon from '@mui/icons-material/ShapeLine';
 import SaveIcon from '@mui/icons-material/Save';
+import ShareIcon from '@mui/icons-material/Share';
 import { useParseCompile } from "../context/ParseCompileContext";
+import { createShareableUrl, copyToClipboard } from "../utils/urlSharing";
 
 const RendererSection = ({
   mermaidCode,
@@ -22,8 +24,11 @@ const RendererSection = ({
 }) => {
   const [svgElement, updateSvgElement] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState('success');
   
-  const { pages } = useParseCompile();
+  const { pages, unparsedCode } = useParseCompile();
 
 
   const handleExpand = (event) => {
@@ -42,6 +47,34 @@ const RendererSection = ({
   const handleClickNext = () => {
     const newCurrentPage = currentPage + 1 <= pages.length ? currentPage + 1 : pages.length;
     setCurrentPage(newCurrentPage);
+  };
+
+  const handleShare = async () => {
+    try {
+      const shareableUrl = createShareableUrl(unparsedCode);
+      if (shareableUrl) {
+        const success = await copyToClipboard(shareableUrl);
+        if (success) {
+          setSnackbarMessage('Shareable URL copied to clipboard!');
+          setSnackbarSeverity('success');
+        } else {
+          setSnackbarMessage('Failed to copy URL to clipboard');
+          setSnackbarSeverity('error');
+        }
+      } else {
+        setSnackbarMessage('Failed to create shareable URL');
+        setSnackbarSeverity('error');
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+      setSnackbarMessage('Error creating shareable URL');
+      setSnackbarSeverity('error');
+    }
+    setSnackbarOpen(true);
+  };
+
+  const handleSnackbarClose = () => {
+    setSnackbarOpen(false);
   };
 
   const open = Boolean(anchorEl);
@@ -96,6 +129,9 @@ const RendererSection = ({
               </ListItem>
             </List>
           </Popover>
+          <IconButton onClick={handleShare} size="small" sx={{ mr: 1 }} title="Share via URL">
+            <ShareIcon sx={{ fontSize: 20 }}></ShareIcon>
+          </IconButton>
           <IconButton onClick={handleSave} size="small">
             <SaveIcon sx={{ fontSize: 20 }}></SaveIcon>
           </IconButton>
@@ -137,6 +173,17 @@ const RendererSection = ({
           </CardContent>
         </Card>
       </div>
+      
+      <Snackbar 
+        open={snackbarOpen} 
+        autoHideDuration={4000} 
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={handleSnackbarClose} severity={snackbarSeverity} sx={{ width: '100%' }}>
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </div>
   );
 };
