@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import './ElementEditor.css';
+import Popover from '@mui/material/Popover';
 
 export const ElementEditor = ({svgElement, updateInspector}) => {
     useEffect(()=>{
@@ -8,12 +9,36 @@ export const ElementEditor = ({svgElement, updateInspector}) => {
 
     const initListener = () => {
         if(svgElement){
-            svgElement.addEventListener('click', onElementClick);
+            svgElement.addEventListener('mouseover', onMouseOver);
+            svgElement.addEventListener('mouseout', onMouseOut);
         }
     }
 
-    const onElementClick = (e) =>{
-        let target = e.target;
+  const [anchorEl, setAnchorEl] = React.useState(null);
+
+    const onMouseOut = (e) => {
+        let target = e.target.parentElement.firstChild;
+        if (target.classList.contains('arrayElement')) {
+            if (e.toElement.parentElement == target.parentElement || e.toElement.id == "mouse-over-popover-div")
+              return;
+
+            target.setAttribute("style", "fill: none;");
+
+            if (anchorEl == target) {
+              popoverLeave();
+            }
+        }
+    }
+
+    const onMouseOver = (e) =>{
+        let target = e.target.parentElement.firstChild;
+
+        if (target.classList.contains('arrayElement')){
+            target.setAttribute("style", "fill: yellow;");
+            setAnchorEl(target);
+            popoverEnter();
+        }
+
     
         // Traverse up the DOM tree to find the nearest <g class="unit"> element
         while (target && !target.classList.contains('unit')) {
@@ -32,8 +57,43 @@ export const ElementEditor = ({svgElement, updateInspector}) => {
             target = target.parentElement;
         }
         const pageID = target?target.id: null;
+        //console.log(unitID, componentID, pageID);
 
-        updateInspector(unitID, componentID, pageID)
+        //updateInspector(unitID, componentID, pageID);
+
     }
-    return <div></div>
+
+  const [openedPopover, setOpenedPopover] = useState(false);
+
+  const popoverEnter = () => {
+    //setAnchorEl(event.target);
+    setOpenedPopover(true);
+  };
+
+  const popoverLeave = () => {
+    if (anchorEl) {
+      anchorEl.setAttribute("style", "fill: none;");
+    }
+    setAnchorEl(null);
+    setOpenedPopover(false);
+  };
+    return <div>
+      <Popover
+        id='mouse-over-popover'
+        open={openedPopover}
+        anchorEl={anchorEl}
+        anchorOrigin={{
+          vertical: "top",
+          horizontal: "right",
+        }}
+        transformOrigin={{
+          vertical: "center",
+          horizontal: "center",
+        }}
+        onMouseLeave={popoverLeave}
+        slotProps={{ paper: { sx: { pointerEvents: "auto" } } }}
+        sx={{ pointerEvents: "none" }}>
+        <div id='mouse-over-popover-div'>Toolbar</div>
+      </Popover>
+    </div>
 }
