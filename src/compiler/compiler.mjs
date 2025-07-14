@@ -1091,7 +1091,6 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
 
             case "set_child":
                 // args: {start: parent, end: child}
-                console.log("set_child command", command);
                 const name2 = command.name;
                 const edge = command.args;
                 const targetObject2 = pages[pages.length - 1].find(comp => comp.name === name2);

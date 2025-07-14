@@ -164,7 +164,6 @@ export function getComponentFields(componentType) {
       value: ["Value", "number_or_string"],
       color: ["Color", "color"],
       arrow: ["Arrow Label", "string"],
-      children: ["Children", "edge_list"],
       position: ["Position", "position"],
     },
     linkedlist: {
