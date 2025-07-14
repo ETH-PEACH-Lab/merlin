@@ -218,7 +218,7 @@ function initializeValueArrayWithNodeNames(body) {
     }
     return false;
 }
-    
+
 // Helper function to detect cycles in a tree
 function hasTreeCycle(nodes, children) {
     if (!Array.isArray(nodes) || !Array.isArray(children)) return false;
@@ -1392,7 +1392,7 @@ function preCheck(parsedDSL) {
         // Tree cycle check
         if (def.type === "tree" && def.body && def.body.nodes && def.body.children) {
             if (hasTreeCycle(def.body.nodes, def.body.children)) {
-                throw new Error(`Cycle detected in tree '${def.name}'. The structure is not a valid tree.`);
+                throw new Error(`Cycle detected in tree '${def.name}'.\nThe structure is not a valid tree.`);
             }
         }
     });
