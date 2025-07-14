@@ -16,10 +16,8 @@ function maintainArrayPropertyConsistency(body, modifiedProperty, index, operati
     // Define the properties that should be kept in sync for different component types
     let arrayProperties = ["arrow", "color", "value", "hidden"];
     
-    // Add specific properties for certain component types
-    if (componentType === "tree") {
-        arrayProperties.push("children");
-    }
+    // Note: "children" property is NOT included because it contains relationship objects,
+    // not values indexed by node position, so it should be handled separately
     
     // First, find the target length based on the modified property
     const targetLength = body[modifiedProperty] ? body[modifiedProperty].length : 0;
@@ -135,6 +133,90 @@ function formatNullValue(value) {
         return "\\\\null";
     }
     return value;
+}
+
+// Helper function to recursively find all descendant nodes of a given parent node in a tree
+function findAllDescendants(parentNode, children) {
+    const descendants = new Set();
+    
+    function findDirectChildren(parent) {
+        if (!children || !Array.isArray(children)) return [];
+        return children.filter(child => child && child.start === parent).map(child => child.end);
+    }
+    
+    function collectDescendants(node) {
+        const directChildren = findDirectChildren(node);
+        for (const child of directChildren) {
+            if (!descendants.has(child)) {
+                descendants.add(child);
+                collectDescendants(child); // Recursively collect descendants
+            }
+        }
+    }
+    
+    collectDescendants(parentNode);
+    return Array.from(descendants);
+}
+
+// Helper function to remove a single node and all edges/relationships involving it
+function removeNodeAndRelatedElements(body, nodeName, targetObject) {
+    let removedIndex = -1;
+    
+    // Remove the node from nodes array
+    if (body.nodes && Array.isArray(body.nodes)) {
+        const index = body.nodes.indexOf(nodeName);
+        if (index > -1) {
+            body.nodes.splice(index, 1);
+            removedIndex = index;
+        }
+    }
+    
+    // Remove edges involving this node (for graphs)
+    if (body.edges && Array.isArray(body.edges)) {
+        body.edges = body.edges.filter(edge => {
+            if (!edge || typeof edge !== 'object') return false;
+            return edge.start !== nodeName && edge.end !== nodeName;
+        });
+    }
+    
+    // Remove children relationships involving this node (for trees)
+    if (body.children && Array.isArray(body.children)) {
+        body.children = body.children.filter(child => {
+            if (!child || typeof child !== 'object') return false;
+            return child.start !== nodeName && child.end !== nodeName;
+        });
+    }
+    
+    return removedIndex;
+}
+
+// Helper function to convert node name to index for trees and graphs
+function getNodeIndex(targetObject, nodeNameOrIndex) {
+    // If it's already a number, return it
+    if (typeof nodeNameOrIndex === 'number') {
+        return nodeNameOrIndex;
+    }
+    
+    // If it's a string (node name), find its index
+    if (typeof nodeNameOrIndex === 'string' && targetObject.body.nodes) {
+        const index = targetObject.body.nodes.indexOf(nodeNameOrIndex);
+        if (index === -1) {
+            return null; // Node not found
+        }
+        return index;
+    }
+    
+    return null; // Invalid input
+}
+
+// Helper function to initialize value array with node names if no value array exists
+function initializeValueArrayWithNodeNames(body) {
+    if (!body.value && body.nodes && Array.isArray(body.nodes)) {
+        // Only initialize if value is completely missing (not if it's an array of nulls)
+        body.value = [...body.nodes]; // Copy node names as values
+        return true;
+    }
+    return false;
 }
 
 export { formatNodeName, formatNullValue };
@@ -297,8 +379,13 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                         const component = {
                             type: componentData.type,
                             name: componentData.name,
-                            body: componentData.body,
+                            body: { ...componentData.body }, // Make a copy to avoid mutating the original
                         };
+                        
+                        // Initialize value array with node names if needed for trees and graphs
+                        if ((component.type === "tree" || component.type === "graph")) {
+                            initializeValueArrayWithNodeNames(component.body);
+                        }
                         
                         // Add position information if provided
                         if (expandedPosition) {
@@ -362,14 +449,37 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
             case "set": {
                 const name = command.name;
                 const property = command.target;
-                const index = command.args.index;
+                const indexOrNodeName = command.args.index;
                 const newValue = command.args.value;
                 const targetObject = pages[pages.length - 1].find(comp => comp.name === name);
-                const isValidIndex = Number.isInteger(index) && index >= 0;
 
                 // Check if in bounds
                 if (targetObject) {
                     const body = targetObject.body;
+                    
+                    // Initialize value array with node names if needed for trees and graphs
+                    if ((targetObject.type === "tree" || targetObject.type === "graph") && property === "value") {
+                        initializeValueArrayWithNodeNames(body);
+                    }
+                    
+                    // Handle node name to index conversion for trees and graphs
+                    let index = indexOrNodeName;
+                    if (targetObject.type === "tree" || targetObject.type === "graph") {
+                        const nodeIndex = getNodeIndex(targetObject, indexOrNodeName);
+                        if (nodeIndex !== null) {
+                            index = nodeIndex;
+                        } else if (typeof indexOrNodeName === 'string') {
+                            causeCompileError(`Node not found\n\nNode: ${indexOrNodeName}\nComponent: ${name}`, command);
+                            break;
+                        }
+                    } else if (typeof indexOrNodeName === 'string') {
+                        // Warn if using node names on non-tree/graph components
+                        console.warn(`Warning: Using node name "${indexOrNodeName}" on component type "${targetObject.type}". Node names are only recommended for trees and graphs.`);
+                        causeCompileError(`Invalid index type\n\nUsing node name "${indexOrNodeName}" on ${targetObject.type} component. Use numeric indices for this component type.`, command);
+                        break;
+                    }
+                    
+                    const isValidIndex = Number.isInteger(index) && index >= 0;
                     
                     // Special handling for text components
                     if (targetObject.type === "text") {
@@ -699,27 +809,25 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                         } 
                         // Special handling for removing a node from a tree: also remove all children relations involving that node
                         else if (target === "nodes" && targetObject.type === "tree") {
-                            const index = body[target].indexOf(value);
-                            if (index > -1) {
-                                body[target].splice(index, 1);
-                                removedIndex = index;
-                                // Remove all children relations where start or end matches the removed node
-                                if (Array.isArray(body.children)) {
-                                    body.children = body.children.filter(child => {
-                                        if (!child || typeof child !== 'object') return false;
-                                        return child.start !== value && child.end !== value;
-                                    });
-                                }
-                            } else {
+                            removedIndex = removeNodeAndRelatedElements(body, value, targetObject);
+                            if (removedIndex === -1) {
                                 causeCompileError(`Value not found\n\nValue: ${value}\nProperty: ${target}\nComponent: ${name}`, command);
                             }
                         } else {
-                            const index = body[target].indexOf(value);
-                            if (index > -1) {
-                                body[target].splice(index, 1);
-                                removedIndex = index;
+                            // Special handling for removing a node from a graph: also remove all edges involving that node
+                            if (target === "nodes" && targetObject.type === "graph") {
+                                removedIndex = removeNodeAndRelatedElements(body, value, targetObject);
+                                if (removedIndex === -1) {
+                                    causeCompileError(`Value not found\n\nValue: ${value}\nProperty: ${target}\nComponent: ${name}`, command);
+                                }
                             } else {
-                                causeCompileError(`Value not found\n\nValue: ${value}\nProperty: ${target}\nComponent: ${name}`, command);
+                                const index = body[target].indexOf(value);
+                                if (index > -1) {
+                                    body[target].splice(index, 1);
+                                    removedIndex = index;
+                                } else {
+                                    causeCompileError(`Value not found\n\nValue: ${value}\nProperty: ${target}\nComponent: ${name}`, command);
+                                }
                             }
                         }
 
@@ -766,6 +874,68 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                     });
                 } else {
                     causeCompileError(`Component not on page\n\nName: ${name}\nPage: ${pages.length - 1}`, command);
+                }
+                break;
+            }
+            case "remove_subtree": {
+                const name = command.name;
+                const nodeName = command.args;
+                const targetObject = pages[pages.length - 1].find(comp => comp.name === name);
+
+                if (targetObject) {
+                    if (targetObject.type !== "tree") {
+                        causeCompileError(`removeSubtree can only be used on tree components\n\nComponent: ${name}\nType: ${targetObject.type}`, command);
+                    }
+                    
+                    const body = targetObject.body;
+                    
+                    // Check if the node exists
+                    if (!body.nodes || !body.nodes.includes(nodeName)) {
+                        causeCompileError(`Node not found\n\nNode: ${nodeName}\nComponent: ${name}`, command);
+                    }
+                    
+                    // Find all descendants of the node
+                    const descendants = findAllDescendants(nodeName, body.children);
+                    const nodesToRemove = [nodeName, ...descendants];
+                    
+                    // Get indices of all nodes to remove (before removing any)
+                    const indicesToRemove = [];
+                    nodesToRemove.forEach(nodeToRemove => {
+                        const index = body.nodes ? body.nodes.indexOf(nodeToRemove) : -1;
+                        if (index > -1) {
+                            indicesToRemove.push(index);
+                        }
+                    });
+                    
+                    // Remove children relationships involving any of the nodes to remove
+                    // Remove relationships where either parent or child is being removed
+                    if (body.children && Array.isArray(body.children)) {
+                        body.children = body.children.filter(child => {
+                            if (!child || typeof child !== 'object') return false;
+                            // Keep the relationship only if both parent and child are NOT being removed
+                            return !nodesToRemove.includes(child.start) && !nodesToRemove.includes(child.end);
+                        });
+                    }
+                    
+                    // Remove all edges involving any of the nodes to remove (for trees that might have edges)
+                    if (body.edges && Array.isArray(body.edges)) {
+                        body.edges = body.edges.filter(edge => {
+                            if (!edge || typeof edge !== 'object') return false;
+                            return !nodesToRemove.includes(edge.start) && !nodesToRemove.includes(edge.end);
+                        });
+                    }
+                    
+                    // Sort indices in descending order and remove nodes from end to beginning
+                    indicesToRemove.sort((a, b) => b - a);
+                    indicesToRemove.forEach(index => {
+                        if (body.nodes && index >= 0 && index < body.nodes.length) {
+                            body.nodes.splice(index, 1);
+                            // Maintain consistency across all array properties
+                            maintainArrayPropertyConsistency(body, "nodes", index, "remove", targetObject.type);
+                        }
+                    });
+                } else {
+                    causeCompileError(`Component not on page\n\nName: ${name}`, command);
                 }
                 break;
             }
@@ -1188,7 +1358,7 @@ function preCheck(parsedDSL) {
     parsedDSL.cmds.forEach(cmd => {
         if (![
             "page", "show", "hide", "set", "set_multiple", "set_matrix", "set_matrix_multiple",
-            "add", "insert", "remove", "remove_at", "comment",
+            "add", "insert", "remove", "remove_subtree", "remove_at", "comment",
             "add_matrix_row", "add_matrix_column", "remove_matrix_row", "remove_matrix_column", "add_matrix_border", "add_child", "set_child"
         ].includes(cmd.type)) {
             throw new Error(

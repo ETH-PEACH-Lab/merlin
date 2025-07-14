@@ -1,5 +1,5 @@
 import nearley from 'nearley';
-import grammar from './parser.js';  // Compiled from data_structure_extended_with_strings.ne
+import grammar from '../parser.js';  // Compiled from data_structure_extended_with_strings.ne
 
 const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar));
 

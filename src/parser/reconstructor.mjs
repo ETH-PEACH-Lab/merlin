@@ -205,6 +205,10 @@ function reconstructCommand(cmd) {
             const removeAtIndex = cmd.args;
             return `${cmd.name}.removeAt(${removeAtIndex})`;
             
+        case 'remove_subtree':
+            const subtreeNode = formatValue(cmd.args, cmd.target);
+            return `${cmd.name}.removeSubtree(${subtreeNode})`;
+            
         case 'add_matrix_row':
             const addRowValue = cmd.args !== null && cmd.args !== undefined ? cmd.args : '';
             return `${cmd.name}.addRow(${addRowValue})`;

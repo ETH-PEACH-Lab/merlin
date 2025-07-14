@@ -145,28 +145,27 @@ callStack.setValues([_,_,"validate","execute"])`,
   {
     id: "treeExample", 
     title: "Example - Tree",
-    userCode: `// Tree - Binary search tree operations
-tree bst = {
-  nodes: [root,a,b,c]
-  value: [50,30,70,20]
-  color: ["green",null,"blue",null]
-  children: [root-a, root-b, root-c]
-  arrow: [null,"focus",null,null]
+    userCode: `// Tree - Organizational hierarchy with dynamic restructuring
+tree orgChart = {
+  nodes: [CEO, CTO, CFO, LeadDev, Intern]
+  value: ["Alice", "Bob", "Carol", "Dave", "Eve"]
+  color: ["gold", "lightblue", "lightgreen", null, null]
+  children: [CEO-CTO, CEO-CFO, CTO-LeadDev, LeadDev-Intern]
+  arrow: [null,null,null,null,null]
 }
 
+page
+show orgChart
 
 page
-show bst
-bst.addNode(newNode, 80)
+orgChart.addChild(CFO-TechLead, "Frank")
+orgChart.addChild(TechLead-Engineer, "Grace")
+orgChart.setColor(TechLead, "lightcoral")
+orgChart.setArrow(CEO, "CEO")
 
 page
-bst.setColor(4, "red")
-bst.setArrow(4, "inserted")
-bst.setValue(1, 35)
-
-page
-bst.setColors([_,"orange",_,_,_])
-bst.removeNode(c)`,
+orgChart.setChild(CEO-TechLead)
+orgChart.removeSubtree(Intern)`,
   },
   {
     id: "textAndFormattingExample",
