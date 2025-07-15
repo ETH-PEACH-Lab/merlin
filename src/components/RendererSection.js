@@ -121,7 +121,8 @@ const RendererSection = ({
       className="SvgRenderContent"
       style={{
         width: `100%`,
-        overflow: "auto",
+        height: "100%",
+        overflow: "hidden",
         position: "relative",
       }}
     >
@@ -401,37 +402,36 @@ const RendererSection = ({
       <div
         style={{
           display: "flex",
-          justifyContent: "center",
-          alignItems: "top",
           height: "100%",
+          alignItems: "center",
+          justifyItems: "center",
+          flexDirection: "column"
         }}
       >
-        <Card sx={{ width: "100%", borderRadius: '0' }}>
-          <CardContent>
-            <div ref={mermaidRef}>
-              <MermaidRenderer text={mermaidCode} update={updateSvgElement} exampleSvg={exampleSvg}  currentPage={currentPage} />
-            </div>
-            <ElementEditor svgElement={svgElement} updateInspector={updateInspector} inspectorIndex={inspectorIndex} currentPage={currentPage}/>
-            
-            {(pages && pages.length === 0) ? (
-              <Typography sx={{ mt: 2, textAlign: 'center' }}>
-                No pages to show.
-              </Typography>
-            ) : (
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  mt: 2,
-                }}
-              >
-                <Button onClick={handleClickPrev} variant="contained" style={{ fontSize: "12px", marginRight: "15px", maxWidth: '80px', maxHeight: '25px', minWidth: '40px', minHeight: '25px' }}>Prev</Button>
-                <Button onClick={handleClickNext} variant="contained" style={{ fontSize: "12px", marginRight: "15px", maxWidth: '80px', maxHeight: '25px', minWidth: '40px', minHeight: '25px' }}>Next</Button>
-                {currentPage}/{pages.length}
-              </Box>
-            )}
-          </CardContent>
-        </Card>
+          <div ref={mermaidRef} style={{flexGrow: 1, width: "100%"}}>
+            <MermaidRenderer text={mermaidCode} update={updateSvgElement} exampleSvg={exampleSvg}  currentPage={currentPage} />
+          </div>
+          <ElementEditor svgElement={svgElement} updateInspector={updateInspector} inspectorIndex={inspectorIndex} currentPage={currentPage}/>
+          
+          <div style={{flexGrow: 1}}>
+          {(pages && pages.length === 0) ? (
+            <Typography sx={{ mt: 2, textAlign: 'center' }}>
+              No pages to show.
+            </Typography>
+          ) : (
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'center',
+                mt: 2,
+              }}
+            >
+              <Button onClick={handleClickPrev} variant="contained" style={{ fontSize: "12px", marginRight: "15px", maxWidth: '80px', maxHeight: '25px', minWidth: '40px', minHeight: '25px' }}>Prev</Button>
+              <Button onClick={handleClickNext} variant="contained" style={{ fontSize: "12px", marginRight: "15px", maxWidth: '80px', maxHeight: '25px', minWidth: '40px', minHeight: '25px' }}>Next</Button>
+              {currentPage}/{pages.length}
+            </Box>
+          )}
+          </div>
       </div>
       
       <Snackbar 
