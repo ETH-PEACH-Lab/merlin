@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './ElementEditor.css';
 import Popover from '@mui/material/Popover';
 
@@ -17,21 +17,21 @@ export const ElementEditor = ({svgElement, updateInspector}) => {
   const [anchorEl, setAnchorEl] = React.useState(null);
 
     const onMouseOut = (e) => {
-        let target = e.target.parentElement.firstChild;
+        let target = e.target.parentElement.getElementsByTagName("rect")[0];
         if (target.classList.contains('arrayElement')) {
-            if (e.toElement.parentElement == target.parentElement || e.toElement.id == "mouse-over-popover-div")
-              return;
-
             target.setAttribute("style", "fill: none;");
-
-            if (anchorEl == target) {
+            console.log(e.relatedTarget.id === 'preview');
+            if (anchorEl == target || (typeof e.relatedTarget !== 'undefined' && e.relatedTarget.id === 'preview')) {
               popoverLeave();
             }
         }
     }
 
     const onMouseOver = (e) =>{
-        let target = e.target.parentElement.firstChild;
+        let target = e.target.parentElement.getElementsByTagName("rect")[0];
+        if (e.target.parentElement !== target.parentElement){
+          return;
+        }
 
         if (target.classList.contains('arrayElement')){
             target.setAttribute("style", "fill: yellow;");
@@ -57,7 +57,6 @@ export const ElementEditor = ({svgElement, updateInspector}) => {
             target = target.parentElement;
         }
         const pageID = target?target.id: null;
-        //console.log(unitID, componentID, pageID);
 
         //updateInspector(unitID, componentID, pageID);
 
@@ -66,7 +65,6 @@ export const ElementEditor = ({svgElement, updateInspector}) => {
   const [openedPopover, setOpenedPopover] = useState(false);
 
   const popoverEnter = () => {
-    //setAnchorEl(event.target);
     setOpenedPopover(true);
   };
 
