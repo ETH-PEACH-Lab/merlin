@@ -21,6 +21,7 @@
     "jspdf": "^2.5.1",
     "langium": "^3.1.2",
     "langium-cli": "^3.1.0",
+    "lz-string": "^1.5.0",
     "@eth-peach-lab/mermaid-merlin": "github:ETH-PEACH-Lab/mermaid-merlin#develop",
     "monaca-plugin-monaca-core": "3.3.1",
     "monaco-editor": "^0.50.0",
