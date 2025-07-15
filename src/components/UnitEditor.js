@@ -161,6 +161,7 @@ const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate }) => {
       onChange={handleFieldChange}
       onBlur={handleBlur}
       onKeyDown={handleKeyDown}
+      style={{margin: "15px 10px 10px 10px"}}
     />}
     >
     </EditUnitItem>
