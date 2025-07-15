@@ -19,9 +19,7 @@ export const ElementEditor = ({svgElement, updateInspector}) => {
     const onMouseOut = (e) => {
         let target = e.target.parentElement.getElementsByTagName("rect")[0];
         if (target.classList.contains('arrayElement')) {
-            target.setAttribute("style", "fill: none;");
-            console.log(e.relatedTarget.id === 'preview');
-            if (anchorEl == target || (typeof e.relatedTarget !== 'undefined' && e.relatedTarget.id === 'preview')) {
+            if (anchorEl == target || (typeof e.relatedTarget !== 'undefined' && e.relatedTarget !== null && e.relatedTarget.id === 'preview')) {
               popoverLeave();
             }
         }
@@ -34,7 +32,7 @@ export const ElementEditor = ({svgElement, updateInspector}) => {
         }
 
         if (target.classList.contains('arrayElement')){
-            target.setAttribute("style", "fill: yellow;");
+            target.setAttribute("stroke", "green");
             setAnchorEl(target);
             popoverEnter();
         }
@@ -69,8 +67,8 @@ export const ElementEditor = ({svgElement, updateInspector}) => {
   };
 
   const popoverLeave = () => {
-    if (anchorEl) {
-      anchorEl.setAttribute("style", "fill: none;");
+    if (typeof anchorEl !== 'undefined' && anchorEl !== null) {
+      anchorEl.setAttribute("stroke", "black");
     }
     setAnchorEl(null);
     setOpenedPopover(false);
