@@ -1,6 +1,6 @@
 
 import nearley from 'nearley';
-import grammar from './parser.js'; // Compiled from merlinLite.ne
+import grammar from '../parser.js'; // Compiled from merlinLite.ne
 
 const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar));
 

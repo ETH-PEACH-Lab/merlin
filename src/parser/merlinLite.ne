@@ -84,7 +84,7 @@ matrix_row[X] -> lbrac nlow:? $X (nlow:? comma nlow:? $X):* nlow:? rbrac {% ([, 
 cmd[X, Y] -> wordL dot $X lparen _ $Y _ rparen {% ([wordL, dot, , , , args]) => ({ args: id(args), ...wordL }) %}
 
 # Matrix commands with 3 parameters (row, col, value)
-matrix_cmd[X, Y] -> wordL dot $X lparen _ number _ comma _ number _ comma _ $Y _ rparen {% ([wordL, , , , , row, , , , col, , , , value]) => ({ args: { row: row, col: col, value: id(value) }, ...wordL }) %}
+triple_cmd[X, Y] -> wordL dot $X lparen _ number _ comma _ number _ comma _ $Y _ rparen {% ([wordL, , , , , row, , , , col, , , , value]) => ({ args: { row: row, col: col, value: id(value) }, ...wordL }) %}
 
 # Ignore surrounding whitespace
 trim[X] -> _ $X _ {% ([, value, ]) => id(value) %}
@@ -199,6 +199,7 @@ tree_pair -> (
             | pair["color", ns_list]
             | pair["value", nns_list]
             | pair["arrow", nns_list]
+            | pair["children", e_list]
             | pair["above", (string | word) {% id %}]
             | pair["below", (string | word) {% id %}]
             | pair["left", (string | word) {% id %}]
@@ -270,12 +271,16 @@ commands -> (comment
           | add_value
           | add_node
           | add_edge
+          | add_child
+          | set_child
           | insert_value
           | insert_node
           | insert_edge
           | remove_value
           | remove_node
           | remove_edge
+          | remove_child
+          | remove_subtree
           | remove_at
           | set_text_fontSize
           | set_text_fontWeight
@@ -308,16 +313,16 @@ show -> "show" _ wordL (_ (position_keyword | ranged_tuple)):? {% ([, , wordL, p
 
 hide -> "hide" _ wordL {% ([, , wordL]) => ({ type: "hide", value: wordL.name, line: wordL.line, col: wordL.col }) %}
 
-# Set a value in an array
-set_value -> cmd["setValue", comma_sep[number, (number | string | nullT) {% id %}]] {% (details) => ({ type: "set", target: "value", ...id(details) }) %}
-set_color -> cmd["setColor", comma_sep[number, (string | nullT) {% id %}]] {% (details) => ({ type: "set", target: "color", ...id(details) }) %}
-set_arrow -> cmd["setArrow", comma_sep[number, (number | string | nullT) {% id %}]] {% (details) => ({ type: "set", target: "arrow", ...id(details) }) %}
-set_hidden -> cmd["setHidden", comma_sep[number, boolean]] {% (details) => ({ type: "set", target: "hidden", ...id(details) }) %}
+# Set a value in an array (or by node name for graphs/trees)
+set_value -> cmd["setValue", comma_sep[(number | word) {% id %}, (number | string | nullT) {% id %}]] {% (details) => ({ type: "set", target: "value", ...id(details) }) %}
+set_color -> cmd["setColor", comma_sep[(number | word) {% id %}, (string | nullT) {% id %}]] {% (details) => ({ type: "set", target: "color", ...id(details) }) %}
+set_arrow -> cmd["setArrow", comma_sep[(number | word) {% id %}, (number | string | nullT) {% id %}]] {% (details) => ({ type: "set", target: "arrow", ...id(details) }) %}
+set_hidden -> cmd["setHidden", comma_sep[(number | word) {% id %}, boolean]] {% (details) => ({ type: "set", target: "hidden", ...id(details) }) %}
 
 # Set a value in a matrix
-set_matrix_value -> matrix_cmd["setValue", (number | string | nullT) {% id %}] {% (details) => ({ type: "set_matrix", target: "value", ...id(details) }) %}
-set_matrix_color -> matrix_cmd["setColor", (string | nullT) {% id %}] {% (details) => ({ type: "set_matrix", target: "color", ...id(details) }) %}
-set_matrix_arrow -> matrix_cmd["setArrow", (number | string | nullT) {% id %}] {% (details) => ({ type: "set_matrix", target: "arrow", ...id(details) }) %}
+set_matrix_value -> triple_cmd["setValue", (number | string | nullT) {% id %}] {% (details) => ({ type: "set_matrix", target: "value", ...id(details) }) %}
+set_matrix_color -> triple_cmd["setColor", (string | nullT) {% id %}] {% (details) => ({ type: "set_matrix", target: "color", ...id(details) }) %}
+set_matrix_arrow -> triple_cmd["setArrow", (number | string | nullT) {% id %}] {% (details) => ({ type: "set_matrix", target: "arrow", ...id(details) }) %}
 set_edges -> cmd["setEdges", e_list] {% (details) => ({ type: "set_multiple", target: "edges", ...id(details) }) %}
 
 # Set a value in a text
@@ -353,6 +358,8 @@ set_text_aligns_multiple -> cmd["setAligns", list[(string | nullT | pass) {% id 
 add_value -> cmd["addValue", (number | string | nullT) {% id %}] {% (details) => ({ type: "add", target: "value", ...id(details) }) %}
 add_node -> cmd["addNode", (word | comma_sep[word, (number | string | nullT) {% id %}]) {% id %}] {% (details) => ({ type: "add", target: "nodes", ...id(details) }) %}
 add_edge -> cmd["addEdge", edge] {% (details) => ({ type: "add", target: "edges", ...id(details) }) %}
+add_child -> cmd["addChild", (edge | comma_sep[edge, (number | string | nullT) {% id %}]) {% id %}] {% (details) => ({ type: "add_child", ...id(details) }) %}
+set_child -> cmd["setChild", edge] {% (details) => ({ type: "set_child", ...id(details) }) %}
 
 # Insert functions
 insert_value -> cmd["insertValue", comma_sep[number, (number | string | nullT) {% id %}]] {% (details) => ({ type: "insert", target: "value", ...id(details) }) %}
@@ -363,6 +370,8 @@ insert_edge -> cmd["insertEdge", comma_sep[number, edge]] {% (details) => ({ typ
 remove_value -> cmd["removeValue", (number | string | nullT) {% id %}] {% (details) => ({ type: "remove", target: "value", ...id(details) }) %}
 remove_node -> cmd["removeNode", word] {% (details) => ({ type: "remove", target: "nodes", ...id(details) }) %}
 remove_edge -> cmd["removeEdge", edge] {% (details) => ({ type: "remove", target: "edges", ...id(details) }) %}
+remove_child -> cmd["removeChild", edge] {% (details) => ({ type: "remove", target: "children", ...id(details) }) %}
+remove_subtree -> cmd["removeSubtree", word] {% (details) => ({ type: "remove_subtree", target: "nodes", ...id(details) }) %}
 remove_at -> cmd["removeAt", number] {% (details) => ({ type: "remove_at", target: "all", ...id(details) }) %}
 
 # Matrix structural editing

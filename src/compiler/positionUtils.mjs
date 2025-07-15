@@ -100,23 +100,22 @@ export function formatPositionForOutput(position, layout = [3, 3]) {
         // Ranged position format: use originalPosition to reconstruct the range syntax
         // Check if originalPosition is a keyword - convert to tuple format
         if (position.originalPosition.type === 'keyword') {
-            // Translate keyword to ranged position based on layout
-            const translatedRange = translateKeywordToRange(position.originalPosition.value, layout);
-            const [xPos, yPos] = translatedRange;
+            // For keyword positions that have already been expanded, use the expanded position
+            // instead of re-translating with the current layout to maintain consistency
+            const xPos = position.x;
+            const yPos = position.y;
+            const width = position.width || 1;
+            const height = position.height || 1;
             
-            function formatPositionValue(pos) {
-                if (pos && typeof pos === 'object' && pos.type === 'range') {
-                    // If start and end are the same, just return the single value
-                    if (pos.start === pos.end) {
-                        return pos.start;
-                    }
-                    return `${pos.start}..${pos.end}`;
+            function formatPositionValue(start, size) {
+                if (size === 1) {
+                    return start;
                 }
-                return pos;
+                return `${start}..${start + size - 1}`;
             }
             
-            const xFormatted = formatPositionValue(xPos);
-            const yFormatted = formatPositionValue(yPos);
+            const xFormatted = formatPositionValue(xPos, width);
+            const yFormatted = formatPositionValue(yPos, height);
             return `position: (${xFormatted},${yFormatted})\n`;
         }
         

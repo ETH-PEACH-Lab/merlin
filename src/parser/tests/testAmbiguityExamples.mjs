@@ -1,7 +1,7 @@
 
 import nearley from 'nearley';
-import grammar from './parser.js'; // Compiled from merlinLite.ne
-import { examples } from '../examples.js';
+import grammar from '../parser.js'; // Compiled from merlinLite.ne
+import { examples } from '../../examples.js';
 
 function testAmbiguityForExamples() {
   let ambiguousCount = 0;

@@ -55,6 +55,7 @@ function getMethodName(action, target, isPlural = false) {
     const singularMap = {
         'nodes': 'Node',
         'edges': 'Edge',
+        'children': 'Child',
         'values': 'Value',
         'colors': 'Color',
         'arrows': 'Arrow',
@@ -160,7 +161,22 @@ function reconstructCommand(cmd) {
             const matrixMultipleMethodName = getMethodName('set', cmd.target, true);
             const matrixMultipleValue = formatMatrix(cmd.args);
             return `${cmd.name}.${matrixMultipleMethodName}(${matrixMultipleValue})`;
-            
+        case 'add_child':
+            // Handles both addChild(parent-child) and addChild(parent-child, value)
+            if (cmd.args && cmd.args.start && cmd.args.end) {
+                return `${cmd.name}.addChild(${cmd.args.start}-${cmd.args.end})`;
+            } else if (cmd.args && cmd.args.index && cmd.args.value !== undefined && cmd.args.index.start && cmd.args.index.end) {
+                return `${cmd.name}.addChild(${cmd.args.index.start}-${cmd.args.index.end}, ${formatValue(cmd.args.value)})`;
+            }
+            return null;
+
+        case 'set_child':
+            // setChild(child, parent)
+            if (cmd.args && cmd.args.start && cmd.args.end) {
+                return `${cmd.name}.setChild(${cmd.args.start}-${cmd.args.end})`;
+            }
+            return null;
+
         case 'add':
             const addMethodName = getMethodName('add', cmd.target, false);
             
@@ -188,6 +204,10 @@ function reconstructCommand(cmd) {
         case 'remove_at':
             const removeAtIndex = cmd.args;
             return `${cmd.name}.removeAt(${removeAtIndex})`;
+            
+        case 'remove_subtree':
+            const subtreeNode = formatValue(cmd.args, cmd.target);
+            return `${cmd.name}.removeSubtree(${subtreeNode})`;
             
         case 'add_matrix_row':
             const addRowValue = cmd.args !== null && cmd.args !== undefined ? cmd.args : '';
@@ -284,6 +304,10 @@ function formatValues(key, value) {
         case 'edges':
             // For edges, format as "start-end"
             return `[${value.map(edge => `${edge.start}-${edge.end}`).join(',')}]`;
+            
+        case 'children':
+            // For children (tree), format as "parent-child"
+            return `[${value.map(child => `${child.start}-${child.end}`).join(',')}]`;
             
         default:
             // For other properties (value, color, arrow), use standard array formatting
