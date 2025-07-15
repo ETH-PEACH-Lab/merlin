@@ -9,9 +9,14 @@ import {
   FormControl,
   InputLabel,
   IconButton,
+  Tooltip,
 } from "@mui/material";
+import EditIcon from '@mui/icons-material/Edit';
 import FormatColorFillIcon from '@mui/icons-material/FormatColorFill';
+import TextRotateVerticalIcon from '@mui/icons-material/TextRotateVertical';
+import RectangleOutlinedIcon from '@mui/icons-material/RectangleOutlined';
 import { useParseCompile } from "../context/ParseCompileContext";
+import { EditUnitItem } from "./EditUnitItem";
 import { 
   parseInspectorIndex, 
   createUnitData, 
@@ -20,8 +25,22 @@ import {
   getFieldDropdownOptions
 } from "../compiler/dslUtils.mjs";
 
+
 const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate }) => {
   const [label, inputType] = fieldConfig;
+
+  const getIcon = (name) => {
+    switch (name){
+      case "Value":
+        return <EditIcon></EditIcon>
+      case "Color":
+        return <FormatColorFillIcon></FormatColorFillIcon>
+      case "Arrow Label": 
+        return <TextRotateVerticalIcon></TextRotateVerticalIcon>
+      default: 
+        return <RectangleOutlinedIcon></RectangleOutlinedIcon>
+    }
+  };
   
   const handleBlur = () => {
     if (!value) return;
@@ -50,6 +69,20 @@ const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate }) => {
     const newValue = e.target.value;
     onChange(fieldKey, newValue);
     onUpdate(fieldKey, newValue);
+  };
+
+  const handleFieldChange = (e) => {
+    let newValue = e.target.value;
+    
+    // Validate number inputs for text properties
+    if ((fieldKey === "fontSize" || fieldKey === "lineSpacing" || fieldKey === "width" || fieldKey === "height") && newValue !== "") {
+      // Allow only positive numbers and decimal points
+      if (!/^\d*\.?\d*$/.test(newValue)) {
+        return; // Don't update if invalid
+      }
+    }
+    
+    onChange(fieldKey, newValue);
   };
 
   // Define dropdown options for specific text properties
@@ -101,48 +134,36 @@ const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate }) => {
     );
   }
 
+  // For the color field, use a color picker
+  if (inputType == "color"){
+    return (
+       <Tooltip title={label}>
+        <span style={{marginLeft: "10px", marginRight: "10px"}}>
+          <IconButton size="small">
+            <input style={{opacity: 0, position: "absolute", top: 0, left: 0, width: "100%", height: "100%"}} type="color" onChange={handleColorChange}/>
+            {getIcon(label)}
+          </IconButton>
+        </span>
+      </Tooltip>
+    );
+  }
+
   // Regular text/number inputs
   return (
- inputType == "color" ? (
-      <div>
-        <IconButton size="small">
-          <input style={{opacity: 0, position: "absolute", top: 0, left: 0, width: "100%", height: "100%"}} type="color" onChange={handleColorChange}/>
-          <FormatColorFillIcon></FormatColorFillIcon>
-        </IconButton>
-      </div>
-    ) : (
-    <TextField
+    <EditUnitItem
+      name={label}
+      icon={getIcon(label)}
+      formFields={<TextField
       label={label}
       id={`${fieldKey}-input`}
       value={value !== null && value !== undefined && value !== "null" ? value :  ""}
       size="small"
-      type="text"
-      helperText={
-        fieldKey === "id" 
-          ? "The unit id is unchangeable" 
-          : inputType === "number_or_string" 
-            ? "Accepts numbers or text" 
-            : (fieldKey === "fontSize" || fieldKey === "lineSpacing" || fieldKey === "width" || fieldKey === "height")
-              ? "Enter a positive number"
-              : ""
-      }
-      onChange={ (e) => {
-        let newValue = e.target.value;
-        
-        // Validate number inputs for text properties
-        if ((fieldKey === "fontSize" || fieldKey === "lineSpacing" || fieldKey === "width" || fieldKey === "height") && newValue !== "") {
-          // Allow only positive numbers and decimal points
-          if (!/^\d*\.?\d*$/.test(newValue)) {
-            return; // Don't update if invalid
-          }
-        }
-        
-        onChange(fieldKey, newValue);
-      }}
-      onBlur={inputType === "color" ? undefined : handleBlur}
-      onKeyDown={inputType === "color" ? undefined : handleKeyDown}
-    />
-    )
+      onChange={handleFieldChange}
+      onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
+    />}
+    >
+    </EditUnitItem>
   );
 };
 
@@ -229,23 +250,19 @@ export const UnitEditor = ({
           noValidate
           autoComplete="off"
         >
-          <div>
-            <div>
-              {/* Dynamically generate inputs based on type definition */}
-              {currentUnitData.type && 
-                Object.entries(getComponentFields(currentUnitData.type)).map(([fieldKey, fieldConfig]) => (
-                  <DynamicInput
-                    key={fieldKey}
-                    fieldKey={fieldKey}
-                    fieldConfig={fieldConfig}
-                    value={currentUnitData[fieldKey]}
-                    onChange={handleFieldChange}
-                    onUpdate={handleFieldUpdate}
-                  />
-                ))
-              }
-            </div>
-          </div>
+          {/* Dynamically generate inputs based on type definition */}
+          {currentUnitData.type && 
+            Object.entries(getComponentFields(currentUnitData.type)).map(([fieldKey, fieldConfig]) => (
+              <DynamicInput
+                key={fieldKey}
+                fieldKey={fieldKey}
+                fieldConfig={fieldConfig}
+                value={currentUnitData[fieldKey]}
+                onChange={handleFieldChange}
+                onUpdate={handleFieldUpdate}
+              />
+            ))
+          }
         </Box>
     </div>
   );
