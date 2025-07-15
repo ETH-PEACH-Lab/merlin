@@ -8,7 +8,9 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  IconButton,
 } from "@mui/material";
+import FormatColorFillIcon from '@mui/icons-material/FormatColorFill';
 import { useParseCompile } from "../context/ParseCompileContext";
 import { 
   parseInspectorIndex, 
@@ -101,13 +103,20 @@ const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate }) => {
 
   // Regular text/number inputs
   return (
+ inputType == "color" ? (
+      <div>
+        <IconButton size="small">
+          <input style={{opacity: 0, position: "absolute", top: 0, left: 0, width: "100%", height: "100%"}} type="color" onChange={handleColorChange}/>
+          <FormatColorFillIcon></FormatColorFillIcon>
+        </IconButton>
+      </div>
+    ) : (
     <TextField
       label={label}
       id={`${fieldKey}-input`}
-      value={value !== null && value !== undefined && value !== "null" ? value : (inputType === "color" ? "#ffffff" : "")}
+      value={value !== null && value !== undefined && value !== "null" ? value :  ""}
       size="small"
-      type={inputType === "number" || inputType === "number_or_string" ? "text" : inputType === "color" ? "color" : "text"}
-      disabled={fieldKey === "id"}
+      type="text"
       helperText={
         fieldKey === "id" 
           ? "The unit id is unchangeable" 
@@ -117,7 +126,7 @@ const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate }) => {
               ? "Enter a positive number"
               : ""
       }
-      onChange={inputType === "color" ? handleColorChange : (e) => {
+      onChange={ (e) => {
         let newValue = e.target.value;
         
         // Validate number inputs for text properties
@@ -133,6 +142,7 @@ const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate }) => {
       onBlur={inputType === "color" ? undefined : handleBlur}
       onKeyDown={inputType === "color" ? undefined : handleKeyDown}
     />
+    )
   );
 };
 
