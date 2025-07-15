@@ -24,6 +24,7 @@ const RendererSection = ({
   mermaidRef,
   exampleSvg,
   updateInspector,
+  inspectorIndex,
   currentPage,
   setCurrentPage,
 }) => {
@@ -410,7 +411,7 @@ const RendererSection = ({
             <div ref={mermaidRef}>
               <MermaidRenderer text={mermaidCode} update={updateSvgElement} exampleSvg={exampleSvg}  currentPage={currentPage} />
             </div>
-            <ElementEditor svgElement={svgElement} updateInspector={updateInspector} />
+            <ElementEditor svgElement={svgElement} updateInspector={updateInspector} inspectorIndex={inspectorIndex} currentPage={currentPage}/>
             
             {(pages && pages.length === 0) ? (
               <Typography sx={{ mt: 2, textAlign: 'center' }}>
