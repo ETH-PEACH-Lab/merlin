@@ -87,9 +87,12 @@ const RendererSection = ({
         height: "100%",
         overflow: "hidden",
         position: "relative",
+        display: "flex",
+        flexFlow: "column"
       }}
     >
       <Box sx={{
+        flex: "0 1 auto",
         paddingRight: 1,
         display: "grid",
         gridAutoFlow: "column",
@@ -182,6 +185,7 @@ const RendererSection = ({
         </Box>
       </Box>
       <Box sx={{
+        flex: "0 1 auto",
         paddingRight: 1,
         display: "flex",
         flexGrow: "space-between",
@@ -350,39 +354,30 @@ const RendererSection = ({
         </Box>
       </Box>
 
-      <div
-        style={{
-          display: "flex",
-          height: "100%",
-          alignItems: "center",
-          justifyItems: "center",
-          flexDirection: "column"
-        }}
-      >
-          <div ref={mermaidRef} style={{flexGrow: 1, width: "100%"}}>
-            <MermaidRenderer text={mermaidCode} update={updateSvgElement} exampleSvg={exampleSvg}  currentPage={currentPage} />
-          </div>
-          <ElementEditor svgElement={svgElement} updateInspector={updateInspector} inspectorIndex={inspectorIndex} currentPage={currentPage}/>
-          
-          <div style={{flexGrow: 1}}>
-          {(pages && pages.length === 0) ? (
-            <Typography sx={{ mt: 2, textAlign: 'center' }}>
-              No pages to show.
-            </Typography>
-          ) : (
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'center',
-                mt: 2,
-              }}
-            >
-              <Button onClick={handleClickPrev} variant="contained" style={{ fontSize: "12px", marginRight: "15px", maxWidth: '80px', maxHeight: '25px', minWidth: '40px', minHeight: '25px' }}>Prev</Button>
-              <Button onClick={handleClickNext} variant="contained" style={{ fontSize: "12px", marginRight: "15px", maxWidth: '80px', maxHeight: '25px', minWidth: '40px', minHeight: '25px' }}>Next</Button>
-              {currentPage}/{pages.length}
-            </Box>
-          )}
-          </div>
+
+      <div ref={mermaidRef} style={{ flex: "1 1 auto", width: "100%"}}>
+        <MermaidRenderer text={mermaidCode} update={updateSvgElement} exampleSvg={exampleSvg}  currentPage={currentPage} />
+      </div>
+      <ElementEditor svgElement={svgElement} updateInspector={updateInspector} inspectorIndex={inspectorIndex} currentPage={currentPage}/>
+      
+      <div style={{flex: "0 1 70px",}}>
+      {(pages && pages.length === 0) ? (
+        <Typography sx={{ mt: 2, textAlign: 'center' }}>
+          No pages to show.
+        </Typography>
+      ) : (
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            mt: 2,
+          }}
+        >
+          <Button onClick={handleClickPrev} variant="contained" style={{ fontSize: "12px", marginRight: "15px", maxWidth: '80px', maxHeight: '25px', minWidth: '40px', minHeight: '25px' }}>Prev</Button>
+          <Button onClick={handleClickNext} variant="contained" style={{ fontSize: "12px", marginRight: "15px", maxWidth: '80px', maxHeight: '25px', minWidth: '40px', minHeight: '25px' }}>Next</Button>
+          {currentPage}/{pages.length}
+        </Box>
+      )}
       </div>
     </div>
   );
