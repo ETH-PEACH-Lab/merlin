@@ -2,17 +2,6 @@ import React, { useEffect, useState } from 'react';
 import './ElementEditor.css';
 import { UnitEditor } from "./UnitEditor";
 import Popover from '@mui/material/Popover';
-import {
-  Box,
-  Typography,
-  TextField,
-  FormControlLabel,
-  Switch,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-} from "@mui/material";
 
 export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, currentPage}) => {
     useEffect(()=>{
