@@ -284,6 +284,7 @@ ${timestamp}
                       handleSave={handleSave}
                       mermaidRef={mermaidRef}
                       updateInspector={updateInspector}
+                      inspectorIndex={inspectorIndex}
                       currentPage={currentPage}
                       setCurrentPage={setCurrentPage}
                     />

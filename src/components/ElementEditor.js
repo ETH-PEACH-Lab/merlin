@@ -1,8 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import './ElementEditor.css';
+import { UnitEditor } from "./UnitEditor";
 import Popover from '@mui/material/Popover';
+import {
+  Box,
+  Typography,
+  TextField,
+  FormControlLabel,
+  Switch,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+} from "@mui/material";
 
-export const ElementEditor = ({svgElement, updateInspector}) => {
+export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, currentPage}) => {
     useEffect(()=>{
         initListener();
     }, [svgElement])
@@ -19,9 +31,16 @@ export const ElementEditor = ({svgElement, updateInspector}) => {
     const onMouseOut = (e) => {
         let target = e.target.parentElement.getElementsByTagName("rect")[0];
         if (target.classList.contains('arrayElement')) {
-            if (anchorEl == target || (typeof e.relatedTarget !== 'undefined' && e.relatedTarget !== null && e.relatedTarget.id === 'preview')) {
-              popoverLeave();
+          // Remove the highlight & close the toolbar if we are moving away from the unit
+          if (typeof e.relatedTarget !== 'undefined' && e.relatedTarget !== null && (e.target.parentElement !== e.relatedTarget.parentElement)){
+            // Unless we move to the toolbar
+            let toolbar = document.getElementById("mouse-over-popover-div");
+            if (typeof toolbar !== 'undefined' && toolbar !== null && toolbar.contains(e.relatedTarget)){
+              return;
             }
+            target.setAttribute("stroke", "black");
+            popoverLeave();
+          }
         }
     }
 
@@ -31,32 +50,34 @@ export const ElementEditor = ({svgElement, updateInspector}) => {
           return;
         }
 
+        let current = target;
+
+    
+        // Traverse up the DOM tree to find the nearest <g class="unit"> element
+        while (current && !current.classList.contains('unit')) {
+            current = current.parentElement;
+        }
+        const unitID = current? current.id: null;
+
+        // Traverse up the DOM tree to find the nearest <g class="component"> element
+        while (current && !current.classList.contains('component')) {
+            current = current.parentElement;
+        }
+        const componentID = current? current.id: null;
+
+        // Traverse up the DOM tree to find the nearest <g class="page"> element
+        while (current && !current.classList.contains('page')) {
+            current = current.parentElement;
+        }
+        const pageID = current?current.id: null;
+
+        updateInspector(unitID, componentID, pageID);
+
         if (target.classList.contains('arrayElement')){
             target.setAttribute("stroke", "green");
             setAnchorEl(target);
             popoverEnter();
         }
-
-    
-        // Traverse up the DOM tree to find the nearest <g class="unit"> element
-        while (target && !target.classList.contains('unit')) {
-            target = target.parentElement;
-        }
-        const unitID = target? target.id: null;
-
-        // Traverse up the DOM tree to find the nearest <g class="component"> element
-        while (target && !target.classList.contains('component')) {
-            target = target.parentElement;
-        }
-        const componentID = target? target.id: null;
-
-        // Traverse up the DOM tree to find the nearest <g class="page"> element
-        while (target && !target.classList.contains('page')) {
-            target = target.parentElement;
-        }
-        const pageID = target?target.id: null;
-
-        //updateInspector(unitID, componentID, pageID);
 
     }
 
@@ -73,7 +94,7 @@ export const ElementEditor = ({svgElement, updateInspector}) => {
     setAnchorEl(null);
     setOpenedPopover(false);
   };
-    return <div>
+    return <div id='mouse-over-popover-div2'>
       <Popover
         id='mouse-over-popover'
         open={openedPopover}
@@ -89,7 +110,9 @@ export const ElementEditor = ({svgElement, updateInspector}) => {
         onMouseLeave={popoverLeave}
         slotProps={{ paper: { sx: { pointerEvents: "auto" } } }}
         sx={{ pointerEvents: "none" }}>
-        <div id='mouse-over-popover-div'>Toolbar</div>
+        <div id='mouse-over-popover-div'>
+          <UnitEditor inspectorIndex={inspectorIndex} currentPage={currentPage}/>
+        </div>
       </Popover>
     </div>
 }
