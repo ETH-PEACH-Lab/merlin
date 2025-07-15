@@ -14,6 +14,7 @@ import { Box } from "@mui/material";
 import GUIEditor from "./components/GUIEditor";
 import Header from "./components/Header";
 import { useParseCompile } from "./context/ParseCompileContext";
+import { extractCodeFromUrl, hasSharedExample } from "./utils/urlSharing";
 
 const App = () => {
   // Use context for code and parsing
@@ -47,10 +48,41 @@ const App = () => {
 
   useEffect(() => {
     loadSavedItems();
-  }, []);
+    
+    // Check if there's a shared example in the URL
+    if (hasSharedExample()) {
+      const sharedCode = extractCodeFromUrl();
+      if (sharedCode) {
+        updateUnparsedCode(sharedCode);
+        setCurrentPage(1);
+        console.log('Loaded shared example from URL');
+      } else {
+        console.error('Failed to load shared example from URL');
+      }
+    }
+  }, [updateUnparsedCode]);
+
+  // Listen for hash changes to support browser navigation
+  useEffect(() => {
+    const handleHashChange = () => {
+      if (hasSharedExample()) {
+        const sharedCode = extractCodeFromUrl();
+        if (sharedCode) {
+          updateUnparsedCode(sharedCode);
+          setCurrentPage(1);
+          console.log('Loaded shared example from URL hash change');
+        }
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, [updateUnparsedCode]);
 
   const handleMouseDown = (e) => {
-    const startX = e.clientX;
+    const startX = e.clientX; 
     const startWidth = leftWidth;
 
     const handleMouseMove = (e) => {
