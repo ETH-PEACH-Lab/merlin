@@ -495,6 +495,7 @@ const RendererSection = ({
             display: 'flex',
             justifyContent: 'center',
             mt: 2,
+            minHeight: '30px'
           }}
         >
           <Button onClick={handleClickPrev} variant="contained" style={{ fontSize: "12px", marginRight: "15px", maxWidth: '80px', maxHeight: '25px', minWidth: '40px', minHeight: '25px' }}>Prev</Button>
@@ -524,16 +525,6 @@ const RendererSection = ({
           {errorMessage}
         </Alert>
       </Snackbar>
-      {/* <Snackbar 
-        open={errorSnackbarOpen} 
-        autoHideDuration={4000} 
-        onClose={setErrorSnackbarOpen(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert onClose={setErrorSnackbarOpen(false)} severity='error' sx={{ width: '100%' }}>
-          {errorMessage}
-        </Alert>
-      </Snackbar> */}
     </div>
   );
 };
