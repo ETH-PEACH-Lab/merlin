@@ -32,6 +32,8 @@ const RendererSection = ({
   const [anchorEl, setAnchorEl] = useState(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [errorSnackbarOpen, setErrorSnackbarOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
   const [anchorEl1, setAnchorEl1] = useState(null);
   const [anchorEl2, setAnchorEl2] = useState(null);
@@ -106,6 +108,10 @@ const RendererSection = ({
 
   const handleSnackbarClose = () => {
     setSnackbarOpen(false);
+  };
+
+  const handleErrorSnackbarClose = () => {
+    setErrorSnackbarOpen(false);
   };
 
   const open = Boolean(anchorEl);
@@ -306,11 +312,18 @@ const RendererSection = ({
                 }
                 createFunction={(formJson) => {
                   // TODO maybe also trim the strings
-                  const values = formJson.values.split(';').map((x)=>x.split(','));
-                  const colors = Array(values.length).fill(Array(values[0].length).fill(null));
-                  const arrows = Array(values.length).fill(Array(values[0].length).fill(null));
+                  const values = formJson.values.split(';').map((row)=>row.split(',').map((value)=>value.trim()));
+                  console.log(values);
+                  const lengths = values.map( (innerList ) => innerList.length);
+                  const maxLength = Math.max(...lengths);
+                  const valuesExtended = values.map(( innerList ) => 
+                      (maxLength - innerList.length > 0) ? 
+                        innerList.concat(Array(maxLength - innerList.length).fill(null)) : innerList
+                      );
+                  const colors = Array(values.length).fill(Array(maxLength).fill(null));
+                  const arrows = Array(values.length).fill(Array(maxLength).fill(null));
 
-                  createComponent("matrix", {value: values, color: colors, arrow: arrows}, currentPage);
+                  createComponent("matrix", {value: valuesExtended, color: colors, arrow: arrows}, currentPage);
                   handleCloseDropdown();
                 }} 
               />
@@ -349,7 +362,8 @@ const RendererSection = ({
                   let nodesSet = new Set();
                   let edgeSet = new Set();
 
-                  edgeStrings.forEach(edge => {
+                  edgeStrings.forEach(edgeString => {
+                    var edge = edgeString.split('-');
                     if (edge.length === 2){
                       var node1 = edge.split('-')[0];
                       var node2 = 'n' + edge.split('-')[1];
@@ -364,6 +378,8 @@ const RendererSection = ({
 
                   if (edgeSet.size === 0){
                     handleCloseDropdown();
+                    setErrorMessage("Couldn't parse edges");
+                    setErrorSnackbarOpen(true);
                     return;
                   }
 
@@ -372,12 +388,15 @@ const RendererSection = ({
                   const values = Array(nodes.length).fill(null);
 
                   const nodesValuesMap = formJson.values.split(',').map(( value ) => value.replace(" ", ""));
-                  nodesValuesMap.forEach(function (item) {
-                    var node = item.split(':')[0];
-                    var nodeCleaned = (node[0].toUpperCase() != node[0].toLowerCase()) ? node : ('n' + node)
-                    var index = nodes.indexOf(nodeCleaned);
-                    if (index != -1) {
-                      values[index] = item.split(':')[1];
+                  nodesValuesMap.forEach(function (mapString) {
+                    var map = item.split(':')
+                    if (map.length === 2){
+                      var node = item.split(':')[0];
+                      var nodeCleaned = (node[0].toUpperCase() != node[0].toLowerCase()) ? node : ('n' + node)
+                      var index = nodes.indexOf(nodeCleaned);
+                      if (index != -1) {
+                        values[index] = item.split(':')[1];
+                      }
                     }
                   }); 
 
@@ -407,7 +426,8 @@ const RendererSection = ({
                   let nodesSet = new Set();
                   let edgeSet = new Set();
 
-                  edgeStrings.forEach(edge => {
+                  edgeStrings.forEach(edgeString => {
+                    var edge = edgeString.split('-');
                     if (edge.length === 2){
                       var node1 = edge.split('-')[0];
                       var node2 = 'n' + edge.split('-')[1];
@@ -422,6 +442,8 @@ const RendererSection = ({
 
                   if (edgeSet.size === 0){
                     handleCloseDropdown();
+                    setErrorMessage("Couldn't parse edges");
+                    setErrorSnackbarOpen(true);
                     return;
                   }
 
@@ -430,12 +452,15 @@ const RendererSection = ({
                   const values = Array(nodes.length).fill(null);
 
                   const nodesValuesMap = formJson.values.split(',').map(( value ) => value.replace(" ", ""));
-                  nodesValuesMap.forEach(function (item) {
-                    var node = item.split(':')[0];
-                    var nodeCleaned = (node[0].toUpperCase() != node[0].toLowerCase()) ? node : ('n' + node)
-                    var index = nodes.indexOf(nodeCleaned);
-                    if (index != -1) {
-                      values[index] = item.split(':')[1];
+                  nodesValuesMap.forEach(function (mapString) {
+                    var map = item.split(':')
+                    if (map.length === 2){
+                      var node = item.split(':')[0];
+                      var nodeCleaned = (node[0].toUpperCase() != node[0].toLowerCase()) ? node : ('n' + node)
+                      var index = nodes.indexOf(nodeCleaned);
+                      if (index != -1) {
+                        values[index] = item.split(':')[1];
+                      }
                     }
                   }); 
 
@@ -489,6 +514,26 @@ const RendererSection = ({
           {snackbarMessage}
         </Alert>
       </Snackbar>
+      <Snackbar 
+        open={errorSnackbarOpen} 
+        autoHideDuration={4000} 
+        onClose={handleErrorSnackbarClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={handleErrorSnackbarClose} severity='error' sx={{ width: '100%' }}>
+          {errorMessage}
+        </Alert>
+      </Snackbar>
+      {/* <Snackbar 
+        open={errorSnackbarOpen} 
+        autoHideDuration={4000} 
+        onClose={setErrorSnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={setErrorSnackbarOpen(false)} severity='error' sx={{ width: '100%' }}>
+          {errorMessage}
+        </Alert>
+      </Snackbar> */}
     </div>
   );
 };
