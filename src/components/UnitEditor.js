@@ -1,14 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
-  Button,
   Box,
-  Typography,
-  Chip,
-  AppBar,
-  Grid,
-  IconButton,
-  List,
-  ListItem,
   TextField,
   FormControlLabel,
   Switch,
@@ -16,18 +8,46 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
+import EditIcon from '@mui/icons-material/Edit';
+import FormatColorFillIcon from '@mui/icons-material/FormatColorFill';
+import TextRotateVerticalIcon from '@mui/icons-material/TextRotateVertical';
+import RectangleOutlinedIcon from '@mui/icons-material/RectangleOutlined';
+import ClearIcon from '@mui/icons-material/Clear';
+import AddIcon from '@mui/icons-material/Add';
 import { useParseCompile } from "../context/ParseCompileContext";
+import { EditUnitItem } from "./EditUnitItem";
 import { 
   parseInspectorIndex, 
   createUnitData, 
   getComponentFields, 
+  getAdditionalGUIFields,
   convertValueToType,
   getFieldDropdownOptions
 } from "../compiler/dslUtils.mjs";
 
-const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate }) => {
+
+const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate, onRemove }) => {
   const [label, inputType] = fieldConfig;
+
+  const getIcon = (name) => {
+    switch (name){
+      case "Value":
+        return <EditIcon></EditIcon>
+      case "Color":
+        return <FormatColorFillIcon></FormatColorFillIcon>
+      case "Arrow Label": 
+        return <TextRotateVerticalIcon></TextRotateVerticalIcon>
+      case "Remove":
+        return <ClearIcon></ClearIcon>;
+      case "Add":
+        return <AddIcon></AddIcon>;
+      default: 
+        return <RectangleOutlinedIcon></RectangleOutlinedIcon>
+    }
+  };
   
   const handleBlur = () => {
     if (!value) return;
@@ -58,9 +78,27 @@ const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate }) => {
     onUpdate(fieldKey, newValue);
   };
 
+  const handleFieldChange = (e) => {
+    let newValue = e.target.value;
+    
+    // Validate number inputs for text properties
+    if ((fieldKey === "fontSize" || fieldKey === "lineSpacing" || fieldKey === "width" || fieldKey === "height") && newValue !== "") {
+      // Allow only positive numbers and decimal points
+      if (!/^\d*\.?\d*$/.test(newValue)) {
+        return; // Don't update if invalid
+      }
+    }
+
+    onChange(fieldKey, newValue);
+  };
+
   // Define dropdown options for specific text properties
   const dropdownOptions = getFieldDropdownOptions(fieldKey);
   const useDropdown = dropdownOptions.length > 0;
+
+  if (!["Color", "Value", "Arrow Label", "Remove", "Add"].includes(label)){
+    return;
+  }
 
   // For boolean inputs, use a Switch component instead of TextField
   if (inputType === "boolean") {
@@ -107,49 +145,74 @@ const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate }) => {
     );
   }
 
+  if (inputType == "add"){
+    return (
+      <EditUnitItem
+        name={label}
+        icon={getIcon(label)}
+        formFields={<TextField
+        label={label}
+        id={`${fieldKey}-input`}
+        size="small"
+        onChange={handleFieldChange}
+        onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
+        style={{margin: "15px 10px 10px 10px"}}
+      />}
+      >
+      </EditUnitItem>
+    );
+  }
+
+  if (inputType == "remove"){
+    return (
+       <Tooltip title={label}>
+        <span style={{marginLeft: "10px", marginRight: "10px"}}>
+          <IconButton size="small" onClick={onRemove}>
+            <ClearIcon></ClearIcon>
+          </IconButton>
+        </span>
+      </Tooltip>
+    );
+  }
+
+  // For the color field, use a color picker
+  if (inputType == "color"){
+    return (
+       <Tooltip title={label}>
+        <span style={{marginLeft: "10px", marginRight: "10px"}}>
+          <IconButton size="small">
+            <input style={{opacity: 0, position: "absolute", top: 0, left: 0, width: "100%", height: "100%"}} type="color" onChange={handleColorChange}/>
+            {getIcon(label)}
+          </IconButton>
+        </span>
+      </Tooltip>
+    );
+  }
+
   // Regular text/number inputs
   return (
-    <TextField
+    <EditUnitItem
+      name={label}
+      icon={getIcon(label)}
+      formFields={<TextField
       label={label}
       id={`${fieldKey}-input`}
-      value={value !== null && value !== undefined && value !== "null" ? value : (inputType === "color" ? "#ffffff" : "")}
+      value={value !== null && value !== undefined && value !== "null" ? value :  ""}
       size="small"
-      type={inputType === "number" || inputType === "number_or_string" ? "text" : inputType === "color" ? "color" : "text"}
-      disabled={fieldKey === "id"}
-      helperText={
-        fieldKey === "id" 
-          ? "The unit id is unchangeable" 
-          : inputType === "number_or_string" 
-            ? "Accepts numbers or text" 
-            : (fieldKey === "fontSize" || fieldKey === "lineSpacing" || fieldKey === "width" || fieldKey === "height")
-              ? "Enter a positive number"
-              : ""
-      }
-      onChange={inputType === "color" ? handleColorChange : (e) => {
-        let newValue = e.target.value;
-        
-        // Validate number inputs for text properties
-        if ((fieldKey === "fontSize" || fieldKey === "lineSpacing" || fieldKey === "width" || fieldKey === "height") && newValue !== "") {
-          // Allow only positive numbers and decimal points
-          if (!/^\d*\.?\d*$/.test(newValue)) {
-            return; // Don't update if invalid
-          }
-        }
-        
-        onChange(fieldKey, newValue);
-      }}
-      onBlur={inputType === "color" ? undefined : handleBlur}
-      onKeyDown={inputType === "color" ? undefined : handleKeyDown}
-    />
+      onChange={handleFieldChange}
+      onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
+      style={{margin: "15px 10px 10px 10px"}}
+    />}
+    >
+    </EditUnitItem>
   );
 };
 
-const GUIEditor = ({
+export const UnitEditor = ({
   inspectorIndex,
   currentPage,
-  setCurrentPage,
-  dslEditorEditable,
-  setDslEditorEditable,
 }) => {
   const defaultUnitValue = {
     displayId: "the unit id can't be changed",
@@ -157,7 +220,7 @@ const GUIEditor = ({
     type: null,
   };
   const [currentUnitData, setUnitData] = useState(defaultUnitValue);
-  const { pages, updateValue } = useParseCompile();
+  const { pages, updateValue, addUnit, removeUnit } = useParseCompile();
 
   useEffect(() => {
     if (inspectorIndex) {
@@ -170,11 +233,31 @@ const GUIEditor = ({
     }
   }, [inspectorIndex, currentPage, pages]);
 
+  const handleAddUnit = (value) => {
+    addUnit(
+          currentUnitData.page,
+          currentUnitData.name,
+          currentUnitData.coordinates,
+          value
+    );
+  };
+
+  const handleRemoveUnit = () => {
+    removeUnit(
+          currentUnitData.page,
+          currentUnitData.name,
+          currentUnitData.coordinates
+    );
+  };
+
   const handleFieldChange = (fieldKey, value) => {
     setUnitData(prev => ({ ...prev, [fieldKey]: value }));
   };
 
   const handleFieldUpdate = (fieldKey, value) => {
+    if (fieldKey == "add"){
+      handleAddUnit(value);
+    }
     if (inspectorIndex && fieldKey !== "id") {
       // Handle position field (no coordinates needed)
       if (fieldKey === "position") {
@@ -219,25 +302,9 @@ const GUIEditor = ({
     }
   };
 
+
   return (
     <div>
-      <Box
-        sx={{
-          paddingRight: 1,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          borderBottom: "1px solid #444",
-          borderTop: "1px solid #444",
-        }}
-      >
-        <Box display="flex" flexGrow={1}>
-          <Typography variant="overline" sx={{ pl: 2 }}>
-            Unit Inspector
-          </Typography>
-        </Box>
-      </Box>
-      {inspectorIndex ? (
         <Box
           component="form"
           sx={{
@@ -247,76 +314,35 @@ const GUIEditor = ({
           noValidate
           autoComplete="off"
         >
-          {/* Combined Current Selection and Update Button in one row */}
-          <Box
-            display="flex"
-            alignItems="center"
-            justifyContent="space-between" // Ensures Update button is on the right
-            sx={{
-              "& > *": { mr: 1 },
-              marginBottom: 2, // Optional spacing
-            }}
-          >
-            <Box display="flex" alignItems="center">
-              <Typography variant="overline">Current Selection:</Typography>
-              <Chip label={`Page ${currentUnitData.page+1}`} size="small" sx={{ ml: 1 }} />
-              <Chip
-                label={`Component ${currentUnitData.component+1} - ${currentUnitData.name}`}
-                size="small"
-                sx={{ ml: 1 }}
+          
+          {/* Dynamically generate inputs based on type definition */}
+          {currentUnitData.type && 
+            Object.entries(getAdditionalGUIFields(currentUnitData.type)).map(([fieldKey, fieldConfig]) => (
+              <DynamicInput
+                key={fieldKey}
+                fieldKey={fieldKey}
+                fieldConfig={fieldConfig}
+                value={currentUnitData[fieldKey]}
+                onChange={handleFieldChange}
+                onUpdate={handleFieldUpdate}
+                onRemove={handleRemoveUnit}
               />
-              <Chip label={`Unit ${currentUnitData.displayId}`} size="small" sx={{ ml: 1 }} />
-              <Chip
-                label={`Type ${currentUnitData.type}`}
-                size="small"
-                sx={{ ml: 1 }}
+            ))
+          }
+          {currentUnitData.type && 
+            Object.entries(getComponentFields(currentUnitData.type)).map(([fieldKey, fieldConfig]) => (
+              <DynamicInput
+                key={fieldKey}
+                fieldKey={fieldKey}
+                fieldConfig={fieldConfig}
+                value={currentUnitData[fieldKey]}
+                onChange={handleFieldChange}
+                onUpdate={handleFieldUpdate}
               />
-            </Box>
-          </Box>
-          <div>
-            <div>
-              {/* Show ID field for non-array types */}
-              {currentUnitData.type !== "array" && (
-                <DynamicInput
-                  fieldKey="id"
-                  fieldConfig={["Id", "text"]}
-                  value={currentUnitData.displayId}
-                  onChange={handleFieldChange}
-                  onUpdate={handleFieldUpdate}
-                />
-              )}
-              
-              {/* Dynamically generate inputs based on type definition */}
-              {currentUnitData.type && 
-                Object.entries(getComponentFields(currentUnitData.type)).map(([fieldKey, fieldConfig]) => (
-                  <DynamicInput
-                    key={fieldKey}
-                    fieldKey={fieldKey}
-                    fieldConfig={fieldConfig}
-                    value={currentUnitData[fieldKey]}
-                    onChange={handleFieldChange}
-                    onUpdate={handleFieldUpdate}
-                  />
-                ))
-              }
-            </div>
-          </div>
+            ))
+          }
         </Box>
-      ) : (
-        <Box
-          sx={{
-            p: 2,
-            textAlign: "center",
-            color: "text.secondary",
-          }}
-        >
-          <Typography variant="body2">
-            Select a unit to inspect its properties.
-          </Typography>
-        </Box>
-      )}
     </div>
   );
 };
 
-export default GUIEditor;

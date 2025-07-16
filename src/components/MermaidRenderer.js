@@ -71,7 +71,7 @@ const MermaidRenderer = ({
     };
   }, [text, exampleSvg, currentPage]);
 
-  return <div ref={ref} className="mermaid-container" />;
+  return <div ref={ref} className="mermaid-container" style={{height: "100%"}}/>;
 };
 
 export default MermaidRenderer;

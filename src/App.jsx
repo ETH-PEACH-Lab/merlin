@@ -316,16 +316,17 @@ ${timestamp}
                       handleSave={handleSave}
                       mermaidRef={mermaidRef}
                       updateInspector={updateInspector}
+                      inspectorIndex={inspectorIndex}
                       currentPage={currentPage}
                       setCurrentPage={setCurrentPage}
                     />
-                    <GUIEditor
+                    {/* <GUIEditor
                       inspectorIndex={inspectorIndex}
                       currentPage={currentPage}
                       setCurrentPage={setCurrentPage}
                       dslEditorEditable={dslEditorEditable}
                       setDslEditorEditable={setDslEditorEditable}
-                    />
+                    /> */}
                   </Box>
                 </div>
               </div>

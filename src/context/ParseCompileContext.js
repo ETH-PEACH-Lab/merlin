@@ -17,6 +17,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
     const [parsedCode, setParsedCode] = useState(null);
     const [compiledMerlin, setCompiledMerlin] = useState(null);
     const [pages, setPages] = useState([]);
+    const [componentCount, setcomponentCount] = useState(1);
     const [error, setError] = useState(null);
 
     // Parse and compile whenever unparsedCode changes
@@ -68,6 +69,47 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         }
     }, [parsedCode, parseAndCompile]);  
 
+    // Find the start and end indices of the specified page
+    const findPageBeginningAndEnd = (pageNumber) => {
+        if (!parsedCode) return;
+        let pageStartIndex = -1;
+        let pageEndIndex = parsedCode.cmds.length;
+        let currentPage = 0;
+        
+        for (let i = 0; i < parsedCode?.cmds.length; i++) {
+            if (parsedCode.cmds[i].type === "page") {
+                if (currentPage === pageNumber) {
+                    pageStartIndex = i + 1;
+                } else if (currentPage === pageNumber + 1) {
+                    pageEndIndex = i;
+                    break;
+                }
+                currentPage++;
+            }
+        }
+        
+        if (pageStartIndex === -1) {
+            console.error(`Page ${pageNumber} not found`);
+            return;
+        }
+        return [pageStartIndex, pageEndIndex];
+    };
+
+    // Add a new unit
+    const addUnit = useCallback((page, component, coordinates, val) => {
+        const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
+        const args = {index: coordinates.index + 1, value: val}
+        parsedCode.cmds.splice(pageEndIndex, 0, { name: component, target: "value", type: "insert", args: args});
+        reconstructMerlinLite();
+    }, [parsedCode]);
+
+    // Remove the selected unit
+    const removeUnit = useCallback((page, component, coordinates) => {
+        const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
+        parsedCode.cmds.splice(pageEndIndex, 0, { name: component, target: "all", type: "remove_at", args: coordinates.index });
+        reconstructMerlinLite();
+    }, [parsedCode]);
+
     const updateValue = useCallback(
         (page, componentName, coordinates, fieldKey, value) => {
             if (!parsedCode) return;
@@ -93,29 +135,11 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
                     }
                 }
             }
+
+            const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
             
-            // Find the start and end indices of the specified page
-            let pageStartIndex = -1;
-            let pageEndIndex = parsedCode.cmds.length;
-            let currentPage = 0;
             
-            for (let i = 0; i < parsedCode.cmds.length; i++) {
-                if (parsedCode.cmds[i].type === "page") {
-                    if (currentPage === page) {
-                        pageStartIndex = i + 1;
-                    } else if (currentPage === page + 1) {
-                        pageEndIndex = i;
-                        break;
-                    }
-                    currentPage++;
-                }
-            }
-            
-            if (pageStartIndex === -1) {
-                console.error(`Page ${page} not found`);
-                return;
-            }
-             // Use unified command optimization for arrays, matrices, and position fields
+            // Use unified command optimization for both arrays and matrices
             const { relevantCommands, commandsToRemove } = findRelevantCommands(
                 parsedCode.cmds, 
                 pageStartIndex, 
@@ -172,20 +196,38 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         [parsedCode, pages, reconstructMerlinLite]
     );
 
-    const addPage = useCallback(() => {
-        parsedCode?.cmds.push({ type: "page" });
+    // Create a new component and show it
+    const createComponent = useCallback((componentType, componentBody, page) => {
+        if (!parsedCode) return;
+
+        const componentName = componentType + `${ componentCount }`;
+        setcomponentCount(componentCount + 1);
+        parsedCode.defs.push({ class: "def", type: componentType, 
+            name: componentName, body: componentBody
+        });
+
+        const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page - 1);
+        parsedCode.cmds.splice(pageEndIndex, 0, { type: "show", value: componentName });
+
         reconstructMerlinLite();
     }, [parsedCode]);
 
-    const removePage = useCallback(() => {
-        while (parsedCode?.cmds.length > 0) {
-            const lastCommand = parsedCode.cmds[parsedCode.cmds.length - 1];
-            if (lastCommand.type === "page") {
-                parsedCode.cmds.pop();
-                break;
-            }
-            parsedCode.cmds.pop();
+    // Add a page after the current page
+    const addPage = useCallback((currentPage) => {
+        if (currentPage == 0){
+            updateUnparsedCode("page");
         }
+        else {
+            const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(currentPage - 1);
+            parsedCode?.cmds.splice(pageEndIndex, 0, { type: "page" });
+            reconstructMerlinLite();
+        }
+    }, [parsedCode]);
+
+    // Remove the current page
+    const removePage = useCallback((currentPage) => {
+        const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(currentPage - 1);
+        parsedCode?.cmds.splice(pageStartIndex - 1, pageEndIndex - pageStartIndex + 1);
         reconstructMerlinLite();
     }, [parsedCode]);
 
@@ -199,7 +241,10 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             pages,
             updateUnparsedCode,
             reconstructMerlinLite,
+            createComponent,
             updateValue,
+            addUnit,
+            removeUnit,
             addPage,
             removePage,
         }),
@@ -211,7 +256,10 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             pages,
             updateUnparsedCode,
             reconstructMerlinLite,
+            createComponent,
             updateValue,
+            addUnit,
+            removeUnit,
             addPage,
             removePage,
         ]
