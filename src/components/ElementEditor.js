@@ -19,6 +19,9 @@ export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, curr
 
     const onMouseOut = (e) => {
         let target = e.target.parentElement.getElementsByTagName("rect")[0] || e.target.parentElement.getElementsByTagName("circle")[0];
+        if (typeof target === "undefined" ){
+          return;
+        }
         // Remove the highlight & close the toolbar if we are moving away from the unit
         if (typeof e.relatedTarget !== 'undefined' && e.relatedTarget !== null && (e.target.parentElement !== e.relatedTarget.parentElement)){
           // Unless we move to the toolbar
@@ -33,7 +36,7 @@ export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, curr
 
     const onMouseOver = (e) =>{
         let target = e.target.parentElement.getElementsByTagName("rect")[0] || e.target.parentElement.getElementsByTagName("circle")[0];
-        if (e.target.parentElement !== target.parentElement){
+        if (typeof target === "undefined" || e.target.parentElement !== target.parentElement){
           return;
         }
 
