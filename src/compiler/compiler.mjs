@@ -13,6 +13,11 @@ import { getMermaidContainerSize } from "./cssUtils.mjs";
 
 // Helper function to maintain consistency across array properties when modifying arrays
 function maintainArrayPropertyConsistency(body, modifiedProperty, index, operation, componentType = null) {
+    maintainArrayPropertyConsistencyExcept(body, modifiedProperty, index, operation, componentType, null);
+}
+
+// Helper function to maintain consistency across array properties when modifying arrays, with exception for specific properties
+function maintainArrayPropertyConsistencyExcept(body, modifiedProperty, index, operation, componentType = null, exceptProperty = null) {
     // Define the properties that should be kept in sync for different component types
     let arrayProperties = ["arrow", "color", "value", "hidden"];
     
@@ -23,6 +28,11 @@ function maintainArrayPropertyConsistency(body, modifiedProperty, index, operati
     const targetLength = body[modifiedProperty] ? body[modifiedProperty].length : 0;
     
     arrayProperties.forEach(property => {
+        // Skip the exception property if specified
+        if (property === exceptProperty) {
+            return;
+        }
+        
         if (property !== modifiedProperty && body[property]) {
             const currentLength = body[property].length;
             
@@ -50,7 +60,7 @@ function maintainArrayPropertyConsistency(body, modifiedProperty, index, operati
                     }
                     break;
             }
-        } else if (property !== modifiedProperty && !body[property]) {
+        } else if (property !== modifiedProperty && !body[property] && property !== exceptProperty) {
             // If the property doesn't exist, create it with the appropriate length
             switch (operation) {
                 case "insert":
@@ -115,12 +125,12 @@ function formatNodeName(nodeName) {
         return nodeStr;
     }
     
-    // If it contains spaces, special characters, or starts with a quote, wrap in quotes
-    if (/[\s"'`]/.test(nodeStr) || nodeStr !== nodeStr.trim()) {
+    // If it contains any non-alphanumeric characters (excluding underscores), wrap in quotes
+    if (/[^a-zA-Z0-9_]/.test(nodeStr) || nodeStr !== nodeStr.trim()) {
         return `"${nodeStr.replace(/"/g, '\\"')}"`;
     }
     
-    // For simple alphanumeric strings without spaces, return as is
+    // For simple alphanumeric strings with underscores only, return as is
     return nodeStr;
 }
 
@@ -419,8 +429,8 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                             body: { ...componentData.body }, // Make a copy to avoid mutating the original
                         };
                         
-                        // Initialize value array with node names if needed for trees and graphs
-                        if ((component.type === "tree" || component.type === "graph")) {
+                        // Initialize value array with node names if needed for trees, graphs, and linkedlists
+                        if ((component.type === "tree" || component.type === "graph" || component.type === "linkedlist")) {
                             initializeValueArrayWithNodeNames(component.body);
                         }
                         
@@ -494,14 +504,14 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                 if (targetObject) {
                     const body = targetObject.body;
                     
-                    // Initialize value array with node names if needed for trees and graphs
-                    if ((targetObject.type === "tree" || targetObject.type === "graph") && property === "value") {
+                    // Initialize value array with node names if needed for trees, graphs, and linkedlists
+                    if ((targetObject.type === "tree" || targetObject.type === "graph" || targetObject.type === "linkedlist") && property === "value") {
                         initializeValueArrayWithNodeNames(body);
                     }
                     
-                    // Handle node name to index conversion for trees and graphs
+                    // Handle node name to index conversion for trees, graphs, and linkedlists
                     let index = indexOrNodeName;
-                    if (targetObject.type === "tree" || targetObject.type === "graph") {
+                    if (targetObject.type === "tree" || targetObject.type === "graph" || targetObject.type === "linkedlist") {
                         const nodeIndex = getNodeIndex(targetObject, indexOrNodeName);
                         if (nodeIndex !== null) {
                             index = nodeIndex;
@@ -510,8 +520,8 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                             break;
                         }
                     } else if (typeof indexOrNodeName === 'string') {
-                        // Warn if using node names on non-tree/graph components
-                        console.warn(`Warning: Using node name "${indexOrNodeName}" on component type "${targetObject.type}". Node names are only recommended for trees and graphs.`);
+                        // Warn if using node names on non-tree/graph/linkedlist components
+                        console.warn(`Warning: Using node name "${indexOrNodeName}" on component type "${targetObject.type}". Node names are only recommended for trees, graphs, and linkedlists.`);
                         causeCompileError(`Invalid index type\n\nUsing node name "${indexOrNodeName}" on ${targetObject.type} component. Use numeric indices for this component type.`, command);
                         break;
                     }
@@ -765,14 +775,20 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                                 body.value.push(null);
                             }
                             body.value.push(nodeValue);
+                            
+                            // Maintain consistency across all array properties EXCEPT value (since we just set it)
+                            maintainArrayPropertyConsistencyExcept(body, target, insertIndex, "add", targetObject.type, "value");
+                        } else {
+                            // Maintain consistency across all array properties for all component types
+                            maintainArrayPropertyConsistency(body, target, insertIndex, "add", targetObject.type);
                         }
                     } else {
                         // Original format: just add the value directly
                         body[target].push(args);
+                        
+                        // Maintain consistency across all array properties for all component types
+                        maintainArrayPropertyConsistency(body, target, insertIndex, "add", targetObject.type);
                     }
-                    
-                    // Maintain consistency across all array properties for all component types
-                    maintainArrayPropertyConsistency(body, target, insertIndex, "add", targetObject.type);
                 } else {
                     causeCompileError(`Component not on page\n\nName: ${name}`, command);
                 }
@@ -782,7 +798,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
             case "insert": {
                 const name = command.name;
                 const target = command.target;
-                const index = command.args.index;
+                const indexOrNodeName = command.args.index;
                 const value = command.args.value;
                 const targetObject = pages[pages.length - 1].find(comp => comp.name === name);
 
@@ -791,6 +807,19 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                     if (!body[target]) {
                         body[target] = [];
                     }
+                    
+                    // Handle node name to index conversion for trees, graphs, and linkedlists
+                    let index = indexOrNodeName;
+                    if (targetObject.type === "tree" || targetObject.type === "graph" || targetObject.type === "linkedlist") {
+                        const nodeIndex = getNodeIndex(targetObject, indexOrNodeName);
+                        if (nodeIndex !== null) {
+                            index = nodeIndex;
+                        } else if (typeof indexOrNodeName === 'string') {
+                            causeCompileError(`Node not found\n\nNode: ${indexOrNodeName}\nComponent: ${name}`, command);
+                            break;
+                        }
+                    }
+                    
                     const isValidIndex = Number.isInteger(index) && index >= 0 && index <= body[target].length;
                     if (isValidIndex) {
                         body[target].splice(index, 0, value);
@@ -1225,30 +1254,29 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                     
                     // For each matrix property (value, color, arrow)
                     matrixProps.forEach(prop => {
-                        if (prop === "value" || body[prop]) {
-                            const borderVal = prop === "value" ? borderValue : 
-                                             prop === "color" ? borderColor : null;
-                            
-                            // Create new matrix with border
-                            const newMatrix = [];
-                            
-                            // Add top border row
-                            newMatrix.push(Array(cols + 2).fill(borderVal));
-                            
-                            // Add middle rows with side borders
-                            for (let i = 0; i < rows; i++) {
-                                const origRow = body[prop] && body[prop][i] ? body[prop][i] : Array(cols).fill(null);
-                                const paddedRow = [...origRow];
-                                while (paddedRow.length < cols) paddedRow.push(null);
-                                newMatrix.push([borderVal, ...paddedRow, borderVal]);
-                            }
-                            
-                            // Add bottom border row
-                            newMatrix.push(Array(cols + 2).fill(borderVal));
-                            
-                            // Update the matrix
-                            body[prop] = newMatrix;
+                        // Always process all matrix properties, creating them if they don't exist
+                        const borderVal = prop === "value" ? borderValue : 
+                                         prop === "color" ? borderColor : null;
+                        
+                        // Create new matrix with border
+                        const newMatrix = [];
+                        
+                        // Add top border row
+                        newMatrix.push(Array(cols + 2).fill(borderVal));
+                        
+                        // Add middle rows with side borders
+                        for (let i = 0; i < rows; i++) {
+                            const origRow = body[prop] && body[prop][i] ? body[prop][i] : Array(cols).fill(null);
+                            const paddedRow = [...origRow];
+                            while (paddedRow.length < cols) paddedRow.push(null);
+                            newMatrix.push([borderVal, ...paddedRow, borderVal]);
                         }
+                        
+                        // Add bottom border row
+                        newMatrix.push(Array(cols + 2).fill(borderVal));
+                        
+                        // Update the matrix
+                        body[prop] = newMatrix;
                     });
                 } else {
                     causeCompileError(`Component "${name}" not found on the current page.`, command);
@@ -1385,6 +1413,7 @@ function preCheck(parsedDSL) {
     // Check for duplicate component names
     const names = new Set();
     parsedDSL.defs.forEach(def => {
+        if (def.type === "comment") return;
         if (names.has(def.name)) {
             throw new Error(`Duplicate component\n\nAffected: ${def.name} of type ${def.type}`);
         }

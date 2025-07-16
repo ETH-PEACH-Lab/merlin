@@ -363,7 +363,7 @@ set_child -> cmd["setChild", edge] {% (details) => ({ type: "set_child", ...id(d
 
 # Insert functions
 insert_value -> cmd["insertValue", comma_sep[number, (number | string | nullT) {% id %}]] {% (details) => ({ type: "insert", target: "value", ...id(details) }) %}
-insert_node -> cmd["insertNode", comma_sep[number, word]] {% (details) => ({ type: "insert", target: "nodes", ...id(details) }) %}
+insert_node -> cmd["insertNode", comma_sep[(number | word) {% id %}, word]] {% (details) => ({ type: "insert", target: "nodes", ...id(details) }) %}
 insert_edge -> cmd["insertEdge", comma_sep[number, edge]] {% (details) => ({ type: "insert", target: "edges", ...id(details) }) %}
 
 # Remove functions
