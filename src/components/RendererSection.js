@@ -334,17 +334,58 @@ const RendererSection = ({
               <CreateComponentItem 
                 name={"Tree"} 
                 icon={<RectangleOutlinedIcon />}
-                text={"Enter the values of the tree comma-separated in level order. Eg: 1, 2, 3"}
-                formFields={<TextField autoFocus required margin="dense"
-                  name="values" label="Values" fullWidth variant="standard"/>
+                text={`Enter the edges separated by a - (Eg parent-child1, parent-child2) and optionally give the nodes 
+                  a value (Eg parent: p, child1: c1).`}
+                formFields={
+                  <React.Fragment>
+                    <TextField autoFocus required margin="dense"
+                      name="edges" label="Edges" fullWidth variant="standard"/>
+                    <TextField autoFocus margin="dense"
+                      name="values" label="Values" fullWidth variant="standard"/>
+                  </React.Fragment>
                 }
                 createFunction={(formJson) => {
-                  const values = formJson.values.split(',').map(( value ) => value.trim());
-                  const nodes = [...Array(values.length).keys()].map(( value ) => `n_${value}`);
-                  const colors = Array(values.length).fill(null);
-                  const arrows = Array(values.length).fill(null);
+               const edgeStrings = formJson.edges.split(',').map(( value ) => value.replace(" ", ""));
+                  let nodesSet = new Set();
+                  let edgeSet = new Set();
 
-                  createComponent("tree", {nodes: nodes, value: values, color: colors, arrow: arrows}, currentPage);
+                  edgeStrings.forEach(edge => {
+                    if (edge.length === 2){
+                      var node1 = edge.split('-')[0];
+                      var node2 = 'n' + edge.split('-')[1];
+                      // Fix in case the node id starts with a number
+                      var node1Cleaned = (node1[0].toUpperCase() != node1[0].toLowerCase()) ? node1 : ('n' + node1)
+                      var node2Cleaned = (node2[0].toUpperCase() != node2[0].toLowerCase()) ? node2 : ('n' + node2)
+                      nodesSet.add(node1Cleaned);
+                      nodesSet.add(node2Cleaned);
+                      edgeSet.add({start: node1Cleaned, end: node2Cleaned});
+                    }
+                  });
+
+                  if (edgeSet.size === 0){
+                    handleCloseDropdown();
+                    return;
+                  }
+
+                  const nodes = Array.from(nodesSet);
+                  const edges = Array.from(edgeSet);
+                  const values = Array(nodes.length).fill(null);
+
+                  const nodesValuesMap = formJson.values.split(',').map(( value ) => value.replace(" ", ""));
+                  nodesValuesMap.forEach(function (item) {
+                    var node = item.split(':')[0];
+                    var nodeCleaned = (node[0].toUpperCase() != node[0].toLowerCase()) ? node : ('n' + node)
+                    var index = nodes.indexOf(nodeCleaned);
+                    if (index != -1) {
+                      values[index] = item.split(':')[1];
+                    }
+                  }); 
+
+                  const colors = Array(nodes.length).fill(null);
+                  const arrows = Array(nodes.length).fill(null);
+
+                  createComponent("tree", {nodes: nodes, children: edges, value: values, color: colors, 
+                    arrow: arrows}, currentPage);
                   handleCloseDropdown();
                 }} 
               />
@@ -367,12 +408,22 @@ const RendererSection = ({
                   let edgeSet = new Set();
 
                   edgeStrings.forEach(edge => {
-                    var node1 = edge.split('-')[0];
-                    var node2 = edge.split('-')[1];
-                    nodesSet.add(node1);
-                    nodesSet.add(node2);
-                    edgeSet.add({start: node1, end: node2});
+                    if (edge.length === 2){
+                      var node1 = edge.split('-')[0];
+                      var node2 = 'n' + edge.split('-')[1];
+                      // Fix in case the node id starts with a number
+                      var node1Cleaned = (node1[0].toUpperCase() != node1[0].toLowerCase()) ? node1 : ('n' + node1)
+                      var node2Cleaned = (node2[0].toUpperCase() != node2[0].toLowerCase()) ? node2 : ('n' + node2)
+                      nodesSet.add(node1Cleaned);
+                      nodesSet.add(node2Cleaned);
+                      edgeSet.add({start: node1Cleaned, end: node2Cleaned});
+                    }
                   });
+
+                  if (edgeSet.size === 0){
+                    handleCloseDropdown();
+                    return;
+                  }
 
                   const nodes = Array.from(nodesSet);
                   const edges = Array.from(edgeSet);
@@ -380,7 +431,9 @@ const RendererSection = ({
 
                   const nodesValuesMap = formJson.values.split(',').map(( value ) => value.replace(" ", ""));
                   nodesValuesMap.forEach(function (item) {
-                    var index = nodes.indexOf(item.split(':')[0]);
+                    var node = item.split(':')[0];
+                    var nodeCleaned = (node[0].toUpperCase() != node[0].toLowerCase()) ? node : ('n' + node)
+                    var index = nodes.indexOf(nodeCleaned);
                     if (index != -1) {
                       values[index] = item.split(':')[1];
                     }
