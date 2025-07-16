@@ -24,7 +24,7 @@ export const CreateComponentItem = ({name, icon, text, formFields, createFunctio
   return (
     <React.Fragment>
       <ListItem>
-        <Button onClick={handleOpenPopup} startIcon={icon}>
+        <Button onClick={handleOpenPopup}>
           <ListItemText>{name}</ListItemText>
         </Button>
       </ListItem>
