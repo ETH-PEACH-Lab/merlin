@@ -89,6 +89,10 @@ const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate }) => {
   const dropdownOptions = getFieldDropdownOptions(fieldKey);
   const useDropdown = dropdownOptions.length > 0;
 
+  if (!["Color", "Value", "Arrow Label"].includes(label)){
+    return;
+  }
+
   // For boolean inputs, use a Switch component instead of TextField
   if (inputType === "boolean") {
     const boolValue = value === "true" || value === true;
