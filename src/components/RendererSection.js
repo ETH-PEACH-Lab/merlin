@@ -39,7 +39,7 @@ const RendererSection = ({
   const { pages, addPage, removePage, unparsedCode, createComponent } = useParseCompile();
 
   const handleAddPage = () => {
-    const pageBefore = currentPage;
+    const pageBefore = (pages.length === 0) ? 0 : currentPage;
     addPage(pageBefore);
     setCurrentPage(pageBefore + 1);
   };

@@ -31,7 +31,7 @@ const App = () => {
   const [activeTab, setActiveTab] = useState("examples");
   const [savedItems, setSavedItems] = useState([]);
   const [inspectorIndex, setInspectorIndex] = useState(null);
-  const [currentPage, setCurrentPage] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
   const [dslEditorEditable, setDslEditorEditable] = useState(true);
 
   const mermaidRef = useRef(null);
@@ -39,8 +39,8 @@ const App = () => {
 
   useEffect(() => {
     // Keep currentPage in range
-    if (currentPage < 0 || pages.length === 0) {
-      setCurrentPage(0);
+    if (currentPage < 1 || pages.length === 0) {
+      setCurrentPage(1);
     } else if (currentPage > pages.length) {
       setCurrentPage(pages.length);
     }

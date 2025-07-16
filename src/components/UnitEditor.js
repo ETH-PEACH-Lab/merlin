@@ -182,7 +182,7 @@ export const UnitEditor = ({
     type: null,
   };
   const [currentUnitData, setUnitData] = useState(defaultUnitValue);
-  const { pages, updateValue } = useParseCompile();
+  const { pages, updateValue, removeUnit } = useParseCompile();
 
   useEffect(() => {
     if (inspectorIndex) {
@@ -244,6 +244,14 @@ export const UnitEditor = ({
     }
   };
 
+  const handleRemoveUnit = () => {
+    removeUnit(
+          currentUnitData.page,
+          currentUnitData.name,
+          currentUnitData.coordinates,
+    );
+  };
+
   return (
     <div>
         <Box
@@ -255,6 +263,13 @@ export const UnitEditor = ({
           noValidate
           autoComplete="off"
         >
+                 <Tooltip title="Remove">
+        <span style={{marginLeft: "10px", marginRight: "10px"}}>
+          <IconButton size="small" onClick={handleRemoveUnit}>
+            <RectangleOutlinedIcon></RectangleOutlinedIcon>
+          </IconButton>
+        </span>
+      </Tooltip>
           {/* Dynamically generate inputs based on type definition */}
           {currentUnitData.type && 
             Object.entries(getComponentFields(currentUnitData.type)).map(([fieldKey, fieldConfig]) => (

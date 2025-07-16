@@ -95,6 +95,15 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         return [pageStartIndex, pageEndIndex];
     };
 
+    // Remove the selected unit
+    const removeUnit = useCallback((page, component, coordinates) => {
+        const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
+        console.log(coordinates.index);
+        parsedCode.cmds.splice(pageEndIndex, 0, { name: component, target: "all", type: "remove_at", args: coordinates.index });
+
+        reconstructMerlinLite();
+    }, [parsedCode]);
+
     const updateValue = useCallback(
         (page, componentName, coordinates, fieldKey, value) => {
             if (!parsedCode) return;
@@ -183,19 +192,16 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
 
     // Create a new component and show it
     const createComponent = useCallback((componentType, componentBody, page) => {
-        if (!parsedCode) {
-            // TODO figure out this case
-            console.log("NO PARSED CODE");
-        }
-        else {
-            const componentName = componentType + `${ componentCount }`;
-            setcomponentCount(componentCount + 1);
-            parsedCode.defs.push({ class: "def", type: componentType, 
-                name: componentName, body: componentBody
-            });
-            const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page - 1);
-            parsedCode.cmds.splice(pageEndIndex, 0, { type: "show", value: componentName });
-        }
+        if (!parsedCode) return;
+
+        const componentName = componentType + `${ componentCount }`;
+        setcomponentCount(componentCount + 1);
+        parsedCode.defs.push({ class: "def", type: componentType, 
+            name: componentName, body: componentBody
+        });
+
+        const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page - 1);
+        parsedCode.cmds.splice(pageEndIndex, 0, { type: "show", value: componentName });
 
         reconstructMerlinLite();
     }, [parsedCode]);
@@ -231,6 +237,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             reconstructMerlinLite,
             createComponent,
             updateValue,
+            removeUnit,
             addPage,
             removePage,
         }),
@@ -244,6 +251,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             reconstructMerlinLite,
             createComponent,
             updateValue,
+            removeUnit,
             addPage,
             removePage,
         ]
