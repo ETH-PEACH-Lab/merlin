@@ -122,14 +122,12 @@ const RendererSection = ({
       style={{
         width: `100%`,
         height: "100%",
-        overflow: "hidden",
         position: "relative",
-        display: "flex",
-        flexFlow: "column"
+        display: "grid",
+        gridTemplateRows: "min-content min-content 1fr min-content"
       }}
     >
       <Box sx={{
-        flex: "0 1 auto",
         paddingRight: 1,
         display: "grid",
         gridAutoFlow: "column",
@@ -234,7 +232,6 @@ const RendererSection = ({
         </Box>
       </Box>
       <Box sx={{
-        flex: "0 1 auto",
         paddingRight: 1,
         display: "flex",
         flexGrow: "space-between",
@@ -404,12 +401,12 @@ const RendererSection = ({
       </Box>
 
 
-      <div ref={mermaidRef} style={{ flex: "1 1 auto", width: "100%"}}>
+      <div ref={mermaidRef} style={{ maxHeight: "100%", overflow: "hidden", width: "100%"}}>
         <MermaidRenderer text={mermaidCode} update={updateSvgElement} exampleSvg={exampleSvg}  currentPage={currentPage} />
       </div>
       <ElementEditor svgElement={svgElement} updateInspector={updateInspector} inspectorIndex={inspectorIndex} currentPage={currentPage}/>
       
-      <div style={{flex: "0 1 70px",}}>
+      <div>
       {(pages && pages.length === 0) ? (
         <Typography sx={{ mt: 2, textAlign: 'center' }}>
           No pages to show.
