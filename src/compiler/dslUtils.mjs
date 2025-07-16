@@ -131,6 +131,26 @@ export function getFieldDropdownOptions(fieldKey) {
 }
 
 /**
+ * Determines which additional fields should be shown in the toolbar
+ */
+export function getAdditionalGUIFields(componentType) {
+  const fieldDefinitions = {
+    array: {
+      remove: ["Remove", "remove"],
+    },
+    matrix: {},
+    stack: {
+      remove: ["Remove", "remove"],
+    },
+    graph: {},
+    tree: {},
+    linkedlist: {
+      remove: ["Remove", "remove"],
+    },
+  };
+  return fieldDefinitions[componentType] || {};
+}
+/**
  * Determines which fields are available for a component type
  */
 export function getComponentFields(componentType) {

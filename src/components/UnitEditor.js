@@ -15,18 +15,21 @@ import EditIcon from '@mui/icons-material/Edit';
 import FormatColorFillIcon from '@mui/icons-material/FormatColorFill';
 import TextRotateVerticalIcon from '@mui/icons-material/TextRotateVertical';
 import RectangleOutlinedIcon from '@mui/icons-material/RectangleOutlined';
+import ClearIcon from '@mui/icons-material/Clear';
+import AddIcon from '@mui/icons-material/Add';
 import { useParseCompile } from "../context/ParseCompileContext";
 import { EditUnitItem } from "./EditUnitItem";
 import { 
   parseInspectorIndex, 
   createUnitData, 
   getComponentFields, 
+  getAdditionalGUIFields,
   convertValueToType,
   getFieldDropdownOptions
 } from "../compiler/dslUtils.mjs";
 
 
-const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate }) => {
+const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate, onRemove }) => {
   const [label, inputType] = fieldConfig;
 
   const getIcon = (name) => {
@@ -37,6 +40,10 @@ const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate }) => {
         return <FormatColorFillIcon></FormatColorFillIcon>
       case "Arrow Label": 
         return <TextRotateVerticalIcon></TextRotateVerticalIcon>
+      case "Remove":
+        return <ClearIcon></ClearIcon>;
+      case "Add":
+        return <AddIcon></AddIcon>;
       default: 
         return <RectangleOutlinedIcon></RectangleOutlinedIcon>
     }
@@ -81,7 +88,7 @@ const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate }) => {
         return; // Don't update if invalid
       }
     }
-    
+
     onChange(fieldKey, newValue);
   };
 
@@ -89,7 +96,7 @@ const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate }) => {
   const dropdownOptions = getFieldDropdownOptions(fieldKey);
   const useDropdown = dropdownOptions.length > 0;
 
-  if (!["Color", "Value", "Arrow Label"].includes(label)){
+  if (!["Color", "Value", "Arrow Label", "Remove", "Add"].includes(label)){
     return;
   }
 
@@ -138,6 +145,37 @@ const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate }) => {
     );
   }
 
+  if (inputType == "add"){
+    return (
+      <EditUnitItem
+        name={label}
+        icon={getIcon(label)}
+        formFields={<TextField
+        label={label}
+        id={`${fieldKey}-input`}
+        size="small"
+        onChange={handleFieldChange}
+        onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
+        style={{margin: "15px 10px 10px 10px"}}
+      />}
+      >
+      </EditUnitItem>
+    );
+  }
+
+  if (inputType == "remove"){
+    return (
+       <Tooltip title={label}>
+        <span style={{marginLeft: "10px", marginRight: "10px"}}>
+          <IconButton size="small" onClick={onRemove}>
+            <ClearIcon></ClearIcon>
+          </IconButton>
+        </span>
+      </Tooltip>
+    );
+  }
+
   // For the color field, use a color picker
   if (inputType == "color"){
     return (
@@ -182,7 +220,7 @@ export const UnitEditor = ({
     type: null,
   };
   const [currentUnitData, setUnitData] = useState(defaultUnitValue);
-  const { pages, updateValue, removeUnit } = useParseCompile();
+  const { pages, updateValue, addUnit, removeUnit } = useParseCompile();
 
   useEffect(() => {
     if (inspectorIndex) {
@@ -195,11 +233,31 @@ export const UnitEditor = ({
     }
   }, [inspectorIndex, currentPage, pages]);
 
+  const handleAddUnit = (value) => {
+    addUnit(
+          currentUnitData.page,
+          currentUnitData.name,
+          currentUnitData.coordinates,
+          value
+    );
+  };
+
+  const handleRemoveUnit = () => {
+    removeUnit(
+          currentUnitData.page,
+          currentUnitData.name,
+          currentUnitData.coordinates
+    );
+  };
+
   const handleFieldChange = (fieldKey, value) => {
     setUnitData(prev => ({ ...prev, [fieldKey]: value }));
   };
 
   const handleFieldUpdate = (fieldKey, value) => {
+    if (fieldKey == "add"){
+      handleAddUnit(value);
+    }
     if (inspectorIndex && fieldKey !== "id") {
       // Handle position field (no coordinates needed)
       if (fieldKey === "position") {
@@ -244,13 +302,6 @@ export const UnitEditor = ({
     }
   };
 
-  const handleRemoveUnit = () => {
-    removeUnit(
-          currentUnitData.page,
-          currentUnitData.name,
-          currentUnitData.coordinates,
-    );
-  };
 
   return (
     <div>
@@ -263,14 +314,21 @@ export const UnitEditor = ({
           noValidate
           autoComplete="off"
         >
-                 <Tooltip title="Remove">
-        <span style={{marginLeft: "10px", marginRight: "10px"}}>
-          <IconButton size="small" onClick={handleRemoveUnit}>
-            <RectangleOutlinedIcon></RectangleOutlinedIcon>
-          </IconButton>
-        </span>
-      </Tooltip>
+          
           {/* Dynamically generate inputs based on type definition */}
+          {currentUnitData.type && 
+            Object.entries(getAdditionalGUIFields(currentUnitData.type)).map(([fieldKey, fieldConfig]) => (
+              <DynamicInput
+                key={fieldKey}
+                fieldKey={fieldKey}
+                fieldConfig={fieldConfig}
+                value={currentUnitData[fieldKey]}
+                onChange={handleFieldChange}
+                onUpdate={handleFieldUpdate}
+                onRemove={handleRemoveUnit}
+              />
+            ))
+          }
           {currentUnitData.type && 
             Object.entries(getComponentFields(currentUnitData.type)).map(([fieldKey, fieldConfig]) => (
               <DynamicInput
