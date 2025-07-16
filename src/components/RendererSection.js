@@ -32,8 +32,6 @@ const RendererSection = ({
   const [anchorEl, setAnchorEl] = useState(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [errorSnackbarOpen, setErrorSnackbarOpen] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
   const [anchorEl1, setAnchorEl1] = useState(null);
   const [anchorEl2, setAnchorEl2] = useState(null);
@@ -111,7 +109,7 @@ const RendererSection = ({
   };
 
   const handleErrorSnackbarClose = () => {
-    setErrorSnackbarOpen(false);
+    setSnackbarOpen(false);
   };
 
   const open = Boolean(anchorEl);
@@ -149,7 +147,6 @@ const RendererSection = ({
             <Tooltip title="Add a Page">
             <span>
               <IconButton
-                disabled={currentPage === 1 || pages.length === 0}
                 onClick={handleAddPage}
                 sx={{ mr: 1 }}
                 size="small"
@@ -278,6 +275,13 @@ const RendererSection = ({
                   name="values" label="Values" fullWidth variant="standard"/>
                 }
                 createFunction={(formJson) => {
+                  if (currentPage === 0){
+                    setSnackbarMessage("Please add a page before you add a component");
+                    setSnackbarSeverity('error');
+                    setSnackbarOpen(true);
+                    handleCloseDropdown();
+                    return;
+                  }
                   const values = formJson.values.split(',').map(( value ) => value.trim());
                   const colors = Array(values.length).fill(null);
                   const arrows = Array(values.length).fill(null);
@@ -294,6 +298,13 @@ const RendererSection = ({
                   name="values" label="Values" fullWidth variant="standard"/>
                 }
                 createFunction={(formJson) => {
+                  if (currentPage === 0){
+                    setSnackbarMessage("Please add a page before you add a component");
+                    setSnackbarSeverity('error');
+                    setSnackbarOpen(true);
+                    handleCloseDropdown();
+                    return;
+                  }
                   const values = formJson.values.split(',').map(( value ) => value.trim());
                   const colors = Array(values.length).fill(null);
                   const arrows = Array(values.length).fill(null);
@@ -311,7 +322,13 @@ const RendererSection = ({
                   name="values" label="Values" fullWidth variant="standard"/>
                 }
                 createFunction={(formJson) => {
-                  // TODO maybe also trim the strings
+                  if (currentPage === 0){
+                    setSnackbarMessage("Please add a page before you add a component");
+                    setSnackbarSeverity('error');
+                    setSnackbarOpen(true);
+                    handleCloseDropdown();
+                    return;
+                  }
                   const values = formJson.values.split(';').map((row)=>row.split(',').map((value)=>value.trim()));
                   console.log(values);
                   const lengths = values.map( (innerList ) => innerList.length);
@@ -335,6 +352,13 @@ const RendererSection = ({
                   name="values" label="Values" fullWidth variant="standard"/>
                 }
                 createFunction={(formJson) => {
+                  if (currentPage === 0){
+                    setSnackbarMessage("Please add a page before you add a component");
+                    setSnackbarSeverity('error');
+                    setSnackbarOpen(true);
+                    handleCloseDropdown();
+                    return;
+                  }
                   const values = formJson.values.split(',').map(( value ) => value.trim());
                   const nodes = [...Array(values.length).keys()]
                   const colors = Array(values.length).fill(null);
@@ -358,7 +382,14 @@ const RendererSection = ({
                   </React.Fragment>
                 }
                 createFunction={(formJson) => {
-               const edgeStrings = formJson.edges.split(',').map(( value ) => value.replace(" ", ""));
+                  if (currentPage === 0){
+                    setSnackbarMessage("Please add a page before you add a component");
+                    setSnackbarSeverity('error');
+                    setSnackbarOpen(true);
+                    handleCloseDropdown();
+                    return;
+                  }
+                  const edgeStrings = formJson.edges.split(',').map(( value ) => value.replace(" ", ""));
                   let nodesSet = new Set();
                   let edgeSet = new Set();
 
@@ -378,8 +409,9 @@ const RendererSection = ({
 
                   if (edgeSet.size === 0){
                     handleCloseDropdown();
-                    setErrorMessage("Couldn't parse edges");
-                    setErrorSnackbarOpen(true);
+                    setSnackbarMessage("Couldn't parse edges");
+                    setSnackbarSeverity('error');
+                    setSnackbarOpen(true);
                     return;
                   }
 
@@ -422,6 +454,13 @@ const RendererSection = ({
                   </React.Fragment>
                 }
                 createFunction={(formJson) => {
+                  if (currentPage === 0){
+                    setSnackbarMessage("Please add a page before you add a component");
+                    setSnackbarSeverity('error');
+                    setSnackbarOpen(true);
+                    handleCloseDropdown();
+                    return;
+                  }
                   const edgeStrings = formJson.edges.split(',').map(( value ) => value.replace(" ", ""));
                   let nodesSet = new Set();
                   let edgeSet = new Set();
@@ -442,8 +481,9 @@ const RendererSection = ({
 
                   if (edgeSet.size === 0){
                     handleCloseDropdown();
-                    setErrorMessage("Couldn't parse edges");
-                    setErrorSnackbarOpen(true);
+                    setSnackbarMessage("Couldn't parse edges");
+                    setSnackbarSeverity('error');
+                    setSnackbarOpen(true);
                     return;
                   }
 
@@ -509,20 +549,13 @@ const RendererSection = ({
         open={snackbarOpen} 
         autoHideDuration={4000} 
         onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        sx={{
+        '&.MuiSnackbar-root': { top: '150px' },
+      }}
       >
         <Alert onClose={handleSnackbarClose} severity={snackbarSeverity} sx={{ width: '100%' }}>
           {snackbarMessage}
-        </Alert>
-      </Snackbar>
-      <Snackbar 
-        open={errorSnackbarOpen} 
-        autoHideDuration={4000} 
-        onClose={handleErrorSnackbarClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert onClose={handleErrorSnackbarClose} severity='error' sx={{ width: '100%' }}>
-          {errorMessage}
         </Alert>
       </Snackbar>
     </div>

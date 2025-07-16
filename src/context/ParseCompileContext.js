@@ -202,9 +202,14 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
 
     // Add a page after the current page
     const addPage = useCallback((currentPage) => {
-        const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(currentPage - 1);
-        parsedCode?.cmds.splice(pageEndIndex, 0, { type: "page" });
-        reconstructMerlinLite();
+        if (currentPage == 0){
+            updateUnparsedCode("page");
+        }
+        else {
+            const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(currentPage - 1);
+            parsedCode?.cmds.splice(pageEndIndex, 0, { type: "page" });
+            reconstructMerlinLite();
+        }
     }, [parsedCode]);
 
     // Remove the current page
