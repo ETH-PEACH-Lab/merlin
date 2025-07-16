@@ -18,23 +18,21 @@ export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, curr
   const [anchorEl, setAnchorEl] = React.useState(null);
 
     const onMouseOut = (e) => {
-        let target = e.target.parentElement.getElementsByTagName("rect")[0];
-        if (target.classList.contains('arrayElement')) {
-          // Remove the highlight & close the toolbar if we are moving away from the unit
-          if (typeof e.relatedTarget !== 'undefined' && e.relatedTarget !== null && (e.target.parentElement !== e.relatedTarget.parentElement)){
-            // Unless we move to the toolbar
-            let toolbar = document.getElementById("mouse-over-popover-div");
-            if (typeof toolbar !== 'undefined' && toolbar !== null && toolbar.contains(e.relatedTarget)){
-              return;
-            }
-            target.setAttribute("stroke", "black");
-            popoverLeave();
+        let target = e.target.parentElement.getElementsByTagName("rect")[0] || e.target.parentElement.getElementsByTagName("circle")[0];
+        // Remove the highlight & close the toolbar if we are moving away from the unit
+        if (typeof e.relatedTarget !== 'undefined' && e.relatedTarget !== null && (e.target.parentElement !== e.relatedTarget.parentElement)){
+          // Unless we move to the toolbar
+          let toolbar = document.getElementById("mouse-over-popover-div");
+          if (typeof toolbar !== 'undefined' && toolbar !== null && toolbar.contains(e.relatedTarget)){
+            return;
           }
+          target.setAttribute("stroke", "black");
+          popoverLeave();
         }
     }
 
     const onMouseOver = (e) =>{
-        let target = e.target.parentElement.getElementsByTagName("rect")[0];
+        let target = e.target.parentElement.getElementsByTagName("rect")[0] || e.target.parentElement.getElementsByTagName("circle")[0];
         if (e.target.parentElement !== target.parentElement){
           return;
         }
@@ -62,11 +60,9 @@ export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, curr
 
         updateInspector(unitID, componentID, pageID);
 
-        if (target.classList.contains('arrayElement')){
-            target.setAttribute("stroke", "green");
-            setAnchorEl(target);
-            popoverEnter();
-        }
+        target.setAttribute("stroke", "green");
+        setAnchorEl(target);
+        popoverEnter();
 
     }
 
