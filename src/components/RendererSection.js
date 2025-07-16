@@ -275,7 +275,7 @@ const RendererSection = ({
                   name="values" label="Values" fullWidth variant="standard"/>
                 }
                 createFunction={(formJson) => {
-                  if (currentPage === 0){
+                  if (pages.length == 0){
                     setSnackbarMessage("Please add a page before you add a component");
                     setSnackbarSeverity('error');
                     setSnackbarOpen(true);
@@ -298,7 +298,7 @@ const RendererSection = ({
                   name="values" label="Values" fullWidth variant="standard"/>
                 }
                 createFunction={(formJson) => {
-                  if (currentPage === 0){
+                  if (pages.length == 0){
                     setSnackbarMessage("Please add a page before you add a component");
                     setSnackbarSeverity('error');
                     setSnackbarOpen(true);
@@ -322,7 +322,7 @@ const RendererSection = ({
                   name="values" label="Values" fullWidth variant="standard"/>
                 }
                 createFunction={(formJson) => {
-                  if (currentPage === 0){
+                  if (pages.length == 0){
                     setSnackbarMessage("Please add a page before you add a component");
                     setSnackbarSeverity('error');
                     setSnackbarOpen(true);
@@ -352,7 +352,7 @@ const RendererSection = ({
                   name="values" label="Values" fullWidth variant="standard"/>
                 }
                 createFunction={(formJson) => {
-                  if (currentPage === 0){
+                  if (pages.length == 0){
                     setSnackbarMessage("Please add a page before you add a component");
                     setSnackbarSeverity('error');
                     setSnackbarOpen(true);
@@ -360,7 +360,7 @@ const RendererSection = ({
                     return;
                   }
                   const values = formJson.values.split(',').map(( value ) => value.trim());
-                  const nodes = [...Array(values.length).keys()]
+                  const nodes = [...Array(values.length).keys()].map( (value) => "n" + value);
                   const colors = Array(values.length).fill(null);
                   const arrows = Array(values.length).fill(null);
 
@@ -382,7 +382,7 @@ const RendererSection = ({
                   </React.Fragment>
                 }
                 createFunction={(formJson) => {
-                  if (currentPage === 0){
+                  if (pages.length == 0){
                     setSnackbarMessage("Please add a page before you add a component");
                     setSnackbarSeverity('error');
                     setSnackbarOpen(true);
@@ -396,8 +396,8 @@ const RendererSection = ({
                   edgeStrings.forEach(edgeString => {
                     var edge = edgeString.split('-');
                     if (edge.length === 2){
-                      var node1 = edge.split('-')[0];
-                      var node2 = 'n' + edge.split('-')[1];
+                      var node1 = edge[0];
+                      var node2 = edge[1];
                       // Fix in case the node id starts with a number
                       var node1Cleaned = (node1[0].toUpperCase() != node1[0].toLowerCase()) ? node1 : ('n' + node1)
                       var node2Cleaned = (node2[0].toUpperCase() != node2[0].toLowerCase()) ? node2 : ('n' + node2)
@@ -421,13 +421,13 @@ const RendererSection = ({
 
                   const nodesValuesMap = formJson.values.split(',').map(( value ) => value.replace(" ", ""));
                   nodesValuesMap.forEach(function (mapString) {
-                    var map = item.split(':')
+                    var map = mapString.split(':')
                     if (map.length === 2){
-                      var node = item.split(':')[0];
+                      var node = map[0];
                       var nodeCleaned = (node[0].toUpperCase() != node[0].toLowerCase()) ? node : ('n' + node)
                       var index = nodes.indexOf(nodeCleaned);
                       if (index != -1) {
-                        values[index] = item.split(':')[1];
+                        values[index] = map[1];
                       }
                     }
                   }); 
@@ -454,7 +454,7 @@ const RendererSection = ({
                   </React.Fragment>
                 }
                 createFunction={(formJson) => {
-                  if (currentPage === 0){
+                  if (pages.length == 0){
                     setSnackbarMessage("Please add a page before you add a component");
                     setSnackbarSeverity('error');
                     setSnackbarOpen(true);
@@ -468,8 +468,8 @@ const RendererSection = ({
                   edgeStrings.forEach(edgeString => {
                     var edge = edgeString.split('-');
                     if (edge.length === 2){
-                      var node1 = edge.split('-')[0];
-                      var node2 = 'n' + edge.split('-')[1];
+                      var node1 = edge[0];
+                      var node2 = edge[1];
                       // Fix in case the node id starts with a number
                       var node1Cleaned = (node1[0].toUpperCase() != node1[0].toLowerCase()) ? node1 : ('n' + node1)
                       var node2Cleaned = (node2[0].toUpperCase() != node2[0].toLowerCase()) ? node2 : ('n' + node2)
@@ -493,13 +493,13 @@ const RendererSection = ({
 
                   const nodesValuesMap = formJson.values.split(',').map(( value ) => value.replace(" ", ""));
                   nodesValuesMap.forEach(function (mapString) {
-                    var map = item.split(':')
+                    var map = mapString.split(':')
                     if (map.length === 2){
-                      var node = item.split(':')[0];
+                      var node = map[0];
                       var nodeCleaned = (node[0].toUpperCase() != node[0].toLowerCase()) ? node : ('n' + node)
                       var index = nodes.indexOf(nodeCleaned);
                       if (index != -1) {
-                        values[index] = item.split(':')[1];
+                        values[index] = map[1];
                       }
                     }
                   }); 
