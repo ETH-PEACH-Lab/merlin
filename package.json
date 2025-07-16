@@ -37,6 +37,7 @@
   },
   "scripts": {
     "prestart": "node src/generateExamples.js",
+    "generate-parser": "npx nearleyc src/parser/merlinLite.ne -o src/parser/parser.js",
     "monaca:preview": "npm run dev & npm run watch",
     "monaca:transpile": "npm run build",
     "monaca:debug": "npm run watch",
