@@ -114,6 +114,20 @@ const App = () => {
 
   // Helper function to handle exports using the new export utilities
   const handleExportWrapper = async (format, customConfig = null) => {
+    // Prevent GIF export with less than 2 pages
+    if (format === 'gif') {
+      // Determine how many pages would be exported
+      let numPages = pages.length;
+      if (customConfig && customConfig.pageSelection) {
+        if (customConfig.pageSelection === 'single') numPages = 1;
+        if (customConfig.pageSelection === 'range') numPages = Math.max(1, customConfig.rangeEnd - customConfig.rangeStart + 1);
+      }
+      if (numPages < 2) {
+        setExportProgress(prev => ({ ...prev, open: false }));
+        window.alert('GIF export requires at least 2 pages.');
+        return;
+      }
+    }
     const onProgress = (current, total, message, isIndeterminate = false) => {
       setExportProgress({
         open: true,
@@ -123,13 +137,10 @@ const App = () => {
         isIndeterminate
       });
     };
-
     try {
       // Show initial progress
       onProgress(0, 0, 'Preparing export...', true);
-      
       await handleExport(format, compiledMerlin, pages, mermaidRef, customConfig, onProgress);
-      
       // Hide progress dialog after successful export
       setExportProgress(prev => ({ ...prev, open: false }));
     } catch (error) {

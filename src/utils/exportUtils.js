@@ -4,6 +4,7 @@ import jsPDF from "jspdf";
 import JSZip from "jszip";
 import PptxGenJS from "pptxgenjs";
 import mermaid from '@eth-peach-lab/mermaid-merlin/packages/mermaid/dist/mermaid.esm.mjs';
+import GIF from 'gif.js';
 
 // Export configuration constants
 const EXPORT_CONFIGS = {
@@ -35,6 +36,22 @@ const EXPORT_CONFIGS = {
     width: 960,
     height: 540,
     renderAt: 1.0 // No scaling for HTML
+  },
+  video: {
+    width: 1920,
+    height: 1080,
+    renderAt: 0.5,
+    frameDuration: 1000, // Duration per frame in milliseconds (1 second)
+    fps: 30, // Frames per second for video
+    format: 'mp4' // Video format (webm, mp4)
+  },
+  gif: {
+    width: 1920,
+    height: 1080,
+    renderAt: 0.5,
+    frameDuration: 1000, // Duration per frame in milliseconds (1 second)
+    quality: 10, // GIF quality (1-20, lower is better quality)
+    repeat: 0 // 0 = infinite loop, >0 = number of loops
   }
 };
 
@@ -634,6 +651,323 @@ export const exportHTML = async (compiledMerlin, pages, config = EXPORT_CONFIGS.
   }
 };
 
+// Export as Video (MP4/WebM) with frame transitions
+export const exportVideo = async (compiledMerlin, pages, config = EXPORT_CONFIGS.video, onProgress = null) => {
+  
+  try {
+    mermaid.initialize({
+      startOnLoad: true,
+      securityLevel: "loose",
+      theme: "forest",
+      logLevel: 5,
+    });
+
+    // Render at specified resolution
+    const renderWidth = Math.round(config.width * config.renderAt);
+    const renderHeight = Math.round(config.height * config.renderAt);
+    const customMerlin = createMermaidWithCustomSize(compiledMerlin, renderWidth, renderHeight);
+    const { svg: fullSvg } = await mermaid.mermaidAPI.render("export-preview", customMerlin);
+    
+    const extractedPages = getPagesToExport(fullSvg, config);
+
+    if (extractedPages.length === 0) {
+      throw new Error('No pages found in SVG - cannot create video');
+    }
+
+    if (extractedPages.length === 1) {
+      throw new Error('Video export requires multiple pages');
+    }
+
+    if (onProgress) onProgress(0, extractedPages.length + 1, 'Converting pages to frames...');
+
+    // Convert all pages to PNG frames
+    const frames = [];
+    for (let i = 0; i < extractedPages.length; i++) {
+      const page = extractedPages[i];
+      if (onProgress) onProgress(i, extractedPages.length + 1, `Converting page ${page.pageNumber} to frame...`);
+      
+      const pngDataUrl = await svgToPng(page.svg, {
+        width: config.width,
+        height: config.height,
+        useHighDPI: true
+      });
+
+      if (pngDataUrl) {
+        frames.push({
+          dataUrl: pngDataUrl,
+          pageNumber: page.pageNumber
+        });
+      }
+    }
+
+    if (frames.length === 0) {
+      throw new Error('Failed to convert pages to frames');
+    }
+
+    if (onProgress) onProgress(extractedPages.length, extractedPages.length + 1, 'Creating video...');
+
+    // Create video using MediaRecorder API and Canvas
+    const canvas = document.createElement('canvas');
+    canvas.width = config.width;
+    canvas.height = config.height;
+    const ctx = canvas.getContext('2d');
+
+    // Create a video stream from the canvas
+    const stream = canvas.captureStream(config.fps);
+    const mediaRecorder = new MediaRecorder(stream, {
+      mimeType: config.format === 'mp4' ? 'video/mp4' : 'video/webm;codecs=vp9'
+    });
+
+    const chunks = [];
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        chunks.push(event.data);
+      }
+    };
+
+    return new Promise((resolve, reject) => {
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunks, { 
+          type: config.format === 'mp4' ? 'video/mp4' : 'video/webm' 
+        });
+        const fileName = `diagram.${config.format === 'mp4' ? 'mp4' : 'webm'}`;
+        download(blob, fileName, blob.type);
+        
+        if (onProgress) onProgress(extractedPages.length + 1, extractedPages.length + 1, 'Complete!');
+        resolve();
+      };
+
+      mediaRecorder.onerror = (error) => {
+        console.error('MediaRecorder error:', error);
+        reject(new Error('Failed to create video'));
+      };
+
+      // Start recording
+      mediaRecorder.start();
+
+      let currentFrameIndex = 0;
+      const frameDuration = config.frameDuration || 1000; // milliseconds
+      
+      const drawFrame = async () => {
+        if (currentFrameIndex >= frames.length) {
+          // Finished all frames, stop recording
+          mediaRecorder.stop();
+          return;
+        }
+
+        const frame = frames[currentFrameIndex];
+        
+        // Load and draw the image
+        const img = new Image();
+        img.onload = () => {
+          // Clear canvas
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          
+          // Draw the frame centered
+          const aspectRatio = img.naturalWidth / img.naturalHeight;
+          const canvasAspectRatio = canvas.width / canvas.height;
+          
+          let drawWidth, drawHeight, drawX, drawY;
+          
+          if (aspectRatio > canvasAspectRatio) {
+            drawWidth = canvas.width;
+            drawHeight = canvas.width / aspectRatio;
+            drawX = 0;
+            drawY = (canvas.height - drawHeight) / 2;
+          } else {
+            drawHeight = canvas.height;
+            drawWidth = canvas.height * aspectRatio;
+            drawX = (canvas.width - drawWidth) / 2;
+            drawY = 0;
+          }
+          
+          ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+          
+          // Move to next frame after the specified duration
+          currentFrameIndex++;
+          setTimeout(drawFrame, frameDuration);
+        };
+        
+        img.onerror = () => {
+          console.error('Failed to load frame:', currentFrameIndex);
+          currentFrameIndex++;
+          setTimeout(drawFrame, 100); // Try next frame quickly
+        };
+        
+        img.src = frame.dataUrl;
+      };
+
+      // Start drawing frames
+      drawFrame();
+    });
+
+  } catch (error) {
+    console.error("Video Export error:", error);
+    throw error;
+  }
+};
+
+// Simple GIF encoder using gif.js library
+const createGIF = async (frames, config) => {
+  return new Promise((resolve, reject) => {
+    // Temporarily suppress console errors for worker loading
+    const originalError = console.error;
+    console.error = (...args) => {
+      // Filter out gif.worker.js 404 errors
+      if (args.some(arg => typeof arg === 'string' && arg.includes('gif.worker.js'))) {
+        return; // Suppress this specific error
+      }
+      originalError.apply(console, args);
+    };
+
+    // Initialize GIF encoder
+    const gif = new GIF({
+      workers: 2, // Use workers for better performance
+      quality: config.quality || 10, // 1-20, lower is better quality
+      width: config.width,
+      height: config.height,
+      repeat: config.repeat || 0, // 0 = infinite loop
+      background: '#ffffff',
+      debug: false
+    });
+
+    // Restore console.error after a short delay
+    setTimeout(() => {
+      console.error = originalError;
+    }, 1000);
+
+    let loadedFrames = 0;
+
+    // Add frames to the GIF
+    frames.forEach((frame, index) => {
+      const img = new Image();
+      img.onload = () => {
+        // Create a canvas to draw the image
+        const canvas = document.createElement('canvas');
+        canvas.width = config.width;
+        canvas.height = config.height;
+        const ctx = canvas.getContext('2d');
+        
+        // Fill with white background
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw the frame centered
+        const aspectRatio = img.naturalWidth / img.naturalHeight;
+        const canvasAspectRatio = canvas.width / canvas.height;
+        
+        let drawWidth, drawHeight, drawX, drawY;
+        
+        if (aspectRatio > canvasAspectRatio) {
+          drawWidth = canvas.width;
+          drawHeight = canvas.width / aspectRatio;
+          drawX = 0;
+          drawY = (canvas.height - drawHeight) / 2;
+        } else {
+          drawWidth = canvas.height * aspectRatio;
+          drawHeight = canvas.height;
+          drawX = (canvas.width - drawWidth) / 2;
+          drawY = 0;
+        }
+        
+        ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+        
+        // Add frame to GIF with delay
+        gif.addFrame(canvas, {
+          delay: config.frameDuration || 1000
+        });
+        
+        loadedFrames++;
+        
+        // If this is the last frame, render the GIF
+        if (loadedFrames === frames.length) {
+          gif.on('finished', function(blob) {
+            resolve(blob);
+          });
+          
+          gif.on('abort', function() {
+            reject(new Error('GIF creation was aborted'));
+          });
+          
+          gif.render();
+        }
+      };
+      
+      img.onerror = () => reject(new Error(`Failed to load frame ${index}`));
+      img.src = frame.dataUrl;
+    });
+  });
+};
+
+
+// Export as GIF
+export const exportGIF = async (compiledMerlin, pages, config = EXPORT_CONFIGS.gif, onProgress = null) => {
+  
+  try {
+    mermaid.initialize({
+      startOnLoad: true,
+      securityLevel: "loose",
+      theme: "forest",
+      logLevel: 5,
+    });
+
+    // Render at specified resolution
+    const renderWidth = Math.round(config.width * config.renderAt);
+    const renderHeight = Math.round(config.height * config.renderAt);
+    const customMerlin = createMermaidWithCustomSize(compiledMerlin, renderWidth, renderHeight);
+    const { svg: fullSvg } = await mermaid.mermaidAPI.render("export-preview", customMerlin);
+    
+    const extractedPages = getPagesToExport(fullSvg, config);
+
+    if (extractedPages.length === 0) {
+      throw new Error('No pages found in SVG - cannot create GIF');
+    }
+
+    if (extractedPages.length === 1) {
+      throw new Error('GIF export requires multiple pages');
+    }
+
+    if (onProgress) onProgress(0, extractedPages.length + 1, 'Converting pages to frames...');
+
+    // Convert all pages to PNG frames
+    const frames = [];
+    for (let i = 0; i < extractedPages.length; i++) {
+      const page = extractedPages[i];
+      if (onProgress) onProgress(i, extractedPages.length + 1, `Converting page ${page.pageNumber} to frame...`);
+      
+      const pngDataUrl = await svgToPng(page.svg, {
+        width: config.width,
+        height: config.height,
+        useHighDPI: true
+      });
+
+      if (pngDataUrl) {
+        frames.push({
+          dataUrl: pngDataUrl,
+          pageNumber: page.pageNumber
+        });
+      }
+    }
+
+    if (frames.length === 0) {
+      throw new Error('Failed to convert pages to frames');
+    }
+
+    if (onProgress) onProgress(extractedPages.length, extractedPages.length + 1, 'Creating animated GIF...');
+
+    // Create GIF
+    const gifBlob = await createGIF(frames, config);
+    download(gifBlob, "diagram_animation.gif", "image/gif");
+    
+    if (onProgress) onProgress(extractedPages.length + 1, extractedPages.length + 1, 'Complete!');
+
+  } catch (error) {
+    console.error("GIF Export error:", error);
+    throw error;
+  }
+};
+
 // Main export handler
 export const handleExport = async (format, compiledMerlin, pages, mermaidRef, customConfig = null, onProgress = null) => {
 
@@ -662,6 +996,12 @@ export const handleExport = async (format, compiledMerlin, pages, mermaidRef, cu
         break;
       case "html":
         await exportHTML(compiledMerlin, pages, config, onProgress);
+        break;
+      case "video":
+        await exportVideo(compiledMerlin, pages, config, onProgress);
+        break;
+      case "gif":
+        await exportGIF(compiledMerlin, pages, config, onProgress);
         break;
       case "custom":
         // Custom export with dialog will be handled by calling component

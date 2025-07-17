@@ -17,6 +17,8 @@ import RectangleOutlinedIcon from '@mui/icons-material/RectangleOutlined';
 import SlideshowIcon from '@mui/icons-material/Slideshow';
 import SettingsIcon from '@mui/icons-material/Settings';
 import WebIcon from '@mui/icons-material/Web';
+import GifBox from '@mui/icons-material/GifBox';
+import Movie from '@mui/icons-material/Movie';
 import { useParseCompile } from "../context/ParseCompileContext";
 import { createShareableUrl, copyToClipboard } from "../utils/urlSharing";
 const RendererSection = ({
@@ -222,6 +224,16 @@ const RendererSection = ({
                 <ListItem disableGutters sx={{ px: 1.5 }}>
                   <Button fullWidth onClick={() => handleExport('html')} startIcon={<WebIcon />} sx={{ justifyContent: 'flex-start', textAlign: 'left', px: 2 }}>
                     <ListItemText primary={`HTML ${pages.length > 1 ? '(Interactive)' : ''}`} />
+                  </Button>
+                </ListItem>
+                <ListItem disableGutters sx={{ px: 1.5 }}>
+                  <Button fullWidth onClick={() => handleExport('gif')} startIcon={<GifBox />} sx={{ justifyContent: 'flex-start', textAlign: 'left', px: 2 }}>
+                    <ListItemText primary="GIF" />
+                  </Button>
+                </ListItem>
+                <ListItem disableGutters sx={{ px: 1.5 }}>
+                  <Button fullWidth onClick={() => handleExport('video')} startIcon={<Movie />} sx={{ justifyContent: 'flex-start', textAlign: 'left', px: 2 }}>
+                    <ListItemText primary="Video (MP4)" />
                   </Button>
                 </ListItem>
                 <ListItem disableGutters sx={{ px: 1.5 }}>

@@ -2,6 +2,7 @@ const HtmlWebPackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const ProgressBarPlugin = require('progress-bar-webpack-plugin');
 const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 const webpack = require('webpack');
 
 
@@ -81,6 +82,14 @@ let webpackConfig = {
         }
       },
       {
+        test: /\.js$/,
+        include: path.resolve(__dirname, 'src/public'),
+        type: 'asset/resource',
+        generator: {
+          filename: '[name][ext]'
+        }
+      },
+      {
         test: /\.css$/,
         use: [
           devMode ? 'style-loader' : MiniCssExtractPlugin.loader,
@@ -100,6 +109,14 @@ let webpackConfig = {
     new HtmlWebPackPlugin({
       template: 'src/public/index.html.ejs',
       favicon: 'src/public/favicon.png' // Ensure this line is added
+    }),
+    new CopyWebpackPlugin({
+      patterns: [
+        {
+          from: 'node_modules/gif.js/dist/gif.worker.js',
+          to: 'gif.worker.js'
+        }
+      ]
     }),
     new webpack.NormalModuleReplacementPlugin(
       /^node:(fs|https|path|os|image-size|fs\/promises)$/,

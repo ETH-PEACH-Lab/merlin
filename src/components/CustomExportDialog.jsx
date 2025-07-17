@@ -25,6 +25,8 @@ const EXPORT_FORMATS = [
   { value: 'svg', label: 'SVG Vector' },
   { value: 'pptx', label: 'PowerPoint Presentation' },
   { value: 'html', label: 'HTML Document' },
+  { value: 'video', label: 'Video (WebM/MP4)' },
+  { value: 'gif', label: 'Animated GIF/PNG' },
 ];
 
 const PRESET_SIZES = [
@@ -54,6 +56,17 @@ const CustomExportDialog = ({
   const [customWidth, setCustomWidth] = useState(1920);
   const [customHeight, setCustomHeight] = useState(1080);
   const [renderQuality, setRenderQuality] = useState(0.5);
+  
+  // Video-specific settings (with raw input for better UX)
+  const [frameDuration, setFrameDuration] = useState(1000); // ms
+  const [frameDurationInput, setFrameDurationInput] = useState('1'); // seconds, string for input
+  const [videoFormat, setVideoFormat] = useState('mp4'); // webm or mp4
+
+  // GIF-specific settings (with raw input for better UX)
+  const [gifQuality, setGifQuality] = useState(10);
+  const [gifQualityInput, setGifQualityInput] = useState('10');
+  const [gifRepeat, setGifRepeat] = useState(0);
+  const [gifRepeatInput, setGifRepeatInput] = useState('0');
   
   // Page selection state
   const [pageSelection, setPageSelection] = useState('all');
@@ -122,6 +135,16 @@ const CustomExportDialog = ({
         slideHeight: (10 * height) / width 
       }),
       ...(format === 'png' && { useHighDPI: true }),
+      ...(format === 'video' && { 
+        frameDuration: frameDuration,
+        fps: 30,
+        format: videoFormat
+      }),
+      ...(format === 'gif' && { 
+        frameDuration: frameDuration,
+        quality: gifQuality,
+        repeat: gifRepeat
+      }),
     };
 
     onExport(format, customConfig);
@@ -224,7 +247,7 @@ const CustomExportDialog = ({
           </Grid>
 
           {/* Render Quality */}
-          {(format !== 'svg' && format !== 'html') && (
+          {(format !== 'svg' && format !== 'html' && format !== 'video') && (
             <FormControl fullWidth>
               <InputLabel>Render Quality</InputLabel>
               <Select
@@ -238,6 +261,131 @@ const CustomExportDialog = ({
                 <MenuItem value={1.0}>Native (no upscale)</MenuItem>
               </Select>
             </FormControl>
+          )}
+
+          {/* Video-specific Settings */}
+          {format === 'video' && (
+            <Box>
+              <Typography variant="subtitle2" gutterBottom>
+                Video Settings
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={6}>
+                  <TextField
+                    fullWidth
+                    label="Frame Duration (seconds)"
+                    type="number"
+                    value={frameDurationInput}
+                    onChange={(e) => setFrameDurationInput(e.target.value)}
+                    onBlur={() => {
+                      let val = parseFloat(frameDurationInput);
+                      if (isNaN(val) || val < 0.1 || val > 10) {
+                        setFrameDurationInput((frameDuration / 1000).toString());
+                      } else {
+                        setFrameDuration(Math.round(val * 1000));
+                        setFrameDurationInput(val.toString());
+                      }
+                    }}
+                    inputProps={{ min: 0.1, max: 10, step: 0.1 }}
+                    helperText="How long each page is shown"
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <FormControl fullWidth>
+                    <InputLabel>Video Format</InputLabel>
+                    <Select
+                      value={videoFormat}
+                      label="Video Format"
+                      onChange={(e) => setVideoFormat(e.target.value)}
+                    >
+                      <MenuItem value="webm">WebM (VP9)</MenuItem>
+                      <MenuItem value="mp4">MP4 (H.264)</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </Grid>
+              {(!pages || pages.length <= 1) && (
+                <Typography variant="body2" color="error" sx={{ mt: 1 }}>
+                  Video export requires multiple pages
+                </Typography>
+              )}
+            </Box>
+          )}
+
+          {/* GIF-specific Settings */}
+          {format === 'gif' && (
+            <Box>
+              <Typography variant="subtitle2" gutterBottom>
+                GIF Settings
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={4}>
+                  <TextField
+                    fullWidth
+                    label="Frame Duration (seconds)"
+                    type="number"
+                    value={frameDurationInput}
+                    onChange={(e) => setFrameDurationInput(e.target.value)}
+                    onBlur={() => {
+                      let val = parseFloat(frameDurationInput);
+                      if (isNaN(val) || val < 0.1 || val > 10) {
+                        setFrameDurationInput((frameDuration / 1000).toString());
+                      } else {
+                        setFrameDuration(Math.round(val * 1000));
+                        setFrameDurationInput(val.toString());
+                      }
+                    }}
+                    inputProps={{ min: 0.1, max: 10, step: 0.1 }}
+                    helperText="How long each page is shown"
+                  />
+                </Grid>
+                <Grid item xs={4}>
+                  <TextField
+                    fullWidth
+                    label="Quality"
+                    type="number"
+                    value={gifQualityInput}
+                    onChange={(e) => setGifQualityInput(e.target.value)}
+                    onBlur={() => {
+                      let val = parseInt(gifQualityInput);
+                      if (isNaN(val) || val < 1 || val > 20) {
+                        setGifQualityInput(gifQuality.toString());
+                      } else {
+                        setGifQuality(val);
+                        setGifQualityInput(val.toString());
+                      }
+                    }}
+                    inputProps={{ min: 1, max: 20, step: 1 }}
+                    helperText="1=best quality, 20=smallest file"
+                  />
+                </Grid>
+                <Grid item xs={4}>
+                  <TextField
+                    fullWidth
+                    label="Loop Count"
+                    type="number"
+                    value={gifRepeatInput}
+                    onChange={(e) => setGifRepeatInput(e.target.value)}
+                    onBlur={() => {
+                      let val = parseInt(gifRepeatInput);
+                      if (isNaN(val) || val < 0 || val > 100) {
+                        setGifRepeatInput(gifRepeat.toString());
+                      } else {
+                        setGifRepeat(val);
+                        setGifRepeatInput(val.toString());
+                      }
+                    }}
+                    inputProps={{ min: 0, max: 100, step: 1 }}
+                    helperText="0=infinite loop"
+                  />
+                </Grid>
+              </Grid>
+              {(!pages || pages.length <= 1) && (
+                <Typography variant="body2" color="error" sx={{ mt: 1 }}>
+                  GIF export requires multiple pages
+                </Typography>
+              )}
+            </Box>
           )}
 
           {/* Page Selection */}
@@ -322,10 +470,23 @@ const CustomExportDialog = ({
             <Typography variant="body2" color="text.secondary">
               <strong>Dimensions:</strong> {finalWidth} × {finalHeight} px
             </Typography>
-            {(format !== 'svg' && format !== 'html') && (
+            {(format !== 'svg' && format !== 'html' && format !== 'video') && (
               <Typography variant="body2" color="text.secondary">
                 <strong>Render Size:</strong> {Math.round(finalWidth * renderQuality)} × {Math.round(finalHeight * renderQuality)} px
               </Typography>
+            )}
+            {format === 'video' && (
+              <>
+                <Typography variant="body2" color="text.secondary">
+                  <strong>Frame Duration:</strong> {(frameDuration / 1000).toFixed(1)}s per page
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  <strong>Video Format:</strong> {videoFormat.toUpperCase()}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  <strong>Total Duration:</strong> {((getExportedPagesInfo().match(/\d+/) || [1])[0] * frameDuration / 1000).toFixed(1)}s
+                </Typography>
+              </>
             )}
             <Typography variant="body2" color="text.secondary">
               <strong>Aspect Ratio:</strong> {(finalWidth / finalHeight).toFixed(2)}:1
@@ -348,7 +509,11 @@ const CustomExportDialog = ({
         <Button 
           onClick={handleExport} 
           variant="contained"
-          disabled={finalWidth < 100 || finalHeight < 100}
+          disabled={
+            finalWidth < 100 || 
+            finalHeight < 100 ||
+            (format === 'video' && (!pages || pages.length <= 1))
+          }
         >
           Export
         </Button>
