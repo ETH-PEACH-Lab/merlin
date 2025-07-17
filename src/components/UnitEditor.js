@@ -146,7 +146,7 @@ const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate, onRemo
     );
   }
 
-  if (inputType == "add"){
+  if (inputType === "add"){
     return (
       <EditUnitItem
         name={label}
@@ -239,6 +239,7 @@ export const UnitEditor = ({
     addUnit(
           currentUnitData.page,
           currentUnitData.name,
+          currentUnitData.type,
           currentUnitData.coordinates,
           value
     );
@@ -257,8 +258,9 @@ export const UnitEditor = ({
   };
 
   const handleFieldUpdate = (fieldKey, value) => {
-    if (fieldKey == "add"){
+    if (fieldKey === "add"){
       handleAddUnit(value);
+      return;
     }
     if (inspectorIndex && fieldKey !== "id") {
       // Handle position field (no coordinates needed)

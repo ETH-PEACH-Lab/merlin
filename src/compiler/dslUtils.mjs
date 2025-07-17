@@ -136,10 +136,12 @@ export function getFieldDropdownOptions(fieldKey) {
 export function getAdditionalGUIFields(componentType) {
   const fieldDefinitions = {
     array: {
+      add: ["Add", "add"],
       remove: ["Remove", "remove"],
     },
     matrix: {},
     stack: {
+      add: ["Add", "add"],
       remove: ["Remove", "remove"],
     },
     graph: {},
