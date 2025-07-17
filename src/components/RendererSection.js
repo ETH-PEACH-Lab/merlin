@@ -14,9 +14,11 @@ import ShareIcon from '@mui/icons-material/Share';
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import RectangleOutlinedIcon from '@mui/icons-material/RectangleOutlined';
+import SlideshowIcon from '@mui/icons-material/Slideshow';
+import SettingsIcon from '@mui/icons-material/Settings';
+import WebIcon from '@mui/icons-material/Web';
 import { useParseCompile } from "../context/ParseCompileContext";
 import { createShareableUrl, copyToClipboard } from "../utils/urlSharing";
-
 const RendererSection = ({
   mermaidCode,
   handleExport,
@@ -27,6 +29,7 @@ const RendererSection = ({
   inspectorIndex,
   currentPage,
   setCurrentPage,
+  onOpenCustomExport,
 }) => {
   const [svgElement, updateSvgElement] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);
@@ -174,13 +177,14 @@ const RendererSection = ({
             <Typography variant="overline" sx={{ pl: 2 }}>Export Controls</Typography>
           </Box>
           <Box sx={{ display: "flex" }}>
-            <Tooltip title="Download">
+            <Tooltip title={pages.length === 0 ? "No pages to export" : "Export"}>
               <span>
                 <IconButton
                   aria-describedby={id1}
                   onClick={handleExpand1}
                   sx={{ mr: 1 }}
                   size="small"
+                  disabled={pages.length === 0}
                 >
                   <DownloadIcon sx={{ fontSize: 20 }}></DownloadIcon>
                 </IconButton>
@@ -195,19 +199,34 @@ const RendererSection = ({
                 horizontal: 'left',
               }}>
               <List>
-                <ListItem>
-                  <Button onClick={() => { handleExport('svg') }} startIcon={<ShapeLineIcon />}>
-                    <ListItemText>SVG</ListItemText>
+                <ListItem disableGutters sx={{ px: 1.5 }}>
+                  <Button fullWidth onClick={() => { handleExport('svg') }} startIcon={<ShapeLineIcon />} sx={{ justifyContent: 'flex-start', textAlign: 'left', px: 2 }}>
+                    <ListItemText primary={`SVG ${pages.length > 1 ? '(ZIP)' : ''}`} />
                   </Button>
                 </ListItem>
-                <ListItem>
-                  <Button onClick={() => handleExport('png')} startIcon={<ImageIcon />}>
-                    <ListItemText>PNG</ListItemText>
+                <ListItem disableGutters sx={{ px: 1.5 }}>
+                  <Button fullWidth onClick={() => handleExport('png')} startIcon={<ImageIcon />} sx={{ justifyContent: 'flex-start', textAlign: 'left', px: 2 }}>
+                    <ListItemText primary={`PNG ${pages.length > 1 ? '(ZIP)' : ''}`} />
                   </Button>
                 </ListItem>
-                <ListItem>
-                  <Button onClick={() => handleExport('pdf')} startIcon={<PictureAsPdfIcon />}>
-                    <ListItemText>PDF</ListItemText>
+                <ListItem disableGutters sx={{ px: 1.5 }}>
+                  <Button fullWidth onClick={() => handleExport('pdf')} startIcon={<PictureAsPdfIcon />} sx={{ justifyContent: 'flex-start', textAlign: 'left', px: 2 }}>
+                    <ListItemText primary={`PDF ${pages.length > 1 ? '(Multi-page)' : ''}`} />
+                  </Button>
+                </ListItem>
+                <ListItem disableGutters sx={{ px: 1.5 }}>
+                  <Button fullWidth onClick={() => handleExport('pptx')} startIcon={<SlideshowIcon />} sx={{ justifyContent: 'flex-start', textAlign: 'left', px: 2 }}>
+                    <ListItemText primary={`PPTX ${pages.length > 1 ? '(Multi-slide)' : ''}`} />
+                  </Button>
+                </ListItem>
+                <ListItem disableGutters sx={{ px: 1.5 }}>
+                  <Button fullWidth onClick={() => handleExport('html')} startIcon={<WebIcon />} sx={{ justifyContent: 'flex-start', textAlign: 'left', px: 2 }}>
+                    <ListItemText primary={`HTML ${pages.length > 1 ? '(Interactive)' : ''}`} />
+                  </Button>
+                </ListItem>
+                <ListItem disableGutters sx={{ px: 1.5 }}>
+                  <Button fullWidth onClick={onOpenCustomExport} startIcon={<SettingsIcon />} sx={{ justifyContent: 'flex-start', textAlign: 'left', px: 2 }}>
+                    <ListItemText primary="Custom Export" />
                   </Button>
                 </ListItem>
               </List>

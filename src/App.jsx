@@ -5,8 +5,6 @@ import EditorSection from "./components/EditorSection";
 import RendererSection from "./components/RendererSection";
 import "./index.css";
 import download from "downloadjs";
-import { toPng } from "html-to-image";
-import jsPDF from "jspdf";
 import { examples } from "./examples"; // Import the generated examples file
 import "./App.css"; // Import the new CSS file for the top bar
 import { Box } from "@mui/material";
@@ -15,6 +13,9 @@ import GUIEditor from "./components/GUIEditor";
 import Header from "./components/Header";
 import { useParseCompile } from "./context/ParseCompileContext";
 import { extractCodeFromUrl, hasSharedExample } from "./utils/urlSharing";
+import { handleExport } from "./utils/exportUtils";
+import ExportProgressDialog from "./components/ExportProgressDialog";
+import CustomExportDialog from "./components/CustomExportDialog";
 
 const App = () => {
   // Use context for code and parsing
@@ -34,6 +35,16 @@ const App = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [dslEditorEditable, setDslEditorEditable] = useState(true);
 
+  // Export state
+  const [exportProgress, setExportProgress] = useState({
+    open: false,
+    current: 0,
+    total: 0,
+    message: '',
+    isIndeterminate: false
+  });
+  const [customExportOpen, setCustomExportOpen] = useState(false);
+
   const mermaidRef = useRef(null);
   const containerRef = useRef(null);
 
@@ -48,7 +59,7 @@ const App = () => {
 
   useEffect(() => {
     loadSavedItems();
-    
+
     // Check if there's a shared example in the URL
     if (hasSharedExample()) {
       const sharedCode = extractCodeFromUrl();
@@ -82,7 +93,7 @@ const App = () => {
   }, [updateUnparsedCode]);
 
   const handleMouseDown = (e) => {
-    const startX = e.clientX; 
+    const startX = e.clientX;
     const startWidth = leftWidth;
 
     const handleMouseMove = (e) => {
@@ -101,20 +112,35 @@ const App = () => {
     document.addEventListener("mouseup", handleMouseUp);
   };
 
-  const handleExport = async (format) => {
-    if (mermaidRef.current) {
-      const dataUrl = await toPng(mermaidRef.current);
-      if (format === "png") {
-        download(dataUrl, "diagram.png");
-      } else if (format === "pdf") {
-        const pdf = new jsPDF();
-        pdf.addImage(dataUrl, "PNG", 10, 10, 180, 160);
-        pdf.save("diagram.pdf");
-      } else if (format === "svg") {
-        const svg = mermaidRef.current.innerHTML;
-        download(svg, "diagram.svg", "image/svg+xml");
-      }
+  // Helper function to handle exports using the new export utilities
+  const handleExportWrapper = async (format, customConfig = null) => {
+    const onProgress = (current, total, message, isIndeterminate = false) => {
+      setExportProgress({
+        open: true,
+        current,
+        total,
+        message,
+        isIndeterminate
+      });
+    };
+
+    try {
+      // Show initial progress
+      onProgress(0, 0, 'Preparing export...', true);
+      
+      await handleExport(format, compiledMerlin, pages, mermaidRef, customConfig, onProgress);
+      
+      // Hide progress dialog after successful export
+      setExportProgress(prev => ({ ...prev, open: false }));
+    } catch (error) {
+      console.error(`Export failed for format ${format}:`, error);
+      // Hide progress dialog on error
+      setExportProgress(prev => ({ ...prev, open: false }));
     }
+  };
+
+  const handleCustomExport = (format, customConfig) => {
+    handleExportWrapper(format, customConfig);
   };
 
   const handleSelectExample = (item) => {
@@ -312,13 +338,14 @@ ${timestamp}
                   >
                     <RendererSection
                       mermaidCode={compiledMerlin}
-                      handleExport={handleExport}
+                      handleExport={handleExportWrapper}
                       handleSave={handleSave}
                       mermaidRef={mermaidRef}
                       updateInspector={updateInspector}
                       inspectorIndex={inspectorIndex}
                       currentPage={currentPage}
                       setCurrentPage={setCurrentPage}
+                      onOpenCustomExport={() => setCustomExportOpen(true)}
                     />
                     {/* <GUIEditor
                       inspectorIndex={inspectorIndex}
@@ -334,6 +361,26 @@ ${timestamp}
           </Box>
         </Box>
       </Box>
+
+      {/* Export Progress Dialog */}
+      <ExportProgressDialog
+        open={exportProgress.open}
+        current={exportProgress.current}
+        total={exportProgress.total}
+        message={exportProgress.message}
+        title="Exporting Diagram"
+      />
+
+      {/* Custom Export Dialog */}
+      <CustomExportDialog
+        open={customExportOpen}
+        onClose={() => setCustomExportOpen(false)}
+        onExport={handleCustomExport}
+        compiledMerlin={compiledMerlin}
+        pages={pages}
+        mermaidRef={mermaidRef}
+        currentPage={currentPage}
+      />
     </div>
   );
 };

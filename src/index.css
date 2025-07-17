@@ -6,6 +6,91 @@ html, body, #app {
   font-family: 'Arial', sans-serif;
 }
 
+/* Dark scrollbar styles */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #404040 #1a1a1a;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background-color: #1a1a1a !important;
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: #404040 !important;
+  border-radius: 4px;
+  border: 1px solid #2a2a2a;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: #505050 !important;
+}
+
+*::-webkit-scrollbar-thumb:active {
+  background-color: #606060 !important;
+}
+
+*::-webkit-scrollbar-corner {
+  background-color: #1a1a1a !important;
+}
+
+/* Force dark color scheme */
+html {
+  color-scheme: dark;
+}
+
+body {
+  color-scheme: dark;
+}
+
+/* Target specific scrollable elements */
+div[class*="MuiBox"], 
+.main-content,
+.navigation-bar-content,
+textarea,
+pre,
+code {
+  scrollbar-width: thin;
+  scrollbar-color: #404040 #1a1a1a;
+}
+
+div[class*="MuiBox"]::-webkit-scrollbar,
+.main-content::-webkit-scrollbar,
+.navigation-bar-content::-webkit-scrollbar,
+textarea::-webkit-scrollbar,
+pre::-webkit-scrollbar,
+code::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+div[class*="MuiBox"]::-webkit-scrollbar-track,
+.main-content::-webkit-scrollbar-track,
+.navigation-bar-content::-webkit-scrollbar-track,
+textarea::-webkit-scrollbar-track,
+pre::-webkit-scrollbar-track,
+code::-webkit-scrollbar-track {
+  background-color: #1a1a1a !important;
+  border-radius: 4px;
+}
+
+div[class*="MuiBox"]::-webkit-scrollbar-thumb,
+.main-content::-webkit-scrollbar-thumb,
+.navigation-bar-content::-webkit-scrollbar-thumb,
+textarea::-webkit-scrollbar-thumb,
+pre::-webkit-scrollbar-thumb,
+code::-webkit-scrollbar-thumb {
+  background-color: #404040 !important;
+  border-radius: 4px;
+  border: 1px solid #2a2a2a;
+}
+
 .container {
   display: flex;
   height: 100vh;

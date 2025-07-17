@@ -2,6 +2,7 @@ const HtmlWebPackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const ProgressBarPlugin = require('progress-bar-webpack-plugin');
 const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
+const webpack = require('webpack');
 
 
 const path = require('path');
@@ -38,7 +39,15 @@ let webpackConfig = {
     modules: [
       path.resolve(__dirname, 'src'),
       'node_modules'
-    ]
+    ],
+    fallback: {
+      "fs": false,
+      "https": false,
+      "path": false,
+      "os": false,
+      "fs/promises": false,
+      "image-size": false
+    }
   },
 
   module: {
@@ -91,7 +100,13 @@ let webpackConfig = {
     new HtmlWebPackPlugin({
       template: 'src/public/index.html.ejs',
       favicon: 'src/public/favicon.png' // Ensure this line is added
-    })
+    }),
+    new webpack.NormalModuleReplacementPlugin(
+      /^node:(fs|https|path|os|image-size|fs\/promises)$/,
+      (resource) => {
+        resource.request = resource.request.replace(/^node:/, "");
+      }
+    )
   ],
 
   resolveLoader: {
