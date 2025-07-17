@@ -29,7 +29,7 @@ import {
 } from "../compiler/dslUtils.mjs";
 
 
-const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate, onRemove }) => {
+const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate, onRemove, leaveFunction }) => {
   const [label, inputType] = fieldConfig;
 
   const getIcon = (name) => {
@@ -58,6 +58,7 @@ const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate, onRemo
   const handleKeyDown = (ev) => {
     if (ev.key === 'Enter') {
       ev.target.blur();
+      leaveFunction();
       ev.preventDefault();
     }
   };
@@ -213,6 +214,7 @@ const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate, onRemo
 export const UnitEditor = ({
   inspectorIndex,
   currentPage,
+  leaveFunction,
 }) => {
   const defaultUnitValue = {
     displayId: "the unit id can't be changed",
@@ -326,6 +328,7 @@ export const UnitEditor = ({
                 onChange={handleFieldChange}
                 onUpdate={handleFieldUpdate}
                 onRemove={handleRemoveUnit}
+                leaveFunction={leaveFunction}
               />
             ))
           }
@@ -338,6 +341,7 @@ export const UnitEditor = ({
                 value={currentUnitData[fieldKey]}
                 onChange={handleFieldChange}
                 onUpdate={handleFieldUpdate}
+                leaveFunction={leaveFunction}
               />
             ))
           }
