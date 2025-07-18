@@ -99,7 +99,7 @@ export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, curr
         slotProps={{ paper: { sx: { pointerEvents: "auto" } } }}
         sx={{ pointerEvents: "none" }}>
         <div id='mouse-over-popover-div'>
-          <UnitEditor inspectorIndex={inspectorIndex} currentPage={currentPage}/>
+          <UnitEditor inspectorIndex={inspectorIndex} currentPage={currentPage} leaveFunction={popoverLeave}/>
         </div>
       </Popover>
     </div>

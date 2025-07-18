@@ -96,9 +96,10 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
     };
 
     // Add a new unit
-    const addUnit = useCallback((page, component, coordinates, val) => {
+    const addUnit = useCallback((page, component, type, coordinates, val) => {
         const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
-        const args = {index: coordinates.index + 1, value: val}
+        const idx = (type === "stack") ? coordinates.index : coordinates.index + 1;
+        const args = {index: idx, value: val}
         parsedCode.cmds.splice(pageEndIndex, 0, { name: component, target: "value", type: "insert", args: args});
         reconstructMerlinLite();
     }, [parsedCode]);

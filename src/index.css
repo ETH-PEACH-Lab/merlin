@@ -131,3 +131,7 @@ html, body, #app {
 .navigation-buttons{
   transform: translate(-400px, -300px);
 }
+
+.MuiTouchRipple-root {
+  display: none;
+}
