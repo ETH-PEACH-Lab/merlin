@@ -70,6 +70,7 @@ const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate, onRemo
     if (inputType === "color") {
       const convertedValue = convertValueToType(newValue, inputType);
       onUpdate(fieldKey, convertedValue);
+      leaveFunction();
     }
   };
 
@@ -151,6 +152,7 @@ const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate, onRemo
       <EditUnitItem
         name={label}
         icon={getIcon(label)}
+        leaveFunction={leaveFunction}
         formFields={<TextField
         label={label}
         id={`${fieldKey}-input`}
@@ -159,8 +161,7 @@ const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate, onRemo
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
         style={{margin: "15px 10px 10px 10px"}}
-      />}
-      >
+      />}>
       </EditUnitItem>
     );
   }
@@ -196,6 +197,7 @@ const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate, onRemo
     <EditUnitItem
       name={label}
       icon={getIcon(label)}
+      leaveFunction={leaveFunction}
       formFields={<TextField
       label={label}
       id={`${fieldKey}-input`}
@@ -246,6 +248,7 @@ export const UnitEditor = ({
   };
 
   const handleRemoveUnit = () => {
+    leaveFunction();
     removeUnit(
           currentUnitData.page,
           currentUnitData.name,
