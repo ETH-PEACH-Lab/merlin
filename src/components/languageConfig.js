@@ -159,25 +159,25 @@ export const methodDocumentation = {
     array: {
       signature: 'setValue(index, value)',
       description: 'Set value at specific index',
-      parameters: ['index: number - The array index', 'value: number|string|null - The new value'],
+      parameters: ['index: `number` - The array index', 'value: `number|string|null` - The new value'],
       example: 'myArray.setValue(0, 42)'
     },
     matrix: {
       signature: 'setValue(row, col, value)',
       description: 'Set value at specific matrix position',
-      parameters: ['row: number - The row index', 'col: number - The column index', 'value: number|string|null - The new value'],
+      parameters: ['row: `number` - The row index', 'col: `number` - The column index', 'value: `number|string|null` - The new value'],
       example: 'myMatrix.setValue(1, 2, 42)'
     },
     text: {
       signature: 'setValue(line, value)',
       description: 'Set text content for specific line',
-      parameters: ['line: number - The line index', 'value: string - The new text content'],
+      parameters: ['line: `number` - The line index', 'value: `string` - The new text content'],
       example: 'myText.setValue(0, "New title")'
     },
     default: {
       signature: 'setValue(index, value)',
       description: 'Set value at specific index/position',
-      parameters: ['index: number - The element index', 'value: number|string|null - The new value'],
+      parameters: ['index: `number` - The element index', 'value: `number|string|null` - The new value'],
       example: 'element.setValue(0, 42)'
     }
   },
@@ -185,25 +185,25 @@ export const methodDocumentation = {
     array: {
       signature: 'setColor(index, color)',
       description: 'Set color at specific index',
-      parameters: ['index: number - The array index', 'color: string|null - Color name or hex code'],
+      parameters: ['index: `number` - The array index', 'color: `string|null` - Color name or hex code'],
       example: 'myArray.setColor(0, "red")'
     },
     matrix: {
       signature: 'setColor(row, col, color)',
       description: 'Set color at specific matrix position',
-      parameters: ['row: number - The row index', 'col: number - The column index', 'color: string|null - Color name or hex code'],
+      parameters: ['row: `number` - The row index', 'col: `number` - The column index', 'color: `string|null` - Color name or hex code'],
       example: 'myMatrix.setColor(1, 2, "#ff0000")'
     },
     text: {
       signature: 'setColor(line, color)',
       description: 'Set color for specific text line',
-      parameters: ['line: number - The line index', 'color: string - Color name or hex code'],
+      parameters: ['line: `number` - The line index', 'color: `string` - Color name or hex code'],
       example: 'myText.setColor(0, "blue")'
     },
     default: {
       signature: 'setColor(index, color)',
       description: 'Set color at specific index/position',
-      parameters: ['index: number - The element index', 'color: string|null - Color name or hex code'],
+      parameters: ['index: `number` - The element index', 'color: `string|null` - Color name or hex code'],
       example: 'element.setColor(0, "green")'
     }
   },
@@ -211,19 +211,19 @@ export const methodDocumentation = {
     array: {
       signature: 'setArrow(index, arrow)',
       description: 'Set arrow/label at specific index',
-      parameters: ['index: number - The array index', 'arrow: string|number|null - Arrow label or value'],
+      parameters: ['index: `number` - The array index', 'arrow: `string|number|null` - Arrow label or value'],
       example: 'myArray.setArrow(0, "start")'
     },
     matrix: {
       signature: 'setArrow(row, col, arrow)',
       description: 'Set arrow/label at specific matrix position',
-      parameters: ['row: number - The row index', 'col: number - The column index', 'arrow: string|number|null - Arrow label or value'],
+      parameters: ['row: `number` - The row index', 'col: `number` - The column index', 'arrow: `string|number|null` - Arrow label or value'],
       example: 'myMatrix.setArrow(1, 2, "pivot")'
     },
     default: {
       signature: 'setArrow(index, arrow)',
       description: 'Set arrow/label at specific index/position',
-      parameters: ['index: number - The element index', 'arrow: string|number|null - Arrow label or value'],
+      parameters: ['index: `number` - The element index', 'arrow: `string|number|null` - Arrow label or value'],
       example: 'element.setArrow(0, "marker")'
     }
   },
@@ -232,19 +232,19 @@ export const methodDocumentation = {
   setValues: {
     description: 'Set multiple values at once (use _ to keep existing)',
     signature: 'setValues([values])',
-    parameters: ['values: array - Array of values (use _ to keep existing values)'],
+    parameters: ['values: `array` - Array of values (use _ to keep existing values)'],
     example: 'myArray.setValues([1, _, 3, 4]) // keeps index 1 unchanged'
   },
   setColors: {
     description: 'Set multiple colors at once',
     signature: 'setColors([colors])',
-    parameters: ['colors: array - Array of color values'],
+    parameters: ['colors: `array` - Array of color values'],
     example: 'myArray.setColors(["red", "green", null, "blue"])'
   },
   setArrows: {
     description: 'Set multiple arrows at once',
     signature: 'setArrows([arrows])',
-    parameters: ['arrows: array - Array of arrow values'],
+    parameters: ['arrows: `array` - Array of arrow values'],
     example: 'myArray.setArrows(["start", null, "pivot", "end"])'
   },
 
@@ -252,13 +252,13 @@ export const methodDocumentation = {
   addValue: {
     description: 'Add value to end of structure',
     signature: 'addValue(value)',
-    parameters: ['value: number|string|null - The value to add'],
+    parameters: ['value: `number|string|null` - The value to add'],
     example: 'myArray.addValue(42)'
   },
   insertValue: {
     description: 'Insert value at specific index',
     signature: 'insertValue(index, value)',
-    parameters: ['index: number - Position to insert at', 'value: number|string|null - The value to insert'],
+    parameters: ['index: `number` - Position to insert at', 'value: `number|string|null` - The value to insert'],
     example: 'myArray.insertValue(2, 42)'
   },
 
@@ -266,13 +266,13 @@ export const methodDocumentation = {
   removeValue: {
     description: 'Remove first occurrence of value',
     signature: 'removeValue(value)',
-    parameters: ['value: number|string|null - The value to remove'],
+    parameters: ['value: `number|string|null` - The value to remove'],
     example: 'myArray.removeValue(42)'
   },
   removeAt: {
     description: 'Remove element at specific index',
     signature: 'removeAt(index)',
-    parameters: ['index: number - The index to remove'],
+    parameters: ['index: `number` - The index to remove'],
     example: 'myArray.removeAt(2)'
   },
 
@@ -280,49 +280,49 @@ export const methodDocumentation = {
   addNode: {
     description: 'Add node to graph structure',
     signature: 'addNode(name, value)',
-    parameters: ['name: string - The node identifier', 'value: number|string - The node value'],
+    parameters: ['name: `string` - The node identifier', 'value: `number|string` - The node value'],
     example: 'myGraph.addNode("n4", 42)'
   },
   insertNode: {
     description: 'Insert node at specific index',
     signature: 'insertNode(index, name)',
-    parameters: ['index: number - Position to insert at', 'name: string - The node identifier'],
+    parameters: ['index: `number` - Position to insert at', 'name: `string` - The node identifier'],
     example: 'myLinkedList.insertNode(2, "newNode")'
   },
   removeNode: {
     description: 'Remove node from structure',
     signature: 'removeNode(name)',
-    parameters: ['name: string - The node identifier to remove'],
+    parameters: ['name: `string` - The node identifier to remove'],
     example: 'myGraph.removeNode("n3")'
   },
   addEdge: {
     description: 'Add edge between two nodes',
     signature: 'addEdge(nodeA-nodeB)',
-    parameters: ['edge: string - Edge in format "nodeA-nodeB"'],
+    parameters: ['edge: `string` - Edge in format "nodeA-nodeB"'],
     example: 'myGraph.addEdge("n1-n4")'
   },
   insertEdge: {
     description: 'Insert edge at specific index',
     signature: 'insertEdge(index, nodeA-nodeB)',
-    parameters: ['index: number - Position to insert at', 'edge: string - Edge in format "nodeA-nodeB"'],
+    parameters: ['index: `number` - Position to insert at', 'edge: `string` - Edge in format "nodeA-nodeB"'],
     example: 'myGraph.insertEdge(1, "n2-n4")'
   },
   removeEdge: {
     description: 'Remove edge between nodes',
     signature: 'removeEdge(nodeA-nodeB)',
-    parameters: ['edge: string - Edge in format "nodeA-nodeB"'],
+    parameters: ['edge: `string` - Edge in format "nodeA-nodeB"'],
     example: 'myGraph.removeEdge("n1-n3")'
   },
   setEdges: {
     description: 'Set all edges at once',
     signature: 'setEdges([edges])',
-    parameters: ['edges: array - Array of edges in format ["nodeA-nodeB", ...]'],
+    parameters: ['edges: `array` - Array of edges in format ["nodeA-nodeB", ...]'],
     example: 'myGraph.setEdges(["n1-n2", "n2-n3"])'
   },
   setHidden: {
     description: 'Set visibility of graph element',
     signature: 'setHidden(index, hidden)',
-    parameters: ['index: number - The element index', 'hidden: boolean - Whether to hide the element'],
+    parameters: ['index: `number` - The element index', 'hidden: `boolean` - Whether to hide the element'],
     example: 'myGraph.setHidden(2, true)'
   },
 
@@ -330,19 +330,19 @@ export const methodDocumentation = {
   addChild: {
     description: 'Add child to tree node',
     signature: 'addChild(parent-child, value)',
-    parameters: ['relationship: string - Parent-child in format "parent-child"', 'value: number|string - The child value'],
+    parameters: ['relationship: `string` - Parent-child in format "parent-child"', 'value: `number|string` - The child value'],
     example: 'myTree.addChild("root-newChild", 42)'
   },
   setChild: {
     description: 'Set child relationship in tree',
     signature: 'setChild(parent-child)',
-    parameters: ['relationship: string - Parent-child in format "parent-child"'],
+    parameters: ['relationship: `string` - Parent-child in format "parent-child"'],
     example: 'myTree.setChild("n1-n4")'
   },
   removeSubtree: {
     description: 'Remove entire subtree starting from node',
     signature: 'removeSubtree(node)',
-    parameters: ['node: string - The root node of subtree to remove'],
+    parameters: ['node: `string` - The root node of subtree to remove'],
     example: 'myTree.removeSubtree("n3")'
   },
 
@@ -350,31 +350,31 @@ export const methodDocumentation = {
   addRow: {
     description: 'Add row to matrix',
     signature: 'addRow([values])',
-    parameters: ['values: array - Array of values for the new row'],
+    parameters: ['values: `array` - Array of values for the new row'],
     example: 'myMatrix.addRow([1, 2, 3])'
   },
   addColumn: {
     description: 'Add column to matrix at specified position',
     signature: 'addColumn(position, [values])',
-    parameters: ['position: number - Column position to insert at', 'values: array - Array of values for the new column'],
+    parameters: ['position: `number` - Column position to insert at', 'values: `array` - Array of values for the new column'],
     example: 'myMatrix.addColumn(1, [4, 5, 6])'
   },
   removeRow: {
     description: 'Remove row from matrix',
     signature: 'removeRow(index)',
-    parameters: ['index: number - The row index to remove'],
+    parameters: ['index: `number` - The row index to remove'],
     example: 'myMatrix.removeRow(2)'
   },
   removeColumn: {
     description: 'Remove column from matrix',
     signature: 'removeColumn(index)',
-    parameters: ['index: number - The column index to remove'],
+    parameters: ['index: `number` - The column index to remove'],
     example: 'myMatrix.removeColumn(1)'
   },
   addBorder: {
     description: 'Add border to matrix with value and color',
     signature: 'addBorder(value, color)',
-    parameters: ['value: number|string - Border value', 'color: string - Border color'],
+    parameters: ['value: `number|string` - Border value', 'color: `string` - Border color'],
     example: 'myMatrix.addBorder(0, "gray")'
   },
 
@@ -383,13 +383,13 @@ export const methodDocumentation = {
     text: {
       signature: 'setFontSize(size) or setFontSize(line, size)',
       description: 'Set font size for all text or specific line',
-      parameters: ['size: number - Font size in pixels', 'line: number - (optional) Specific line index'],
+      parameters: ['size: `number` - Font size in pixels', 'line: `number` - (optional) Specific line index'],
       example: 'myText.setFontSize(16) or myText.setFontSize(0, 20)'
     },
     default: {
       signature: 'setFontSize(size)',
       description: 'Set font size for text element',
-      parameters: ['size: number - Font size in pixels'],
+      parameters: ['size: `number` - Font size in pixels'],
       example: 'myText.setFontSize(16)'
     }
   },
@@ -397,13 +397,13 @@ export const methodDocumentation = {
     text: {
       signature: 'setFontWeight(weight) or setFontWeight(line, weight)',
       description: 'Set font weight for all text or specific line',
-      parameters: ['weight: string - Font weight (normal, bold, etc.)', 'line: number - (optional) Specific line index'],
+      parameters: ['weight: `string` - Font weight (normal, bold, etc.)', 'line: `number` - (optional) Specific line index'],
       example: 'myText.setFontWeight("bold") or myText.setFontWeight(0, "normal")'
     },
     default: {
       signature: 'setFontWeight(weight)',
       description: 'Set font weight for text element',
-      parameters: ['weight: string - Font weight (normal, bold, etc.)'],
+      parameters: ['weight: `string` - Font weight (normal, bold, etc.)'],
       example: 'myText.setFontWeight("bold")'
     }
   },
@@ -411,13 +411,13 @@ export const methodDocumentation = {
     text: {
       signature: 'setFontFamily(family) or setFontFamily(line, family)',
       description: 'Set font family for all text or specific line',
-      parameters: ['family: string - Font family name', 'line: number - (optional) Specific line index'],
+      parameters: ['family: `string` - Font family name', 'line: `number` - (optional) Specific line index'],
       example: 'myText.setFontFamily("Arial") or myText.setFontFamily(0, "Georgia")'
     },
     default: {
       signature: 'setFontFamily(family)',
       description: 'Set font family for text element',
-      parameters: ['family: string - Font family name'],
+      parameters: ['family: `string` - Font family name'],
       example: 'myText.setFontFamily("Arial")'
     }
   },
@@ -425,56 +425,56 @@ export const methodDocumentation = {
     text: {
       signature: 'setAlign(alignment) or setAlign(line, alignment)',
       description: 'Set text alignment for all text or specific line',
-      parameters: ['alignment: string - Text alignment (left, center, right)', 'line: number - (optional) Specific line index'],
+      parameters: ['alignment: `string` - Text alignment (left, center, right)', 'line: `number` - (optional) Specific line index'],
       example: 'myText.setAlign("center") or myText.setAlign(0, "left")'
     },
     default: {
       signature: 'setAlign(alignment)',
       description: 'Set text alignment',
-      parameters: ['alignment: string - Text alignment (left, center, right)'],
+      parameters: ['alignment: `string` - Text alignment (left, center, right)'],
       example: 'myText.setAlign("center")'
     }
   },
   setFontSizes: {
     description: 'Set font sizes for multiple text lines',
     signature: 'setFontSizes([sizes])',
-    parameters: ['sizes: array - Array of font sizes for each line'],
+    parameters: ['sizes: `array` - Array of font sizes for each line'],
     example: 'myText.setFontSizes([20, 16, 12])'
   },
   setFontWeights: {
     description: 'Set font weights for multiple text lines',
     signature: 'setFontWeights([weights])',
-    parameters: ['weights: array - Array of font weights for each line'],
+    parameters: ['weights: `array` - Array of font weights for each line'],
     example: 'myText.setFontWeights(["bold", "normal", "normal"])'
   },
   setFontFamilies: {
     description: 'Set font families for multiple text lines',
     signature: 'setFontFamilies([families])',
-    parameters: ['families: array - Array of font families for each line'],
+    parameters: ['families: `array` - Array of font families for each line'],
     example: 'myText.setFontFamilies(["Arial", "Georgia", "Times"])'
   },
   setAligns: {
     description: 'Set alignments for multiple text lines',
     signature: 'setAligns([alignments])',
-    parameters: ['alignments: array - Array of alignments for each line'],
+    parameters: ['alignments: `array` - Array of alignments for each line'],
     example: 'myText.setAligns(["center", "left", "right"])'
   },
   setLineSpacing: {
     description: 'Set spacing between text lines',
     signature: 'setLineSpacing(spacing)',
-    parameters: ['spacing: number - Spacing between lines in pixels'],
+    parameters: ['spacing: `number` - Spacing between lines in pixels'],
     example: 'myText.setLineSpacing(20)'
   },
   setWidth: {
     description: 'Set text box width',
     signature: 'setWidth(width)',
-    parameters: ['width: number - Text box width in pixels'],
+    parameters: ['width: `number` - Text box width in pixels'],
     example: 'myText.setWidth(300)'
   },
   setHeight: {
     description: 'Set text box height',
     signature: 'setHeight(height)',
-    parameters: ['height: number - Text box height in pixels'],
+    parameters: ['height: `number` - Text box height in pixels'],
     example: 'myText.setHeight(100)'
   }
 };
@@ -579,3 +579,120 @@ export const monacoLanguageConfig = {
     { open: "'", close: "'" }
   ]
 };
+
+// Error state management for Monaco editor
+export class ErrorStateManager {
+  constructor() {
+    this.monaco = null;
+    this.editor = null;
+    this.currentMarkers = [];
+  }
+
+  init(monaco, editor) {
+    this.monaco = monaco;
+    this.editor = editor;
+  }
+
+  /**
+   * Create a structured error object
+   * @param {string} message - Error message
+   * @param {number} line - Line number (1-based)
+   * @param {number} col - Column number (1-based)
+   * @returns {Object} Structured error object
+   */
+  static createError(message, line = 1, col = 1) {
+    return {
+      message,
+      line: Math.max(1, line),
+      col: Math.max(1, col)
+    };
+  }
+
+  /**
+   * Set error with structured error object or individual parameters
+   * @param {Object|string} error - Error object with {line, col, message} or error message string
+   * @param {number} [lineNumber] - Line number (1-based) if error is a string
+   * @param {number} [columnNumber] - Column number (1-based) if error is a string
+   */
+  setError(error, lineNumber = null, columnNumber = null) {
+    if (!this.monaco || !this.editor) return;
+
+    // Clear existing markers
+    this.clearErrors();
+
+    if (!error) return;
+
+    let errorObj;
+    
+    // Handle structured error object
+    if (typeof error === 'object' && error !== null) {
+      errorObj = {
+        line: error.line || 1,
+        col: error.col || 1,
+        message: error.message || 'Unknown error'
+      };
+    } else {
+      // Handle legacy string error message with optional line/col parameters
+      errorObj = {
+        line: lineNumber || 1,
+        col: columnNumber || 1,
+        message: error.toString()
+      };
+    }
+
+    // Create marker for the error
+    const model = this.editor.getModel();
+    if (!model) return;
+
+    // Validate line number - must be between 1 and the total number of lines
+    const totalLines = model.getLineCount();
+    const validLine = Math.max(1, Math.min(errorObj.line, totalLines));
+    const validCol = Math.max(1, errorObj.col);
+
+    // Get line content safely
+    let endColumn = validCol + 1;
+    try {
+      const lineContent = model.getLineContent(validLine);
+      if (lineContent) {
+        endColumn = Math.max(validCol + 1, Math.min(lineContent.length + 1, validCol + 50));
+      }
+    } catch (e) {
+      console.warn('Error getting line content:', e);
+      endColumn = validCol + 10;
+    }
+
+    const marker = {
+      startLineNumber: validLine,
+      startColumn: validCol,
+      endLineNumber: validLine,
+      endColumn: endColumn,
+      message: errorObj.message,
+      severity: this.monaco.MarkerSeverity.Error
+    };
+
+    this.currentMarkers = [marker];
+    
+    try {
+      this.monaco.editor.setModelMarkers(model, 'merlin-errors', this.currentMarkers);
+    } catch (e) {
+      console.warn('Error setting markers:', e);
+    }
+  }
+
+  clearErrors() {
+    if (!this.monaco || !this.editor) return;
+    
+    const model = this.editor.getModel();
+    if (model) {
+      try {
+        this.monaco.editor.setModelMarkers(model, 'merlin-errors', []);
+      } catch (e) {
+        console.warn('Error clearing markers:', e);
+      }
+    }
+    this.currentMarkers = [];
+  }
+}
+
+// Create a singleton instance
+export const errorStateManager = new ErrorStateManager();

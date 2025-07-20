@@ -6,16 +6,20 @@ import {
   methodDocumentation,
   methodDescriptions,
   themeConfig,
-  monacoLanguageConfig
+  monacoLanguageConfig,
+  errorStateManager
 } from './languageConfig.js';
 
 export function registerCustomLanguage(monaco) {
   // Prevent multiple registrations
   if (window.customLangRegistered) {
-    console.log('Custom language already registered, skipping...');
     return;
   }
   window.customLangRegistered = true;
+  
+  // Initialize error state manager
+  window.errorStateManager = errorStateManager;
+  errorStateManager.monaco = monaco;
   
   // Register a new language
   monaco.languages.register({ id: "customLang" });
@@ -72,9 +76,6 @@ export function registerCustomLanguage(monaco) {
       }
     }
 
-    console.log('Parsed text until position:', textUntilPosition);
-    console.log('Lines processed:', lines);
-    console.log('Variable types found:', variableTypes);
     return variableTypes;
   }
 
@@ -104,8 +105,6 @@ export function registerCustomLanguage(monaco) {
     
     const methods = typeMethodsMap[type];
     const allMethods = [];
-
-    console.log('Methods for type', type, ':', methods);
     
     // Collect all methods from all categories
     Object.values(methods).forEach(categoryMethods => {
@@ -116,7 +115,6 @@ export function registerCustomLanguage(monaco) {
     
     // Remove duplicates using Set
     const uniqueMethods = [...new Set(allMethods)];
-    console.log('Unique methods:', uniqueMethods);
     
     return uniqueMethods;
   }
@@ -167,7 +165,6 @@ export function registerCustomLanguage(monaco) {
   monaco.languages.registerCompletionItemProvider("customLang", {
     triggerCharacters: ['.'],
     provideCompletionItems: function(model, position) {
-      console.log('Completion provider called!', position);
       try {
         const word = model.getWordUntilPosition(position);
         const range = {
@@ -179,10 +176,8 @@ export function registerCustomLanguage(monaco) {
 
         // Get variable name if we're after a dot
         const varName = getVariableNameAtPosition(model, position);
-        console.log('Variable name detected:', varName);
 
         if (!varName) {
-          console.log('No variable name found, returning empty suggestions');
           // Return test suggestions to verify provider is working
           return {
             suggestions: [
@@ -201,17 +196,13 @@ export function registerCustomLanguage(monaco) {
         // Parse context to get variable types
         const variableTypes = parseContextForTypes(model, position);
         const varType = variableTypes[varName];
-        console.log('Variable types found:', variableTypes);
-        console.log('Type for', varName, ':', varType);
 
         if (!varType) {
-          console.log('No type found for variable', varName);
           return { suggestions: [] };
         }
 
         // Get methods for this type
         const methods = getMethodsForType(varType);
-        console.log('Methods for', varType, ':', methods);
 
         const suggestions = methods.map(method => ({
           label: method,
@@ -228,7 +219,6 @@ export function registerCustomLanguage(monaco) {
           }
         }));
 
-        console.log('Final suggestions:', suggestions);
         return { suggestions };
       } catch (error) {
         console.error('Error in completion provider:', error);
@@ -331,16 +321,33 @@ export function registerCustomLanguage(monaco) {
         }
       }
       
+      // Create parameter list with current parameter highlighted
+      let parametersText = '';
+      if (methodDoc.parameters && methodDoc.parameters.length > 0) {
+        parametersText = '**Parameters:**\n\n' + methodDoc.parameters.map((param, index) => {
+          const isCurrentParam = index === currentParam;
+          const parts = param.split(' - ');
+          const paramName = parts[0].trim();
+          const paramDesc = parts[1] ? ` - ${parts[1].trim()}` : '';
+          
+          if (isCurrentParam) {
+            return `• **${paramName}**${paramDesc}`;
+          } else {
+            return `• ${paramName}${paramDesc}`;
+          }
+        }).join('\n\n');
+      }
+
       const signature = {
         label: methodDoc.signature,
         documentation: {
-          value: `${methodDoc.description}\n\n**Example:**\n\`\`\`merlin\n${methodDoc.example}\n\`\`\``
+          value: `${methodDoc.description}\n\n${parametersText}\n\n**Example:**\n\`\`\`merlin\n${methodDoc.example}\n\`\`\``
         },
         parameters: methodDoc.parameters ? methodDoc.parameters.map(param => {
           const parts = param.split(' - ');
           return {
             label: parts[0].trim(),
-            documentation: parts[1] ? parts[1].trim() : ''
+            documentation: `Current Parameter: ${parts[1] ? parts[1].trim() : ''}`
           };
         }) : []
       };
