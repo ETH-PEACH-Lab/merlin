@@ -17,6 +17,11 @@ html, body, #app {
   height: 8px;
 }
 
+.monaco-editor .parameter-hints-widget .signature .code {
+  font-family: "monaco" !important;
+}
+
+
 *::-webkit-scrollbar-track {
   background-color: #1a1a1a !important;
   border-radius: 4px;
