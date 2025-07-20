@@ -227,14 +227,22 @@ const RendererSection = ({
                   </Button>
                 </ListItem>
                 <ListItem disableGutters sx={{ px: 1.5 }}>
-                  <Button fullWidth onClick={() => handleExport('gif')} startIcon={<GifBox />} sx={{ justifyContent: 'flex-start', textAlign: 'left', px: 2 }}>
-                    <ListItemText primary="GIF" />
-                  </Button>
+                    <Tooltip title={pages.length < 2 ? 'Requires at least 2 pages' : ''} disableHoverListener={pages.length >= 2} placement="top" PopperProps={{ modifiers: [{ name: 'offset', options: { offset: [0, -16] } }] }}>
+                      <span style={{ width: '100%' }}>
+                        <Button fullWidth onClick={() => handleExport('gif')} startIcon={<GifBox />} sx={{ justifyContent: 'flex-start', textAlign: 'left', px: 2 }} disabled={pages.length < 2}>
+                          <ListItemText primary="GIF" />
+                        </Button>
+                      </span>
+                    </Tooltip>
                 </ListItem>
                 <ListItem disableGutters sx={{ px: 1.5 }}>
-                  <Button fullWidth onClick={() => handleExport('video')} startIcon={<Movie />} sx={{ justifyContent: 'flex-start', textAlign: 'left', px: 2 }}>
-                    <ListItemText primary="Video (MP4)" />
-                  </Button>
+                    <Tooltip title={pages.length < 2 ? 'Requires at least 2 pages' : ''} disableHoverListener={pages.length >= 2} placement="top" PopperProps={{ modifiers: [{ name: 'offset', options: { offset: [0, -16] } }] }}>
+                      <span style={{ width: '100%' }}>
+                        <Button fullWidth onClick={() => handleExport('video')} startIcon={<Movie />} sx={{ justifyContent: 'flex-start', textAlign: 'left', px: 2 }} disabled={pages.length < 2}>
+                          <ListItemText primary="Video (MP4)" />
+                        </Button>
+                      </span>
+                    </Tooltip>
                 </ListItem>
                 <ListItem disableGutters sx={{ px: 1.5 }}>
                   <Button fullWidth onClick={onOpenCustomExport} startIcon={<SettingsIcon />} sx={{ justifyContent: 'flex-start', textAlign: 'left', px: 2 }}>

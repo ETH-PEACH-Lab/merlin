@@ -714,9 +714,31 @@ export const exportVideo = async (compiledMerlin, pages, config = EXPORT_CONFIGS
 
     // Create a video stream from the canvas
     const stream = canvas.captureStream(config.fps);
-    const mediaRecorder = new MediaRecorder(stream, {
-      mimeType: config.format === 'mp4' ? 'video/mp4' : 'video/webm;codecs=vp9'
-    });
+    
+    // Use more universally compatible codecs
+    let mimeType;
+    if (config.format === 'mp4') {
+      // For MP4, try H.264 codec which is more universally supported
+      if (MediaRecorder.isTypeSupported('video/mp4;codecs=avc1')) {
+        mimeType = 'video/mp4;codecs=avc1';
+      } else if (MediaRecorder.isTypeSupported('video/mp4')) {
+        mimeType = 'video/mp4';
+      } else {
+        // Fallback to WebM with VP8 (more compatible than VP9)
+        mimeType = 'video/webm;codecs=vp8';
+      }
+    } else {
+      // For WebM, prefer VP8 over VP9 for better compatibility
+      if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) {
+        mimeType = 'video/webm;codecs=vp8';
+      } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
+        mimeType = 'video/webm;codecs=vp9';
+      } else {
+        mimeType = 'video/webm';
+      }
+    }
+    
+    const mediaRecorder = new MediaRecorder(stream, { mimeType });
 
     const chunks = [];
     mediaRecorder.ondataavailable = (event) => {
@@ -728,9 +750,17 @@ export const exportVideo = async (compiledMerlin, pages, config = EXPORT_CONFIGS
     return new Promise((resolve, reject) => {
       mediaRecorder.onstop = () => {
         const blob = new Blob(chunks, { 
-          type: config.format === 'mp4' ? 'video/mp4' : 'video/webm' 
+          type: mimeType
         });
-        const fileName = `diagram.${config.format === 'mp4' ? 'mp4' : 'webm'}`;
+        
+        // Determine file extension based on actual codec used
+        let fileName;
+        if (mimeType.includes('mp4') || config.format === 'mp4') {
+          fileName = 'diagram.mp4';
+        } else {
+          fileName = 'diagram.webm';
+        }
+        
         download(blob, fileName, blob.type);
         
         if (onProgress) onProgress(extractedPages.length + 1, extractedPages.length + 1, 'Complete!');
