@@ -1,3 +1,14 @@
+import { 
+  languageConfig,
+  typeDocumentation,
+  typeMethodsMap,
+  methodSignatures,
+  methodDocumentation,
+  methodDescriptions,
+  themeConfig,
+  monacoLanguageConfig
+} from './languageConfig.js';
+
 export function registerCustomLanguage(monaco) {
   // Prevent multiple registrations
   if (window.customLangRegistered) {
@@ -8,107 +19,33 @@ export function registerCustomLanguage(monaco) {
   
   // Register a new language
   monaco.languages.register({ id: "customLang" });
-  const keywords = ['page', 'show', "hide", 'visslides', 'data', 'draw'];
-  const keywordPattern = new RegExp(`\\b(${keywords.join('|')})\\b`);
-
-  const symbols = [':', ':=', '=', '*', ',', '@', '&', '(', ')', '[', ']', '{', '}'];
+  
+  // Create regex patterns from config
+  const keywordPattern = new RegExp(`\\b(${languageConfig.keywords.join('|')})\\b`);
+  
   // Escape special characters for regular expression
-  const escapedSymbols = symbols.map(symbol => symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-  // Create a regular expression pattern without word boundaries
+  const escapedSymbols = languageConfig.symbols.map(symbol => symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
   const symbolPattern = new RegExp(`(${escapedSymbols.join('|')})`, 'g');
 
-  const component = ['array', 'matrix', 'linkedlist', 'stack', 'tree', 'graph', 'text'];
-  const componentPattern = new RegExp(`\\b(${component.join('|')})\\b`);
+  const componentPattern = new RegExp(`\\b(${languageConfig.components.join('|')})\\b`);
+  const attributePattern = new RegExp(`\\b(${languageConfig.attributes.join('|')})\\b`);
+  const positionPattern = new RegExp(`\\b(${languageConfig.positionKeywords.join('|')})\\b`);
 
-  const attribute = ['id', 'value', 'color', 'arrow', 'nodes', 'edges', 'hidden', 'above', 'below', 'left', 'right', 'fontSize', 'fontWeight', 'fontFamily', 'align', 'lineSpacing', 'width', 'height', 'children'];
-  const attributePattern = new RegExp(`\\b(${attribute.join('|')})\\b`);
+  const setCommand = new RegExp(`\\b(set)\\w*\\b`);
+  const addCommand = new RegExp(`\\b(add)\\w*\\b`);
+  const removeCommand = new RegExp(`\\b(remove)\\w*\\b`);
+  const insertCommand = new RegExp(`\\b(insert)\\w*\\b`);
 
-  // Type-specific methods mapping
-  const typeMethodsMap = {
-    array: {
-      single: ['setValue', 'setColor', 'setArrow'],
-      multiple: ['setValues', 'setColors', 'setArrows'],
-      addInsert: ['addValue', 'insertValue'],
-      remove: ['removeValue', 'removeAt']
-    },
-    stack: {
-      single: ['setValue', 'setColor', 'setArrow'],
-      multiple: ['setValues', 'setColors', 'setArrows'],
-      addInsert: ['addValue', 'insertValue'],
-      remove: ['removeValue', 'removeAt']
-    },
-    matrix: {
-      single: ['setValue', 'setColor', 'setArrow'],
-      multiple: ['setValues', 'setColors', 'setArrows'],
-      matrixSpecific: ['addRow', 'addColumn', 'removeRow', 'removeColumn', 'addBorder']
-    },
-    linkedlist: {
-      single: ['setValue', 'setColor', 'setArrow'],
-      multiple: ['setValues', 'setColors', 'setArrows'],
-      addInsert: ['addValue', 'insertValue', 'addNode', 'insertNode'],
-      remove: ['removeValue', 'removeAt', 'removeNode']
-    },
-    graph: {
-      single: ['setValue', 'setColor', 'setArrow', 'setHidden'],
-      multiple: ['setValues', 'setColors', 'setArrows', 'setHidden'],
-      addInsert: ['addNode', 'addEdge', 'insertEdge'],
-      remove: ['removeNode', 'removeEdge'],
-      graphSpecific: ['setEdges']
-    },
-    tree: {
-      single: ['setValue', 'setColor', 'setArrow'],
-      multiple: ['setValues', 'setColors', 'setArrows'],
-      addInsert: ['addNode', 'addChild'],
-      remove: ['removeNode', 'removeSubtree'],
-      treeSpecific: ['setChild']
-    },
-    text: {
-      single: ['setFontSize', 'setColor', 'setFontWeight', 'setFontFamily', 'setAlign'],
-      multiple: ['setFontSizes', 'setColors', 'setFontWeights', 'setFontFamilies', 'setAligns'],
-      textSpecific: ['setLineSpacing', 'setWidth', 'setHeight']
-    }
-  };
-
-  // Method descriptions for better autocomplete
-  const methodDescriptions = {
-    setValue: 'Set value at specific index/position',
-    setColor: 'Set color at specific index/position',
-    setArrow: 'Set arrow/label at specific index/position',
-    setValues: 'Set multiple values at once',
-    setColors: 'Set multiple colors at once',
-    setArrows: 'Set multiple arrows at once',
-    addValue: 'Add value to end of structure',
-    insertValue: 'Insert value at specific index',
-    removeValue: 'Remove first occurrence of value',
-    removeAt: 'Remove element at specific index',
-    addNode: 'Add new node to structure',
-    insertNode: 'Insert node at specific index',
-    removeNode: 'Remove specific node',
-    addEdge: 'Add edge between nodes',
-    insertEdge: 'Insert edge at specific index',
-    removeEdge: 'Remove specific edge',
-    setEdges: 'Set all edges at once',
-    setHidden: 'Set visibility of elements',
-    addChild: 'Add child to parent node',
-    setChild: 'Change parent-child relationship',
-    removeSubtree: 'Remove node and its subtree',
-    addRow: 'Add new row to matrix',
-    addColumn: 'Add new column to matrix',
-    removeRow: 'Remove row from matrix',
-    removeColumn: 'Remove column from matrix',
-    addBorder: 'Add border around matrix',
-    setFontSize: 'Set font size',
-    setFontWeight: 'Set font weight',
-    setFontFamily: 'Set font family',
-    setAlign: 'Set text alignment',
-    setFontSizes: 'Set multiple font sizes',
-    setFontWeights: 'Set multiple font weights',
-    setFontFamilies: 'Set multiple font families',
-    setAligns: 'Set multiple text alignments',
-    setLineSpacing: 'Set spacing between lines',
-    setWidth: 'Set text box width',
-    setHeight: 'Set text box height'
-  };
+  // Enhanced patterns for better syntax highlighting
+  const edgePattern = /([a-zA-Z_][a-zA-Z0-9_]*)-([a-zA-Z_][a-zA-Z0-9_]*)/;
+  const layoutPattern = /\b\d+x\d+\b/;
+  
+  // Create method pattern from all available methods
+  const allMethods = [...new Set(Object.values(typeMethodsMap).flatMap(type => 
+    Object.values(type).flatMap(methods => Array.isArray(methods) ? methods : [])
+  ))];
+  const methodPattern = new RegExp(`\\b(${allMethods.join('|')})\\b`);
+  const dotNotationPattern = /\b[a-zA-Z_][a-zA-Z0-9_]*\.[a-zA-Z_][a-zA-Z0-9_]*\b/;
 
   // Function to parse current context and get variable types
   function parseContextForTypes(model, position) {
@@ -122,10 +59,13 @@ export function registerCustomLanguage(monaco) {
     const variableTypes = {};
     const lines = textUntilPosition.split('\n');
     
+    // Create regex from languageConfig components
+    const componentsPattern = languageConfig.components.join('|');
+    const declarationRegex = new RegExp(`^\\s*(${componentsPattern})\\s+(\\w+)\\s*(:?=)\\s*\\{`);
+    
     // Parse variable declarations with improved regex
     for (const line of lines) {
-      // Support both = and := assignment operators
-      const match = line.match(/^\s*(array|matrix|linkedlist|stack|tree|graph|text)\s+(\w+)\s*(:?=)\s*{/);
+      const match = line.match(declarationRegex);
       if (match) {
         const [, type, varName] = match;
         variableTypes[varName] = type;
@@ -181,31 +121,14 @@ export function registerCustomLanguage(monaco) {
     return uniqueMethods;
   }
 
-  // Position keywords - support all current position keywords
-  const positionKeywords = [
-    // Corner positions
-    'tl', 'tr', 'bl', 'br', 'top-left', 'top-right', 'bottom-left', 'bottom-right',
-    // Edge positions  
-    'top', 'bottom', 'left', 'right',
-    // Center positions
-    'center', 'centre'
-  ];
-  const positionPattern = new RegExp(`\\b(${positionKeywords.join('|')})\\b`);
-
-  const setCommand = new RegExp(`\\b(set)\\w*\\b`);
-  const addCommand = new RegExp(`\\b(add)\\w*\\b`);
-  const removeCommand = new RegExp(`\\b(remove)\\w*\\b`);
-  const insertCommand = new RegExp(`\\b(insert)\\w*\\b`);
-
-  // EExample of edge: n1-n2
-  const edgePattern = /([a-zA-Z_][a-zA-Z0-9_]*)-([a-zA-Z_][a-zA-Z0-9_]*)/;
-
-  // Layout pattern: 2x3
-  const layoutPattern = /\b\d+x\d+\b/;
-
-  // Enhanced patterns for better syntax highlighting
-  const methodPattern = /\b(setValue|setColor|setArrow|setValues|setColors|setArrows|addValue|insertValue|removeValue|removeAt|addNode|insertNode|removeNode|addEdge|insertEdge|removeEdge|setEdges|setHidden|addChild|setChild|removeSubtree|addRow|addColumn|removeRow|removeColumn|addBorder|setFontSize|setFontWeight|setFontFamily|setAlign|setFontSizes|setFontWeights|setFontFamilies|setAligns|setLineSpacing|setWidth|setHeight)\b/;
-  const dotNotationPattern = /\b[a-zA-Z_][a-zA-Z0-9_]*\.[a-zA-Z_][a-zA-Z0-9_]*\b/;
+  // Function to get method signature for autocomplete
+  function getMethodSignature(methodName, varType) {
+    const signatureFunction = methodSignatures[methodName];
+    if (typeof signatureFunction === 'function') {
+      return signatureFunction(varType);
+    }
+    return signatureFunction || `${methodName}()`;
+  }
 
   // Register a tokens provider for the language
   monaco.languages.setMonarchTokensProvider("customLang", {
@@ -236,116 +159,15 @@ export function registerCustomLanguage(monaco) {
     }
   });
 
-  // Define a new theme that contains only rules that match this language
-  monaco.editor.defineTheme("customTheme", {
-    base: "vs-dark",
-    inherit: true,
-    rules: [
-      { token: 'custom-error', foreground: 'ff0000', fontStyle: 'bold' },
-      { token: 'custom-warning', foreground: 'FFA500', fontStyle: 'italic' },
-      { token: 'custom-info', foreground: '0000ff' },
-      { token: 'custom-debug', foreground: '008800' },
-      { token: 'custom-number', foreground: '800080' },
-      { token: 'comment', foreground: '6a9955' },
-      { token: 'inlinecomment', foreground: '6a9955' },
-      { token: 'variable',  foreground: '50C1F9'}, 
-      { token: 'number', foreground: 'b5cea8' }, // Light green for numbers
-      { token: 'keyword', foreground: '8477FD' },  // Changed to a blue color
-      { token: 'symbol', foreground: 'ffffff' },
-      { token: 'string', foreground: '3AE1FF', fontStyle: 'bold' }, // Changed to a nice green color
-      { token: 'component', foreground: '21FFD6' },
-      { token: 'attribute', foreground: '21FFD6' },
-      { token: 'positional', foreground: '21FFD6' }, // Orange color for position keywords
-      { token: 'dot-command', foreground: '21FFD6' }
-    ],
-    colors: {
-      'editor.background': '#1E1E1E',
-      'editor.foreground': '#FFFFFF',
-      'editorCursor.foreground': '#A7A7A7',
-      'editor.lineHighlightBackground': '#333333',
-      'editorLineNumber.foreground': '#858585',
-      'editor.selectionBackground': '#264F78',
-      'editor.inactiveSelectionBackground': '#3A3D41'
-    }
-  });
+  // Define a new theme using config
+  monaco.editor.defineTheme("customTheme", themeConfig);
 
-  monaco.languages.setLanguageConfiguration("customLang", {
-    comments: {
-      lineComment: "//",
-      blockComment: ["/*", "*/"]
-    },
-    brackets: [
-      ["{", "}"],
-      ["[", "]"],
-      ["(", ")"]
-    ],
-    autoClosingPairs: [
-      { open: "{", close: "}" },
-      { open: "[", close: "]" },
-      { open: "(", close: ")" },
-      { open: '"', close: '"' },
-      { open: "'", close: "'" }
-    ],
-    surroundingPairs: [
-      { open: "{", close: "}" },
-      { open: "[", close: "]" },
-      { open: "(", close: ")" },
-      { open: '"', close: '"' },
-      { open: "'", close: "'" }
-    ]
-  });
-
-  // Function to get method signature with placeholder parameters
-  function getMethodSignature(method, varType) {
-    const signatures = {
-      setValue: varType === 'matrix' ? 'setValue(${1:row}, ${2:col}, ${3:value})' : 'setValue(${1:index}, ${2:value})',
-      setColor: varType === 'matrix' ? 'setColor(${1:row}, ${2:col}, ${3:color})' : 'setColor(${1:index}, ${2:color})',
-      setArrow: varType === 'matrix' ? 'setArrow(${1:row}, ${2:col}, ${3:arrow})' : 'setArrow(${1:index}, ${2:arrow})',
-      setValues: 'setValues([${1:values}])',
-      setColors: 'setColors([${1:colors}])',
-      setArrows: 'setArrows([${1:arrows}])',
-      addValue: 'addValue(${1:value})',
-      insertValue: 'insertValue(${1:index}, ${2:value})',
-      removeValue: 'removeValue(${1:value})',
-      removeAt: 'removeAt(${1:index})',
-      addNode: 'addNode(${1:name}, ${2:value})',
-      insertNode: 'insertNode(${1:index}, ${2:name})',
-      removeNode: 'removeNode(${1:name})',
-      addEdge: 'addEdge(${1:nodeA}-${2:nodeB})',
-      insertEdge: 'insertEdge(${1:index}, ${2:nodeA}-${3:nodeB})',
-      removeEdge: 'removeEdge(${1:nodeA}-${2:nodeB})',
-      setEdges: 'setEdges([${1:edges}])',
-      setHidden: 'setHidden(${1:index}, ${2:hidden})',
-      addChild: 'addChild(${1:parent}-${2:child}, ${3:value})',
-      setChild: 'setChild(${1:parent}-${2:child})',
-      removeSubtree: 'removeSubtree(${1:node})',
-      addRow: 'addRow([${1:values}])',
-      addColumn: 'addColumn(${1:position}, [${2:values}])',
-      removeRow: 'removeRow(${1:index})',
-      removeColumn: 'removeColumn(${1:index})',
-      addBorder: 'addBorder(${1:value}, ${2:color})',
-      setFontSize: 'setFontSize(${1:size})',
-      setFontWeight: 'setFontWeight(${1:weight})',
-      setFontFamily: 'setFontFamily(${1:family})',
-      setAlign: 'setAlign(${1:alignment})',
-      setFontSizes: 'setFontSizes([${1:sizes}])',
-      setFontWeights: 'setFontWeights([${1:weights}])',
-      setFontFamilies: 'setFontFamilies([${1:families}])',
-      setAligns: 'setAligns([${1:alignments}])',
-      setLineSpacing: 'setLineSpacing(${1:spacing})',
-      setWidth: 'setWidth(${1:width})',
-      setHeight: 'setHeight(${1:height})'
-    };
-
-    return signatures[method] || `${method}($1)`;
-  }
-
+  monaco.languages.setLanguageConfiguration("customLang", monacoLanguageConfig);
   // Register completion provider for type-based method suggestions
   monaco.languages.registerCompletionItemProvider("customLang", {
     triggerCharacters: ['.'],
     provideCompletionItems: function(model, position) {
       console.log('Completion provider called!', position);
-      
       try {
         const word = model.getWordUntilPosition(position);
         const range = {
@@ -358,11 +180,11 @@ export function registerCustomLanguage(monaco) {
         // Get variable name if we're after a dot
         const varName = getVariableNameAtPosition(model, position);
         console.log('Variable name detected:', varName);
-        
+
         if (!varName) {
           console.log('No variable name found, returning empty suggestions');
           // Return test suggestions to verify provider is working
-          return { 
+          return {
             suggestions: [
               {
                 label: 'test',
@@ -390,7 +212,7 @@ export function registerCustomLanguage(monaco) {
         // Get methods for this type
         const methods = getMethodsForType(varType);
         console.log('Methods for', varType, ':', methods);
-        
+
         const suggestions = methods.map(method => ({
           label: method,
           kind: monaco.languages.CompletionItemKind.Method,
@@ -399,7 +221,11 @@ export function registerCustomLanguage(monaco) {
           detail: `${varType} method`,
           documentation: methodDescriptions[method] || `Method for ${varType}`,
           range: range,
-          sortText: `0${method}` // Ensure our suggestions appear first
+          sortText: `0${method}`,
+          command: {
+            id: 'editor.action.triggerParameterHints',
+            title: 'Trigger signature help'
+          }
         }));
 
         console.log('Final suggestions:', suggestions);
@@ -411,7 +237,126 @@ export function registerCustomLanguage(monaco) {
     }
   });
 
-  // Register hover provider for better documentation
+  // Function to get method documentation based on type
+  function getMethodDocumentation(methodName, varType) {
+    const methodDoc = methodDocumentation[methodName];
+    if (!methodDoc) return null;
+
+    // If method has type-specific documentation
+    if (typeof methodDoc === 'object' && methodDoc[varType]) {
+      return methodDoc[varType];
+    }
+    
+    // If method has default documentation
+    if (typeof methodDoc === 'object' && methodDoc.default) {
+      return methodDoc.default;
+    }
+    
+    // If method has single documentation object
+    if (methodDoc.signature && methodDoc.description) {
+      return methodDoc;
+    }
+    
+    return null;
+  }
+
+  // Function to check if current position is on a method call
+  function getMethodCallContext(model, position) {
+    const lineContent = model.getLineContent(position.lineNumber);
+    const word = model.getWordAtPosition(position);
+    if (!word) return { isMethodCall: false };
+
+    // Get the text before the current word
+    const beforeWord = lineContent.substring(0, word.startColumn - 1);
+    // Check for method call pattern: variable.methodName (where methodName is the current word)
+    const methodCallMatch = beforeWord.match(/(\w+)\.$/);
+    if (methodCallMatch) {
+      return {
+        variableName: methodCallMatch[1],
+        methodName: word.word,
+        isMethodCall: true
+      };
+    }
+
+    return { isMethodCall: false };
+  }
+
+
+  // Register signature help provider for method parameters
+  monaco.languages.registerSignatureHelpProvider("customLang", {
+    signatureHelpTriggerCharacters: ['(', ','],
+    signatureHelpRetriggerCharacters: [')'],
+    provideSignatureHelp: (model, position, token) => {
+      const lineContent = model.getLineContent(position.lineNumber);
+      const beforeCursor = lineContent.substring(0, position.column - 1);
+      
+      // Find method call pattern: variable.method(
+      const methodCallMatch = beforeCursor.match(/(\w+)\.(\w+)\s*\([^)]*$/);
+      if (!methodCallMatch) return null;
+      
+      const [, variableName, methodName] = methodCallMatch;
+      const variableTypes = parseContextForTypes(model, position);
+      const varType = variableTypes[variableName];
+      
+      if (!varType) return null;
+      
+      const methodDoc = getMethodDocumentation(methodName, varType);
+      if (!methodDoc) return null;
+      
+      // Count current parameter by counting commas (but ignore commas inside quotes or brackets)
+      const methodStart = beforeCursor.lastIndexOf('(');
+      const paramsPart = beforeCursor.substring(methodStart + 1);
+      let currentParam = 0;
+      let depth = 0;
+      let inQuotes = false;
+      let quoteChar = '';
+      
+      for (let i = 0; i < paramsPart.length; i++) {
+        const char = paramsPart[i];
+        if (!inQuotes) {
+          if (char === '"' || char === "'") {
+            inQuotes = true;
+            quoteChar = char;
+          } else if (char === '(' || char === '[' || char === '{') {
+            depth++;
+          } else if (char === ')' || char === ']' || char === '}') {
+            depth--;
+          } else if (char === ',' && depth === 0) {
+            currentParam++;
+          }
+        } else {
+          if (char === quoteChar && (i === 0 || paramsPart[i - 1] !== '\\')) {
+            inQuotes = false;
+          }
+        }
+      }
+      
+      const signature = {
+        label: methodDoc.signature,
+        documentation: {
+          value: `${methodDoc.description}\n\n**Example:**\n\`\`\`merlin\n${methodDoc.example}\n\`\`\``
+        },
+        parameters: methodDoc.parameters ? methodDoc.parameters.map(param => {
+          const parts = param.split(' - ');
+          return {
+            label: parts[0].trim(),
+            documentation: parts[1] ? parts[1].trim() : ''
+          };
+        }) : []
+      };
+      
+      return {
+        dispose: () => {},
+        value: {
+          activeSignature: 0,
+          activeParameter: Math.min(currentParam, Math.max(0, signature.parameters.length - 1)),
+          signatures: [signature]
+        }
+      };
+    }
+  });
+
+  // Register a single hover provider for both method and variable documentation
   monaco.languages.registerHoverProvider("customLang", {
     provideHover: function(model, position) {
       const word = model.getWordAtPosition(position);
@@ -419,17 +364,67 @@ export function registerCustomLanguage(monaco) {
 
       const variableTypes = parseContextForTypes(model, position);
       const varName = word.word;
-      const varType = variableTypes[varName];
 
+      // Check if hovering over a component type keyword
+      if (languageConfig.components.includes(varName)) {
+        const typeDoc = typeDocumentation[varName];
+        if (typeDoc) {
+          const featuresList = typeDoc.features.map(feature => `• ${feature}`).join('\n');
+          return {
+            range: new monaco.Range(position.lineNumber, word.startColumn, position.lineNumber, word.endColumn),
+            contents: [
+              { value: `**${varName}** data structure` },
+              { value: typeDoc.description },
+              { value: `**Features:**\n${featuresList}` },
+              { 
+                value: `[See documentation](${typeDoc.url})`,
+                isTrusted: true
+              }
+            ]
+          };
+        }
+      }
+
+      // Check if we're hovering over a method call
+      const methodContext = getMethodCallContext(model, position);
+      if (methodContext.isMethodCall && methodContext.methodName === varName) {
+        const callerType = variableTypes[methodContext.variableName];
+        if (callerType) {
+          const methodDoc = getMethodDocumentation(varName, callerType);
+          if (methodDoc) {
+            const paramsList = methodDoc.parameters ? 
+              methodDoc.parameters.map(param => `• ${param}`).join('\n\n') : 
+              'No parameters documented';
+            const typeDoc = typeDocumentation[callerType];
+            const docLink = typeDoc ? `[See ${callerType} documentation](${typeDoc.url})` : '';
+            return {
+              range: new monaco.Range(position.lineNumber, word.startColumn, position.lineNumber, word.endColumn),
+              contents: [
+                { value: `**${methodDoc.signature}**` },
+                { value: methodDoc.description },
+                { value: `**Parameters:**\n\n${paramsList}` },
+                { value: `**Example:**\n\`\`\`merlin\n${methodDoc.example}\n\`\`\`` },
+                ...(docLink ? [{ value: docLink, isTrusted: true }] : [])
+              ]
+            };
+          }
+        }
+      }
+
+      // Otherwise, check if it's a variable for type documentation
+      const varType = variableTypes[varName];
       if (varType) {
         const availableMethods = getMethodsForType(varType);
         const methodsList = availableMethods.map(method => `• \`${method}()\`: ${methodDescriptions[method] || 'Method for ' + varType}`).join('\n\n');
-        
+        const typeDoc = typeDocumentation[varType];
+        const docLink = typeDoc ? `[See ${varType} documentation](${typeDoc.url})` : '';
         return {
           range: new monaco.Range(position.lineNumber, word.startColumn, position.lineNumber, word.endColumn),
           contents: [
             { value: `**${varName}** (${varType})` },
-            { value: `Available methods:\n\n${methodsList}` }
+            { value: typeDoc ? typeDoc.description : `Variable of type ${varType}` },
+            { value: `**Available methods:**\n\n${methodsList}` },
+            ...(docLink ? [{ value: docLink, isTrusted: true }] : [])
           ]
         };
       }

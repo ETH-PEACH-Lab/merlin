@@ -35,7 +35,7 @@ const EditorSection = ({
         width: leftWidth,
         display: "flex",
         flexDirection: "column",
-        overflow: "hidden",
+        overflow: "shown",
         position: "relative",
       }}
     >
@@ -65,6 +65,7 @@ const EditorSection = ({
         resizeHandles={["s"]}
         onResizeStop={(e, data) => setEditor1Height(data.size.height)}
         minConstraints={[Infinity, 100]}
+        overflow="shown"
         maxConstraints={[Infinity, window.innerHeight - 100]}
         handle={
           <span
@@ -76,6 +77,7 @@ const EditorSection = ({
               position: "absolute",
               bottom: 0,
               left: 0,
+              overflow: "visible"
             }}
           />
         }
