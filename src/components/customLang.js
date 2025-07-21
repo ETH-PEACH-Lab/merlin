@@ -617,6 +617,12 @@ export function registerCustomLanguage(monaco) {
         const line = model.getLineContent(position.lineNumber);
         const beforeCursor = line.substring(0, position.column - 1);
         
+        // Skip general completion if we're inside a method call
+        const methodCallContext = getMethodCallContext(model, position);
+        if (methodCallContext && methodCallContext.isMethodCall) {
+          return { suggestions: [] }; // Let method argument provider handle it
+        }
+        
         // Get cached parsed data
         const { variableTypes, nodeData, gridLayout } = parseCache.getCachedData(model, position);
         const variableNames = Object.keys(variableTypes);
@@ -1252,7 +1258,7 @@ export function registerCustomLanguage(monaco) {
 
   // Register a completion provider specifically for method arguments
   monaco.languages.registerCompletionItemProvider("customLang", {
-    triggerCharacters: ['(', ',', ' ', '"', '.', '-'],
+    triggerCharacters: ['(', ',', ' ', '"', '.', '-', ''],
     provideCompletionItems: function(model, position) {
       try {
         const line = model.getLineContent(position.lineNumber);
@@ -1330,19 +1336,6 @@ export function registerCustomLanguage(monaco) {
               range: range,
               sortText: `2hex${index}`
             });
-          });
-        }
-
-        // Always add some test suggestions to see if the provider is working
-        if (parameterIndex === 1) { // Second parameter
-          suggestions.push({
-            label: 'TEST_COLOR_PARAM',
-            kind: monaco.languages.CompletionItemKind.Color,
-            insertText: '"red"',
-            detail: 'Test suggestion',
-            documentation: 'This is a test to see if parameter completion works',
-            range: range,
-            sortText: '0test'
           });
         }
 
@@ -2179,3 +2172,16 @@ export function registerCustomLanguage(monaco) {
   }
 
 }
+
+editor.onKeyDown(e => {
+  if (e.keyCode === monaco.KeyCode.Backspace) {
+    editor.trigger('keyboard', 'deleteLeft', {});
+    editor.trigger('keyboard', 'editor.action.triggerSuggest', {});
+    e.preventDefault();
+  }
+  if (e.keyCode === monaco.KeyCode.Tab) {
+    editor.trigger('keyboard', 'type', { text: '\t' });
+    editor.trigger('keyboard', 'editor.action.triggerSuggest', {});
+    e.preventDefault();
+  }
+});
