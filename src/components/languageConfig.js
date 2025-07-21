@@ -661,12 +661,15 @@ export class ErrorStateManager {
       endColumn = validCol + 10;
     }
 
+    // Only show first 10 lines of the error message, if so add ...$
+    const errorMessage = errorObj.message.split('\n').slice(0, 10).join('\n') + (errorObj.message.split('\n').length > 10 ? '\n...' : '');
+
     const marker = {
       startLineNumber: validLine,
       startColumn: validCol,
       endLineNumber: validLine,
       endColumn: endColumn,
-      message: errorObj.message,
+      message: errorMessage,
       severity: this.monaco.MarkerSeverity.Error
     };
 
