@@ -23,7 +23,23 @@ export const languageConfig = {
     'top', 'bottom', 'left', 'right',
     // Center positions
     'center', 'centre'
-  ]
+  ],
+
+  namedColors: [
+    // Basic colors
+    'red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'brown',
+    'black', 'white', 'gray', 'grey', 'navy', 'maroon', 'olive', 'teal',
+    'cyan', 'magenta', 'lime', 'aqua', 'silver', 'gold', 'coral', 'salmon',
+    // Light colors
+    'lightblue', 'lightgreen', 'lightcoral', 'lightgray', 'lightpink', 'lightyellow',
+    // Dark colors  
+    'darkblue', 'darkgreen', 'darkred', 'darkgray', 'darkviolet',
+    // Named colors
+    'cornflowerblue', 'crimson', 'indigo', 'turquoise', 'violet', 'tomato'
+  ],
+  fontWeights: ['normal', 'bold', 'bolder', 'lighter', '100', '200', '300', '400', '500', '600', '700', '800', '900'],
+  fontFamilies: ['Arial', 'Helvetica', 'Times New Roman', 'Times', 'Courier New', 'Courier', 'Georgia', 'Verdana', 'sans-serif', 'serif', 'monospace'],
+  alignValues: ['left', 'center', 'right'],
 };
 
 // Data structure type documentation with features and documentation links

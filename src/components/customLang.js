@@ -43,15 +43,11 @@ export function registerCustomLanguage(monaco) {
   // Enhanced patterns for better syntax highlighting
   const edgePattern = /([a-zA-Z_][a-zA-Z0-9_]*)-([a-zA-Z_][a-zA-Z0-9_]*)/;
   const layoutPattern = /\b\d+x\d+\b/;
-  const coordinatePattern = /\(\s*\d+\s*,\s*\d+\s*\)/;
-  const rangePattern = /\(\s*\d+\.\.\d+\s*,\s*\d+(\.\.\d+)?\s*\)|\(\s*\d+\s*,\s*\d+\.\.\d+\s*\)/;
   
   // Create method pattern from all available methods
   const allMethods = [...new Set(Object.values(typeMethodsMap).flatMap(type => 
     Object.values(type).flatMap(methods => Array.isArray(methods) ? methods : [])
   ))];
-  const methodPattern = new RegExp(`\\b(${allMethods.join('|')})\\b`);
-  const dotNotationPattern = /\b[a-zA-Z_][a-zA-Z0-9_]*\.[a-zA-Z_][a-zA-Z0-9_]*\b/;
 
   // Function to parse current context and get variable types
   function parseContextForTypes(model, position) {
@@ -92,6 +88,173 @@ export function registerCustomLanguage(monaco) {
     }
 
     return variableTypes;
+  }
+
+  // Function to parse nodes from variable declarations
+  function parseNodesFromContext(model, position) {
+    const textUntilPosition = model.getValueInRange({
+      startLineNumber: 1,
+      startColumn: 1,
+      endLineNumber: position.lineNumber,
+      endColumn: position.column
+    });
+
+    const nodesByVariable = {};
+    const allNodes = new Set();
+    const lines = textUntilPosition.split('\n');
+    
+    let currentVariable = null;
+    let insideDeclaration = false;
+    
+    for (const line of lines) {
+      // Check if we're starting a variable declaration
+      const declarationMatch = line.match(/^\s*(?:graph|tree|linkedlist)\s+(\w+)\s*=\s*\{/);
+      if (declarationMatch) {
+        currentVariable = declarationMatch[1];
+        nodesByVariable[currentVariable] = new Set();
+        insideDeclaration = true;
+        continue;
+      }
+      
+      // Check if we're ending a declaration
+      if (insideDeclaration && line.includes('}')) {
+        insideDeclaration = false;
+        currentVariable = null;
+        continue;
+      }
+      
+      // Parse nodes if we're inside a declaration
+      if (insideDeclaration && currentVariable) {
+        // Look for nodes arrays: nodes: [A, B, C] or nodes: ["A", "B", "C"]
+        const nodesMatch = line.match(/nodes:\s*\[(.*?)\]/);
+        if (nodesMatch) {
+          const nodesList = nodesMatch[1];
+          // Extract node names (with or without quotes)
+          const nodeMatches = nodesList.match(/(?:"([^"]+)"|([a-zA-Z_][a-zA-Z0-9_]*))/g);
+          if (nodeMatches) {
+            nodeMatches.forEach(node => {
+              const cleanNode = node.replace(/['"]/g, '');
+              nodesByVariable[currentVariable].add(cleanNode);
+              allNodes.add(cleanNode);
+            });
+          }
+        }
+        
+        // Look for edges to extract additional nodes: edges: [A-B, B-C]
+        const edgesMatch = line.match(/edges:\s*\[(.*?)\]/);
+        if (edgesMatch) {
+          const edgesList = edgesMatch[1];
+          const edgeMatches = edgesList.match(/(?:"([^"]+)"|([a-zA-Z_][a-zA-Z0-9_]*-[a-zA-Z_][a-zA-Z0-9_]*))/g);
+          if (edgeMatches) {
+            edgeMatches.forEach(edge => {
+              const cleanEdge = edge.replace(/['"]/g, '');
+              const [nodeA, nodeB] = cleanEdge.split('-');
+              if (nodeA && nodeB) {
+                nodesByVariable[currentVariable].add(nodeA);
+                nodesByVariable[currentVariable].add(nodeB);
+                allNodes.add(nodeA);
+                allNodes.add(nodeB);
+              }
+            });
+          }
+        }
+      }
+      
+      // Also parse nodes from method calls like variable.addNode("nodeName", value)
+      const addNodeMatch = line.match(/(\w+)\.addNode\s*\(\s*"([^"]+)"/);
+      if (addNodeMatch) {
+        const [, varName, nodeName] = addNodeMatch;
+        if (!nodesByVariable[varName]) {
+          nodesByVariable[varName] = new Set();
+        }
+        nodesByVariable[varName].add(nodeName);
+        allNodes.add(nodeName);
+      }
+      
+      // Parse nodes from addEdge calls like variable.addEdge("nodeA-nodeB")
+      const addEdgeMatch = line.match(/(\w+)\.addEdge\s*\(\s*"([^"]+)"/);
+      if (addEdgeMatch) {
+        const [, varName, edge] = addEdgeMatch;
+        const [nodeA, nodeB] = edge.split('-');
+        if (nodeA && nodeB) {
+          if (!nodesByVariable[varName]) {
+            nodesByVariable[varName] = new Set();
+          }
+          nodesByVariable[varName].add(nodeA);
+          nodesByVariable[varName].add(nodeB);
+          allNodes.add(nodeA);
+          allNodes.add(nodeB);
+        }
+      }
+    }
+    
+    // Convert Sets to Arrays
+    Object.keys(nodesByVariable).forEach(varName => {
+      nodesByVariable[varName] = Array.from(nodesByVariable[varName]);
+    });
+    
+    return {
+      nodesByVariable,
+      allNodes: Array.from(allNodes)
+    };
+  }
+
+  // Function to detect method call context and parameter position
+  function getMethodCallContext(model, position) {
+    const line = model.getLineContent(position.lineNumber);
+    const beforeCursor = line.substring(0, position.column - 1);
+    
+    // Look for method call pattern: variable.method(param1, param2, ...
+    // Make it more flexible to catch incomplete calls
+    const methodCallMatch = beforeCursor.match(/(\w+)\.(\w+)\s*\(([^)]*)$/);
+    if (!methodCallMatch) return null;
+    
+    const [, variableName, methodName, paramsText] = methodCallMatch;
+    
+    // Count parameters to determine current parameter position
+    let parameterIndex = 0;
+    let depth = 0;
+    let inQuotes = false;
+    let quoteChar = '';
+    
+    // If paramsText is empty, we're at the first parameter
+    if (paramsText.trim() === '') {
+      return {
+        variableName,
+        methodName,
+        parameterIndex: 0,
+        paramsText,
+        isMethodCall: true
+      };
+    }
+    
+    for (let i = 0; i < paramsText.length; i++) {
+      const char = paramsText[i];
+      if (!inQuotes) {
+        if (char === '"' || char === "'") {
+          inQuotes = true;
+          quoteChar = char;
+        } else if (char === '(' || char === '[' || char === '{') {
+          depth++;
+        } else if (char === ')' || char === ']' || char === '}') {
+          depth--;
+        } else if (char === ',' && depth === 0) {
+          parameterIndex++;
+        }
+      } else {
+        if (char === quoteChar && (i === 0 || paramsText[i - 1] !== '\\')) {
+          inQuotes = false;
+        }
+      }
+    }
+    
+    return {
+      variableName,
+      methodName,
+      parameterIndex,
+      paramsText,
+      isMethodCall: true
+    };
   }
 
   // Function to get variable name from current line
@@ -333,8 +496,6 @@ export function registerCustomLanguage(monaco) {
         [attributePattern, 'attribute'],
         [positionPattern, 'positional'],
         [layoutPattern, 'positional'],
-        [coordinatePattern, 'positional'],
-        [rangePattern, 'positional'],
         [edgePattern, 'variable'],
         [/\b[a-zA-Z_][a-zA-Z0-9_]*\b/, 'variable'],
         [/\b\d+(\.\d+)?\b/, 'number'],
@@ -666,6 +827,12 @@ export function registerCustomLanguage(monaco) {
                 } else if (attr === 'arrow') {
                   insertText = `${attr}: [\${1:}]`;
                   documentation = 'Array of arrows/labels for the data structure elements';
+                } else if (attr === 'nodes') {
+                  insertText = `${attr}: [\${1:}]`;
+                  documentation = 'Array of node identifiers';
+                } else if (attr === 'edges') {
+                  insertText = `${attr}: [\${1:}]`;
+                  documentation = 'Array of edges in format ["nodeA-nodeB", ...]';
                 } else if (attr === 'id') {
                   insertText = `${attr}: "\${1:}"`;
                   documentation = 'Unique identifier for the data structure';
@@ -689,6 +856,110 @@ export function registerCustomLanguage(monaco) {
                 });
               });
             }
+          }
+        }
+
+        // Enhanced suggestions for attribute values
+        const attributeValueMatch = beforeCursor.match(/(\w+):\s*(?:\[([^\]]*))?\s*$/);
+        if (attributeValueMatch) {
+          const [, attributeName, arrayContent] = attributeValueMatch;
+          
+          if (attributeName === 'color') {
+            // Add null first
+            suggestions.push({
+              label: 'null',
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: 'null',
+              detail: 'Default color',
+              documentation: 'Use default color for this element',
+              range: range,
+              sortText: '0null'
+            });
+            
+            // Add color suggestions
+            languageConfig.namedColors.forEach((color, index) => {
+              suggestions.push({
+                label: color,
+                kind: monaco.languages.CompletionItemKind.Color,
+                insertText: `"${color}"`,
+                detail: 'Named color',
+                documentation: `Use ${color} color`,
+                range: range,
+                sortText: `1color${index.toString().padStart(3, '0')}`
+              });
+            });
+          } else if (attributeName === 'nodes') {
+            // Suggest common node names
+            const commonNodes = ['root', 'node1', 'node2', 'node3', 'A', 'B', 'C', 'client', 'server', 'router'];
+            commonNodes.forEach((nodeName, index) => {
+              suggestions.push({
+                label: nodeName,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: `"${nodeName}"`,
+                detail: 'Node identifier',
+                documentation: `Node named ${nodeName}`,
+                range: range,
+                sortText: `1node${index}`
+              });
+            });
+          } else if (attributeName === 'edges') {
+            // If we have nodes in context, suggest edge combinations
+            const nodeData = parseNodesFromContext(model, position);
+            if (nodeData.allNodes.length > 0) {
+              const edgeSuggestions = [];
+              for (let i = 0; i < Math.min(nodeData.allNodes.length, 5); i++) {
+                for (let j = i + 1; j < Math.min(nodeData.allNodes.length, 5); j++) {
+                  edgeSuggestions.push(`${nodeData.allNodes[i]}-${nodeData.allNodes[j]}`);
+                }
+              }
+              edgeSuggestions.forEach((edge, index) => {
+                suggestions.push({
+                  label: edge,
+                  kind: monaco.languages.CompletionItemKind.Value,
+                  insertText: `"${edge}"`,
+                  detail: 'Edge connection',
+                  documentation: `Connect ${edge.replace('-', ' to ')}`,
+                  range: range,
+                  sortText: `1edge${index}`
+                });
+              });
+            }
+          } else if (attributeName === 'align') {
+            languageConfig.alignValues.forEach((align, index) => {
+              suggestions.push({
+                label: align,
+                kind: monaco.languages.CompletionItemKind.EnumMember,
+                insertText: `"${align}"`,
+                detail: 'Text alignment',
+                documentation: `Align text to ${align}`,
+                range: range,
+                sortText: `1align${index}`
+              });
+            });
+          } else if (attributeName === 'fontWeight') {
+            languageConfig.fontWeights.forEach((weight, index) => {
+              suggestions.push({
+                label: weight,
+                kind: monaco.languages.CompletionItemKind.EnumMember,
+                insertText: `"${weight}"`,
+                detail: 'Font weight',
+                documentation: `Font weight: ${weight}`,
+                range: range,
+                sortText: `1weight${index}`
+              });
+            });
+          } else if (attributeName === 'fontFamily') {
+            languageConfig.fontFamilies.forEach((family, index) => {
+              suggestions.push({
+                label: family,
+                kind: monaco.languages.CompletionItemKind.EnumMember,
+                insertText: `"${family}"`,
+                detail: 'Font family',
+                documentation: `Font family: ${family}`,
+                range: range,
+                sortText: `1family${index}`
+              });
+            });
           }
         }
 
@@ -889,6 +1160,264 @@ export function registerCustomLanguage(monaco) {
     }
   });
 
+  // Register a completion provider specifically for method arguments
+  monaco.languages.registerCompletionItemProvider("customLang", {
+    triggerCharacters: ['(', ',', ' ', '"', '.'],
+    provideCompletionItems: function(model, position) {
+      try {
+        const line = model.getLineContent(position.lineNumber);
+        const beforeCursor = line.substring(0, position.column - 1);
+        
+        // Debug: log what we're trying to match
+        console.log('Method argument completion - beforeCursor:', beforeCursor);
+        
+        const methodContext = getMethodCallContext(model, position);
+        console.log('Method context:', methodContext);
+        
+        if (!methodContext) {
+          // Try a simpler pattern for debugging
+          const simpleMethodMatch = beforeCursor.match(/(\w+)\.(\w+)\s*\(/);
+          if (simpleMethodMatch) {
+            console.log('Found simple method pattern:', simpleMethodMatch);
+          }
+          return { suggestions: [] };
+        }
+        
+        const word = model.getWordUntilPosition(position);
+        const range = {
+          startLineNumber: position.lineNumber,
+          endLineNumber: position.lineNumber,
+          startColumn: word.startColumn,
+          endColumn: word.endColumn
+        };
+
+        const { variableName, methodName, parameterIndex } = methodContext;
+        
+        // Safety checks to prevent undefined errors
+        if (!variableName || !methodName || parameterIndex === undefined) {
+          console.log('Invalid method context - missing required fields');
+          return { suggestions: [] };
+        }
+        
+        const variableTypes = parseContextForTypes(model, position);
+        const varType = variableTypes[variableName];
+        const nodeData = parseNodesFromContext(model, position);
+        
+        console.log(`Method: ${methodName}, Variable: ${variableName}, Type: ${varType}, Parameter: ${parameterIndex}`);
+        
+        const suggestions = [];
+
+        // Add null suggestion for most parameters
+        suggestions.push({
+          label: 'null',
+          kind: monaco.languages.CompletionItemKind.Constant,
+          insertText: 'null',
+          detail: 'Null value',
+          documentation: 'Use default value or skip this element',
+          range: range,
+          sortText: '0null'
+        });
+
+        // Method-specific parameter suggestions
+        if (methodName === 'setColor' || methodName === 'setColors') {
+          // Detect if user already typed a quote
+          let alreadyQuoted = false;
+          if (word && word.word && (word.word.startsWith('"') || word.word.startsWith("'"))) {
+            alreadyQuoted = true;
+          } else if (beforeCursor.endsWith('"') || beforeCursor.endsWith("'")) {
+            alreadyQuoted = true;
+          }
+
+          // Add color suggestions
+          languageConfig.namedColors.forEach((color, index) => {
+            suggestions.push({
+              label: color,
+              kind: monaco.languages.CompletionItemKind.Color,
+              insertText: alreadyQuoted ? `${color}` : `"${color}"`,
+              detail: 'Named color',
+              documentation: `Use ${color} color`,
+              range: range,
+              sortText: `1color${index.toString().padStart(3, '0')}`
+            });
+          });
+          // Add common hex colors
+          const commonHexColors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#000000', '#ffffff'];
+          commonHexColors.forEach((hex, index) => {
+            suggestions.push({
+              label: hex,
+              kind: monaco.languages.CompletionItemKind.Color,
+              insertText: alreadyQuoted ? `${hex}` : `"${hex}"`,
+              detail: 'Hex color',
+              documentation: `Use ${hex} color`,
+              range: range,
+              sortText: `2hex${index}`
+            });
+          });
+        }
+
+        // Always add some test suggestions to see if the provider is working
+        if (parameterIndex === 1) { // Second parameter
+          suggestions.push({
+            label: 'TEST_COLOR_PARAM',
+            kind: monaco.languages.CompletionItemKind.Color,
+            insertText: '"red"',
+            detail: 'Test suggestion',
+            documentation: 'This is a test to see if parameter completion works',
+            range: range,
+            sortText: '0test'
+          });
+        }
+
+        if (methodName === 'addNode' || methodName === 'insertNode') {
+          if (parameterIndex === 0) {
+            // First parameter is node name
+            const existingNodes = nodeData.nodesByVariable[variableName] || [];
+            const suggestedNodes = ['client', 'server', 'router', 'database', 'user', 'admin', 'node1', 'node2', 'node3'];
+            
+            suggestedNodes.forEach((nodeName, index) => {
+              if (!existingNodes.includes(nodeName)) {
+                suggestions.push({
+                  label: nodeName,
+                  kind: monaco.languages.CompletionItemKind.Value,
+                  insertText: `"${nodeName}"`,
+                  detail: 'Node name',
+                  documentation: `Add node named ${nodeName}`,
+                  range: range,
+                  sortText: `1node${index}`
+                });
+              }
+            });
+          } else if (parameterIndex === 1) {
+            // Second parameter is node value
+            const numberSuggestions = ['0', '1', '10', '25', '50', '100'];
+            numberSuggestions.forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: num,
+                detail: 'Numeric value',
+                documentation: `Set node value to ${num}`,
+                range: range,
+                sortText: `1num${index}`
+              });
+            });
+          }
+        }
+
+        if (methodName === 'addEdge' || methodName === 'insertEdge' || methodName === 'removeEdge') {
+          // Edge parameter suggestions
+          const existingNodes = nodeData.nodesByVariable[variableName] || nodeData.allNodes;
+          const edgeSuggestions = [];
+          
+          // Generate edge combinations from existing nodes
+          for (let i = 0; i < existingNodes.length; i++) {
+            for (let j = i + 1; j < existingNodes.length; j++) {
+              edgeSuggestions.push(`${existingNodes[i]}-${existingNodes[j]}`);
+              if (edgeSuggestions.length >= 10) break; // Limit suggestions
+            }
+            if (edgeSuggestions.length >= 10) break;
+          }
+          
+          edgeSuggestions.forEach((edge, index) => {
+            suggestions.push({
+              label: edge,
+              kind: monaco.languages.CompletionItemKind.Value,
+              insertText: `"${edge}"`,
+              detail: 'Edge connection',
+              documentation: `Connect nodes ${edge.replace('-', ' and ')}`,
+              range: range,
+              sortText: `1edge${index}`
+            });
+          });
+        }
+
+        if (methodName === 'setValue' || methodName === 'setValues') {
+          // Value suggestions
+          if (varType === 'array' || varType === 'stack') {
+            const numberSuggestions = ['0', '1', '2', '3', '4', '5', '10', '20', '50', '100'];
+            const stringSuggestions = ['"hello"', '"world"', '"data"', '"item"', '"element"'];
+            
+            numberSuggestions.forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: num,
+                detail: 'Number',
+                documentation: `Set value to ${num}`,
+                range: range,
+                sortText: `1num${index}`
+              });
+            });
+            
+            stringSuggestions.forEach((str, index) => {
+              suggestions.push({
+                label: str.replace(/"/g, ''),
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: str,
+                detail: 'String',
+                documentation: `Set value to ${str}`,
+                range: range,
+                sortText: `2str${index}`
+              });
+            });
+          }
+        }
+
+        if (methodName.includes && methodName.includes('FontWeight')) {
+          languageConfig.fontWeights.forEach((weight, index) => {
+            suggestions.push({
+              label: weight,
+              kind: monaco.languages.CompletionItemKind.EnumMember,
+              insertText: `"${weight}"`,
+              detail: 'Font weight',
+              documentation: `Set font weight to ${weight}`,
+              range: range,
+              sortText: `1weight${index}`
+            });
+          });
+        }
+
+        if (methodName.includes && methodName.includes('FontFamily')) {
+          languageConfig.fontFamilies.forEach((family, index) => {
+            suggestions.push({
+              label: family,
+              kind: monaco.languages.CompletionItemKind.EnumMember,
+              insertText: `"${family}"`,
+              detail: 'Font family',
+              documentation: `Set font family to ${family}`,
+              range: range,
+              sortText: `1family${index}`
+            });
+          });
+        }
+
+        if (methodName.includes && methodName.includes('Align')) {
+        }
+
+        // Show alignment suggestions for setAlign and setAligns
+        if (methodName === 'setAlign' || methodName === 'setAligns') {
+          languageConfig.alignValues.forEach((align, index) => {
+            suggestions.push({
+              label: align,
+              kind: monaco.languages.CompletionItemKind.EnumMember,
+              insertText: `"${align}"`,
+              detail: 'Text alignment',
+              documentation: `Align text to ${align}`,
+              range: range,
+              sortText: `1align${index}`
+            });
+          });
+        }
+
+        console.log(`Returning ${suggestions.length} suggestions:`, suggestions.map(s => s.label));
+        return { suggestions };
+      } catch (error) {
+        console.error('Error in method argument completion provider:', error);
+        return { suggestions: [] };
+      }
+    }
+  });
+
   // Function to get method documentation based on type
   function getMethodDocumentation(methodName, varType) {
     const methodDoc = methodDocumentation[methodName];
@@ -913,25 +1442,8 @@ export function registerCustomLanguage(monaco) {
   }
 
   // Function to check if current position is on a method call
-  function getMethodCallContext(model, position) {
-    const lineContent = model.getLineContent(position.lineNumber);
-    const word = model.getWordAtPosition(position);
-    if (!word) return { isMethodCall: false };
-
-    // Get the text before the current word
-    const beforeWord = lineContent.substring(0, word.startColumn - 1);
-    // Check for method call pattern: variable.methodName (where methodName is the current word)
-    const methodCallMatch = beforeWord.match(/(\w+)\.$/);
-    if (methodCallMatch) {
-      return {
-        variableName: methodCallMatch[1],
-        methodName: word.word,
-        isMethodCall: true
-      };
-    }
-
-    return { isMethodCall: false };
-  }
+  // This function is now defined earlier in the file (around line 227)
+  // Keeping this comment for reference but the actual function is above
 
   // Register signature help provider for method parameters
   monaco.languages.registerSignatureHelpProvider("customLang", {
