@@ -40,6 +40,45 @@ export const languageConfig = {
   fontWeights: ['normal', 'bold', 'bolder', 'lighter', '100', '200', '300', '400', '500', '600', '700', '800', '900'],
   fontFamilies: ['Arial', 'Helvetica', 'Times New Roman', 'Times', 'Courier New', 'Courier', 'Georgia', 'Verdana', 'sans-serif', 'serif', 'monospace'],
   alignValues: ['left', 'center', 'right'],
+
+  // Basic type templates for autocomplete
+  basicTypeTemplates: {
+    array: {
+      label: 'Array - Basic template',
+      insertText: `array \${1:arr} = {\n    value: [\${2:1,2,3}]\n    color: [\${3:"red", null, "blue"}]\n    arrow: [\${4:null, "i", null}]\n}`,
+      documentation: 'Basic array with values, colors, and arrows'
+    },
+    matrix: {
+      label: 'Matrix - Basic template', 
+      insertText: `matrix \${1:grid} = {\n    value: [[\${2:1,2}],[\${3:3,4}]]\n    color: [[\${4:null, "red"}], [\${5:null, null}]]\n}`,
+      documentation: 'Basic 2x2 matrix with values and colors'
+    },
+    graph: {
+      label: 'Graph - Basic template',
+      insertText: `graph \${1:g} = {\n    nodes: [\${2:A,B,C}]\n    edges: [\${3:A-B, B-C}]\n    value: [\${4:1,2,3}]\n    color: [\${5:"red", null, "blue"}]\n}`,
+      documentation: 'Basic graph with 3 nodes, edges, values, and colors'
+    },
+    stack: {
+      label: 'Stack - Basic template',
+      insertText: `stack \${1:s} = {\n    value: [\${2:"main", "func"}]\n    color: [\${3:null, "blue"}]\n}`,
+      documentation: 'Basic stack with function call values and colors'
+    },
+    tree: {
+      label: 'Tree - Basic template', 
+      insertText: `tree \${1:t} = {\n    nodes: [\${2:root, left, right}]\n    children: [\${3:root-left, root-right}]\n    value: [\${4:1,2,3}]\n}`,
+      documentation: 'Basic binary tree with parent-child relationships and values'
+    },
+    linkedlist: {
+      label: 'LinkedList - Basic template',
+      insertText: `linkedlist \${1:ll} = {\n    nodes: [\${2:head, node1, tail}]\n    value: [\${3:1, 2, 3}]\n}`,
+      documentation: 'Basic linked list with 3 nodes and values'
+    },
+    text: {
+      label: 'Text - Basic template',
+      insertText: `text \${1:label} = {\n    value: \${2:"Hello, world!"}\n    fontSize: \${3:16}\n    color: \${4:"gray"}\n}`,
+      documentation: 'Basic text element with content, size, and color'
+    }
+  }
 };
 
 // Data structure type documentation with features and documentation links

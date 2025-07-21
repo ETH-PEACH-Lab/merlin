@@ -656,8 +656,24 @@ export function registerCustomLanguage(monaco) {
 
         // At the beginning of a line - suggest components and keywords
         if (beforeCursor.trim() === '' || beforeCursor.match(/^\s*$/)) {
-          // Add component types with simple declaration
+          // Add component types with basic templates from languageConfig
           languageConfig.components.forEach(component => {
+            // Add basic template from languageConfig if available
+            const basicTemplate = languageConfig.basicTypeTemplates[component];
+            if (basicTemplate) {
+              suggestions.push({
+                label: basicTemplate.label,
+                kind: monaco.languages.CompletionItemKind.Snippet,
+                insertText: basicTemplate.insertText,
+                insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                detail: 'Basic template',
+                documentation: basicTemplate.documentation,
+                range: range,
+                sortText: `0${component}` // Highest priority for basic templates
+              });
+            }
+
+            // Add simple component declaration
             suggestions.push({
               label: component,
               kind: monaco.languages.CompletionItemKind.Class,
@@ -669,18 +685,18 @@ export function registerCustomLanguage(monaco) {
               sortText: `1${component}`
             });
             
-            // Add template suggestions for each component type
-            const template = getTemplateSuggestions(component);
-            if (template) {
+            // Add advanced template suggestions for each component type
+            const advancedTemplate = getTemplateSuggestions(component);
+            if (advancedTemplate) {
               suggestions.push({
-                label: `${component} (template)`,
+                label: `${component} (advanced)`,
                 kind: monaco.languages.CompletionItemKind.Snippet,
-                insertText: template.insertText,
+                insertText: advancedTemplate.insertText,
                 insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-                detail: 'Template',
-                documentation: template.documentation,
+                detail: 'Advanced template',
+                documentation: advancedTemplate.documentation,
                 range: range,
-                sortText: `0${component}` // Higher priority for templates
+                sortText: `2${component}` // Lower priority for advanced templates
               });
             }
           });
@@ -1230,13 +1246,31 @@ export function registerCustomLanguage(monaco) {
           });
         });
 
-        // Add matching component types
+        // Add matching component types with basic templates
         const matchingComponents = languageConfig.components.filter(component =>
           component.toLowerCase().includes(currentWord)
         );
         
         matchingComponents.forEach(component => {
           let sortScore = component.toLowerCase().startsWith(currentWord) ? '0' : '2';
+          
+          // Add basic template from languageConfig if available
+          const basicTemplate = languageConfig.basicTypeTemplates[component];
+          if (basicTemplate) {
+            suggestions.push({
+              label: basicTemplate.label,
+              kind: monaco.languages.CompletionItemKind.Snippet,
+              insertText: basicTemplate.insertText,
+              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              detail: 'Basic template',
+              documentation: basicTemplate.documentation,
+              range: range,
+              sortText: `${sortScore}${component}_template`,
+              filterText: component
+            });
+          }
+          
+          // Also add simple component name for cases where user just wants the type name
           suggestions.push({
             label: component,
             kind: monaco.languages.CompletionItemKind.Class,
@@ -1244,7 +1278,8 @@ export function registerCustomLanguage(monaco) {
             detail: 'Data structure type',
             documentation: typeDocumentation[component]?.description || `${component} data structure`,
             range: range,
-            sortText: `${sortScore}${component}`
+            sortText: `${sortScore}${component}_simple`,
+            filterText: component
           });
         });
 
@@ -1848,7 +1883,12 @@ export function registerCustomLanguage(monaco) {
       const line = model.getLineContent(range.startLineNumber);
       const word = model.getWordAtPosition({ lineNumber: range.startLineNumber, column: range.startColumn });
       
-      if (!word) return { actions: [], dispose: () => {} };
+      // Quick fix for "Nothing to show" error - always check this one
+      const nothingToShowFixes = getNothingToShowQuickFixes(model, range);
+      actions.push(...nothingToShowFixes);
+      
+      // For other fixes, we need a word
+      if (!word) return { actions, dispose: () => {} };
 
       // Quick fix for misspelled attributes
       const attributeFixes = getAttributeQuickFixes(line, word, range, model);
@@ -2166,6 +2206,71 @@ export function registerCustomLanguage(monaco) {
           }
         });
       });
+    }
+    
+    return actions;
+  }
+
+  // Quick fix for "Nothing to show" compile error
+  function getNothingToShowQuickFixes(model, range) {
+    const actions = [];
+    
+    // Get all the text in the model
+    const fullText = model.getValue();
+    
+    // Check if this might be a "Nothing to show" error scenario
+    // Look for component declarations but no page/show commands
+    const hasComponents = languageConfig.components.some(component => 
+      fullText.match(new RegExp(`\\b${component}\\s+\\w+\\s*=\\s*\\{`, 'm'))
+    );
+    
+    const hasPage = /\bpage\b/.test(fullText);
+    const hasShow = /\bshow\b/.test(fullText);
+    
+    // If we have components but no page or show commands, offer the fix
+    if (hasComponents && (!hasPage || !hasShow)) {
+      // Extract component variable names
+      const componentVariables = [];
+      languageConfig.components.forEach(component => {
+        const regex = new RegExp(`\\b${component}\\s+(\\w+)\\s*=\\s*\\{`, 'gm');
+        let match;
+        while ((match = regex.exec(fullText)) !== null) {
+          componentVariables.push(match[1]);
+        }
+      });
+      
+      if (componentVariables.length > 0) {
+        // Create the fix text
+        let fixText = '\n\npage';
+        componentVariables.forEach(varName => {
+          fixText += `\nshow ${varName}`;
+        });
+        
+        // Get the last line of the model to append the fix
+        const lastLine = model.getLineCount();
+        const lastLineContent = model.getLineContent(lastLine);
+        const lastColumn = lastLineContent.length + 1;
+        
+        const action = {
+          title: `Add page and show commands for defined components`,
+          kind: 'quickfix',
+          diagnostics: [],
+          edit: {
+            edits: [{
+              resource: model.uri,
+              textEdit: {
+                range: new monaco.Range(
+                  lastLine, lastColumn,
+                  lastLine, lastColumn
+                ),
+                text: fixText
+              }
+            }]
+          }
+        };
+        
+        actions.push(action);
+      }
     }
     
     return actions;
