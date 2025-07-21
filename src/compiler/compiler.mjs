@@ -1406,7 +1406,9 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
 }
 
 function preCheck(parsedDSL) {
-    if (!parsedDSL || !parsedDSL.defs || !parsedDSL.cmds) {
+    if (!parsedDSL || !parsedDSL.defs || !parsedDSL.cmds || 
+        (Array.isArray(parsedDSL.defs) && Array.isArray(parsedDSL.cmds) && 
+         parsedDSL.defs.length === 0 && parsedDSL.cmds.length === 0)) {
         throw new Error("Nothing to show\n\nPlease define an object and a page.\nThen show it using the 'show' command");
     }
 
@@ -1450,8 +1452,8 @@ function preCheck(parsedDSL) {
     });
 
 
-    // Check if the first command is a page
-    if (parsedDSL.cmds[0].type !== "page") {
+    // Check if the first command is a page (only if there are commands)
+    if (parsedDSL.cmds.length > 0 && parsedDSL.cmds[0].type !== "page") {
         throw createPreCheckError("Command before page\n\nPlease start a page using 'page'.\nThen use any other commands.", parsedDSL.cmds[0]);
     }
 }
