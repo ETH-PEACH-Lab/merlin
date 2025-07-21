@@ -48,6 +48,17 @@ const DslEditor = ({ value = "", onChange = () => {}, readOnly = false }) => {
         lineNumbers: "on",
         minimap: { enabled: false },
         readOnly: readOnly,
+        suggest: {
+          snippetsPreventQuickSuggestions: false,
+          localityBonus: true,
+          showWords: true,
+          showSnippets: true,
+          showStatusBar: true,
+          showInlineDetails: true,
+          shareSuggestSelections: false,
+          filterGraceful: true,
+          placement: 'top'  // Force placement to top/bottom only, never left/right
+        },
       }}
     />
   );

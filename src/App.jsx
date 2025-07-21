@@ -60,18 +60,7 @@ const App = () => {
   useEffect(() => {
     loadSavedItems();
 
-    // Check if there's a shared example in the URL
-    if (hasSharedExample()) {
-      const sharedCode = extractCodeFromUrl();
-      if (sharedCode) {
-        updateUnparsedCode(sharedCode);
-        setCurrentPage(1);
-        console.log('Loaded shared example from URL');
-      } else {
-        console.error('Failed to load shared example from URL');
-      }
-    }
-  }, [updateUnparsedCode]);
+  }, []);
 
   // Listen for hash changes to support browser navigation
   useEffect(() => {
