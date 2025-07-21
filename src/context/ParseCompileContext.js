@@ -288,12 +288,15 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
                 coordinates  // Pass coordinates to distinguish global vs per-element properties
             );
 
+            const currentComponent = pages[page]?.find(comp => comp.name === componentName);
+            
             const newCommand = createOptimizedCommand(
                 relevantCommands, 
                 componentName, 
                 fieldKey, 
                 coordinates, 
-                value
+                value,
+                currentComponent
             );
             
             // Remove old commands (in reverse order to maintain indices)

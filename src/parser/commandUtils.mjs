@@ -3,7 +3,7 @@
 /**
  * Creates optimized commands for array, matrix, and position field value updates
  */
-export function createOptimizedCommand(relevantCommands, componentName, fieldKey, coordinates, value) {
+export function createOptimizedCommand(relevantCommands, componentName, fieldKey, coordinates, value, componentDefinition = null) {
     // Handle position field updates
     if (fieldKey === "position") {
         return createOptimizedPositionCommand(relevantCommands, componentName, value);
@@ -19,7 +19,7 @@ export function createOptimizedCommand(relevantCommands, componentName, fieldKey
     if (isMatrix) {
         return createOptimizedMatrixCommand(relevantCommands, componentName, fieldKey, coordinates.row, coordinates.col, value);
     } else {
-        return createOptimizedArrayCommand(relevantCommands, componentName, fieldKey, coordinates.index, value);
+        return createOptimizedArrayCommand(relevantCommands, componentName, fieldKey, coordinates.index, value, componentDefinition);
     }
 }
 
@@ -107,7 +107,7 @@ function createOptimizedGlobalCommand(relevantCommands, componentName, fieldKey,
 /**
  * Internal function for array command optimization
  */
-function createOptimizedArrayCommand(relevantCommands, componentName, fieldKey, idx, value) {
+function createOptimizedArrayCommand(relevantCommands, componentName, fieldKey, idx, value, componentDefinition = null) {
     // Create a merged state of all modifications
     const mergedModifications = new Map(); // index -> value
 
@@ -118,11 +118,20 @@ function createOptimizedArrayCommand(relevantCommands, componentName, fieldKey, 
             const cmdValue = cmd.args.value;
             mergedModifications.set(index, cmdValue);
         } else if (cmd.type === "set_multiple") {
-            cmd.args.forEach((val, idx) => {
-                if (val !== "_") {
-                    mergedModifications.set(idx, val);
+            if (Array.isArray(cmd.args)) {
+                cmd.args.forEach((val, idx) => {
+                    if (val !== "_") {
+                        mergedModifications.set(idx, val);
+                    }
+                });
+            } else {
+                // Handle object format
+                for (const [key, val] of Object.entries(cmd.args)) {
+                    if (val !== "_") {
+                        mergedModifications.set(key, val);
+                    }
                 }
-            });
+            }
         }
     }
     
@@ -155,23 +164,114 @@ function createOptimizedArrayCommand(relevantCommands, componentName, fieldKey, 
         };
     } else {
         // Multiple modifications, use "set_multiple"
-        // Find the maximum index to determine array size
-        const maxIndex = Math.max(...mergedModifications.keys());
-        const args = new Array(maxIndex + 1).fill("_");
+        const keys = Array.from(mergedModifications.keys());
         
-        // Fill in the modifications
-        for (const [index, val] of mergedModifications) {
-            args[index] = val;
+        // Special handling for array fields that should always output arrays
+        if (fieldKey === "arrows" || fieldKey === "arrow" || fieldKey === "colors" || fieldKey === "color") {
+            // For trees/graphs with node-based indexing, we need to map node names to indices
+            const nodeToIndexMap = new Map();
+            let maxArraySize = 0;
+            
+            // If we have component definition with nodes, use it for mapping
+            if (componentDefinition && componentDefinition.body && componentDefinition.body.nodes) {
+                const nodes = componentDefinition.body.nodes;
+                nodes.forEach((nodeName, index) => {
+                    nodeToIndexMap.set(nodeName, index);
+                });
+                maxArraySize = nodes.length;
+            } else {
+                // Fallback: analyze existing commands to understand the node structure
+                for (const cmd of relevantCommands) {
+                    if (cmd.type === "set" && typeof cmd.args.index === "number") {
+                        maxArraySize = Math.max(maxArraySize, cmd.args.index + 1);
+                    } else if (cmd.type === "set_multiple" && Array.isArray(cmd.args)) {
+                        maxArraySize = Math.max(maxArraySize, cmd.args.length);
+                    }
+                }
+                
+                // For unknown node names, assign them to the next available indices
+                let nextIndex = maxArraySize;
+                for (const [key, val] of mergedModifications) {
+                    if (isNaN(key) || !Number.isInteger(Number(key))) {
+                        if (!nodeToIndexMap.has(key)) {
+                            nodeToIndexMap.set(key, nextIndex);
+                            nextIndex++;
+                        }
+                    }
+                }
+                maxArraySize = Math.max(maxArraySize, nextIndex);
+            }
+            
+            // Also consider the current modifications to expand array size if needed
+            for (const [key, val] of mergedModifications) {
+                if (!isNaN(key) && Number.isInteger(Number(key))) {
+                    maxArraySize = Math.max(maxArraySize, Number(key) + 1);
+                }
+            }
+            
+            const args = new Array(maxArraySize).fill("_");
+            
+            // Fill in all modifications using resolved indices
+            for (const [key, val] of mergedModifications) {
+                let index;
+                if (!isNaN(key) && Number.isInteger(Number(key))) {
+                    index = Number(key);
+                } else {
+                    index = nodeToIndexMap.get(key);
+                }
+                
+                if (index !== undefined && index >= 0 && index < args.length) {
+                    args[index] = val;
+                }
+            }
+            
+            return {
+                type: "set_multiple",
+                target: fieldKey,
+                args: args,
+                name: componentName,
+                line: 0,
+                col: 0
+            };
         }
         
-        return {
-            type: "set_multiple",
-            target: fieldKey,
-            args: args,
-            name: componentName,
-            line: 0,
-            col: 0
-        };
+        const allNumeric = keys.every(k => typeof k === "number" || (!isNaN(k) && Number.isInteger(Number(k))));
+        
+        if (allNumeric) {
+            // All keys are numeric, use array format
+            const numericKeys = keys.map(Number);
+            const maxIndex = Math.max(...numericKeys);
+            const args = new Array(maxIndex + 1).fill("_");
+            
+            // Fill in the modifications
+            for (const [index, val] of mergedModifications) {
+                args[Number(index)] = val;
+            }
+            
+            return {
+                type: "set_multiple",
+                target: fieldKey,
+                args: args,
+                name: componentName,
+                line: 0,
+                col: 0
+            };
+        } else {
+            // Mixed or string keys, use object format
+            const args = {};
+            for (const [key, val] of mergedModifications) {
+                args[key] = val;
+            }
+            
+            return {
+                type: "set_multiple",
+                target: fieldKey,
+                args: args,
+                name: componentName,
+                line: 0,
+                col: 0
+            };
+        }
     }
 }
 

@@ -20,6 +20,71 @@ export function registerCustomLanguage(monaco) {
   // Initialize error state manager
   window.errorStateManager = errorStateManager;
   errorStateManager.monaco = monaco;
+
+  // Performance cache for expensive parsing operations
+  const parseCache = {
+    variableTypes: null,
+    nodeData: null,
+    gridLayout: null,
+    lastLineNumber: -1,
+    lastModelVersion: -1,
+    
+    // Clear cache when we move to a different line or model changes
+    shouldRefresh: function(lineNumber, modelVersion) {
+      return this.lastLineNumber !== lineNumber || this.lastModelVersion !== modelVersion;
+    },
+    
+    // Update cache metadata
+    updateCache: function(lineNumber, modelVersion, variableTypes, nodeData, gridLayout) {
+      this.lastLineNumber = lineNumber;
+      this.lastModelVersion = modelVersion;
+      this.variableTypes = variableTypes;
+      this.nodeData = nodeData;
+      this.gridLayout = gridLayout;
+    },
+    
+    // Get cached data or compute if needed
+    getCachedData: function(model, position) {
+      const currentModelVersion = model.getVersionId();
+      
+      if (this.shouldRefresh(position.lineNumber, currentModelVersion)) {
+        const variableTypes = parseContextForTypes(model, position);
+        const nodeData = parseNodesFromContext(model, position);
+        const gridLayout = detectGridLayout(model, position);
+        this.updateCache(position.lineNumber, currentModelVersion, variableTypes, nodeData, gridLayout);
+      }
+      
+      return {
+        variableTypes: this.variableTypes,
+        nodeData: this.nodeData,
+        gridLayout: this.gridLayout
+      };
+    }
+  };
+
+  // Cache frequently used static data to avoid recomputation
+  const staticCache = {
+    allMethods: null,
+    methodSignatureCache: new Map(),
+    
+    getAllMethods: function() {
+      if (!this.allMethods) {
+        this.allMethods = [...new Set(Object.values(typeMethodsMap).flatMap(type => 
+          Object.values(type).flatMap(methods => Array.isArray(methods) ? methods : [])
+        ))];
+      }
+      return this.allMethods;
+    },
+    
+    getMethodSignature: function(methodName, varType) {
+      const cacheKey = `${methodName}:${varType}`;
+      if (!this.methodSignatureCache.has(cacheKey)) {
+        const signature = getMethodSignature(methodName, varType);
+        this.methodSignatureCache.set(cacheKey, signature);
+      }
+      return this.methodSignatureCache.get(cacheKey);
+    }
+  };
   
   // Register a new language
   monaco.languages.register({ id: "customLang" });
@@ -44,10 +109,8 @@ export function registerCustomLanguage(monaco) {
   const edgePattern = /([a-zA-Z_][a-zA-Z0-9_]*)-([a-zA-Z_][a-zA-Z0-9_]*)/;
   const layoutPattern = /\b\d+x\d+\b/;
   
-  // Create method pattern from all available methods
-  const allMethods = [...new Set(Object.values(typeMethodsMap).flatMap(type => 
-    Object.values(type).flatMap(methods => Array.isArray(methods) ? methods : [])
-  ))];
+  // Create method pattern from all available methods (cached)
+  const allMethods = staticCache.getAllMethods();
 
   // Function to parse current context and get variable types
   function parseContextForTypes(model, position) {
@@ -199,6 +262,30 @@ export function registerCustomLanguage(monaco) {
     };
   }
 
+  // Function to detect if we're hovering over a method name (different from method call context)
+  function isHoveringOverMethod(model, position, word) {
+    const line = model.getLineContent(position.lineNumber);
+    const beforeWord = line.substring(0, word.startColumn - 1);
+    const afterWord = line.substring(word.endColumn - 1);
+    
+    // Check if there's a dot before the word: variable.methodName
+    const dotBeforeMatch = beforeWord.match(/(\w+)\.$/);
+    if (dotBeforeMatch) {
+      const variableName = dotBeforeMatch[1];
+      // Check if there are parentheses after the method name (indicating it's a method)
+      const methodCallPattern = /^\s*\(/;
+      const isMethodCall = methodCallPattern.test(afterWord);
+      
+      return {
+        variableName,
+        methodName: word.word,
+        isMethod: isMethodCall || staticCache.getAllMethods().includes(word.word)
+      };
+    }
+    
+    return null;
+  }
+
   // Function to detect method call context and parameter position
   function getMethodCallContext(model, position) {
     const line = model.getLineContent(position.lineNumber);
@@ -317,17 +404,17 @@ export function registerCustomLanguage(monaco) {
       },
       graph: {
         label: 'Graph with nodes and edges',
-        insertText: `graph \${1:myGraph} = {\n\tnodes: [\${2:"n1", "n2", "n3"}]\n\tedges: [\${3:"n1-n2", "n2-n3"}]\n\tvalue: [\${4:10, 20, 30}]\n}`,
+        insertText: `graph \${1:myGraph} = {\n\tnodes: [\${2: n1, n2, n3}]\n\tedges: [\${3:n1-n2, n2-n3}]\n\tvalue: [\${4:10, 20, 30}]\n}`,
         documentation: 'Complete graph declaration with nodes, edges, and values'
       },
       linkedlist: {
         label: 'Linked list with nodes',
-        insertText: `linkedlist \${1:myList} = {\n\tnodes: [\${2:"head", "node1", "node2", "tail"}]\n\tvalue: [\${3:1, 2, 3, 4}]\n\tcolor: [\${4:"green", null, null, "red"}]\n}`,
+        insertText: `linkedlist \${1:myList} = {\n\tnodes: [\${2:head, node1, node2, tail}]\n\tvalue: [\${3:1, 2, 3, 4}]\n\tcolor: [\${4:"green", null, null, "red"}]\n}`,
         documentation: 'Complete linked list declaration with nodes and values'
       },
       tree: {
         label: 'Tree with hierarchical structure',
-        insertText: `tree \${1:myTree} = {\n\tnodes: [\${2:"root", "left", "right"}]\n\tchildren: [\${3:"root-left", "root-right"}]\n\tvalue: [\${4:1, 2, 3}]\n}`,
+        insertText: `tree \${1:myTree} = {\n\tnodes: [\${2:root, left, right}]\n\tchildren: [\${3:root-left, root-right}]\n\tvalue: [\${4:1, 2, 3}]\n}`,
         documentation: 'Complete tree declaration with nodes and parent-child relationships'
       },
       text: {
@@ -430,6 +517,10 @@ export function registerCustomLanguage(monaco) {
     } else if (methodName === 'setValues') {
       return 'setValues([${1:value1}, ${2:value2}, ${3:...}])';
     } else if (methodName === 'setColor') {
+      // For graph and tree, first parameter is node name (no quotes), second is color (with quotes)
+      if (varType === 'graph' || varType === 'tree') {
+        return 'setColor(${1:node}, "${2:color}")';
+      }
       return 'setColor(${1:index}, "${2:color}")';
     } else if (methodName === 'setColors') {
       return 'setColors(["${1:color1}", "${2:color2}", "${3:...}"])';
@@ -525,10 +616,9 @@ export function registerCustomLanguage(monaco) {
 
         const line = model.getLineContent(position.lineNumber);
         const beforeCursor = line.substring(0, position.column - 1);
-        const afterCursor = line.substring(position.column - 1);
         
-        // Parse context to get variable types and names
-        const variableTypes = parseContextForTypes(model, position);
+        // Get cached parsed data
+        const { variableTypes, nodeData, gridLayout } = parseCache.getCachedData(model, position);
         const variableNames = Object.keys(variableTypes);
 
         // Check if we're after a dot (method completion)
@@ -654,8 +744,8 @@ export function registerCustomLanguage(monaco) {
         if (showVariableMatch) {
           const [, command, varName] = showVariableMatch;
           
-          // Detect current grid layout for smart suggestions
-          const gridLayout = detectGridLayout(model, position);
+          // Use cached grid layout data
+          // gridLayout already available from cached data above
           
           // Add named positions
           languageConfig.positionKeywords.forEach(pos => {
@@ -904,7 +994,6 @@ export function registerCustomLanguage(monaco) {
             });
           } else if (attributeName === 'edges') {
             // If we have nodes in context, suggest edge combinations
-            const nodeData = parseNodesFromContext(model, position);
             if (nodeData.allNodes.length > 0) {
               const edgeSuggestions = [];
               for (let i = 0; i < Math.min(nodeData.allNodes.length, 5); i++) {
@@ -982,7 +1071,8 @@ export function registerCustomLanguage(monaco) {
         const insideParensMatch = beforeCursor.match(/\(\s*([^)]*?)$/);
         if (insideParensMatch) {
           const [, content] = insideParensMatch;
-          const gridLayout = detectGridLayout(model, position);
+          // Use cached grid layout data
+          // gridLayout already available from cached data above
           
           // If no content yet, suggest common coordinates
           if (content.trim() === '') {
@@ -1088,8 +1178,8 @@ export function registerCustomLanguage(monaco) {
         const line = model.getLineContent(position.lineNumber);
         const beforeCursor = line.substring(0, position.column - 1);
         
-        // Parse context to get variable types and names
-        const variableTypes = parseContextForTypes(model, position);
+        // Get cached parsed data
+        const { variableTypes } = parseCache.getCachedData(model, position);
         const variableNames = Object.keys(variableTypes);
         const suggestions = [];
 
@@ -1162,24 +1252,15 @@ export function registerCustomLanguage(monaco) {
 
   // Register a completion provider specifically for method arguments
   monaco.languages.registerCompletionItemProvider("customLang", {
-    triggerCharacters: ['(', ',', ' ', '"', '.'],
+    triggerCharacters: ['(', ',', ' ', '"', '.', '-'],
     provideCompletionItems: function(model, position) {
       try {
         const line = model.getLineContent(position.lineNumber);
         const beforeCursor = line.substring(0, position.column - 1);
         
-        // Debug: log what we're trying to match
-        console.log('Method argument completion - beforeCursor:', beforeCursor);
-        
         const methodContext = getMethodCallContext(model, position);
-        console.log('Method context:', methodContext);
         
         if (!methodContext) {
-          // Try a simpler pattern for debugging
-          const simpleMethodMatch = beforeCursor.match(/(\w+)\.(\w+)\s*\(/);
-          if (simpleMethodMatch) {
-            console.log('Found simple method pattern:', simpleMethodMatch);
-          }
           return { suggestions: [] };
         }
         
@@ -1195,15 +1276,12 @@ export function registerCustomLanguage(monaco) {
         
         // Safety checks to prevent undefined errors
         if (!variableName || !methodName || parameterIndex === undefined) {
-          console.log('Invalid method context - missing required fields');
           return { suggestions: [] };
         }
         
-        const variableTypes = parseContextForTypes(model, position);
+        // Get cached parsed data
+        const { variableTypes, nodeData } = parseCache.getCachedData(model, position);
         const varType = variableTypes[variableName];
-        const nodeData = parseNodesFromContext(model, position);
-        
-        console.log(`Method: ${methodName}, Variable: ${variableName}, Type: ${varType}, Parameter: ${parameterIndex}`);
         
         const suggestions = [];
 
@@ -1270,16 +1348,16 @@ export function registerCustomLanguage(monaco) {
 
         if (methodName === 'addNode' || methodName === 'insertNode') {
           if (parameterIndex === 0) {
-            // First parameter is node name
+            // First parameter is node name (no quotes)
             const existingNodes = nodeData.nodesByVariable[variableName] || [];
-            const suggestedNodes = ['client', 'server', 'router', 'database', 'user', 'admin', 'node1', 'node2', 'node3'];
+            const suggestedNodes = ['client', 'server', 'router', 'database', 'user', 'admin', 'offline', 'node1', 'node2', 'node3'];
             
             suggestedNodes.forEach((nodeName, index) => {
               if (!existingNodes.includes(nodeName)) {
                 suggestions.push({
                   label: nodeName,
                   kind: monaco.languages.CompletionItemKind.Value,
-                  insertText: `"${nodeName}"`,
+                  insertText: nodeName, // No quotes
                   detail: 'Node name',
                   documentation: `Add node named ${nodeName}`,
                   range: range,
@@ -1304,32 +1382,149 @@ export function registerCustomLanguage(monaco) {
           }
         }
 
-        if (methodName === 'addEdge' || methodName === 'insertEdge' || methodName === 'removeEdge') {
-          // Edge parameter suggestions
-          const existingNodes = nodeData.nodesByVariable[variableName] || nodeData.allNodes;
-          const edgeSuggestions = [];
-          
-          // Generate edge combinations from existing nodes
-          for (let i = 0; i < existingNodes.length; i++) {
-            for (let j = i + 1; j < existingNodes.length; j++) {
-              edgeSuggestions.push(`${existingNodes[i]}-${existingNodes[j]}`);
-              if (edgeSuggestions.length >= 10) break; // Limit suggestions
-            }
-            if (edgeSuggestions.length >= 10) break;
-          }
-          
-          edgeSuggestions.forEach((edge, index) => {
-            suggestions.push({
-              label: edge,
-              kind: monaco.languages.CompletionItemKind.Value,
-              insertText: `"${edge}"`,
-              detail: 'Edge connection',
-              documentation: `Connect nodes ${edge.replace('-', ' and ')}`,
-              range: range,
-              sortText: `1edge${index}`
+        if (methodName === 'removeNode') {
+          if (parameterIndex === 0) {
+            // Suggest existing nodes for removal (no quotes)
+            const existingNodes = nodeData.nodesByVariable[variableName] || [];
+            existingNodes.forEach((nodeName, index) => {
+              suggestions.push({
+                label: nodeName,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: nodeName, // No quotes
+                detail: 'Existing node',
+                documentation: `Remove node ${nodeName}`,
+                range: range,
+                sortText: `1node${index}`
+              });
             });
-          });
+          }
         }
+
+        if (methodName === 'setColor' && (varType === 'graph' || varType === 'tree')) {
+          if (parameterIndex === 0) {
+            // First parameter is node name for graph/tree setColor (no quotes)
+            const existingNodes = nodeData.nodesByVariable[variableName] || nodeData.allNodes;
+            existingNodes.forEach((nodeName, index) => {
+              suggestions.push({
+                label: nodeName,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: nodeName, // No quotes
+                detail: 'Node name',
+                documentation: `Set color for node ${nodeName}`,
+                range: range,
+                sortText: `1node${index}`
+              });
+            });
+          }
+          if (parameterIndex === 0) {
+            // First parameter is node name for graph/tree setArrow (no quotes)
+            const existingNodes = nodeData.nodesByVariable[variableName] || nodeData.allNodes;
+            existingNodes.forEach((nodeName, index) => {
+              suggestions.push({
+                label: nodeName,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: nodeName, // No quotes
+                detail: 'Node name',
+                documentation: `Set arrow for node ${nodeName}`,
+                range: range,
+                sortText: `1node${index}`
+              });
+            });
+          }
+        }
+
+        if (methodName === 'addEdge' || methodName === 'insertEdge' || methodName === 'removeEdge') {
+          // Smart edge parameter suggestions - progressive completion
+          const existingNodes = nodeData.nodesByVariable[variableName] || nodeData.allNodes || 
+            ['client', 'server', 'router', 'database', 'offline', 'admin']; // fallback nodes
+          
+          // Get the current line to better understand context
+          const line = model.getLineContent(position.lineNumber);
+          const beforeCursor = line.substring(0, position.column - 1);
+          
+          // Find what's being typed in the current parameter
+          const methodStart = beforeCursor.lastIndexOf('(');
+          const paramStart = Math.max(
+            beforeCursor.lastIndexOf(',', methodStart) + 1,
+            methodStart + 1
+          );
+          const currentParamText = beforeCursor.substring(paramStart).trim();
+          
+          // Check if we're in the middle of typing an edge (contains -)
+          // Use regex to detect if cursor is after a dash (e.g., parent-)
+          const dashMatch = beforeCursor.match(/([A-Za-z0-9_]+)-$/);
+          if (dashMatch) {
+            const beforeDash = dashMatch[1];
+            const secondNodeOptions = existingNodes.filter(node => node !== beforeDash);
+            secondNodeOptions.forEach((nodeName, index) => {
+              suggestions.push({
+                label: nodeName,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: nodeName,
+                detail: 'Target node',
+                documentation: `Connect ${beforeDash} to ${nodeName}`,
+                range: range,
+                sortText: `0node${index}`
+              });
+            });
+          } else {
+            // Suggest node names only (no dash)
+            existingNodes.forEach((nodeName, index) => {
+              suggestions.push({
+                label: nodeName,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: nodeName,
+                detail: 'Source node',
+                documentation: `Start edge from ${nodeName} (type '-' to select target)`,
+                range: range,
+                sortText: `0edge${index}`
+              });
+            });
+          }
+        }
+
+          // Progressive completion for setChild/addChild (tree edge methods)
+          if (methodName === 'setChild' || methodName === 'addChild') {
+            const existingNodes = nodeData.nodesByVariable[variableName] || nodeData.allNodes || ['CEO', 'CTO', 'CFO', 'LeadDev', 'Intern'];
+            const line = model.getLineContent(position.lineNumber);
+            const beforeCursor = line.substring(0, position.column - 1);
+            const methodStart = beforeCursor.lastIndexOf('(');
+            const paramStart = Math.max(
+              beforeCursor.lastIndexOf(',', methodStart) + 1,
+              methodStart + 1
+            );
+            const currentParamText = beforeCursor.substring(paramStart).trim();
+            // Use regex to detect if cursor is after a dash (e.g., parent-)
+            const dashMatch = beforeCursor.match(/([A-Za-z0-9_]+)-$/);
+            if (dashMatch) {
+              const beforeDash = dashMatch[1];
+              const secondNodeOptions = existingNodes.filter(node => node !== beforeDash);
+              secondNodeOptions.forEach((nodeName, index) => {
+                suggestions.push({
+                  label: nodeName,
+                  kind: monaco.languages.CompletionItemKind.Value,
+                  insertText: nodeName,
+                  detail: 'Child node',
+                  documentation: `Set child from ${beforeDash} to ${nodeName}`,
+                  range: range,
+                  sortText: `0child${index}`
+                });
+              });
+            } else {
+              // Suggest node names only (no dash)
+              existingNodes.forEach((nodeName, index) => {
+                suggestions.push({
+                  label: nodeName,
+                  kind: monaco.languages.CompletionItemKind.Value,
+                  insertText: nodeName,
+                  detail: 'Parent node',
+                  documentation: `Set child from ${nodeName} (type '-' to select child)`,
+                  range: range,
+                  sortText: `0parent${index}`
+                });
+              });
+            }
+          }
 
         if (methodName === 'setValue' || methodName === 'setValues') {
           // Value suggestions
@@ -1409,7 +1604,6 @@ export function registerCustomLanguage(monaco) {
           });
         }
 
-        console.log(`Returning ${suggestions.length} suggestions:`, suggestions.map(s => s.label));
         return { suggestions };
       } catch (error) {
         console.error('Error in method argument completion provider:', error);
@@ -1458,7 +1652,8 @@ export function registerCustomLanguage(monaco) {
       if (!methodCallMatch) return null;
       
       const [, variableName, methodName] = methodCallMatch;
-      const variableTypes = parseContextForTypes(model, position);
+      // Get cached parsed data
+      const { variableTypes } = parseCache.getCachedData(model, position);
       const varType = variableTypes[variableName];
       
       if (!varType) return null;
@@ -1542,7 +1737,8 @@ export function registerCustomLanguage(monaco) {
       const word = model.getWordAtPosition(position);
       if (!word) return null;
 
-      const variableTypes = parseContextForTypes(model, position);
+      // Get cached parsed data
+      const { variableTypes } = parseCache.getCachedData(model, position);
       const varName = word.word;
 
       // Check if hovering over a component type keyword
@@ -1567,7 +1763,7 @@ export function registerCustomLanguage(monaco) {
 
       // Check if we're hovering over a method call
       const methodContext = getMethodCallContext(model, position);
-      if (methodContext.isMethodCall && methodContext.methodName === varName) {
+      if (methodContext && methodContext.isMethodCall && methodContext.methodName === varName) {
         const callerType = variableTypes[methodContext.variableName];
         if (callerType) {
           const methodDoc = getMethodDocumentation(varName, callerType);
@@ -1587,6 +1783,45 @@ export function registerCustomLanguage(monaco) {
                 ...(docLink ? [{ value: docLink, isTrusted: true }] : [])
               ]
             };
+          }
+        }
+      }
+
+      // Check if we're hovering over a method name (even without parentheses)
+      const methodHover = isHoveringOverMethod(model, position, word);
+      if (methodHover && methodHover.isMethod) {
+        const callerType = variableTypes[methodHover.variableName];
+        if (callerType) {
+          const methodDoc = getMethodDocumentation(methodHover.methodName, callerType);
+          if (methodDoc) {
+            const paramsList = methodDoc.parameters ? 
+              methodDoc.parameters.map(param => `• ${param}`).join('\n\n') : 
+              'No parameters documented';
+            const typeDoc = typeDocumentation[callerType];
+            const docLink = typeDoc ? `[See ${callerType} documentation](${typeDoc.url})` : '';
+            return {
+              range: new monaco.Range(position.lineNumber, word.startColumn, position.lineNumber, word.endColumn),
+              contents: [
+                { value: `**${methodHover.methodName}()** method` },
+                { value: methodDoc.description },
+                { value: `**Parameters:**\n\n${paramsList}` },
+                { value: `**Example:**\n\`\`\`merlin\n${methodDoc.example}\n\`\`\`` },
+                ...(docLink ? [{ value: docLink, isTrusted: true }] : [])
+              ]
+            };
+          } else {
+            // Fallback: show basic method info even without detailed documentation
+            const availableMethods = getMethodsForType(callerType);
+            if (availableMethods.includes(methodHover.methodName)) {
+              return {
+                range: new monaco.Range(position.lineNumber, word.startColumn, position.lineNumber, word.endColumn),
+                contents: [
+                  { value: `**${methodHover.methodName}()** method` },
+                  { value: `Method available for ${callerType} variables` },
+                  { value: `Call as: ${methodHover.variableName}.${methodHover.methodName}()` }
+                ]
+              };
+            }
           }
         }
       }
@@ -1736,7 +1971,7 @@ export function registerCustomLanguage(monaco) {
     
     if (methodCallMatch) {
       const variableName = methodCallMatch[1];
-      const variableTypes = parseContextForTypes(model, { 
+      const { variableTypes } = parseCache.getCachedData(model, { 
         lineNumber: range.startLineNumber, 
         column: word.startColumn 
       });
@@ -1858,9 +2093,7 @@ export function registerCustomLanguage(monaco) {
 
     // Fix missing parentheses in method calls
     if (line.includes(`${word.word}.`) || line.includes(`.${word.word}`)) {
-      const allMethods = [...new Set(Object.values(typeMethodsMap).flatMap(type => 
-        Object.values(type).flatMap(methods => Array.isArray(methods) ? methods : [])
-      ))];
+      const allMethods = staticCache.getAllMethods();
       
       if (allMethods.includes(word.word) && !line.includes(`${word.word}(`)) {
         actions.push({

@@ -130,7 +130,11 @@ export const typeMethodsMap = {
 // Method signatures for autocomplete snippets
 export const methodSignatures = {
   setValue: (varType) => varType === 'matrix' ? 'setValue(${1:row}, ${2:col}, ${3:value})' : 'setValue(${1:index}, ${2:value})',
-  setColor: (varType) => varType === 'matrix' ? 'setColor(${1:row}, ${2:col}, ${3:color})' : 'setColor(${1:index}, ${2:color})',
+  setColor: (varType) => {
+    if (varType === 'matrix') return 'setColor(${1:row}, ${2:col}, "${3:color}")';
+    if (varType === 'graph' || varType === 'tree') return 'setColor(${1:node}, "${2:color}")';
+    return 'setColor(${1:index}, "${2:color}")';
+  },
   setArrow: (varType) => varType === 'matrix' ? 'setArrow(${1:row}, ${2:col}, ${3:arrow})' : 'setArrow(${1:index}, ${2:arrow})',
   setValues: () => 'setValues([${1:values}])',
   setColors: () => 'setColors([${1:colors}])',
@@ -296,44 +300,44 @@ export const methodDocumentation = {
   addNode: {
     description: 'Add node to graph structure',
     signature: 'addNode(name, value)',
-    parameters: ['name: `string` - The node identifier', 'value: `number|string` - The node value'],
-    example: 'myGraph.addNode("n4", 42)'
+    parameters: ['name: `id` - The node identifier', 'value: `number|string` - The node value'],
+    example: 'myGraph.addNode(client, 42)'
   },
   insertNode: {
     description: 'Insert node at specific index',
     signature: 'insertNode(index, name)',
     parameters: ['index: `number` - Position to insert at', 'name: `string` - The node identifier'],
-    example: 'myLinkedList.insertNode(2, "newNode")'
+    example: 'myLinkedList.insertNode(2, newNode)'
   },
   removeNode: {
     description: 'Remove node from structure',
     signature: 'removeNode(name)',
-    parameters: ['name: `string` - The node identifier to remove'],
-    example: 'myGraph.removeNode("n3")'
+    parameters: ['name: `id` - The node identifier to remove'],
+    example: 'myGraph.removeNode(client)'
   },
   addEdge: {
     description: 'Add edge between two nodes',
     signature: 'addEdge(nodeA-nodeB)',
-    parameters: ['edge: `string` - Edge in format "nodeA-nodeB"'],
-    example: 'myGraph.addEdge("n1-n4")'
+    parameters: ['edge: `id-id` - Edge in format "nodeA-nodeB"'],
+    example: 'myGraph.addEdge(client-router)'
   },
   insertEdge: {
     description: 'Insert edge at specific index',
     signature: 'insertEdge(index, nodeA-nodeB)',
-    parameters: ['index: `number` - Position to insert at', 'edge: `string` - Edge in format "nodeA-nodeB"'],
-    example: 'myGraph.insertEdge(1, "n2-n4")'
+    parameters: ['index: `number` - Position to insert at', 'edge: `id-id` - Edge in format "nodeA-nodeB"'],
+    example: 'myGraph.insertEdge(1, server-database)'
   },
   removeEdge: {
     description: 'Remove edge between nodes',
     signature: 'removeEdge(nodeA-nodeB)',
-    parameters: ['edge: `string` - Edge in format "nodeA-nodeB"'],
-    example: 'myGraph.removeEdge("n1-n3")'
+    parameters: ['edge: `id-id` - Edge in format "nodeA-nodeB"'],
+    example: 'myGraph.removeEdge(client-router)'
   },
   setEdges: {
     description: 'Set all edges at once',
     signature: 'setEdges([edges])',
-    parameters: ['edges: `array` - Array of edges in format ["nodeA-nodeB", ...]'],
-    example: 'myGraph.setEdges(["n1-n2", "n2-n3"])'
+    parameters: ['edges: `array` - Array of edges in format [nodeA-nodeB, ...]'],
+    example: 'myGraph.setEdges([client-router, router-server])'
   },
   setHidden: {
     description: 'Set visibility of graph element',
@@ -347,19 +351,19 @@ export const methodDocumentation = {
     description: 'Add child to tree node',
     signature: 'addChild(parent-child, value)',
     parameters: ['relationship: `string` - Parent-child in format "parent-child"', 'value: `number|string` - The child value'],
-    example: 'myTree.addChild("root-newChild", 42)'
+    example: 'myTree.addChild(root-newChild, 42)'
   },
   setChild: {
     description: 'Set child relationship in tree',
     signature: 'setChild(parent-child)',
-    parameters: ['relationship: `string` - Parent-child in format "parent-child"'],
-    example: 'myTree.setChild("n1-n4")'
+    parameters: ['relationship: `id-id` - Parent-child in format "parent-child"'],
+    example: 'myTree.setChild(root-leftChild)'
   },
   removeSubtree: {
     description: 'Remove entire subtree starting from node',
     signature: 'removeSubtree(node)',
-    parameters: ['node: `string` - The root node of subtree to remove'],
-    example: 'myTree.removeSubtree("n3")'
+    parameters: ['node: `id` - The root node of subtree to remove'],
+    example: 'myTree.removeSubtree(leftBranch)'
   },
 
   // Matrix-specific Methods
