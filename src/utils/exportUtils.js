@@ -153,9 +153,13 @@ export const svgToPng = async (svgString, config) => {
           canvas.style.width = finalWidth + 'px';
           canvas.style.height = finalHeight + 'px';
 
-          // Fill with white background
-          ctx.fillStyle = 'white';
-          ctx.fillRect(0, 0, finalWidth, finalHeight);
+          // Set background based on config
+          if (config.whiteBackground) {
+            // Fill with white background
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, finalWidth, finalHeight);
+          }
+          // If whiteBackground is false or undefined, keep transparent background
 
           // Calculate scaling to fit image within canvas while maintaining aspect ratio
           const imgAspect = img.naturalWidth / img.naturalHeight;
@@ -339,7 +343,8 @@ export const exportPDF = async (compiledMerlin, pages, mermaidRef, config = EXPO
       const pngDataUrl = await svgToPng(page.svg, {
         width: config.width,
         height: config.height,
-        useHighDPI: true
+        useHighDPI: true,
+        whiteBackground: config.whiteBackground
       });
 
       if (pngDataUrl) {
@@ -445,7 +450,8 @@ export const exportPPTX = async (compiledMerlin, pages, config = EXPORT_CONFIGS.
       const pngDataUrl = await svgToPng(page.svg, {
         width: config.width,
         height: config.height,
-        useHighDPI: true
+        useHighDPI: true,
+        whiteBackground: config.whiteBackground
       });
 
       if (pngDataUrl) {
@@ -689,7 +695,8 @@ export const exportVideo = async (compiledMerlin, pages, config = EXPORT_CONFIGS
       const pngDataUrl = await svgToPng(page.svg, {
         width: config.width,
         height: config.height,
-        useHighDPI: true
+        useHighDPI: true,
+        whiteBackground: config.whiteBackground
       });
 
       if (pngDataUrl) {
@@ -969,7 +976,8 @@ export const exportGIF = async (compiledMerlin, pages, config = EXPORT_CONFIGS.g
       const pngDataUrl = await svgToPng(page.svg, {
         width: config.width,
         height: config.height,
-        useHighDPI: true
+        useHighDPI: true,
+        whiteBackground: config.whiteBackground
       });
 
       if (pngDataUrl) {
