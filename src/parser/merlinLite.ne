@@ -141,7 +141,25 @@ const getDef = ([el]) => {
 # Pass your lexer object using the @lexer option:
 @lexer lexer
 
-root -> nlw:* one_per_line[definition]:? nlw:* one_per_line[commands] nlw:* {% ([, defs, , cmds]) => ({ defs: (defs ?? []).flat(), cmds: (cmds ?? []).flat() }) %}
+root -> nlw:* one_per_line[definition_or_command]:? nlw:* {% ([, items]) => {
+    const allItems = (items ?? []).flat();
+    const defs = [];
+    const cmds = [];
+    
+    allItems.forEach(item => {
+        if (!item) return;
+        
+        // Check if it's a definition (has class property) or is a comment without type property indicating it's from definitions
+        if (item.class || (item.type === "comment" && !item.hasOwnProperty('args'))) {
+            defs.push(item);
+        } else if (item.type) {
+            // It's a command
+            cmds.push(item);
+        }
+    });
+    
+    return { defs, cmds };
+} %}
 
 # - DEFINITIONS - #
 # List of all definitions
@@ -154,6 +172,9 @@ definition -> (comment
             | graph_def
             | text_def
 ) {% iid %}
+
+# Mixed definitions and commands
+definition_or_command -> (definition | commands) {% iid %}
 
 # Array Definition
 array_def -> definition["array", array_pair] {% id %}

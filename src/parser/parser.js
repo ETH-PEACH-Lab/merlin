@@ -48,7 +48,7 @@ var grammar = {
     ParserRules: [
     {"name": "root$ebnf$1", "symbols": []},
     {"name": "root$ebnf$1", "symbols": ["root$ebnf$1", "nlw"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
-    {"name": "root$ebnf$2$macrocall$2", "symbols": ["definition"]},
+    {"name": "root$ebnf$2$macrocall$2", "symbols": ["definition_or_command"]},
     {"name": "root$ebnf$2$macrocall$1$ebnf$1", "symbols": []},
     {"name": "root$ebnf$2$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "symbols": ["nlw"]},
     {"name": "root$ebnf$2$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "symbols": ["root$ebnf$2$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "nlw"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
@@ -64,21 +64,25 @@ var grammar = {
     {"name": "root$ebnf$2", "symbols": [], "postprocess": function(d) {return null;}},
     {"name": "root$ebnf$3", "symbols": []},
     {"name": "root$ebnf$3", "symbols": ["root$ebnf$3", "nlw"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
-    {"name": "root$macrocall$2", "symbols": ["commands"]},
-    {"name": "root$macrocall$1$ebnf$1", "symbols": []},
-    {"name": "root$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "symbols": ["nlw"]},
-    {"name": "root$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "symbols": ["root$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "nlw"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
-    {"name": "root$macrocall$1$ebnf$1$subexpression$1", "symbols": ["root$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "root$macrocall$2"]},
-    {"name": "root$macrocall$1$ebnf$1", "symbols": ["root$macrocall$1$ebnf$1", "root$macrocall$1$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
-    {"name": "root$macrocall$1", "symbols": ["root$macrocall$2", "root$macrocall$1$ebnf$1"], "postprocess":  ([first, rest]) => {
-            const firstValue = first[0];
-            const restValues = rest.map(([, value]) => value[0]);
-            // Include all items, even comments
-            return [firstValue, ...restValues];
+    {"name": "root", "symbols": ["root$ebnf$1", "root$ebnf$2", "root$ebnf$3"], "postprocess":  ([, items]) => {
+            const allItems = (items ?? []).flat();
+            const defs = [];
+            const cmds = [];
+            
+            allItems.forEach(item => {
+                if (!item) return;
+                
+                // Check if it's a definition (has class property) or is a comment without type property indicating it's from definitions
+                if (item.class || (item.type === "comment" && !item.hasOwnProperty('args'))) {
+                    defs.push(item);
+                } else if (item.type) {
+                    // It's a command
+                    cmds.push(item);
+                }
+            });
+            
+            return { defs, cmds };
         } },
-    {"name": "root$ebnf$4", "symbols": []},
-    {"name": "root$ebnf$4", "symbols": ["root$ebnf$4", "nlw"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
-    {"name": "root", "symbols": ["root$ebnf$1", "root$ebnf$2", "root$ebnf$3", "root$macrocall$1", "root$ebnf$4"], "postprocess": ([, defs, , cmds]) => ({ defs: (defs ?? []).flat(), cmds: (cmds ?? []).flat() })},
     {"name": "definition$subexpression$1", "symbols": ["comment"]},
     {"name": "definition$subexpression$1", "symbols": ["array_def"]},
     {"name": "definition$subexpression$1", "symbols": ["matrix_def"]},
@@ -88,6 +92,9 @@ var grammar = {
     {"name": "definition$subexpression$1", "symbols": ["graph_def"]},
     {"name": "definition$subexpression$1", "symbols": ["text_def"]},
     {"name": "definition", "symbols": ["definition$subexpression$1"], "postprocess": iid},
+    {"name": "definition_or_command$subexpression$1", "symbols": ["definition"]},
+    {"name": "definition_or_command$subexpression$1", "symbols": ["commands"]},
+    {"name": "definition_or_command", "symbols": ["definition_or_command$subexpression$1"], "postprocess": iid},
     {"name": "array_def$macrocall$2", "symbols": [{"literal":"array"}]},
     {"name": "array_def$macrocall$3", "symbols": ["array_pair"]},
     {"name": "array_def$macrocall$1$macrocall$2", "symbols": ["array_def$macrocall$3"]},
