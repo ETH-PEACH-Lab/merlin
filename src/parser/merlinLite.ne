@@ -149,11 +149,14 @@ root -> nlw:* one_per_line[definition_or_command]:? nlw:* {% ([, items]) => {
     allItems.forEach(item => {
         if (!item) return;
         
-        // Check if it's a definition (has class property) or is a comment without type property indicating it's from definitions
-        if (item.class || (item.type === "comment" && !item.hasOwnProperty('args'))) {
+        // Definitions have a 'class' property (from getDef function)
+        if (item.class) {
+            defs.push(item);
+        } else if (item.type === "comment") {
+            // Comments go to definitions by default (legacy behavior)
             defs.push(item);
         } else if (item.type) {
-            // It's a command
+            // Everything else with a type is a command
             cmds.push(item);
         }
     });
@@ -163,8 +166,7 @@ root -> nlw:* one_per_line[definition_or_command]:? nlw:* {% ([, items]) => {
 
 # - DEFINITIONS - #
 # List of all definitions
-definition -> (comment 
-            | array_def
+definition -> (array_def
             | matrix_def
             | linkedlist_def
             | tree_def

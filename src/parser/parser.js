@@ -72,18 +72,20 @@ var grammar = {
             allItems.forEach(item => {
                 if (!item) return;
                 
-                // Check if it's a definition (has class property) or is a comment without type property indicating it's from definitions
-                if (item.class || (item.type === "comment" && !item.hasOwnProperty('args'))) {
+                // Definitions have a 'class' property (from getDef function)
+                if (item.class) {
+                    defs.push(item);
+                } else if (item.type === "comment") {
+                    // Comments go to definitions by default (legacy behavior)
                     defs.push(item);
                 } else if (item.type) {
-                    // It's a command
+                    // Everything else with a type is a command
                     cmds.push(item);
                 }
             });
             
             return { defs, cmds };
         } },
-    {"name": "definition$subexpression$1", "symbols": ["comment"]},
     {"name": "definition$subexpression$1", "symbols": ["array_def"]},
     {"name": "definition$subexpression$1", "symbols": ["matrix_def"]},
     {"name": "definition$subexpression$1", "symbols": ["linkedlist_def"]},
