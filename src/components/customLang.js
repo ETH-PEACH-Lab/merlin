@@ -2172,16 +2172,3 @@ export function registerCustomLanguage(monaco) {
   }
 
 }
-
-editor.onKeyDown(e => {
-  if (e.keyCode === monaco.KeyCode.Backspace) {
-    editor.trigger('keyboard', 'deleteLeft', {});
-    editor.trigger('keyboard', 'editor.action.triggerSuggest', {});
-    e.preventDefault();
-  }
-  if (e.keyCode === monaco.KeyCode.Tab) {
-    editor.trigger('keyboard', 'type', { text: '\t' });
-    editor.trigger('keyboard', 'editor.action.triggerSuggest', {});
-    e.preventDefault();
-  }
-});
