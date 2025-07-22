@@ -38,29 +38,37 @@ const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate, onRemo
 
   const getIcon = (name) => {
     switch (name){
+      case "Add":
+        return <AddIcon></AddIcon>;
+      case "Remove":
+        return <ClearIcon></ClearIcon>;
       case "Value":
         return <EditIcon></EditIcon>
       case "Color":
         return <FormatColorFillIcon></FormatColorFillIcon>
-      case "Arrow Label": 
+      case "Add Arrow": 
         return <TextRotateVerticalIcon></TextRotateVerticalIcon>
-      case "Remove":
-        return <ClearIcon></ClearIcon>;
-      case "Add":
-        return <AddIcon></AddIcon>;
       default: 
         return <RectangleOutlinedIcon></RectangleOutlinedIcon>
     }
   };
   
   const handleBlur = () => {
-    if (!value) return;
-    const convertedValue = convertValueToType(value, inputType);
-    onUpdate(fieldKey, convertedValue);
+    console.log(value);
+    if (!value){
+      console.log("update null");
+      onUpdate(fieldKey, null);
+    }
+    else {
+      const convertedValue = convertValueToType(value, inputType);
+      console.log("calling update");
+      onUpdate(fieldKey, convertedValue);
+    }
   };
 
   const handleKeyDown = (ev) => {
     if (ev.key === 'Enter') {
+      console.log("pressed enter");
       ev.target.blur();
       leaveFunction();
       ev.preventDefault();
@@ -77,11 +85,30 @@ const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate, onRemo
 
   const handleFieldChange = (e) => {
     let newValue = e.target.value;
+    console.log("calling onchange");
     onChange(fieldKey, newValue);
   };
 
-  if (!["Color", "Value", "Arrow Label", "Remove", "Add"].includes(label)){
+  const handleRemoveArrow = () => {
+    leaveFunction();
+    onUpdate("arrow", null);
+  };
+
+  if (!["Add", "Remove", "Value", "Color", "Add Arrow", "Remove Arrow"].includes(label)){
     return;
+  }
+
+
+  if (inputType == "remove_arrow"){
+    return (
+       <Tooltip title={label}>
+        <span style={{marginLeft: "10px", marginRight: "10px"}}>
+          <IconButton size="small" onClick={handleRemoveArrow}>
+            {getIcon(label)}
+          </IconButton>
+        </span>
+      </Tooltip>
+    );
   }
 
   if (inputType == "remove"){

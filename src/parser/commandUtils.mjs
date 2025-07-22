@@ -136,20 +136,14 @@ function createOptimizedArrayCommand(relevantCommands, componentName, fieldKey, 
     }
     
     // Handle the new modification
-    if (value === "_" || value === null || value === undefined || value === "" || value === "null") {
-        // Remove the modification (undo/clear)
-        mergedModifications.delete(idx);
-    } else {
-        // Add the new modification
-        mergedModifications.set(idx, value);
-    }
-    
+    console.log(mergedModifications);
+    mergedModifications.set(idx, value);
+    console.log(mergedModifications);
     // Determine the new command to add
     if (mergedModifications.size === 0) {
         // No modifications left, don't add any command
         return null;
-    } else if (mergedModifications.size === 1 && mergedModifications.has(idx) && 
-               !(value === "_" || value === null || value === undefined || value === "" || value === "null")) {
+    } else if (mergedModifications.size === 1 && mergedModifications.has(idx)) {
         // Only one modification, use "set"
         return {
             type: "set",

@@ -250,6 +250,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
 
     const updateValue = useCallback(
         (page, componentName, coordinates, fieldKey, value) => {
+            console.log("here");
             if (!parsedCode) return;
             
             // Handle position field updates (no coordinates needed)
@@ -269,12 +270,14 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
                     }
                     
                     if (currentValue === value && value !== "_") {
+                        console.log("returning");
                         return;
                     }
                 }
             }
 
             const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
+            console.log("hello");
             
             
             // Use unified command optimization for both arrays and matrices
@@ -298,6 +301,8 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
                 value,
                 currentComponent
             );
+
+            console.log(newCommand);
             
             // Remove old commands (in reverse order to maintain indices)
             commandsToRemove.reverse().forEach(index => {
