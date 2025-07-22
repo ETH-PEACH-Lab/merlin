@@ -263,8 +263,6 @@ export function createUnitData(parsedInfo) {
     
     unitData[fieldKey] = value ?? "null";
   });
-  console.log("data");
-  console.log(unitData);
   return unitData;
 }
 
