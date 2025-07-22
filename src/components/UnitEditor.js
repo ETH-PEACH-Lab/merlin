@@ -54,21 +54,17 @@ const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate, onRemo
   };
   
   const handleBlur = () => {
-    console.log(value);
     if (!value){
-      console.log("update null");
       onUpdate(fieldKey, null);
     }
     else {
       const convertedValue = convertValueToType(value, inputType);
-      console.log("calling update");
       onUpdate(fieldKey, convertedValue);
     }
   };
 
   const handleKeyDown = (ev) => {
     if (ev.key === 'Enter') {
-      console.log("pressed enter");
       ev.target.blur();
       leaveFunction();
       ev.preventDefault();
@@ -85,7 +81,6 @@ const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate, onRemo
 
   const handleFieldChange = (e) => {
     let newValue = e.target.value;
-    console.log("calling onchange");
     onChange(fieldKey, newValue);
   };
 

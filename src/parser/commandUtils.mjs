@@ -136,9 +136,7 @@ function createOptimizedArrayCommand(relevantCommands, componentName, fieldKey, 
     }
     
     // Handle the new modification
-    console.log(mergedModifications);
     mergedModifications.set(idx, value);
-    console.log(mergedModifications);
     // Determine the new command to add
     if (mergedModifications.size === 0) {
         // No modifications left, don't add any command
