@@ -60,18 +60,7 @@ const App = () => {
   useEffect(() => {
     loadSavedItems();
 
-    // Check if there's a shared example in the URL
-    if (hasSharedExample()) {
-      const sharedCode = extractCodeFromUrl();
-      if (sharedCode) {
-        updateUnparsedCode(sharedCode);
-        setCurrentPage(1);
-        console.log('Loaded shared example from URL');
-      } else {
-        console.error('Failed to load shared example from URL');
-      }
-    }
-  }, [updateUnparsedCode]);
+  }, []);
 
   // Listen for hash changes to support browser navigation
   useEffect(() => {
@@ -115,7 +104,7 @@ const App = () => {
   // Helper function to handle exports using the new export utilities
   const handleExportWrapper = async (format, customConfig = null) => {
     // Prevent GIF export with less than 2 pages
-    if (format === 'gif') {
+    if (format === 'gif' || format == "video") {
       // Determine how many pages would be exported
       let numPages = pages.length;
       if (customConfig && customConfig.pageSelection) {
@@ -124,7 +113,7 @@ const App = () => {
       }
       if (numPages < 2) {
         setExportProgress(prev => ({ ...prev, open: false }));
-        window.alert('GIF export requires at least 2 pages.');
+        alert("GIF and video exports require at least 2 pages. Please add more pages to your diagram.");
         return;
       }
     }
