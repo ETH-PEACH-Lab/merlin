@@ -68,6 +68,9 @@ const CustomExportDialog = ({
   const [gifRepeat, setGifRepeat] = useState(0);
   const [gifRepeatInput, setGifRepeatInput] = useState('0');
   
+  // Background setting
+  const [whiteBackground, setWhiteBackground] = useState(false);
+  
   // Page selection state
   const [pageSelection, setPageSelection] = useState('all');
   const [selectedPage, setSelectedPage] = useState(currentPage);
@@ -144,6 +147,10 @@ const CustomExportDialog = ({
         frameDuration: frameDuration,
         quality: gifQuality,
         repeat: gifRepeat
+      }),
+      // Add background setting for formats that support it
+      ...((format === 'png' || format === 'pdf' || format === 'pptx' || format === 'video' || format === 'gif') && {
+        whiteBackground: whiteBackground
       }),
     };
 
@@ -260,6 +267,21 @@ const CustomExportDialog = ({
                 <MenuItem value={0.75}>Medium (1.33x upscale)</MenuItem>
                 <MenuItem value={1.0}>Native (no upscale)</MenuItem>
               </Select>
+            </FormControl>
+          )}
+
+          {/* Background Setting */}
+          {(format === 'png' || format === 'pdf' || format === 'pptx' || format === 'video' || format === 'gif') && (
+            <FormControl component="fieldset">
+              <FormLabel component="legend">Background</FormLabel>
+              <RadioGroup
+                value={whiteBackground ? 'white' : 'transparent'}
+                onChange={(e) => setWhiteBackground(e.target.value === 'white')}
+                row
+              >
+                <FormControlLabel value="transparent" control={<Radio />} label="Transparent (default)" />
+                <FormControlLabel value="white" control={<Radio />} label="White background" />
+              </RadioGroup>
             </FormControl>
           )}
 

@@ -19,18 +19,105 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
     const [pages, setPages] = useState([]);
     const [componentCount, setcomponentCount] = useState(1);
     const [error, setError] = useState(null);
+    const [currentCursorLine, setCurrentCursorLine] = useState(1);
+    const [errorTimeoutId, setErrorTimeoutId] = useState(null);
 
-    // Parse and compile whenever unparsedCode changes
-    const parseAndCompile = useCallback((code) => {
+    // Set a delay, will wait specified milliseconds before showing an error on current line
+    const DELAY = 1000; 
+
+    // Parse and compile with smart error handling
+    const parseAndCompile = useCallback((code, skipCurrentLine = false, currentLine = 1) => {
+        // Clear any existing error timeout
+        if (errorTimeoutId) {
+            clearTimeout(errorTimeoutId);
+            setErrorTimeoutId(null);
+        }
+
+        let codeToProcess = code;
+        const codeLines = code.split('\n');
+        const totalLines = codeLines.length;
+        const validCurrentLine = Math.max(1, Math.min(currentLine, totalLines));
+        
+        // If skipCurrentLine is true, remove the current line from processing
+        if (skipCurrentLine && validCurrentLine <= totalLines) {
+            codeLines[validCurrentLine - 1] = ''; // Replace current line with empty string
+            codeToProcess = codeLines.join('\n');
+        }
+
         setError(null);
+        
+        // Clear Monaco editor errors
+        if (window.errorStateManager) {
+            window.errorStateManager.clearErrors();
+        }
+
         let parsed = null;
         try {
-            parsed = parseText(code);
+            parsed = parseText(codeToProcess);
             setParsedCode(parsed);
         } catch (e) {
-            setParsedCode(null);
-            setError(`Parse error: ` + (e.message || e));
-            return;
+            // Current workaround for parse errors
+            // Due to lexer moo not correctly outputting line numbers
+            // Instead of using e.line and e.col, we parse for:
+            //  "Syntax error at line x col y"
+            // See issue here: https://github.com/no-context/moo/issues/183
+            const errorMessage = `Parse error: ` + (e.message || e);
+
+            // Uncomment line if moo issue is fixed and updated, please verify if line numbers are correct
+            // const errorLine = Math.max(1, Math.min(e.line || validCurrentLine, totalLines));
+            
+            // WORKAROUND: Get the line number from the error message
+            // Example: "Syntax error at line 3 col 5"
+            const match = errorMessage.match(/line (\d+)/);
+            const errorLine = match ? parseInt(match[1], 10) : validCurrentLine;
+            const errorColMatch = errorMessage.match(/col (\d+)/);
+            const errorCol = errorColMatch ? parseInt(errorColMatch[1], 10) : 1;
+            // End of workaround
+
+            const errorObj = {
+                line: errorLine,
+                col: errorCol,
+                message: errorMessage
+            };
+            
+            // If this is the first attempt and error is on current line, try without current line
+            if (!skipCurrentLine && errorLine === validCurrentLine) {
+                try {
+                    const testParsed = parseText(codeToProcess.split('\n').map((line, index) => 
+                        index === validCurrentLine - 1 ? '' : line
+                    ).join('\n'));
+                    
+                    // If it parses successfully without the current line, delay the error
+                    const timeoutId = setTimeout(() => {
+                        setError(errorMessage);
+                        if (window.errorStateManager) {
+                            window.errorStateManager.setError(errorObj);
+                        }
+                        setErrorTimeoutId(null);
+                    }, DELAY);
+                    setErrorTimeoutId(timeoutId);
+                    
+                    // Continue with the parsed version without current line for now
+                    setParsedCode(testParsed);
+                    parsed = testParsed;
+                } catch (secondError) {
+                    // If it still fails, show error immediately
+                    setParsedCode(null);
+                    setError(errorMessage);
+                    if (window.errorStateManager) {
+                        window.errorStateManager.setError(errorObj);
+                    }
+                    return;
+                }
+            } else {
+                // Error is not on current line, show immediately
+                setParsedCode(null);    
+                setError(errorMessage);
+                if (window.errorStateManager) {
+                    window.errorStateManager.setError(errorObj);
+                }
+                return;
+            }
         }
 
         try {
@@ -38,22 +125,72 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             setCompiledMerlin(mermaidString);
             setPages(compiled_pages);
         } catch (e) {
-            if (e.line && e.col) {
-                setError(`Compile error on line ${e.line}, col ${e.col}:\n${e.message || e}`);
+            const errorMessage = e.line && e.col ? 
+                `Compile error on line ${e.line}, col ${e.col}:\n${e.message || e}` :
+                `Compile error:\n${e.message || e}`;
+            
+            const errorLine = Math.max(1, Math.min(e.line || validCurrentLine, totalLines));
+            
+            const errorObj = {
+                line: errorLine,
+                col: e.col || 1,
+                message: errorMessage
+            };
+            
+            // Apply same logic for compile errors
+            if (!skipCurrentLine && errorLine === validCurrentLine) {
+                try {
+                    // Test without current line
+                    const testCode = code.split('\n').map((line, index) => 
+                        index === validCurrentLine - 1 ? '' : line
+                    ).join('\n');
+                    
+                    const testParsed = parseText(testCode);
+                    const testCompiled = compiler(testParsed);
+                    
+                    // If it compiles successfully without the current line, delay the error
+                    const timeoutId = setTimeout(() => {
+                        setError(errorMessage);
+                        if (window.errorStateManager) {
+                            window.errorStateManager.setError(errorObj);
+                        }
+                        setErrorTimeoutId(null);
+                    }, 3000);
+                    setErrorTimeoutId(timeoutId);
+                    
+                    // Use the working version for now
+                    setCompiledMerlin(testCompiled.mermaidString);
+                    setPages(testCompiled.compiled_pages);
+                } catch (secondError) {
+                    // If it still fails, show error immediately
+                    setError(errorMessage);
+                    if (window.errorStateManager) {
+                        window.errorStateManager.setError(errorObj);
+                    }
+                }
             } else {
-                setError(`Compile error:\n${e.message || e}`);
+                // Error is not on current line, show immediately
+                setError(errorMessage);
+                if (window.errorStateManager) {
+                    window.errorStateManager.setError(errorObj);
+                }
             }
         }
-    }, []);
+    }, [errorTimeoutId]);
 
     // Update unparsed code and trigger parse/compile
     const updateUnparsedCode = useCallback(
         (newCode) => {
             setUnparsedCode(newCode);
-            parseAndCompile(newCode);
+            parseAndCompile(newCode, false, currentCursorLine);
         },
-        [parseAndCompile]
+        [parseAndCompile, currentCursorLine]
     );
+
+    // Update cursor line (called from Monaco editor)
+    const updateCursorLine = useCallback((line) => {
+        setCurrentCursorLine(line);
+    }, []);
 
     // Reconstruct MerlinLite code from parsed version
     const reconstructMerlinLite = useCallback(() => {
@@ -61,13 +198,13 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         try {
             const reconstructed = reconstructor(parsedCode);
             setUnparsedCode(reconstructed);
-            parseAndCompile(reconstructed);
+            parseAndCompile(reconstructed, false, currentCursorLine);
             return reconstructed;
         } catch (e) {
             setError("Reconstruction error: " + (e.message || e));
             return null;
         }
-    }, [parsedCode, parseAndCompile]);  
+    }, [parsedCode, parseAndCompile, currentCursorLine]);  
 
     // Find the start and end indices of the specified page
     const findPageBeginningAndEnd = (pageNumber) => {
@@ -151,12 +288,15 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
                 coordinates  // Pass coordinates to distinguish global vs per-element properties
             );
 
+            const currentComponent = pages[page]?.find(comp => comp.name === componentName);
+            
             const newCommand = createOptimizedCommand(
                 relevantCommands, 
                 componentName, 
                 fieldKey, 
                 coordinates, 
-                value
+                value,
+                currentComponent
             );
             
             // Remove old commands (in reverse order to maintain indices)
@@ -240,7 +380,9 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             compiledMerlin,
             error,
             pages,
+            currentCursorLine,
             updateUnparsedCode,
+            updateCursorLine,
             reconstructMerlinLite,
             createComponent,
             updateValue,
@@ -255,7 +397,9 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             compiledMerlin,
             error,
             pages,
+            currentCursorLine,
             updateUnparsedCode,
+            updateCursorLine,
             reconstructMerlinLite,
             createComponent,
             updateValue,
@@ -268,9 +412,18 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
 
     // Initial parse/compile on mount
     React.useEffect(() => {
-        parseAndCompile(unparsedCode);
+        parseAndCompile(unparsedCode, false, 1);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // Cleanup timeout on unmount
+    React.useEffect(() => {
+        return () => {
+            if (errorTimeoutId) {
+                clearTimeout(errorTimeoutId);
+            }
+        };
+    }, [errorTimeoutId]);
 
     return (
         <ParseCompileContext.Provider value={contextValue}>

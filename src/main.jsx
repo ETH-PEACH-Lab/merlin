@@ -5,13 +5,26 @@ import CssBaseline from "@mui/material/CssBaseline"; // To apply baseline CSS re
 import theme from "./Theme";
 
 import App from "./App";
-import { ParseCompileProvider } from "./context/ParseCompileContext"
+import { ParseCompileProvider } from "./context/ParseCompileContext";
+import { hasSharedExample, extractCodeFromUrl } from "./utils/urlSharing";
+
 const container = document.getElementById("app");
 const root = createRoot(container);
 
+// Check for shared code in URL and use it as initial code
+const getInitialCode = () => {
+  if (hasSharedExample()) {
+    const sharedCode = extractCodeFromUrl();
+    if (sharedCode) {
+      return sharedCode;
+    }
+  }
+  return "";
+};
+
 root.render(
   <React.StrictMode>
-    <ParseCompileProvider>
+    <ParseCompileProvider initialCode={getInitialCode()}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <App />

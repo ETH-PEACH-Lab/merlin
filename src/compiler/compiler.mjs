@@ -1350,7 +1350,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
         }
     });
 
-    postCheck(pages);
+    postCheck(pages, parsedDSL);
 
     // Generate the mermaid string with dynamic sizing
     const { width, height } = getMermaidContainerSize();
@@ -1406,8 +1406,19 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
 }
 
 function preCheck(parsedDSL) {
-    if (!parsedDSL || !parsedDSL.defs || !parsedDSL.cmds) {
+    if (!parsedDSL || !parsedDSL.defs || !parsedDSL.cmds || 
+        (Array.isArray(parsedDSL.defs) && Array.isArray(parsedDSL.cmds) && 
+         parsedDSL.defs.length === 0 && parsedDSL.cmds.length === 0)) {
         throw new Error("Nothing to show\n\nPlease define an object and a page.\nThen show it using the 'show' command");
+    }
+
+    // Helper function to create error with line/col info
+    function createPreCheckError(message, sourceItem = null) {
+        const err = new Error(message);
+        if (sourceItem && sourceItem.line !== undefined && sourceItem.col !== undefined) {
+            Object.assign(err, { line: sourceItem.line, col: sourceItem.col });
+        }
+        return err;
     }
 
     // Check for duplicate component names
@@ -1415,13 +1426,13 @@ function preCheck(parsedDSL) {
     parsedDSL.defs.forEach(def => {
         if (def.type === "comment") return;
         if (names.has(def.name)) {
-            throw new Error(`Duplicate component\n\nAffected: ${def.name} of type ${def.type}`);
+            throw createPreCheckError(`Duplicate component\n\nAffected: ${def.name} of type ${def.type}`, def);
         }
         names.add(def.name);
         // Tree cycle check
         if (def.type === "tree" && def.body && def.body.nodes && def.body.children) {
             if (hasTreeCycle(def.body.nodes, def.body.children)) {
-                throw new Error(`Cycle detected in tree '${def.name}'.\nThe structure is not a valid tree.`);
+                throw createPreCheckError(`Cycle detected in tree '${def.name}'.\nThe structure is not a valid tree.`, def);
             }
         }
     });
@@ -1433,22 +1444,37 @@ function preCheck(parsedDSL) {
             "add", "insert", "remove", "remove_subtree", "remove_at", "comment",
             "add_matrix_row", "add_matrix_column", "remove_matrix_row", "remove_matrix_column", "add_matrix_border", "add_child", "set_child"
         ].includes(cmd.type)) {
-            throw new Error(
-                `Unknown command\n\nType: ${cmd.type}`
+            throw createPreCheckError(
+                `Unknown command\n\nType: ${cmd.type}`,
+                cmd
             );
         }
     });
 
 
-    // Check if the first command is a page
-    if (parsedDSL.cmds[0].type !== "page") {
-        throw new Error("Command before page\n\nPlease start a page using 'page'.\nThen use any other commands.");
+    // Check if the first command is a page (only if there are commands)
+    if (parsedDSL.cmds.length > 0 && parsedDSL.cmds[0].type !== "page") {
+        throw createPreCheckError("Command before page\n\nPlease start a page using 'page'.\nThen use any other commands.", parsedDSL.cmds[0]);
     }
 }
 
-function postCheck(pages) {
+function postCheck(pages, parsedDSL = null) {
+    // Helper function to create error with line/col info
+    function createPostCheckError(message, sourceItem = null) {
+        const err = new Error(message);
+        if (sourceItem && sourceItem.line !== undefined && sourceItem.col !== undefined) {
+            Object.assign(err, { line: sourceItem.line, col: sourceItem.col });
+        }
+        return err;
+    }
+
     // Check if there is at least one page
     if (pages.length === 0) {
-        throw new Error("No pages found\n\nPlease define at least one page\nwith components.");
+        // Try to find the first page command for better error context
+        let firstPageCmd = null;
+        if (parsedDSL && parsedDSL.cmds) {
+            firstPageCmd = parsedDSL.cmds.find(cmd => cmd.type === "page");
+        }
+        throw createPostCheckError("No pages found\n\nPlease define at least one page\nwith components.", firstPageCmd);
     }
 }
