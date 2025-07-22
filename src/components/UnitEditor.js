@@ -202,6 +202,7 @@ export const UnitEditor = ({
           currentUnitData.name,
           currentUnitData.type,
           currentUnitData.coordinates,
+          currentUnitData.nodes,
           value
     );
   };
@@ -211,7 +212,9 @@ export const UnitEditor = ({
     removeUnit(
           currentUnitData.page,
           currentUnitData.name,
-          currentUnitData.coordinates
+          currentUnitData.type,
+          currentUnitData.coordinates,
+          currentUnitData.nodes
     );
   };
 
@@ -220,6 +223,7 @@ export const UnitEditor = ({
   };
 
   const handleFieldUpdate = (fieldKey, value) => {
+    console.log(currentUnitData);
     if (fieldKey === "add"){
       handleAddUnit(value);
     } 

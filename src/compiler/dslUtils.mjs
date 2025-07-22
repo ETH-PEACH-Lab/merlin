@@ -156,6 +156,9 @@ export function getComponentFields(componentType) {
       position: ["Position", "position"],
     },
     graph: {
+      add: ["Add", "add"],
+      remove: ["Remove", "remove"],
+      nodes: ["Node", "node"],
       value: ["Value", "number_or_string"],
       color: ["Color", "color"],
       arrow: ["Add Arrow", "string"],
@@ -164,6 +167,9 @@ export function getComponentFields(componentType) {
       position: ["Position", "position"],
     },
     tree: {
+      add: ["Add", "add"],
+      remove: ["Remove", "remove"],
+      nodes: ["Node", "node"],
       value: ["Value", "number_or_string"],
       color: ["Color", "color"],
       arrow: ["Add Arrow", "string"],
@@ -171,6 +177,7 @@ export function getComponentFields(componentType) {
       position: ["Position", "position"],
     },
     linkedlist: {
+      add: ["Add", "add"],
       remove: ["Remove", "remove"],
       value: ["Value", "number_or_string"],
       color: ["Color", "color"],
@@ -249,14 +256,15 @@ export function createUnitData(parsedInfo) {
         // Position is stored at component level for all component types
         // Format position object to readable string
         value = component.position ? formatPosition(component.position) : null;
-      } else if (fieldKey === "color" || fieldKey === "arrow" || fieldKey === "value") {
+      } else if (fieldKey === "color" || fieldKey === "arrow" || fieldKey === "value" || fieldKey === "nodes" ) {
         value = getFieldValue(component, fieldKey, coordinates);
       }
     }
     
     unitData[fieldKey] = value ?? "null";
   });
-
+  console.log("data");
+  console.log(unitData);
   return unitData;
 }
 
