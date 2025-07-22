@@ -157,7 +157,6 @@ export const UnitEditor = ({
   leaveFunction,
 }) => {
   const defaultUnitValue = {
-    displayId: "the unit id can't be changed",
     coordinates: null,
     type: null,
   };
@@ -201,82 +200,46 @@ export const UnitEditor = ({
   const handleFieldUpdate = (fieldKey, value) => {
     if (fieldKey === "add"){
       handleAddUnit(value);
-      return;
-    }
-    if (inspectorIndex && fieldKey !== "id") {
-      // Handle position field (no coordinates needed)
-      if (fieldKey === "position") {
-        updateValue(
-          currentUnitData.page,
-          currentUnitData.name,
-          null, // No coordinates for position field
-          fieldKey,
-          value
-        );
-      }
-      // Handle text global properties (no coordinates needed)
-      else if (currentUnitData.type === "text" && ["lineSpacing", "width", "height"].includes(fieldKey)) {
-        updateValue(
-          currentUnitData.page,
-          currentUnitData.name,
-          null, // No coordinates for global text properties
-          fieldKey,
-          value
-        );
-      }
-      // Handle text per-line properties (need coordinates, but use null coordinates if not available)
-      else if (currentUnitData.type === "text" && ["value", "fontSize", "color", "fontWeight", "fontFamily", "align"].includes(fieldKey)) {
-        updateValue(
-          currentUnitData.page,
-          currentUnitData.name,
-          currentUnitData.coordinates, // Use coordinates if available, null if not
-          fieldKey,
-          value
-        );
-      }
-      // Handle array/matrix fields (coordinates required)
-      else if (currentUnitData.coordinates) {
-        updateValue(
-          currentUnitData.page,
-          currentUnitData.name,
-          currentUnitData.coordinates,
-          fieldKey,
-          value
-        );
-      }
+    } 
+    else {
+      updateValue(
+        currentUnitData.page,
+        currentUnitData.name,
+        currentUnitData.coordinates,
+        fieldKey,
+        value
+      );
     }
   };
 
 
   return (
-    <div>
-        <Box
-          component="form"
-          sx={{
-            "& .MuiTextField-root": { m: 1, width: "25ch" },
-            p: "5px 15px",
-          }}
-          noValidate
-          autoComplete="off"
-        >
-          
-          {/* Dynamically generate inputs based on type definition */}
-          {currentUnitData.type && 
-            Object.entries(getComponentFields(currentUnitData.type)).map(([fieldKey, fieldConfig]) => (
-              <DynamicInput
-                key={fieldKey}
-                fieldKey={fieldKey}
-                fieldConfig={fieldConfig}
-                value={currentUnitData[fieldKey]}
-                onChange={handleFieldChange}
-                onUpdate={handleFieldUpdate}
-                onRemove={handleRemoveUnit}
-                leaveFunction={leaveFunction}
-              />
-            ))
-          }
-        </Box>
-    </div>
+    <Box
+      component="form"
+      sx={{
+        "& .MuiTextField-root": { m: 1, width: "25ch" },
+        p: "5px 15px",
+      }}
+      noValidate
+      autoComplete="off"
+    >
+      
+      {/* Dynamically generate inputs based on type definition */}
+      {currentUnitData.type && 
+        Object.entries(getComponentFields(currentUnitData.type)).map(([fieldKey, fieldConfig]) => (
+          <DynamicInput
+            key={fieldKey}
+            fieldKey={fieldKey}
+            fieldConfig={fieldConfig}
+            value={currentUnitData[fieldKey]}
+            onChange={handleFieldChange}
+            onUpdate={handleFieldUpdate}
+            onRemove={handleRemoveUnit}
+            leaveFunction={leaveFunction}
+          />
+        ))
+      }
+    </Box>
   );
 };
 

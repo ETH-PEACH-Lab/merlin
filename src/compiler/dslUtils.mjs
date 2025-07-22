@@ -19,7 +19,6 @@ export function parseInspectorIndex(inspectorIndex, pages, currentPage) {
   const unitIdPart = inspectorIndex.unitID.slice(5); // Remove "unit_" prefix
   
   let coordinates;
-  let displayId;
   
   // Check if matrix coordinate format (row,col)
   const matrixMatch = unitIdPart.match(/^\((\d+),(\d+)\)$/);
@@ -28,16 +27,13 @@ export function parseInspectorIndex(inspectorIndex, pages, currentPage) {
     const row = parseInt(matrixMatch[1]);
     const col = parseInt(matrixMatch[2]);
     coordinates = { row, col, isMatrix: true };
-    displayId = `(${row},${col})`;
   } else if (unitIdPart === "component") {
     // Component-level selection (for text components without array indices)
     coordinates = null;
-    displayId = "component";
   } else {
     // Array format: unit_5
     const index = parseInt(unitIdPart, 10);
     coordinates = { index, isMatrix: false };
-    displayId = index.toString();
   }
 
   return {
@@ -45,7 +41,6 @@ export function parseInspectorIndex(inspectorIndex, pages, currentPage) {
     componentIdx,
     component,
     coordinates,
-    displayId,
     componentName: component.name,
     componentType: component.type
   };
@@ -200,10 +195,9 @@ export function getComponentFields(componentType) {
 export function createUnitData(parsedInfo) {
   if (!parsedInfo) return null;
 
-  const { pageIdx, componentIdx, component, coordinates, displayId, componentName, componentType } = parsedInfo;
+  const { pageIdx, componentIdx, component, coordinates, componentName, componentType } = parsedInfo;
   
   const unitData = {
-    displayId,
     coordinates,
     component: componentIdx,
     name: componentName,
