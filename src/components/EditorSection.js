@@ -172,7 +172,7 @@ const EditorSection = ({
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Typography variant="overline">Merlin Editor</Typography>
+            <Typography variant="overline">Compiled Merlin</Typography>
             {hasError && (
               <Tooltip title="Error in code">
                 <ErrorIcon sx={{ fontSize: 16, color: "#f44336", marginBottom: "2px" }} />
@@ -180,11 +180,6 @@ const EditorSection = ({
             )}
           </Box>
           <Box sx={{ display: "flex", alignItems: "center" }}>
-            <Tooltip title={"Read Mode"}>
-              <IconButton size="small">
-                <LockIcon sx={{ fontSize: 18 }} />
-              </IconButton>
-            </Tooltip>
             <Tooltip title={isCollapsed ? "Expand" : "Collapse"}>
               <IconButton size="small">
                 {isCollapsed ? (
