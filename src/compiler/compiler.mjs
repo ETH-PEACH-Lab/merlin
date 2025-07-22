@@ -1,6 +1,7 @@
 // myCompiler to convert myDSL into mermaid code
 
 import { expandPositionWithLayout, inferLayoutFromKeywords } from './positionUtils.mjs';
+import { isMethodSupported } from '../components/languageConfig.js';
 
 import { generateArray } from "./types/generateArray.mjs"
 import { generateLinkedlist } from "./types/generateLinkedlist.mjs";
@@ -351,6 +352,41 @@ function hasTreeCycle(nodes, children) {
 
 export { formatNodeName, formatNullValue };
 
+// Helper function to get method name from command for type checking
+function getMethodNameFromCommand(command) {
+    switch (command.type) {
+        case "set":
+            return `set${command.target.charAt(0).toUpperCase() + command.target.slice(1)}`;
+        case "set_multiple":
+            if (command.target.endsWith('s')) {
+                return `set${command.target.charAt(0).toUpperCase() + command.target.slice(1)}`;
+            } else {
+                return `set${command.target.charAt(0).toUpperCase() + command.target.slice(1)}s`;
+            }
+        case "add":
+            return `add${command.target.charAt(0).toUpperCase() + command.target.slice(1, -1)}`; // Remove 's' at end
+        case "insert":
+            if (command.target === "value") {
+                return "insertValue";
+            } else if (command.target === "nodes") {
+                return "insertNode";
+            } else if (command.target === "edges") {
+                return "insertEdge";
+            }
+            break;
+        case "remove":
+            return `remove${command.target.charAt(0).toUpperCase() + command.target.slice(1, -1)}`; // Remove 's' at end
+        case "remove_at":
+            return "removeAt";
+        case "remove_subtree":
+            return "removeSubtree";
+        // Add more cases as needed
+        default:
+            return null;
+    }
+    return null;
+}
+
 export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
     // Deep copy to avoid mutating the original parsed DSL
     const parsedDSL = parsedDSLOriginal ? JSON.parse(JSON.stringify(parsedDSLOriginal)) : {};
@@ -436,6 +472,17 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
     }
 
     commands.forEach((command) => {
+        // Add method validation for component operations
+        if (command.name && ['set', 'set_multiple', 'add', 'insert', 'remove', 'remove_at', 'remove_subtree'].includes(command.type)) {
+            const targetObject = pages.length > 0 ? pages[pages.length - 1]?.find(comp => comp.name === command.name) : null;
+            if (targetObject) {
+                const methodName = getMethodNameFromCommand(command);
+                if (methodName && !isMethodSupported(targetObject.type, methodName)) {
+                    causeCompileError(`Method not supported\n\nMethod: ${methodName}\nComponent type: ${targetObject.type}\nComponent: ${command.name}`, command);
+                }
+            }
+        }
+        
         switch (command.type) {
             case "page":
                 currentInferredLayoutIndex++;
@@ -883,6 +930,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                 const target = command.target;
                 const indexOrNodeName = command.args.index;
                 const value = command.args.value;
+                const nodeValue = command.args.nodeValue; // Optional third parameter for insertNode
                 const targetObject = pages[pages.length - 1].find(comp => comp.name === name);
 
                 if (targetObject) {
@@ -905,10 +953,26 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                     
                     const isValidIndex = Number.isInteger(index) && index >= 0 && index <= body[target].length;
                     if (isValidIndex) {
+                        // For insertNode, insert the node name into the nodes array
                         body[target].splice(index, 0, value);
                         
-                        // Maintain consistency across all array properties for all component types
-                        maintainArrayPropertyConsistency(body, target, index, "insert", targetObject.type);
+                        // If a third parameter (nodeValue) is provided for insertNode, update the value array
+                        if (target === "nodes" && nodeValue !== undefined) {
+                            if (!body.value) {
+                                body.value = [];
+                            }
+                            // Ensure value array is same length as nodes array before inserting
+                            while (body.value.length < body[target].length - 1) {
+                                body.value.push(null);
+                            }
+                            body.value.splice(index, 0, nodeValue);
+                            
+                            // Maintain consistency across all array properties EXCEPT value (since we just set it)
+                            maintainArrayPropertyConsistencyExcept(body, target, index, "insert", targetObject.type, "value");
+                        } else {
+                            // Maintain consistency across all array properties for all component types
+                            maintainArrayPropertyConsistency(body, target, index, "insert", targetObject.type);
+                        }
                     } else {
                         causeCompileError(`Insert index out of bounds\n\nIndex: ${index}\nProperty: ${target}\nComponent: ${name}`, command);
                     }
