@@ -131,33 +131,13 @@ export function getFieldDropdownOptions(fieldKey) {
 }
 
 /**
- * Determines which additional fields should be shown in the toolbar
- */
-export function getAdditionalGUIFields(componentType) {
-  const fieldDefinitions = {
-    array: {
-      add: ["Add", "add"],
-      remove: ["Remove", "remove"],
-    },
-    matrix: {},
-    stack: {
-      add: ["Add", "add"],
-      remove: ["Remove", "remove"],
-    },
-    graph: {},
-    tree: {},
-    linkedlist: {
-      remove: ["Remove", "remove"],
-    },
-  };
-  return fieldDefinitions[componentType] || {};
-}
-/**
  * Determines which fields are available for a component type
  */
 export function getComponentFields(componentType) {
   const fieldDefinitions = {
     array: {
+      add: ["Add", "add"],
+      remove: ["Remove", "remove"],
       value: ["Value", "number_or_string"],
       color: ["Color", "color"],
       arrow: ["Arrow Label", "string"],
@@ -170,6 +150,8 @@ export function getComponentFields(componentType) {
       position: ["Position", "position"],
     },
     stack: {
+      add: ["Add", "add"],
+      remove: ["Remove", "remove"],
       value: ["Value", "number_or_string"],
       color: ["Color", "color"],
       arrow: ["Arrow Label", "string"],
@@ -189,6 +171,7 @@ export function getComponentFields(componentType) {
       position: ["Position", "position"],
     },
     linkedlist: {
+      remove: ["Remove", "remove"],
       value: ["Value", "number_or_string"],
       color: ["Color", "color"],
       arrow: ["Arrow Label", "string"],
@@ -266,7 +249,7 @@ export function createUnitData(parsedInfo) {
         // Position is stored at component level for all component types
         // Format position object to readable string
         value = component.position ? formatPosition(component.position) : null;
-      } else {
+      } else if (fieldKey === "color" || fieldKey === "arrow" || fieldKey === "value") {
         value = getFieldValue(component, fieldKey, coordinates);
       }
     }

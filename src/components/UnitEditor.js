@@ -23,7 +23,6 @@ import {
   parseInspectorIndex, 
   createUnitData, 
   getComponentFields, 
-  getAdditionalGUIFields,
   convertValueToType,
   getFieldDropdownOptions
 } from "../compiler/dslUtils.mjs";
@@ -324,20 +323,6 @@ export const UnitEditor = ({
           
           {/* Dynamically generate inputs based on type definition */}
           {currentUnitData.type && 
-            Object.entries(getAdditionalGUIFields(currentUnitData.type)).map(([fieldKey, fieldConfig]) => (
-              <DynamicInput
-                key={fieldKey}
-                fieldKey={fieldKey}
-                fieldConfig={fieldConfig}
-                value={currentUnitData[fieldKey]}
-                onChange={handleFieldChange}
-                onUpdate={handleFieldUpdate}
-                onRemove={handleRemoveUnit}
-                leaveFunction={leaveFunction}
-              />
-            ))
-          }
-          {currentUnitData.type && 
             Object.entries(getComponentFields(currentUnitData.type)).map(([fieldKey, fieldConfig]) => (
               <DynamicInput
                 key={fieldKey}
@@ -346,6 +331,7 @@ export const UnitEditor = ({
                 value={currentUnitData[fieldKey]}
                 onChange={handleFieldChange}
                 onUpdate={handleFieldUpdate}
+                onRemove={handleRemoveUnit}
                 leaveFunction={leaveFunction}
               />
             ))
