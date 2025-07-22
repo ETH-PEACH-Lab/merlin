@@ -1,35 +1,40 @@
 import React, { useEffect, useState } from "react";
 import {
   Box,
-  TextField,
-  FormControlLabel,
-  Switch,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
   IconButton,
-  Tooltip,
+  Popover,
+  TextField,
+  Tooltip
 } from "@mui/material";
+import AddIcon from '@mui/icons-material/Add';
+import ClearIcon from '@mui/icons-material/Clear';
 import EditIcon from '@mui/icons-material/Edit';
 import FormatColorFillIcon from '@mui/icons-material/FormatColorFill';
-import TextRotateVerticalIcon from '@mui/icons-material/TextRotateVertical';
 import RectangleOutlinedIcon from '@mui/icons-material/RectangleOutlined';
-import ClearIcon from '@mui/icons-material/Clear';
-import AddIcon from '@mui/icons-material/Add';
+import TextRotateVerticalIcon from '@mui/icons-material/TextRotateVertical';
 import { useParseCompile } from "../context/ParseCompileContext";
-import { EditUnitItem } from "./EditUnitItem";
 import { 
   parseInspectorIndex, 
   createUnitData, 
   getComponentFields, 
   convertValueToType,
-  getFieldDropdownOptions
 } from "../compiler/dslUtils.mjs";
 
 
 const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate, onRemove, leaveFunction }) => {
   const [label, inputType] = fieldConfig;
+  const [anchorEl, setAnchorEl] = React.useState(null);
+  const open = Boolean(anchorEl);
+  const id = open ? 'edit-unit-text-input-popover' : undefined;
+  
+  const handleOpenPopup = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClosePopup = () => {
+    leaveFunction();
+    setAnchorEl(null);
+  };
 
   const getIcon = (name) => {
     switch (name){
@@ -65,104 +70,18 @@ const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate, onRemo
   const handleColorChange = (e) => {
     const newValue = e.target.value;
     onChange(fieldKey, newValue);
-    // For color inputs, immediately update since color picker doesn't work well with blur
-    if (inputType === "color") {
-      const convertedValue = convertValueToType(newValue, inputType);
-      onUpdate(fieldKey, convertedValue);
-      leaveFunction();
-    }
-  };
-
-  const handleSelectChange = (e) => {
-    const newValue = e.target.value;
-    onChange(fieldKey, newValue);
-    onUpdate(fieldKey, newValue);
+    const convertedValue = convertValueToType(newValue, inputType);
+    onUpdate(fieldKey, convertedValue);
+    leaveFunction();
   };
 
   const handleFieldChange = (e) => {
     let newValue = e.target.value;
-    
-    // Validate number inputs for text properties
-    if ((fieldKey === "fontSize" || fieldKey === "lineSpacing" || fieldKey === "width" || fieldKey === "height") && newValue !== "") {
-      // Allow only positive numbers and decimal points
-      if (!/^\d*\.?\d*$/.test(newValue)) {
-        return; // Don't update if invalid
-      }
-    }
-
     onChange(fieldKey, newValue);
   };
 
-  // Define dropdown options for specific text properties
-  const dropdownOptions = getFieldDropdownOptions(fieldKey);
-  const useDropdown = dropdownOptions.length > 0;
-
   if (!["Color", "Value", "Arrow Label", "Remove", "Add"].includes(label)){
     return;
-  }
-
-  // For boolean inputs, use a Switch component instead of TextField
-  if (inputType === "boolean") {
-    const boolValue = value === "true" || value === true;
-    return (
-      <FormControlLabel
-        control={
-          <Switch
-            checked={boolValue}
-            onChange={(e) => {
-              const newValue = e.target.checked;
-              onChange(fieldKey, newValue);
-              onUpdate(fieldKey, newValue);
-            }}
-            disabled={fieldKey === "id"}
-          />
-        }
-        label={label}
-        sx={{ m: 1, width: "25ch" }}
-      />
-    );
-  }
-
-  // For dropdown fields, use Select component
-  if (useDropdown) {
-    return (
-      <FormControl sx={{ m: 1, width: "25ch" }} size="small">
-        <InputLabel id={`${fieldKey}-select-label`}>{label}</InputLabel>
-        <Select
-          labelId={`${fieldKey}-select-label`}
-          id={`${fieldKey}-select`}
-          value={value !== null && value !== undefined && value !== "null" ? value : ""}
-          label={label}
-          onChange={handleSelectChange}
-          disabled={fieldKey === "id"}
-        >
-          {dropdownOptions.map((option) => (
-            <MenuItem key={option.value} value={option.value}>
-              {option.label}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-    );
-  }
-
-  if (inputType === "add"){
-    return (
-      <EditUnitItem
-        name={label}
-        icon={getIcon(label)}
-        leaveFunction={leaveFunction}
-        formFields={<TextField
-        label={label}
-        id={`${fieldKey}-input`}
-        size="small"
-        onChange={handleFieldChange}
-        onBlur={handleBlur}
-        onKeyDown={handleKeyDown}
-        style={{margin: "15px 10px 10px 10px"}}
-      />}>
-      </EditUnitItem>
-    );
   }
 
   if (inputType == "remove"){
@@ -170,7 +89,7 @@ const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate, onRemo
        <Tooltip title={label}>
         <span style={{marginLeft: "10px", marginRight: "10px"}}>
           <IconButton size="small" onClick={onRemove}>
-            <ClearIcon></ClearIcon>
+            {getIcon(label)}
           </IconButton>
         </span>
       </Tooltip>
@@ -193,22 +112,42 @@ const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate, onRemo
 
   // Regular text/number inputs
   return (
-    <EditUnitItem
-      name={label}
-      icon={getIcon(label)}
-      leaveFunction={leaveFunction}
-      formFields={<TextField
-      label={label}
-      id={`${fieldKey}-input`}
-      value={value !== null && value !== undefined && value !== "null" ? value :  ""}
-      size="small"
-      onChange={handleFieldChange}
-      onBlur={handleBlur}
-      onKeyDown={handleKeyDown}
-      style={{margin: "15px 10px 10px 10px"}}
-    />}
-    >
-    </EditUnitItem>
+    <React.Fragment>
+      <Tooltip title={label} sx={{ mr: 5 }}>
+        <span style={{marginLeft: "10px", marginRight: "10px"}}>
+          <IconButton                 
+            aria-describedby={id}
+            onClick={handleOpenPopup}>
+              {getIcon(label)}
+          </IconButton>
+        </span>
+      </Tooltip>
+      <Popover
+        id={id}
+        open={open}
+        anchorEl={anchorEl}
+        anchorOrigin={{
+          vertical: "top",
+          horizontal: "right",
+        }}
+        transformOrigin={{
+          vertical: "center",
+          horizontal: "center",
+        }}
+        onMouseLeave={handleClosePopup}
+        slotProps={{ paper: { sx: { pointerEvents: "auto" } } }}
+        sx={{ pointerEvents: "none" }}>
+          <TextField
+            label={label}
+            value={value !== null && value !== undefined && value !== "null" ? value :  ""}
+            size="small"
+            onChange={handleFieldChange}
+            onBlur={handleBlur}
+            onKeyDown={handleKeyDown}
+            style={{margin: "15px 10px 10px 10px"}}
+          />
+      </Popover>
+  </React.Fragment>
   );
 };
 
