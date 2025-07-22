@@ -11,6 +11,60 @@ import { generateGraph } from "./types/generateGraph.mjs";
 import { generateText } from "./types/generateText.mjs";
 import { getMermaidContainerSize } from "./cssUtils.mjs";
 
+// Helper function to generate a new node name for component types that use nodes
+function generateNodeName(body, componentType) {
+    if (!body.nodes || body.nodes.length === 0) {
+        // If no nodes exist, start with the first one based on component type
+        switch (componentType) {
+            case "linkedlist":
+            case "graph":
+                return "n0";
+            case "tree":
+                return "A";
+            default:
+                return "n0";
+        }
+    }
+    
+    // Find the highest numbered node and increment
+    let maxNum = -1;
+    let prefix = "";
+    
+    // Determine the naming pattern from existing nodes
+    for (const node of body.nodes) {
+        if (typeof node === 'string') {
+            if (node.match(/^n\d+$/)) {
+                // Pattern: n0, n1, n2, etc.
+                prefix = "n";
+                const num = parseInt(node.substring(1));
+                if (!isNaN(num)) {
+                    maxNum = Math.max(maxNum, num);
+                }
+            } else if (node.match(/^[A-Z]$/)) {
+                // Pattern: A, B, C, etc.
+                prefix = "letter";
+                const charCode = node.charCodeAt(0);
+                const num = charCode - 65; // A=0, B=1, C=2, etc.
+                maxNum = Math.max(maxNum, num);
+            }
+        }
+    }
+    
+    // Generate the next node name
+    if (prefix === "letter") {
+        const nextCharCode = 65 + maxNum + 1; // Next letter
+        if (nextCharCode <= 90) { // Z is 90
+            return String.fromCharCode(nextCharCode);
+        } else {
+            // Fall back to n pattern if we run out of letters
+            return "n" + (maxNum + 1);
+        }
+    } else {
+        // Default to n pattern
+        return "n" + (maxNum + 1);
+    }
+}
+
 // Helper function to maintain consistency across array properties when modifying arrays
 function maintainArrayPropertyConsistency(body, modifiedProperty, index, operation, componentType = null) {
     maintainArrayPropertyConsistencyExcept(body, modifiedProperty, index, operation, componentType, null);
@@ -20,6 +74,11 @@ function maintainArrayPropertyConsistency(body, modifiedProperty, index, operati
 function maintainArrayPropertyConsistencyExcept(body, modifiedProperty, index, operation, componentType = null, exceptProperty = null) {
     // Define the properties that should be kept in sync for different component types
     let arrayProperties = ["arrow", "color", "value", "hidden"];
+    
+    // Include "nodes" for component types that use nodes
+    if (componentType === "linkedlist" || componentType === "tree" || componentType === "graph") {
+        arrayProperties.push("nodes");
+    }
     
     // Note: "children" property is NOT included because it contains relationship objects,
     // not values indexed by node position, so it should be handled separately
@@ -42,16 +101,30 @@ function maintainArrayPropertyConsistencyExcept(body, modifiedProperty, index, o
                     while (body[property].length < index) {
                         body[property].push(null);
                     }
-                    // Insert null at the same index to maintain alignment
-                    body[property].splice(index, 0, null);
+                    // Insert appropriate value at the same index to maintain alignment
+                    if (property === "nodes" && (componentType === "linkedlist" || componentType === "tree" || componentType === "graph")) {
+                        // For nodes, generate a new node name instead of inserting null
+                        const newNodeName = generateNodeName(body, componentType);
+                        body[property].splice(index, 0, newNodeName);
+                    } else {
+                        // For other properties, insert null
+                        body[property].splice(index, 0, null);
+                    }
                     break;
                 case "add":
                     // Ensure the array has the same length as the target (minus 1 since we just added)
                     while (body[property].length < targetLength - 1) {
                         body[property].push(null);
                     }
-                    // Add null to maintain alignment
-                    body[property].push(null);
+                    // Add appropriate value to maintain alignment
+                    if (property === "nodes" && (componentType === "linkedlist" || componentType === "tree" || componentType === "graph")) {
+                        // For nodes, generate a new node name instead of adding null
+                        const newNodeName = generateNodeName(body, componentType);
+                        body[property].push(newNodeName);
+                    } else {
+                        // For other properties, add null
+                        body[property].push(null);
+                    }
                     break;
                 case "remove":
                     // Remove element at the same index to maintain alignment
@@ -65,7 +138,17 @@ function maintainArrayPropertyConsistencyExcept(body, modifiedProperty, index, o
             switch (operation) {
                 case "insert":
                 case "add":
-                    body[property] = Array(targetLength).fill(null);
+                    if (property === "nodes" && (componentType === "linkedlist" || componentType === "tree" || componentType === "graph")) {
+                        // For nodes, generate appropriate node names
+                        body[property] = [];
+                        for (let i = 0; i < targetLength; i++) {
+                            const newNodeName = generateNodeName(body, componentType);
+                            body[property].push(newNodeName);
+                        }
+                    } else {
+                        // For other properties, fill with nulls
+                        body[property] = Array(targetLength).fill(null);
+                    }
                     break;
                 // For remove, we don't need to create new arrays
             }
