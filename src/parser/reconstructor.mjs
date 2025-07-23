@@ -98,6 +98,46 @@ function getMethodName(action, target, isPlural = false) {
     return `${action}${targetName}`;
 }
 
+// Helper function to get method name from command for type checking
+export function getMethodNameFromCommand(command) {
+    switch (command.type) {
+        case "set":
+            return getMethodName('set', command.target, false);
+        case "set_multiple":
+            return getMethodName('set', command.target, true);
+        case "set_matrix":
+            return getMethodName('set', command.target, false);
+        case "set_matrix_multiple":
+            return getMethodName('set', command.target, true);
+        case "add":
+            return getMethodName('add', command.target, false);
+        case "insert":
+            return getMethodName('insert', command.target, false);
+        case "remove":
+            return getMethodName('remove', command.target, false);
+        case "remove_at":
+            return "removeAt";
+        case "remove_subtree":
+            return "removeSubtree";
+        case "add_child":
+            return "addChild";
+        case "set_child":
+            return "setChild";
+        case "add_matrix_row":
+            return "addRow";
+        case "add_matrix_column":
+            return "addColumn";
+        case "remove_matrix_row":
+            return "removeRow";
+        case "remove_matrix_column":
+            return "removeColumn";
+        case "add_matrix_border":
+            return "addBorder";
+        default:
+            return null;
+    }
+}
+
 function isTextComponent(cmd) {
     // For now, check if the command has specific properties that indicate it's for a text component
     // This could be enhanced to actually look up the component type in the parsed DSL
@@ -127,58 +167,58 @@ function reconstructCommand(cmd) {
                 // Check if it's an indexed operation or direct property setting
                 if (cmd.args.index !== undefined) {
                     // Array-style operation with index
-                    const methodName = getMethodName('set', cmd.target, false);
+                    const methodName = getMethodNameFromCommand(cmd);
                     const index = cmd.args.index;
                     const value = formatValue(cmd.args.value, cmd.target);
                     return `${cmd.name}.${methodName}(${index}, ${value})`;
                 } else {
                     // Direct property setting (no index)
-                    const methodName = getMethodName('set', cmd.target, false);
+                    const methodName = getMethodNameFromCommand(cmd);
                     const value = formatValue(cmd.args, cmd.target);
                     return `${cmd.name}.${methodName}(${value})`;
                 }
             } else {
                 // Original array-based handling for other components
-                const methodName = getMethodName('set', cmd.target, false);
+                const methodName = getMethodNameFromCommand(cmd);
                 const index = cmd.args.index;
                 const value = formatValue(cmd.args.value, cmd.target);
                 return `${cmd.name}.${methodName}(${index}, ${value})`;
             }
             
         case 'set_multiple':
-            const pluralMethodName = getMethodName('set', cmd.target, true);
+            const pluralMethodName = getMethodNameFromCommand(cmd);
             const values = formatValues(cmd.target, cmd.args);
             return `${cmd.name}.${pluralMethodName}(${values})`;
             
         case 'set_matrix':
-            const matrixMethodName = getMethodName('set', cmd.target, false);
+            const matrixMethodName = getMethodNameFromCommand(cmd);
             const row = cmd.args.row;
             const col = cmd.args.col;
             const matrixValue = formatValue(cmd.args.value);
             return `${cmd.name}.${matrixMethodName}(${row}, ${col}, ${matrixValue})`;
             
         case 'set_matrix_multiple':
-            const matrixMultipleMethodName = getMethodName('set', cmd.target, true);
+            const matrixMultipleMethodName = getMethodNameFromCommand(cmd);
             const matrixMultipleValue = formatMatrix(cmd.args);
             return `${cmd.name}.${matrixMultipleMethodName}(${matrixMultipleValue})`;
         case 'add_child':
             // Handles both addChild(parent-child) and addChild(parent-child, value)
             if (cmd.args && cmd.args.start && cmd.args.end) {
-                return `${cmd.name}.addChild(${cmd.args.start}-${cmd.args.end})`;
+                return `${cmd.name}.${getMethodNameFromCommand(cmd)}(${cmd.args.start}-${cmd.args.end})`;
             } else if (cmd.args && cmd.args.index && cmd.args.value !== undefined && cmd.args.index.start && cmd.args.index.end) {
-                return `${cmd.name}.addChild(${cmd.args.index.start}-${cmd.args.index.end}, ${formatValue(cmd.args.value)})`;
+                return `${cmd.name}.${getMethodNameFromCommand(cmd)}(${cmd.args.index.start}-${cmd.args.index.end}, ${formatValue(cmd.args.value)})`;
             }
             return null;
 
         case 'set_child':
             // setChild(child, parent)
             if (cmd.args && cmd.args.start && cmd.args.end) {
-                return `${cmd.name}.setChild(${cmd.args.start}-${cmd.args.end})`;
+                return `${cmd.name}.${getMethodNameFromCommand(cmd)}(${cmd.args.start}-${cmd.args.end})`;
             }
             return null;
 
         case 'add':
-            const addMethodName = getMethodName('add', cmd.target, false);
+            const addMethodName = getMethodNameFromCommand(cmd);
             
             // Handle special case for nodes with optional value
             if (cmd.target === 'nodes' && cmd.args && typeof cmd.args === 'object' && cmd.args.index !== undefined) {
@@ -191,7 +231,7 @@ function reconstructCommand(cmd) {
             }
             
         case 'insert':
-            const insertMethodName = getMethodName('insert', cmd.target, false);
+            const insertMethodName = getMethodNameFromCommand(cmd);
             
             // Handle special case for insertNode with optional third parameter
             if (cmd.target === 'nodes' && cmd.args.nodeValue !== undefined) {
@@ -206,36 +246,36 @@ function reconstructCommand(cmd) {
             }
             
         case 'remove':
-            const removeMethodName = getMethodName('remove', cmd.target, false);
+            const removeMethodName = getMethodNameFromCommand(cmd);
             const removeValue = formatValue(cmd.args, cmd.target);
             return `${cmd.name}.${removeMethodName}(${removeValue})`;
             
         case 'remove_at':
             const removeAtIndex = cmd.args;
-            return `${cmd.name}.removeAt(${removeAtIndex})`;
+            return `${cmd.name}.${getMethodNameFromCommand(cmd)}(${removeAtIndex})`;
             
         case 'remove_subtree':
             const subtreeNode = formatValue(cmd.args, cmd.target);
-            return `${cmd.name}.removeSubtree(${subtreeNode})`;
+            return `${cmd.name}.${getMethodNameFromCommand(cmd)}(${subtreeNode})`;
             
         case 'add_matrix_row':
             const addRowValue = cmd.args !== null && cmd.args !== undefined ? cmd.args : '';
-            return `${cmd.name}.addRow(${addRowValue})`;
+            return `${cmd.name}.${getMethodNameFromCommand(cmd)}(${addRowValue})`;
             
         case 'add_matrix_column':
             const addColValue = cmd.args !== null && cmd.args !== undefined ? cmd.args : '';
-            return `${cmd.name}.addColumn(${addColValue})`;
+            return `${cmd.name}.${getMethodNameFromCommand(cmd)}(${addColValue})`;
             
         case 'remove_matrix_row':
-            return `${cmd.name}.removeRow(${cmd.args})`;
+            return `${cmd.name}.${getMethodNameFromCommand(cmd)}(${cmd.args})`;
             
         case 'remove_matrix_column':
-            return `${cmd.name}.removeColumn(${cmd.args})`;
+            return `${cmd.name}.${getMethodNameFromCommand(cmd)}(${cmd.args})`;
             
         case 'add_matrix_border':
             const borderValue = formatValue(cmd.args.index);
             const borderColor = formatValue(cmd.args.value);
-            return `${cmd.name}.addBorder(${borderValue}, ${borderColor})`;
+            return `${cmd.name}.${getMethodNameFromCommand(cmd)}(${borderValue}, ${borderColor})`;
 
         default:
             return null;

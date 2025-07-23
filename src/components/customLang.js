@@ -1461,7 +1461,7 @@ export function registerCustomLanguage(monaco) {
           }
         }
 
-        if (methodName === 'addEdge' || methodName === 'insertEdge' || methodName === 'removeEdge') {
+        if (methodName === 'addEdge' || methodName === 'removeEdge') {
           // Smart edge parameter suggestions - progressive completion
           const existingNodes = nodeData.nodesByVariable[variableName] || nodeData.allNodes || 
             ['client', 'server', 'router', 'database', 'offline', 'admin']; // fallback nodes

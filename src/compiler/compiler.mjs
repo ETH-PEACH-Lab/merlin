@@ -2,6 +2,7 @@
 
 import { expandPositionWithLayout, inferLayoutFromKeywords } from './positionUtils.mjs';
 import { isMethodSupported } from '../components/languageConfig.js';
+import { getMethodNameFromCommand } from '../parser/reconstructor.mjs';
 
 import { generateArray } from "./types/generateArray.mjs"
 import { generateLinkedlist } from "./types/generateLinkedlist.mjs";
@@ -265,20 +266,125 @@ function removeNodeAndRelatedElements(body, nodeName, targetObject) {
         }
     }
     
-    // Remove edges involving this node (for graphs)
-    if (body.edges && Array.isArray(body.edges)) {
-        body.edges = body.edges.filter(edge => {
-            if (!edge || typeof edge !== 'object') return false;
-            return edge.start !== nodeName && edge.end !== nodeName;
-        });
-    }
-    
-    // Remove children relationships involving this node (for trees)
-    if (body.children && Array.isArray(body.children)) {
-        body.children = body.children.filter(child => {
-            if (!child || typeof child !== 'object') return false;
-            return child.start !== nodeName && child.end !== nodeName;
-        });
+    // Handle different component types differently
+    if (targetObject.type === "linkedlist") {
+        // For linked lists: reconnect the previous and next nodes
+        if (body.edges && Array.isArray(body.edges)) {
+            let prevNode = null;
+            let nextNode = null;
+            
+            // Find connections involving the removed node
+            body.edges.forEach(edge => {
+                if (edge.end === nodeName) {
+                    prevNode = edge.start;
+                } else if (edge.start === nodeName) {
+                    nextNode = edge.end;
+                }
+            });
+            
+            // Remove all edges involving the deleted node
+            body.edges = body.edges.filter(edge => {
+                return edge.start !== nodeName && edge.end !== nodeName;
+            });
+            
+            // If both previous and next nodes exist, connect them
+            if (prevNode && nextNode) {
+                body.edges.push({ start: prevNode, end: nextNode });
+            }
+        }
+    } else if (targetObject.type === "tree") {
+        // For trees: reconnect children to parent
+        if (body.children && Array.isArray(body.children)) {
+            let parentNode = null;
+            const childNodes = [];
+            
+            // Find parent and children of the removed node
+            body.children.forEach(child => {
+                if (child.end === nodeName) {
+                    parentNode = child.start;
+                } else if (child.start === nodeName) {
+                    childNodes.push(child.end);
+                }
+            });
+            
+            // Remove all children relationships involving the deleted node
+            body.children = body.children.filter(child => {
+                return child.start !== nodeName && child.end !== nodeName;
+            });
+            
+            // If there's a parent, connect all children to the parent
+            if (parentNode && childNodes.length > 0) {
+                childNodes.forEach(childNode => {
+                    body.children.push({ start: parentNode, end: childNode });
+                });
+            }
+        }
+    } else if (targetObject.type === "graph") {
+        // For graphs: smart reconnection - connect neighbors to the first neighbor with lowest index
+        if (body.edges && Array.isArray(body.edges)) {
+            const connectedNodes = new Set();
+            
+            // Find all nodes connected to the removed node
+            body.edges.forEach(edge => {
+                if (edge.start === nodeName) {
+                    connectedNodes.add(edge.end);
+                } else if (edge.end === nodeName) {
+                    connectedNodes.add(edge.start);
+                }
+            });
+            
+            // Remove all edges involving the deleted node
+            body.edges = body.edges.filter(edge => {
+                return edge.start !== nodeName && edge.end !== nodeName;
+            });
+            
+            // If there are connected nodes, find the one with the lowest index and connect others to it
+            if (connectedNodes.size > 1) {
+                const connectedNodesList = Array.from(connectedNodes);
+                
+                // Find the node with the lowest index (or first alphabetically if no indices)
+                let hubNode = connectedNodesList[0];
+                let lowestIndex = body.nodes ? body.nodes.indexOf(hubNode) : -1;
+                
+                connectedNodesList.forEach(node => {
+                    const nodeIndex = body.nodes ? body.nodes.indexOf(node) : -1;
+                    if (nodeIndex !== -1 && (lowestIndex === -1 || nodeIndex < lowestIndex)) {
+                        hubNode = node;
+                        lowestIndex = nodeIndex;
+                    }
+                });
+                
+                // Connect all other nodes to the hub node
+                connectedNodesList.forEach(node => {
+                    if (node !== hubNode) {
+                        // Check if edge already exists to avoid duplicates
+                        const edgeExists = body.edges.some(edge => 
+                            (edge.start === hubNode && edge.end === node) || 
+                            (edge.start === node && edge.end === hubNode)
+                        );
+                        
+                        if (!edgeExists) {
+                            body.edges.push({ start: hubNode, end: node });
+                        }
+                    }
+                });
+            }
+        }
+    } else {
+        // For other component types: just remove all edges/relationships (original behavior)
+        if (body.edges && Array.isArray(body.edges)) {
+            body.edges = body.edges.filter(edge => {
+                if (!edge || typeof edge !== 'object') return false;
+                return edge.start !== nodeName && edge.end !== nodeName;
+            });
+        }
+        
+        if (body.children && Array.isArray(body.children)) {
+            body.children = body.children.filter(child => {
+                if (!child || typeof child !== 'object') return false;
+                return child.start !== nodeName && child.end !== nodeName;
+            });
+        }
     }
     
     return removedIndex;
@@ -351,41 +457,6 @@ function hasTreeCycle(nodes, children) {
 }
 
 export { formatNodeName, formatNullValue };
-
-// Helper function to get method name from command for type checking
-function getMethodNameFromCommand(command) {
-    switch (command.type) {
-        case "set":
-            return `set${command.target.charAt(0).toUpperCase() + command.target.slice(1)}`;
-        case "set_multiple":
-            if (command.target.endsWith('s')) {
-                return `set${command.target.charAt(0).toUpperCase() + command.target.slice(1)}`;
-            } else {
-                return `set${command.target.charAt(0).toUpperCase() + command.target.slice(1)}s`;
-            }
-        case "add":
-            return `add${command.target.charAt(0).toUpperCase() + command.target.slice(1, -1)}`; // Remove 's' at end
-        case "insert":
-            if (command.target === "value") {
-                return "insertValue";
-            } else if (command.target === "nodes") {
-                return "insertNode";
-            } else if (command.target === "edges") {
-                return "insertEdge";
-            }
-            break;
-        case "remove":
-            return `remove${command.target.charAt(0).toUpperCase() + command.target.slice(1, -1)}`; // Remove 's' at end
-        case "remove_at":
-            return "removeAt";
-        case "remove_subtree":
-            return "removeSubtree";
-        // Add more cases as needed
-        default:
-            return null;
-    }
-    return null;
-}
 
 export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
     // Deep copy to avoid mutating the original parsed DSL
@@ -473,7 +544,12 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
 
     commands.forEach((command) => {
         // Add method validation for component operations
-        if (command.name && ['set', 'set_multiple', 'add', 'insert', 'remove', 'remove_at', 'remove_subtree'].includes(command.type)) {
+        if (command.name && [
+            'set', 'set_multiple', 'set_matrix', 'set_matrix_multiple',
+            'add', 'insert', 'remove', 'remove_at', 'remove_subtree',
+            'add_child', 'set_child', 'add_matrix_row', 'add_matrix_column',
+            'remove_matrix_row', 'remove_matrix_column', 'add_matrix_border'
+        ].includes(command.type)) {
             const targetObject = pages.length > 0 ? pages[pages.length - 1]?.find(comp => comp.name === command.name) : null;
             if (targetObject) {
                 const methodName = getMethodNameFromCommand(command);
@@ -633,7 +709,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                 // Check if in bounds
                 if (targetObject) {
                     const body = targetObject.body;
-                    
+
                     // Initialize value array with node names if needed for trees, graphs, and linkedlists
                     if ((targetObject.type === "tree" || targetObject.type === "graph" || targetObject.type === "linkedlist") && property === "value") {
                         initializeValueArrayWithNodeNames(body);
@@ -642,18 +718,28 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                     // Handle node name to index conversion for trees, graphs, and linkedlists
                     let index = indexOrNodeName;
                     if (targetObject.type === "tree" || targetObject.type === "graph" || targetObject.type === "linkedlist") {
-                        const nodeIndex = getNodeIndex(targetObject, indexOrNodeName);
-                        if (nodeIndex !== null) {
-                            index = nodeIndex;
+                        // If it's already a number, use it directly
+                        if (typeof indexOrNodeName === 'number') {
+                            index = indexOrNodeName;
                         } else if (typeof indexOrNodeName === 'string') {
-                            causeCompileError(`Node not found\n\nNode: ${indexOrNodeName}\nComponent: ${name}`, command);
+                            const nodeIndex = getNodeIndex(targetObject, indexOrNodeName);
+                            if (nodeIndex !== null) {
+                                index = nodeIndex;
+                            } else {
+                                causeCompileError(`Node not found\n\nNode: ${indexOrNodeName}\nComponent: ${name}`, command);
+                                break;
+                            }
+                        } else {
+                            // Handle case where indexOrNodeName might be an object or other type
+                            causeCompileError(`Invalid index type\n\nExpected number or node name, got: ${typeof indexOrNodeName}\nIndex: ${indexOrNodeName}\nProperty: ${property}\nComponent: ${name}`, command);
                             break;
                         }
-                    } else if (typeof indexOrNodeName === 'string') {
-                        // Warn if using node names on non-tree/graph/linkedlist components
-                        console.warn(`Warning: Using node name "${indexOrNodeName}" on component type "${targetObject.type}". Node names are only recommended for trees, graphs, and linkedlists.`);
-                        causeCompileError(`Invalid index type\n\nUsing node name "${indexOrNodeName}" on ${targetObject.type} component. Use numeric indices for this component type.`, command);
-                        break;
+                    } else {
+                        // For non-node components, ensure index is a number
+                        if (typeof indexOrNodeName !== 'number') {
+                            causeCompileError(`Invalid index type\n\nExpected number, got: ${typeof indexOrNodeName}\nIndex: ${indexOrNodeName}\nProperty: ${property}\nComponent: ${name}`, command);
+                            break;
+                        }
                     }
                     
                     const isValidIndex = Number.isInteger(index) && index >= 0;
@@ -941,12 +1027,36 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                     
                     // Handle node name to index conversion for trees, graphs, and linkedlists
                     let index = indexOrNodeName;
+                    
+                    // Handle structured argument case (when parser creates {index: X, value: Y})
+                    if (indexOrNodeName && typeof indexOrNodeName === 'object' && indexOrNodeName.index !== undefined) {
+                        // Extract the actual index from the structured argument
+                        index = indexOrNodeName.index;
+                    } else {
+                        index = indexOrNodeName;
+                    }
+                    
                     if (targetObject.type === "tree" || targetObject.type === "graph" || targetObject.type === "linkedlist") {
-                        const nodeIndex = getNodeIndex(targetObject, indexOrNodeName);
-                        if (nodeIndex !== null) {
-                            index = nodeIndex;
-                        } else if (typeof indexOrNodeName === 'string') {
-                            causeCompileError(`Node not found\n\nNode: ${indexOrNodeName}\nComponent: ${name}`, command);
+                        // If it's already a number, use it directly
+                        if (typeof index === 'number') {
+                            // index is already set correctly above
+                        } else if (typeof index === 'string') {
+                            const nodeIndex = getNodeIndex(targetObject, index);
+                            if (nodeIndex !== null) {
+                                index = nodeIndex;
+                            } else {
+                                causeCompileError(`Node not found\n\nNode: ${index}\nComponent: ${name}`, command);
+                                break;
+                            }
+                        } else {
+                            // Handle case where index might be an unexpected type
+                            causeCompileError(`Invalid index type\n\nExpected number or node name, got: ${typeof index}\nIndex: ${index}\nProperty: ${target}\nComponent: ${name}`, command);
+                            break;
+                        }
+                    } else {
+                        // For non-node components, ensure index is a number
+                        if (typeof index !== 'number') {
+                            causeCompileError(`Invalid index type\n\nExpected number, got: ${typeof index}\nIndex: ${index}\nProperty: ${target}\nComponent: ${name}`, command);
                             break;
                         }
                     }

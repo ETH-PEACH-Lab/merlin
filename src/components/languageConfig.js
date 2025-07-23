@@ -148,7 +148,7 @@ export const typeMethodsMap = {
   graph: {
     single: ['setValue', 'setColor', 'setArrow', 'setHidden'],
     multiple: ['setValues', 'setColors', 'setArrows', 'setHidden'],
-    addInsert: ['addNode', 'addEdge', 'insertNode', 'insertEdge'],
+    addInsert: ['addNode', 'addEdge', 'insertNode'],
     remove: ['removeNode', 'removeEdge'],
     graphSpecific: ['setEdges']
   },
@@ -204,7 +204,6 @@ export const methodSignatures = {
   insertNode: () => 'insertNode(${1:index}, ${2:name}, ${3:value})',
   removeNode: () => 'removeNode(${1:name})',
   addEdge: () => 'addEdge(${1:nodeA}-${2:nodeB})',
-  insertEdge: () => 'insertEdge(${1:index}, ${2:nodeA}-${3:nodeB})',
   removeEdge: () => 'removeEdge(${1:nodeA}-${2:nodeB})',
   setEdges: () => 'setEdges([${1:edges}])',
   setHidden: () => 'setHidden(${1:index}, ${2:hidden})',
@@ -377,12 +376,6 @@ export const methodDocumentation = {
     signature: 'addEdge(nodeA-nodeB)',
     parameters: ['edge: `id-id` - Edge in format "nodeA-nodeB"'],
     example: 'myGraph.addEdge(client-router)'
-  },
-  insertEdge: {
-    description: 'Insert edge at specific index',
-    signature: 'insertEdge(index, nodeA-nodeB)',
-    parameters: ['index: `number` - Position to insert at', 'edge: `id-id` - Edge in format "nodeA-nodeB"'],
-    example: 'myGraph.insertEdge(1, server-database)'
   },
   removeEdge: {
     description: 'Remove edge between nodes',
@@ -572,7 +565,6 @@ export const methodDescriptions = {
   insertNode: 'Insert node at specific index',
   removeNode: 'Remove specific node',
   addEdge: 'Add edge between nodes',
-  insertEdge: 'Insert edge at specific index',
   removeEdge: 'Remove specific edge',
   setEdges: 'Set all edges at once',
   setHidden: 'Set visibility of elements',

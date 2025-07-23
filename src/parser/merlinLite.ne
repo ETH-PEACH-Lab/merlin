@@ -298,7 +298,6 @@ commands -> (comment
           | set_child
           | insert_value
           | insert_node
-          | insert_edge
           | remove_value
           | remove_node
           | remove_edge
@@ -388,7 +387,6 @@ set_child -> cmd["setChild", edge] {% (details) => ({ type: "set_child", ...id(d
 insert_value -> cmd["insertValue", comma_sep[number, (number | string | nullT) {% id %}]] {% (details) => ({ type: "insert", target: "value", ...id(details) }) %}
 insert_node -> cmd["insertNode", insert_node_2_args] {% (details) => ({ type: "insert", target: "nodes", ...id(details) }) %}
 insert_node -> cmd["insertNode", insert_node_3_args] {% (details) => ({ type: "insert", target: "nodes", ...id(details) }) %}
-insert_edge -> cmd["insertEdge", comma_sep[number, edge]] {% (details) => ({ type: "insert", target: "edges", ...id(details) }) %}
 
 # Insert node arguments - 2 parameters: insertNode(index, name)
 insert_node_2_args -> comma_sep[(number | word) {% id %}, word] {% ([indexOrNode, nodeName]) => ({ index: indexOrNode, value: nodeName }) %}
