@@ -385,14 +385,17 @@ set_child -> cmd["setChild", edge] {% (details) => ({ type: "set_child", ...id(d
 
 # Insert functions
 insert_value -> cmd["insertValue", comma_sep[number, (number | string | nullT) {% id %}]] {% (details) => ({ type: "insert", target: "value", ...id(details) }) %}
+# insertNode command
 insert_node -> cmd["insertNode", insert_node_2_args] {% (details) => ({ type: "insert", target: "nodes", ...id(details) }) %}
 insert_node -> cmd["insertNode", insert_node_3_args] {% (details) => ({ type: "insert", target: "nodes", ...id(details) }) %}
 
-# Insert node arguments - 2 parameters: insertNode(index, name)
-insert_node_2_args -> comma_sep[(number | word) {% id %}, word] {% ([indexOrNode, nodeName]) => ({ index: indexOrNode, value: nodeName }) %}
+# 2-argument version: insertNode(index, nodeName)  
+insert_node_2_args -> (number | word) "," _ word {% ([indexOrNode, , , nodeName]) => ({ index: indexOrNode[0], value: nodeName }) %}
 
-# Insert node arguments - 3 parameters: insertNode(index, name, value)  
-insert_node_3_args -> comma_sep[comma_sep[(number | word) {% id %}, word], (number | string | nullT) {% id %}] {% ([indexAndNode, nodeValue]) => ({ index: indexAndNode.index, value: indexAndNode.value, nodeValue: nodeValue }) %}
+# 3-argument version: insertNode(index, nodeName, nodeValue)
+insert_node_3_args -> (number | word) "," _ word "," _ (number | string | nullT) {% ([indexOrNode, , , nodeName, , , nodeValue]) => {
+  return { index: indexOrNode[0], value: nodeName, nodeValue: nodeValue[0] };
+} %}
 
 # Remove functions
 remove_value -> cmd["removeValue", (number | string | nullT) {% id %}] {% (details) => ({ type: "remove", target: "value", ...id(details) }) %}

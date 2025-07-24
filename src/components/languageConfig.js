@@ -201,7 +201,7 @@ export const methodSignatures = {
   removeValue: () => 'removeValue(${1:value})',
   removeAt: () => 'removeAt(${1:index})',
   addNode: () => 'addNode(${1:name}, ${2:value})',
-  insertNode: () => 'insertNode(${1:index}, ${2:name}, ${3:value})',
+  insertNode: () => 'insertNode(${1:id}, ${2:name}, ${3:value})',
   removeNode: () => 'removeNode(${1:name})',
   addEdge: () => 'addEdge(${1:nodeA}-${2:nodeB})',
   removeEdge: () => 'removeEdge(${1:nodeA}-${2:nodeB})',
@@ -360,10 +360,10 @@ export const methodDocumentation = {
     example: 'myGraph.addNode(client, 42)'
   },
   insertNode: {
-    description: 'Insert node at specific index with optional value',
-    signature: 'insertNode(index, name, value?)',
-    parameters: ['index: `number` - Position to insert at', 'name: `string` - The node identifier', 'value: `number|string` - (optional) The node value'],
-    example: 'myLinkedList.insertNode(2, newNode, 42)'
+    description: 'Insert node at specific index/position with optional value',
+    signature: 'insertNode(index|id, name, value?)',
+    parameters: ['index: `number|id` - Position to insert at (numeric index or node id)', 'name: `string` - The node identifier', 'value: `number|string` - (optional) The node value'],
+    example: 'myLinkedList.insertNode(2, newNode, 42) or myGraph.insertNode(router, newNode, 42)'
   },
   removeNode: {
     description: 'Remove node from structure',

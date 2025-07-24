@@ -74,6 +74,11 @@ function maintainArrayPropertyConsistency(body, modifiedProperty, index, operati
 
 // Helper function to maintain consistency across array properties when modifying arrays, with exception for specific properties
 function maintainArrayPropertyConsistencyExcept(body, modifiedProperty, index, operation, componentType = null, exceptProperty = null) {
+    maintainArrayPropertyConsistencyExceptMultiple(body, modifiedProperty, index, operation, componentType, exceptProperty ? [exceptProperty] : []);
+}
+
+// Helper function to maintain consistency across array properties when modifying arrays, with exceptions for multiple properties
+function maintainArrayPropertyConsistencyExceptMultiple(body, modifiedProperty, index, operation, componentType = null, exceptProperties = []) {
     // Define the properties that should be kept in sync for different component types
     let arrayProperties = ["arrow", "color", "value", "hidden"];
     
@@ -89,8 +94,8 @@ function maintainArrayPropertyConsistencyExcept(body, modifiedProperty, index, o
     const targetLength = body[modifiedProperty] ? body[modifiedProperty].length : 0;
     
     arrayProperties.forEach(property => {
-        // Skip the exception property if specified
-        if (property === exceptProperty) {
+        // Skip the exception properties if specified
+        if (exceptProperties.includes(property)) {
             return;
         }
         
@@ -135,7 +140,7 @@ function maintainArrayPropertyConsistencyExcept(body, modifiedProperty, index, o
                     }
                     break;
             }
-        } else if (property !== modifiedProperty && !body[property] && property !== exceptProperty) {
+        } else if (property !== modifiedProperty && !body[property] && !exceptProperties.includes(property)) {
             // If the property doesn't exist, create it with the appropriate length
             switch (operation) {
                 case "insert":
@@ -1061,27 +1066,139 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                         }
                     }
                     
-                    const isValidIndex = Number.isInteger(index) && index >= 0 && index <= body[target].length;
+                    // Validate index bounds (trees and graphs are more flexible since they append)
+                    let isValidIndex;
+                    if ((targetObject.type === "tree" || targetObject.type === "graph") && target === "nodes") {
+                        // For trees and graphs, just ensure the parent/attachment node exists (if using node name) or index is reasonable
+                        isValidIndex = (typeof indexOrNodeName === 'string') || 
+                                      (Number.isInteger(index) && index >= 0 && index < body[target].length);
+                    } else {
+                        // For other types, use strict bounds checking
+                        isValidIndex = Number.isInteger(index) && index >= 0 && index <= body[target].length;
+                    }
                     if (isValidIndex) {
-                        // For insertNode, insert the node name into the nodes array
-                        body[target].splice(index, 0, value);
-                        
-                        // If a third parameter (nodeValue) is provided for insertNode, update the value array
-                        if (target === "nodes" && nodeValue !== undefined) {
-                            if (!body.value) {
-                                body.value = [];
-                            }
-                            // Ensure value array is same length as nodes array before inserting
-                            while (body.value.length < body[target].length - 1) {
-                                body.value.push(null);
-                            }
-                            body.value.splice(index, 0, nodeValue);
+                        // Special handling for trees and graphs: always append to end, use index/name for relationship
+                        if ((targetObject.type === "tree" || targetObject.type === "graph") && target === "nodes") {
+                            // For trees and graphs, add node at the end instead of at index position to preserve structure
+                            body[target].push(value);
+                            const insertionIndex = body[target].length - 1; // Index where we actually inserted
                             
-                            // Maintain consistency across all array properties EXCEPT value (since we just set it)
-                            maintainArrayPropertyConsistencyExcept(body, target, index, "insert", targetObject.type, "value");
+                            // If a third parameter (nodeValue) is provided for insertNode, update the value array
+                            if (nodeValue !== undefined) {
+                                if (!body.value) {
+                                    body.value = [];
+                                }
+                                // Ensure value array is same length as nodes array before inserting
+                                while (body.value.length < body[target].length - 1) {
+                                    body.value.push(null);
+                                }
+                                body.value.push(nodeValue);
+                                
+                                // Maintain consistency across all array properties EXCEPT value and the target itself (since we just set them)
+                                maintainArrayPropertyConsistencyExceptMultiple(body, target, insertionIndex, "add", targetObject.type, ["value", target]);
+                            } else {
+                                // Maintain consistency across all array properties EXCEPT the target itself (since we just set it)
+                                maintainArrayPropertyConsistencyExcept(body, target, insertionIndex, "add", targetObject.type, target);
+                            }
                         } else {
-                            // Maintain consistency across all array properties for all component types
-                            maintainArrayPropertyConsistency(body, target, index, "insert", targetObject.type);
+                            // For linkedlists and other types: use normal splice insertion at specified index
+                            body[target].splice(index, 0, value);
+                            
+                            // If a third parameter (nodeValue) is provided for insertNode, update the value array
+                            if (target === "nodes" && nodeValue !== undefined) {
+                                if (!body.value) {
+                                    body.value = [];
+                                }
+                                // Ensure value array is same length as nodes array before inserting
+                                while (body.value.length < body[target].length - 1) {
+                                    body.value.push(null);
+                                }
+                                body.value.splice(index, 0, nodeValue);
+                                
+                                // Maintain consistency across all array properties EXCEPT value and the target itself (since we just set them)
+                                maintainArrayPropertyConsistencyExceptMultiple(body, target, index, "insert", targetObject.type, ["value", target]);
+                            } else {
+                                // Maintain consistency across all array properties EXCEPT the target itself (since we just set it)
+                                maintainArrayPropertyConsistencyExcept(body, target, index, "insert", targetObject.type, target);
+                            }
+                        }
+                        
+                        // Handle automatic edge/relationship creation for node insertion
+                        if (target === "nodes") {
+                            const newNodeName = value; // The name of the newly inserted node
+                            
+                            if (targetObject.type === "graph") {
+                                // For graphs: create edge from the specified node to the new node
+                                if (body.nodes.length > 1) {
+                                    let attachmentNode = null;
+                                    
+                                    // If the original indexOrNodeName was a string (node name), use it as attachment point
+                                    if (typeof indexOrNodeName === 'string') {
+                                        attachmentNode = indexOrNodeName;
+                                    } else if (typeof indexOrNodeName === 'number') {
+                                        // If index was a number, get the node at that index position
+                                        if (indexOrNodeName >= 0 && indexOrNodeName < body.nodes.length - 1) {
+                                            // -1 because we just added the new node at the end
+                                            attachmentNode = body.nodes[indexOrNodeName];
+                                        }
+                                    }
+                                    
+                                    // Create the edge if we have an attachment node
+                                    if (attachmentNode) {
+                                        if (!body.edges) {
+                                            body.edges = [];
+                                        }
+                                        body.edges.push({ start: attachmentNode, end: newNodeName });
+                                    }
+                                } else if (body.nodes.length > 1) {
+                                    // If no edges exist yet, create edges array and connect to specified node
+                                    if (!body.edges) {
+                                        body.edges = [];
+                                    }
+                                    
+                                    let attachmentNode = null;
+                                    
+                                    // If the original indexOrNodeName was a string (node name), use it as attachment point
+                                    if (typeof indexOrNodeName === 'string') {
+                                        attachmentNode = indexOrNodeName;
+                                    } else if (typeof indexOrNodeName === 'number') {
+                                        // If index was a number, get the node at that index position
+                                        if (indexOrNodeName >= 0 && indexOrNodeName < body.nodes.length - 1) {
+                                            // -1 because we just added the new node at the end
+                                            attachmentNode = body.nodes[indexOrNodeName];
+                                        }
+                                    }
+                                    
+                                    if (attachmentNode) {
+                                        body.edges.push({ start: attachmentNode, end: newNodeName });
+                                    }
+                                }
+                            } else if (targetObject.type === "tree") {
+                                // For trees: create parent-child relationship with specified or appropriate parent
+                                if (body.nodes.length > 1) {
+                                    let parentNode = null;
+                                    
+                                    // If the original indexOrNodeName was a string (node name), use it as parent
+                                    if (typeof indexOrNodeName === 'string') {
+                                        parentNode = indexOrNodeName;
+                                    } else if (typeof indexOrNodeName === 'number') {
+                                        // If index was a number, get the node at that index position
+                                        if (indexOrNodeName >= 0 && indexOrNodeName < body.nodes.length - 1) {
+                                            // -1 because we just added the new node at the end
+                                            parentNode = body.nodes[indexOrNodeName];
+                                        }
+                                    }
+                                    
+                                    // Create the parent-child relationship
+                                    if (parentNode) {
+                                        if (!body.children) {
+                                            body.children = [];
+                                        }
+                                        body.children.push({ start: parentNode, end: newNodeName });
+                                    }
+                                }
+                            }
+                            // For linkedlists: no automatic edge creation needed
                         }
                     } else {
                         causeCompileError(`Insert index out of bounds\n\nIndex: ${index}\nProperty: ${target}\nComponent: ${name}`, command);
