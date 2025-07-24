@@ -1461,7 +1461,7 @@ export function registerCustomLanguage(monaco) {
           }
         }
 
-        if (methodName === 'addEdge' || methodName === 'insertEdge' || methodName === 'removeEdge') {
+        if (methodName === 'addEdge' || methodName === 'removeEdge') {
           // Smart edge parameter suggestions - progressive completion
           const existingNodes = nodeData.nodesByVariable[variableName] || nodeData.allNodes || 
             ['client', 'server', 'router', 'database', 'offline', 'admin']; // fallback nodes
@@ -1764,6 +1764,16 @@ export function registerCustomLanguage(monaco) {
     provideHover: function(model, position) {
       const word = model.getWordAtPosition(position);
       if (!word) return null;
+
+      // Check if there's an error on the same line - if so, don't show hover info
+      if (errorStateManager && errorStateManager.currentMarkers) {
+        const hasErrorOnLine = errorStateManager.currentMarkers.some(marker => 
+          marker.startLineNumber === position.lineNumber
+        );
+        if (hasErrorOnLine) {
+          return null;
+        }
+      }
 
       // Get cached parsed data
       const { variableTypes } = parseCache.getCachedData(model, position);

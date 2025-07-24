@@ -1,6 +1,8 @@
 // myCompiler to convert myDSL into mermaid code
 
 import { expandPositionWithLayout, inferLayoutFromKeywords } from './positionUtils.mjs';
+import { isMethodSupported } from '../components/languageConfig.js';
+import { getMethodNameFromCommand } from '../parser/reconstructor.mjs';
 
 import { generateArray } from "./types/generateArray.mjs"
 import { generateLinkedlist } from "./types/generateLinkedlist.mjs";
@@ -11,6 +13,60 @@ import { generateGraph } from "./types/generateGraph.mjs";
 import { generateText } from "./types/generateText.mjs";
 import { getMermaidContainerSize } from "./cssUtils.mjs";
 
+// Helper function to generate a new node name for component types that use nodes
+function generateNodeName(body, componentType) {
+    if (!body.nodes || body.nodes.length === 0) {
+        // If no nodes exist, start with the first one based on component type
+        switch (componentType) {
+            case "linkedlist":
+            case "graph":
+                return "n0";
+            case "tree":
+                return "A";
+            default:
+                return "n0";
+        }
+    }
+    
+    // Find the highest numbered node and increment
+    let maxNum = -1;
+    let prefix = "";
+    
+    // Determine the naming pattern from existing nodes
+    for (const node of body.nodes) {
+        if (typeof node === 'string') {
+            if (node.match(/^n\d+$/)) {
+                // Pattern: n0, n1, n2, etc.
+                prefix = "n";
+                const num = parseInt(node.substring(1));
+                if (!isNaN(num)) {
+                    maxNum = Math.max(maxNum, num);
+                }
+            } else if (node.match(/^[A-Z]$/)) {
+                // Pattern: A, B, C, etc.
+                prefix = "letter";
+                const charCode = node.charCodeAt(0);
+                const num = charCode - 65; // A=0, B=1, C=2, etc.
+                maxNum = Math.max(maxNum, num);
+            }
+        }
+    }
+    
+    // Generate the next node name
+    if (prefix === "letter") {
+        const nextCharCode = 65 + maxNum + 1; // Next letter
+        if (nextCharCode <= 90) { // Z is 90
+            return String.fromCharCode(nextCharCode);
+        } else {
+            // Fall back to n pattern if we run out of letters
+            return "n" + (maxNum + 1);
+        }
+    } else {
+        // Default to n pattern
+        return "n" + (maxNum + 1);
+    }
+}
+
 // Helper function to maintain consistency across array properties when modifying arrays
 function maintainArrayPropertyConsistency(body, modifiedProperty, index, operation, componentType = null) {
     maintainArrayPropertyConsistencyExcept(body, modifiedProperty, index, operation, componentType, null);
@@ -18,8 +74,18 @@ function maintainArrayPropertyConsistency(body, modifiedProperty, index, operati
 
 // Helper function to maintain consistency across array properties when modifying arrays, with exception for specific properties
 function maintainArrayPropertyConsistencyExcept(body, modifiedProperty, index, operation, componentType = null, exceptProperty = null) {
+    maintainArrayPropertyConsistencyExceptMultiple(body, modifiedProperty, index, operation, componentType, exceptProperty ? [exceptProperty] : []);
+}
+
+// Helper function to maintain consistency across array properties when modifying arrays, with exceptions for multiple properties
+function maintainArrayPropertyConsistencyExceptMultiple(body, modifiedProperty, index, operation, componentType = null, exceptProperties = []) {
     // Define the properties that should be kept in sync for different component types
     let arrayProperties = ["arrow", "color", "value", "hidden"];
+    
+    // Include "nodes" for component types that use nodes
+    if (componentType === "linkedlist" || componentType === "tree" || componentType === "graph") {
+        arrayProperties.push("nodes");
+    }
     
     // Note: "children" property is NOT included because it contains relationship objects,
     // not values indexed by node position, so it should be handled separately
@@ -28,8 +94,8 @@ function maintainArrayPropertyConsistencyExcept(body, modifiedProperty, index, o
     const targetLength = body[modifiedProperty] ? body[modifiedProperty].length : 0;
     
     arrayProperties.forEach(property => {
-        // Skip the exception property if specified
-        if (property === exceptProperty) {
+        // Skip the exception properties if specified
+        if (exceptProperties.includes(property)) {
             return;
         }
         
@@ -42,16 +108,30 @@ function maintainArrayPropertyConsistencyExcept(body, modifiedProperty, index, o
                     while (body[property].length < index) {
                         body[property].push(null);
                     }
-                    // Insert null at the same index to maintain alignment
-                    body[property].splice(index, 0, null);
+                    // Insert appropriate value at the same index to maintain alignment
+                    if (property === "nodes" && (componentType === "linkedlist" || componentType === "tree" || componentType === "graph")) {
+                        // For nodes, generate a new node name instead of inserting null
+                        const newNodeName = generateNodeName(body, componentType);
+                        body[property].splice(index, 0, newNodeName);
+                    } else {
+                        // For other properties, insert null
+                        body[property].splice(index, 0, null);
+                    }
                     break;
                 case "add":
                     // Ensure the array has the same length as the target (minus 1 since we just added)
                     while (body[property].length < targetLength - 1) {
                         body[property].push(null);
                     }
-                    // Add null to maintain alignment
-                    body[property].push(null);
+                    // Add appropriate value to maintain alignment
+                    if (property === "nodes" && (componentType === "linkedlist" || componentType === "tree" || componentType === "graph")) {
+                        // For nodes, generate a new node name instead of adding null
+                        const newNodeName = generateNodeName(body, componentType);
+                        body[property].push(newNodeName);
+                    } else {
+                        // For other properties, add null
+                        body[property].push(null);
+                    }
                     break;
                 case "remove":
                     // Remove element at the same index to maintain alignment
@@ -60,12 +140,22 @@ function maintainArrayPropertyConsistencyExcept(body, modifiedProperty, index, o
                     }
                     break;
             }
-        } else if (property !== modifiedProperty && !body[property] && property !== exceptProperty) {
+        } else if (property !== modifiedProperty && !body[property] && !exceptProperties.includes(property)) {
             // If the property doesn't exist, create it with the appropriate length
             switch (operation) {
                 case "insert":
                 case "add":
-                    body[property] = Array(targetLength).fill(null);
+                    if (property === "nodes" && (componentType === "linkedlist" || componentType === "tree" || componentType === "graph")) {
+                        // For nodes, generate appropriate node names
+                        body[property] = [];
+                        for (let i = 0; i < targetLength; i++) {
+                            const newNodeName = generateNodeName(body, componentType);
+                            body[property].push(newNodeName);
+                        }
+                    } else {
+                        // For other properties, fill with nulls
+                        body[property] = Array(targetLength).fill(null);
+                    }
                     break;
                 // For remove, we don't need to create new arrays
             }
@@ -181,20 +271,125 @@ function removeNodeAndRelatedElements(body, nodeName, targetObject) {
         }
     }
     
-    // Remove edges involving this node (for graphs)
-    if (body.edges && Array.isArray(body.edges)) {
-        body.edges = body.edges.filter(edge => {
-            if (!edge || typeof edge !== 'object') return false;
-            return edge.start !== nodeName && edge.end !== nodeName;
-        });
-    }
-    
-    // Remove children relationships involving this node (for trees)
-    if (body.children && Array.isArray(body.children)) {
-        body.children = body.children.filter(child => {
-            if (!child || typeof child !== 'object') return false;
-            return child.start !== nodeName && child.end !== nodeName;
-        });
+    // Handle different component types differently
+    if (targetObject.type === "linkedlist") {
+        // For linked lists: reconnect the previous and next nodes
+        if (body.edges && Array.isArray(body.edges)) {
+            let prevNode = null;
+            let nextNode = null;
+            
+            // Find connections involving the removed node
+            body.edges.forEach(edge => {
+                if (edge.end === nodeName) {
+                    prevNode = edge.start;
+                } else if (edge.start === nodeName) {
+                    nextNode = edge.end;
+                }
+            });
+            
+            // Remove all edges involving the deleted node
+            body.edges = body.edges.filter(edge => {
+                return edge.start !== nodeName && edge.end !== nodeName;
+            });
+            
+            // If both previous and next nodes exist, connect them
+            if (prevNode && nextNode) {
+                body.edges.push({ start: prevNode, end: nextNode });
+            }
+        }
+    } else if (targetObject.type === "tree") {
+        // For trees: reconnect children to parent
+        if (body.children && Array.isArray(body.children)) {
+            let parentNode = null;
+            const childNodes = [];
+            
+            // Find parent and children of the removed node
+            body.children.forEach(child => {
+                if (child.end === nodeName) {
+                    parentNode = child.start;
+                } else if (child.start === nodeName) {
+                    childNodes.push(child.end);
+                }
+            });
+            
+            // Remove all children relationships involving the deleted node
+            body.children = body.children.filter(child => {
+                return child.start !== nodeName && child.end !== nodeName;
+            });
+            
+            // If there's a parent, connect all children to the parent
+            if (parentNode && childNodes.length > 0) {
+                childNodes.forEach(childNode => {
+                    body.children.push({ start: parentNode, end: childNode });
+                });
+            }
+        }
+    } else if (targetObject.type === "graph") {
+        // For graphs: smart reconnection - connect neighbors to the first neighbor with lowest index
+        if (body.edges && Array.isArray(body.edges)) {
+            const connectedNodes = new Set();
+            
+            // Find all nodes connected to the removed node
+            body.edges.forEach(edge => {
+                if (edge.start === nodeName) {
+                    connectedNodes.add(edge.end);
+                } else if (edge.end === nodeName) {
+                    connectedNodes.add(edge.start);
+                }
+            });
+            
+            // Remove all edges involving the deleted node
+            body.edges = body.edges.filter(edge => {
+                return edge.start !== nodeName && edge.end !== nodeName;
+            });
+            
+            // If there are connected nodes, find the one with the lowest index and connect others to it
+            if (connectedNodes.size > 1) {
+                const connectedNodesList = Array.from(connectedNodes);
+                
+                // Find the node with the lowest index (or first alphabetically if no indices)
+                let hubNode = connectedNodesList[0];
+                let lowestIndex = body.nodes ? body.nodes.indexOf(hubNode) : -1;
+                
+                connectedNodesList.forEach(node => {
+                    const nodeIndex = body.nodes ? body.nodes.indexOf(node) : -1;
+                    if (nodeIndex !== -1 && (lowestIndex === -1 || nodeIndex < lowestIndex)) {
+                        hubNode = node;
+                        lowestIndex = nodeIndex;
+                    }
+                });
+                
+                // Connect all other nodes to the hub node
+                connectedNodesList.forEach(node => {
+                    if (node !== hubNode) {
+                        // Check if edge already exists to avoid duplicates
+                        const edgeExists = body.edges.some(edge => 
+                            (edge.start === hubNode && edge.end === node) || 
+                            (edge.start === node && edge.end === hubNode)
+                        );
+                        
+                        if (!edgeExists) {
+                            body.edges.push({ start: hubNode, end: node });
+                        }
+                    }
+                });
+            }
+        }
+    } else {
+        // For other component types: just remove all edges/relationships (original behavior)
+        if (body.edges && Array.isArray(body.edges)) {
+            body.edges = body.edges.filter(edge => {
+                if (!edge || typeof edge !== 'object') return false;
+                return edge.start !== nodeName && edge.end !== nodeName;
+            });
+        }
+        
+        if (body.children && Array.isArray(body.children)) {
+            body.children = body.children.filter(child => {
+                if (!child || typeof child !== 'object') return false;
+                return child.start !== nodeName && child.end !== nodeName;
+            });
+        }
     }
     
     return removedIndex;
@@ -353,6 +548,22 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
     }
 
     commands.forEach((command) => {
+        // Add method validation for component operations
+        if (command.name && [
+            'set', 'set_multiple', 'set_matrix', 'set_matrix_multiple',
+            'add', 'insert', 'remove', 'remove_at', 'remove_subtree',
+            'add_child', 'set_child', 'add_matrix_row', 'add_matrix_column',
+            'remove_matrix_row', 'remove_matrix_column', 'add_matrix_border'
+        ].includes(command.type)) {
+            const targetObject = pages.length > 0 ? pages[pages.length - 1]?.find(comp => comp.name === command.name) : null;
+            if (targetObject) {
+                const methodName = getMethodNameFromCommand(command);
+                if (methodName && !isMethodSupported(targetObject.type, methodName)) {
+                    causeCompileError(`Method not supported\n\nMethod: ${methodName}\nComponent type: ${targetObject.type}\nComponent: ${command.name}`, command);
+                }
+            }
+        }
+        
         switch (command.type) {
             case "page":
                 currentInferredLayoutIndex++;
@@ -503,7 +714,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                 // Check if in bounds
                 if (targetObject) {
                     const body = targetObject.body;
-                    
+
                     // Initialize value array with node names if needed for trees, graphs, and linkedlists
                     if ((targetObject.type === "tree" || targetObject.type === "graph" || targetObject.type === "linkedlist") && property === "value") {
                         initializeValueArrayWithNodeNames(body);
@@ -512,18 +723,28 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                     // Handle node name to index conversion for trees, graphs, and linkedlists
                     let index = indexOrNodeName;
                     if (targetObject.type === "tree" || targetObject.type === "graph" || targetObject.type === "linkedlist") {
-                        const nodeIndex = getNodeIndex(targetObject, indexOrNodeName);
-                        if (nodeIndex !== null) {
-                            index = nodeIndex;
+                        // If it's already a number, use it directly
+                        if (typeof indexOrNodeName === 'number') {
+                            index = indexOrNodeName;
                         } else if (typeof indexOrNodeName === 'string') {
-                            causeCompileError(`Node not found\n\nNode: ${indexOrNodeName}\nComponent: ${name}`, command);
+                            const nodeIndex = getNodeIndex(targetObject, indexOrNodeName);
+                            if (nodeIndex !== null) {
+                                index = nodeIndex;
+                            } else {
+                                causeCompileError(`Node not found\n\nNode: ${indexOrNodeName}\nComponent: ${name}`, command);
+                                break;
+                            }
+                        } else {
+                            // Handle case where indexOrNodeName might be an object or other type
+                            causeCompileError(`Invalid index type\n\nExpected number or node name, got: ${typeof indexOrNodeName}\nIndex: ${indexOrNodeName}\nProperty: ${property}\nComponent: ${name}`, command);
                             break;
                         }
-                    } else if (typeof indexOrNodeName === 'string') {
-                        // Warn if using node names on non-tree/graph/linkedlist components
-                        console.warn(`Warning: Using node name "${indexOrNodeName}" on component type "${targetObject.type}". Node names are only recommended for trees, graphs, and linkedlists.`);
-                        causeCompileError(`Invalid index type\n\nUsing node name "${indexOrNodeName}" on ${targetObject.type} component. Use numeric indices for this component type.`, command);
-                        break;
+                    } else {
+                        // For non-node components, ensure index is a number
+                        if (typeof indexOrNodeName !== 'number') {
+                            causeCompileError(`Invalid index type\n\nExpected number, got: ${typeof indexOrNodeName}\nIndex: ${indexOrNodeName}\nProperty: ${property}\nComponent: ${name}`, command);
+                            break;
+                        }
                     }
                     
                     const isValidIndex = Number.isInteger(index) && index >= 0;
@@ -800,6 +1021,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                 const target = command.target;
                 const indexOrNodeName = command.args.index;
                 const value = command.args.value;
+                const nodeValue = command.args.nodeValue; // Optional third parameter for insertNode
                 const targetObject = pages[pages.length - 1].find(comp => comp.name === name);
 
                 if (targetObject) {
@@ -810,22 +1032,174 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                     
                     // Handle node name to index conversion for trees, graphs, and linkedlists
                     let index = indexOrNodeName;
+                    
+                    // Handle structured argument case (when parser creates {index: X, value: Y})
+                    if (indexOrNodeName && typeof indexOrNodeName === 'object' && indexOrNodeName.index !== undefined) {
+                        // Extract the actual index from the structured argument
+                        index = indexOrNodeName.index;
+                    } else {
+                        index = indexOrNodeName;
+                    }
+                    
                     if (targetObject.type === "tree" || targetObject.type === "graph" || targetObject.type === "linkedlist") {
-                        const nodeIndex = getNodeIndex(targetObject, indexOrNodeName);
-                        if (nodeIndex !== null) {
-                            index = nodeIndex;
-                        } else if (typeof indexOrNodeName === 'string') {
-                            causeCompileError(`Node not found\n\nNode: ${indexOrNodeName}\nComponent: ${name}`, command);
+                        // If it's already a number, use it directly
+                        if (typeof index === 'number') {
+                            // index is already set correctly above
+                        } else if (typeof index === 'string') {
+                            const nodeIndex = getNodeIndex(targetObject, index);
+                            if (nodeIndex !== null) {
+                                index = nodeIndex;
+                            } else {
+                                causeCompileError(`Node not found\n\nNode: ${index}\nComponent: ${name}`, command);
+                                break;
+                            }
+                        } else {
+                            // Handle case where index might be an unexpected type
+                            causeCompileError(`Invalid index type\n\nExpected number or node name, got: ${typeof index}\nIndex: ${index}\nProperty: ${target}\nComponent: ${name}`, command);
+                            break;
+                        }
+                    } else {
+                        // For non-node components, ensure index is a number
+                        if (typeof index !== 'number') {
+                            causeCompileError(`Invalid index type\n\nExpected number, got: ${typeof index}\nIndex: ${index}\nProperty: ${target}\nComponent: ${name}`, command);
                             break;
                         }
                     }
                     
-                    const isValidIndex = Number.isInteger(index) && index >= 0 && index <= body[target].length;
+                    // Validate index bounds (trees and graphs are more flexible since they append)
+                    let isValidIndex;
+                    if ((targetObject.type === "tree" || targetObject.type === "graph") && target === "nodes") {
+                        // For trees and graphs, just ensure the parent/attachment node exists (if using node name) or index is reasonable
+                        isValidIndex = (typeof indexOrNodeName === 'string') || 
+                                      (Number.isInteger(index) && index >= 0 && index < body[target].length);
+                    } else {
+                        // For other types, use strict bounds checking
+                        isValidIndex = Number.isInteger(index) && index >= 0 && index <= body[target].length;
+                    }
                     if (isValidIndex) {
-                        body[target].splice(index, 0, value);
+                        // Special handling for trees and graphs: always append to end, use index/name for relationship
+                        if ((targetObject.type === "tree" || targetObject.type === "graph") && target === "nodes") {
+                            // For trees and graphs, add node at the end instead of at index position to preserve structure
+                            body[target].push(value);
+                            const insertionIndex = body[target].length - 1; // Index where we actually inserted
+                            
+                            // If a third parameter (nodeValue) is provided for insertNode, update the value array
+                            if (nodeValue !== undefined) {
+                                if (!body.value) {
+                                    body.value = [];
+                                }
+                                // Ensure value array is same length as nodes array before inserting
+                                while (body.value.length < body[target].length - 1) {
+                                    body.value.push(null);
+                                }
+                                body.value.push(nodeValue);
+                                
+                                // Maintain consistency across all array properties EXCEPT value and the target itself (since we just set them)
+                                maintainArrayPropertyConsistencyExceptMultiple(body, target, insertionIndex, "add", targetObject.type, ["value", target]);
+                            } else {
+                                // Maintain consistency across all array properties EXCEPT the target itself (since we just set it)
+                                maintainArrayPropertyConsistencyExcept(body, target, insertionIndex, "add", targetObject.type, target);
+                            }
+                        } else {
+                            // For linkedlists and other types: use normal splice insertion at specified index
+                            body[target].splice(index, 0, value);
+                            
+                            // If a third parameter (nodeValue) is provided for insertNode, update the value array
+                            if (target === "nodes" && nodeValue !== undefined) {
+                                if (!body.value) {
+                                    body.value = [];
+                                }
+                                // Ensure value array is same length as nodes array before inserting
+                                while (body.value.length < body[target].length - 1) {
+                                    body.value.push(null);
+                                }
+                                body.value.splice(index, 0, nodeValue);
+                                
+                                // Maintain consistency across all array properties EXCEPT value and the target itself (since we just set them)
+                                maintainArrayPropertyConsistencyExceptMultiple(body, target, index, "insert", targetObject.type, ["value", target]);
+                            } else {
+                                // Maintain consistency across all array properties EXCEPT the target itself (since we just set it)
+                                maintainArrayPropertyConsistencyExcept(body, target, index, "insert", targetObject.type, target);
+                            }
+                        }
                         
-                        // Maintain consistency across all array properties for all component types
-                        maintainArrayPropertyConsistency(body, target, index, "insert", targetObject.type);
+                        // Handle automatic edge/relationship creation for node insertion
+                        if (target === "nodes") {
+                            const newNodeName = value; // The name of the newly inserted node
+                            
+                            if (targetObject.type === "graph") {
+                                // For graphs: create edge from the specified node to the new node
+                                if (body.nodes.length > 1) {
+                                    let attachmentNode = null;
+                                    
+                                    // If the original indexOrNodeName was a string (node name), use it as attachment point
+                                    if (typeof indexOrNodeName === 'string') {
+                                        attachmentNode = indexOrNodeName;
+                                    } else if (typeof indexOrNodeName === 'number') {
+                                        // If index was a number, get the node at that index position
+                                        if (indexOrNodeName >= 0 && indexOrNodeName < body.nodes.length - 1) {
+                                            // -1 because we just added the new node at the end
+                                            attachmentNode = body.nodes[indexOrNodeName];
+                                        }
+                                    }
+                                    
+                                    // Create the edge if we have an attachment node
+                                    if (attachmentNode) {
+                                        if (!body.edges) {
+                                            body.edges = [];
+                                        }
+                                        body.edges.push({ start: attachmentNode, end: newNodeName });
+                                    }
+                                } else if (body.nodes.length > 1) {
+                                    // If no edges exist yet, create edges array and connect to specified node
+                                    if (!body.edges) {
+                                        body.edges = [];
+                                    }
+                                    
+                                    let attachmentNode = null;
+                                    
+                                    // If the original indexOrNodeName was a string (node name), use it as attachment point
+                                    if (typeof indexOrNodeName === 'string') {
+                                        attachmentNode = indexOrNodeName;
+                                    } else if (typeof indexOrNodeName === 'number') {
+                                        // If index was a number, get the node at that index position
+                                        if (indexOrNodeName >= 0 && indexOrNodeName < body.nodes.length - 1) {
+                                            // -1 because we just added the new node at the end
+                                            attachmentNode = body.nodes[indexOrNodeName];
+                                        }
+                                    }
+                                    
+                                    if (attachmentNode) {
+                                        body.edges.push({ start: attachmentNode, end: newNodeName });
+                                    }
+                                }
+                            } else if (targetObject.type === "tree") {
+                                // For trees: create parent-child relationship with specified or appropriate parent
+                                if (body.nodes.length > 1) {
+                                    let parentNode = null;
+                                    
+                                    // If the original indexOrNodeName was a string (node name), use it as parent
+                                    if (typeof indexOrNodeName === 'string') {
+                                        parentNode = indexOrNodeName;
+                                    } else if (typeof indexOrNodeName === 'number') {
+                                        // If index was a number, get the node at that index position
+                                        if (indexOrNodeName >= 0 && indexOrNodeName < body.nodes.length - 1) {
+                                            // -1 because we just added the new node at the end
+                                            parentNode = body.nodes[indexOrNodeName];
+                                        }
+                                    }
+                                    
+                                    // Create the parent-child relationship
+                                    if (parentNode) {
+                                        if (!body.children) {
+                                            body.children = [];
+                                        }
+                                        body.children.push({ start: parentNode, end: newNodeName });
+                                    }
+                                }
+                            }
+                            // For linkedlists: no automatic edge creation needed
+                        }
                     } else {
                         causeCompileError(`Insert index out of bounds\n\nIndex: ${index}\nProperty: ${target}\nComponent: ${name}`, command);
                     }

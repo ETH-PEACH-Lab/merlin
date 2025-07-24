@@ -142,20 +142,20 @@ export const typeMethodsMap = {
   linkedlist: {
     single: ['setValue', 'setColor', 'setArrow'],
     multiple: ['setValues', 'setColors', 'setArrows'],
-    addInsert: ['addValue', 'insertValue', 'addNode', 'insertNode'],
-    remove: ['removeValue', 'removeAt', 'removeNode']
+    addInsert: ['addNode', 'insertNode'],
+    remove: ['removeAt', 'removeNode']
   },
   graph: {
     single: ['setValue', 'setColor', 'setArrow', 'setHidden'],
     multiple: ['setValues', 'setColors', 'setArrows', 'setHidden'],
-    addInsert: ['addNode', 'addEdge', 'insertEdge'],
+    addInsert: ['addNode', 'addEdge', 'insertNode'],
     remove: ['removeNode', 'removeEdge'],
     graphSpecific: ['setEdges']
   },
   tree: {
     single: ['setValue', 'setColor', 'setArrow'],
     multiple: ['setValues', 'setColors', 'setArrows'],
-    addInsert: ['addNode', 'addChild'],
+    addInsert: ['addNode', 'addChild', 'insertNode'],
     remove: ['removeNode', 'removeSubtree'],
     treeSpecific: ['setChild']
   },
@@ -165,6 +165,24 @@ export const typeMethodsMap = {
     textSpecific: ['setLineSpacing', 'setWidth', 'setHeight']
   }
 };
+
+// Helper function to get all supported methods for a component type
+export function getSupportedMethods(componentType) {
+  const methodsMap = typeMethodsMap[componentType];
+  if (!methodsMap) return [];
+  
+  const allMethods = [];
+  Object.values(methodsMap).forEach(methods => {
+    allMethods.push(...methods);
+  });
+  return [...new Set(allMethods)]; // Remove duplicates
+}
+
+// Helper function to check if a method is supported for a component type
+export function isMethodSupported(componentType, methodName) {
+  const supportedMethods = getSupportedMethods(componentType);
+  return supportedMethods.includes(methodName);
+}
 
 // Method signatures for autocomplete snippets
 export const methodSignatures = {
@@ -183,10 +201,9 @@ export const methodSignatures = {
   removeValue: () => 'removeValue(${1:value})',
   removeAt: () => 'removeAt(${1:index})',
   addNode: () => 'addNode(${1:name}, ${2:value})',
-  insertNode: () => 'insertNode(${1:index}, ${2:name})',
+  insertNode: () => 'insertNode(${1:id}, ${2:name}, ${3:value})',
   removeNode: () => 'removeNode(${1:name})',
   addEdge: () => 'addEdge(${1:nodeA}-${2:nodeB})',
-  insertEdge: () => 'insertEdge(${1:index}, ${2:nodeA}-${3:nodeB})',
   removeEdge: () => 'removeEdge(${1:nodeA}-${2:nodeB})',
   setEdges: () => 'setEdges([${1:edges}])',
   setHidden: () => 'setHidden(${1:index}, ${2:hidden})',
@@ -343,10 +360,10 @@ export const methodDocumentation = {
     example: 'myGraph.addNode(client, 42)'
   },
   insertNode: {
-    description: 'Insert node at specific index',
-    signature: 'insertNode(index, name)',
-    parameters: ['index: `number` - Position to insert at', 'name: `string` - The node identifier'],
-    example: 'myLinkedList.insertNode(2, newNode)'
+    description: 'Insert node at specific index/position with optional value',
+    signature: 'insertNode(index|id, name, value?)',
+    parameters: ['index: `number|id` - Position to insert at (numeric index or node id)', 'name: `string` - The node identifier', 'value: `number|string` - (optional) The node value'],
+    example: 'myLinkedList.insertNode(2, newNode, 42) or myGraph.insertNode(router, newNode, 42)'
   },
   removeNode: {
     description: 'Remove node from structure',
@@ -359,12 +376,6 @@ export const methodDocumentation = {
     signature: 'addEdge(nodeA-nodeB)',
     parameters: ['edge: `id-id` - Edge in format "nodeA-nodeB"'],
     example: 'myGraph.addEdge(client-router)'
-  },
-  insertEdge: {
-    description: 'Insert edge at specific index',
-    signature: 'insertEdge(index, nodeA-nodeB)',
-    parameters: ['index: `number` - Position to insert at', 'edge: `id-id` - Edge in format "nodeA-nodeB"'],
-    example: 'myGraph.insertEdge(1, server-database)'
   },
   removeEdge: {
     description: 'Remove edge between nodes',
@@ -554,7 +565,6 @@ export const methodDescriptions = {
   insertNode: 'Insert node at specific index',
   removeNode: 'Remove specific node',
   addEdge: 'Add edge between nodes',
-  insertEdge: 'Insert edge at specific index',
   removeEdge: 'Remove specific edge',
   setEdges: 'Set all edges at once',
   setHidden: 'Set visibility of elements',
