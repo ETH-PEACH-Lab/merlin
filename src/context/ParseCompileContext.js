@@ -259,18 +259,19 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         // For stacks and arrays insert a new value
         else {
             const idx = (type === "stack") ? coordinates.index : coordinates.index + 1;
-            const args = {index: idx, value: val}
+            const args = {index: idx, value: val};
             parsedCode.cmds.splice(pageEndIndex, 0, { name: component, target: "value", type: "insert", args: args});
         }
         reconstructMerlinLite();
     }, [parsedCode]);
 
     // Remove the selected unit
-    const removeUnit = useCallback((page, component, type, coordinates, node) => {
+    const removeUnit = useCallback((page, component, type, coordinates, node, isSubTree) => {
         const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
         // For trees, remove the entire subtree
         if (type === "tree"){
-            parsedCode.cmds.splice(pageEndIndex, 0, { name: component, target: "nodes", type: "remove", args: node });
+            const removeType = isSubTree ? "remove_subtree" : "remove";
+            parsedCode.cmds.splice(pageEndIndex, 0, { name: component, target: "nodes", type: removeType, args: node });
         } 
         //For stacks, arrays, graphs and linkedlists remove the node
         else {

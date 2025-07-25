@@ -174,6 +174,7 @@ export function getComponentFields(componentType) {
       color: ["Color", "color"],
       arrow: ["Add Arrow", "string"],
       removeArrow: ["Remove Arrow", "remove_arrow"],
+      removeSubstree: ["Remove Subtree", "remove_subtree"],
       position: ["Position", "position"],
     },
     linkedlist: {

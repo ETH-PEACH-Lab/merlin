@@ -89,8 +89,20 @@ const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate, onRemo
     onUpdate("arrow", null);
   };
 
-  if (!["Add", "Remove", "Value", "Color", "Add Arrow", "Remove Arrow"].includes(label)){
+  if (!["Add", "Remove", "Value", "Color", "Add Arrow", "Remove Arrow", "Remove Subtree"].includes(label)){
     return;
+  }
+
+  if (inputType == "remove_subtree"){
+    return (
+       <Tooltip title={label}>
+        <span style={{marginLeft: "10px", marginRight: "10px"}}>
+          <IconButton size="small" onClick={(e) => {onRemove(e, true);}}>
+            {getIcon(label)}
+          </IconButton>
+        </span>
+      </Tooltip>
+    );
   }
 
 
@@ -110,7 +122,7 @@ const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate, onRemo
     return (
        <Tooltip title={label}>
         <span style={{marginLeft: "10px", marginRight: "10px"}}>
-          <IconButton size="small" onClick={onRemove}>
+          <IconButton size="small" onClick={(e) => {onRemove(e, false);}}>
             {getIcon(label)}
           </IconButton>
         </span>
@@ -207,14 +219,15 @@ export const UnitEditor = ({
     );
   };
 
-  const handleRemoveUnit = () => {
+  const handleRemoveUnit = (event, isSubTree = false) => {
     leaveFunction();
     removeUnit(
           currentUnitData.page,
           currentUnitData.name,
           currentUnitData.type,
           currentUnitData.coordinates,
-          currentUnitData.nodes
+          currentUnitData.nodes,
+          isSubTree
     );
   };
 
