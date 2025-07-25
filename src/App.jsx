@@ -9,7 +9,6 @@ import { examples } from "./examples"; // Import the generated examples file
 import "./App.css"; // Import the new CSS file for the top bar
 import { Box } from "@mui/material";
 
-import GUIEditor from "./components/GUIEditor";
 import Header from "./components/Header";
 import { useParseCompile } from "./context/ParseCompileContext";
 import { extractCodeFromUrl, hasSharedExample } from "./utils/urlSharing";
@@ -347,13 +346,6 @@ ${timestamp}
                       setCurrentPage={setCurrentPage}
                       onOpenCustomExport={() => setCustomExportOpen(true)}
                     />
-                    {/* <GUIEditor
-                      inspectorIndex={inspectorIndex}
-                      currentPage={currentPage}
-                      setCurrentPage={setCurrentPage}
-                      dslEditorEditable={dslEditorEditable}
-                      setDslEditorEditable={setDslEditorEditable}
-                    /> */}
                   </Box>
                 </div>
               </div>

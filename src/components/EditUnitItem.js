@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { IconButton, Popover, Tooltip } from "@mui/material";
 
-export const EditUnitItem = ({name, icon, formFields}) => {
+export const EditUnitItem = ({name, icon, leaveFunction, formFields}) => {
   const [anchorEl, setAnchorEl] = React.useState(null);
 
   const handleOpenPopup = (event) => {
@@ -9,6 +9,7 @@ export const EditUnitItem = ({name, icon, formFields}) => {
   };
 
   const handleClosePopup = () => {
+    leaveFunction();
     setAnchorEl(null);
   };
 

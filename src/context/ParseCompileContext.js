@@ -18,6 +18,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
     const [compiledMerlin, setCompiledMerlin] = useState(null);
     const [pages, setPages] = useState([]);
     const [componentCount, setcomponentCount] = useState(1);
+    const [nodeCount, setNodeCount] = useState(1);
     const [error, setError] = useState(null);
     const [currentCursorLine, setCurrentCursorLine] = useState(1);
     const [errorTimeoutId, setErrorTimeoutId] = useState(null);
@@ -233,18 +234,49 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
     };
 
     // Add a new unit
-    const addUnit = useCallback((page, component, type, coordinates, val) => {
+    const addUnit = useCallback((page, component, type, coordinates, node, val) => {
         const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
-        const idx = (type === "stack") ? coordinates.index : coordinates.index + 1;
-        const args = {index: idx, value: val}
-        parsedCode.cmds.splice(pageEndIndex, 0, { name: component, target: "value", type: "insert", args: args});
+        // For new tree nodes, directly add them as a child
+        if (type === "tree"){
+            const nodeName = "n" + `${ nodeCount }`;
+            setNodeCount(nodeCount + 1);
+            const args = {index: {start: node, end: nodeName}, value: val}
+            parsedCode.cmds.splice(pageEndIndex, 0, { name: component, target: "nodes", type: "add_child", args: args});
+        } 
+        // For graphs add a new node
+        else if (type === "graph"){
+            const nodeName = "n" + `${ nodeCount }`;
+            setNodeCount(nodeCount + 1);
+            const args = {index: nodeName, value: val}
+            parsedCode.cmds.splice(pageEndIndex, 0, { name: component, target: "nodes", type: "add", args: args});
+        }
+        else if (type === "linkedlist"){
+            const nodeName = "n" + `${ nodeCount }`;
+            setNodeCount(nodeCount + 1);
+            const args = {index: coordinates.index + 1, value: nodeName, nodeValue: val}
+            parsedCode.cmds.splice(pageEndIndex, 0, { name: component, target: "nodes", type: "insert", args: args});
+        }
+        // For stacks and arrays insert a new value
+        else {
+            const idx = (type === "stack") ? coordinates.index : coordinates.index + 1;
+            const args = {index: idx, value: val};
+            parsedCode.cmds.splice(pageEndIndex, 0, { name: component, target: "value", type: "insert", args: args});
+        }
         reconstructMerlinLite();
     }, [parsedCode]);
 
     // Remove the selected unit
-    const removeUnit = useCallback((page, component, coordinates) => {
+    const removeUnit = useCallback((page, component, type, coordinates, node, isSubTree) => {
         const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
-        parsedCode.cmds.splice(pageEndIndex, 0, { name: component, target: "all", type: "remove_at", args: coordinates.index });
+        // For trees, remove the entire subtree
+        if (type === "tree"){
+            const removeType = isSubTree ? "remove_subtree" : "remove";
+            parsedCode.cmds.splice(pageEndIndex, 0, { name: component, target: "nodes", type: removeType, args: node });
+        } 
+        //For stacks, arrays, graphs and linkedlists remove the node
+        else {
+            parsedCode.cmds.splice(pageEndIndex, 0, { name: component, target: "all", type: "remove_at", args: coordinates.index });
+        }
         reconstructMerlinLite();
     }, [parsedCode]);
 
@@ -340,6 +372,10 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
     // Create a new component and show it
     const createComponent = useCallback((componentType, componentBody, page) => {
         if (!parsedCode) return;
+
+        if ("nodes" in componentBody){
+            setNodeCount(nodeCount + componentBody.nodes.length);
+        }
 
         const componentName = componentType + `${ componentCount }`;
         setcomponentCount(componentCount + 1);

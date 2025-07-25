@@ -19,7 +19,6 @@ export function parseInspectorIndex(inspectorIndex, pages, currentPage) {
   const unitIdPart = inspectorIndex.unitID.slice(5); // Remove "unit_" prefix
   
   let coordinates;
-  let displayId;
   
   // Check if matrix coordinate format (row,col)
   const matrixMatch = unitIdPart.match(/^\((\d+),(\d+)\)$/);
@@ -28,16 +27,13 @@ export function parseInspectorIndex(inspectorIndex, pages, currentPage) {
     const row = parseInt(matrixMatch[1]);
     const col = parseInt(matrixMatch[2]);
     coordinates = { row, col, isMatrix: true };
-    displayId = `(${row},${col})`;
   } else if (unitIdPart === "component") {
     // Component-level selection (for text components without array indices)
     coordinates = null;
-    displayId = "component";
   } else {
     // Array format: unit_5
     const index = parseInt(unitIdPart, 10);
     coordinates = { index, isMatrix: false };
-    displayId = index.toString();
   }
 
   return {
@@ -45,7 +41,6 @@ export function parseInspectorIndex(inspectorIndex, pages, currentPage) {
     componentIdx,
     component,
     coordinates,
-    displayId,
     componentName: component.name,
     componentType: component.type
   };
@@ -131,81 +126,65 @@ export function getFieldDropdownOptions(fieldKey) {
 }
 
 /**
- * Determines which additional fields should be shown in the toolbar
- */
-export function getAdditionalGUIFields(componentType) {
-  const fieldDefinitions = {
-    array: {
-      add: ["Add", "add"],
-      remove: ["Remove", "remove"],
-    },
-    matrix: {},
-    stack: {
-      add: ["Add", "add"],
-      remove: ["Remove", "remove"],
-    },
-    graph: {},
-    tree: {},
-    linkedlist: {
-      remove: ["Remove", "remove"],
-    },
-  };
-  return fieldDefinitions[componentType] || {};
-}
-/**
  * Determines which fields are available for a component type
  */
 export function getComponentFields(componentType) {
   const fieldDefinitions = {
     array: {
-      value: ["Value", "number_or_string"],
-      color: ["Color", "color"],
-      arrow: ["Arrow Label", "string"],
-      position: ["Position", "position"],
+      add: "Add",
+      remove: "Remove",
+      value: "Value",
+      color: "Color",
+      arrow: "Add Arrow",
     },
     matrix: {
-      value: ["Value", "number_or_string"],
-      color: ["Color", "color"],
-      arrow: ["Arrow Label", "string"],
-      position: ["Position", "position"],
+      value: "Value",
+      color: "Color",
+      arrow: "Add Arrow",
     },
     stack: {
-      value: ["Value", "number_or_string"],
-      color: ["Color", "color"],
-      arrow: ["Arrow Label", "string"],
-      position: ["Position", "position"],
+      add: "Add",
+      remove: "Remove",
+      value: "Value",
+      color: "Color",
+      arrow: "Add Arrow",
     },
     graph: {
-      value: ["Value", "number_or_string"],
-      color: ["Color", "color"],
-      arrow: ["Arrow Label", "string"],
-      hidden: ["Hidden", "boolean"],
-      position: ["Position", "position"],
+      add: "Add",
+      remove: "Remove",
+      nodes: "Node",
+      value: "Value",
+      color: "Color",
+      arrow: "Add Arrow",
     },
     tree: {
-      value: ["Value", "number_or_string"],
-      color: ["Color", "color"],
-      arrow: ["Arrow Label", "string"],
-      position: ["Position", "position"],
+      add: "Add",
+      remove: "Remove",
+      nodes: "Node",
+      value: "Value",
+      color: "Color",
+      arrow: "Add Arrow",
+      removeSubstree: "Remove Subtree",
     },
     linkedlist: {
-      value: ["Value", "number_or_string"],
-      color: ["Color", "color"],
-      arrow: ["Arrow Label", "string"],
-      position: ["Position", "position"],
+      add: "Add",
+      remove: "Remove",
+      value: "Value",
+      color: "Color",
+      arrow: "Add Arrow",
     },
-    text: {
-      value: ["Value", "string"],
-      fontSize: ["Font Size", "number"],
-      color: ["Color", "color"],
-      fontWeight: ["Font Weight", "string"],
-      fontFamily: ["Font Family", "string"],
-      align: ["Alignment", "string"],
-      lineSpacing: ["Line Spacing", "number"],
-      width: ["Width", "number"],
-      height: ["Height", "number"],
-      position: ["Position", "position"],
-    },
+    // text: {
+    //   value: ["Value", "string"],
+    //   fontSize: ["Font Size", "number"],
+    //   color: "Color",
+    //   fontWeight: ["Font Weight", "string"],
+    //   fontFamily: ["Font Family", "string"],
+    //   align: ["Alignment", "string"],
+    //   lineSpacing: ["Line Spacing", "number"],
+    //   width: ["Width", "number"],
+    //   height: ["Height", "number"],
+    //   position: ["Position", "position"],
+    // },
   };
 
   return fieldDefinitions[componentType] || {};
@@ -217,10 +196,9 @@ export function getComponentFields(componentType) {
 export function createUnitData(parsedInfo) {
   if (!parsedInfo) return null;
 
-  const { pageIdx, componentIdx, component, coordinates, displayId, componentName, componentType } = parsedInfo;
+  const { pageIdx, componentIdx, component, coordinates, componentName, componentType } = parsedInfo;
   
   const unitData = {
-    displayId,
     coordinates,
     component: componentIdx,
     name: componentName,
@@ -266,14 +244,13 @@ export function createUnitData(parsedInfo) {
         // Position is stored at component level for all component types
         // Format position object to readable string
         value = component.position ? formatPosition(component.position) : null;
-      } else {
+      } else if (fieldKey === "color" || fieldKey === "arrow" || fieldKey === "value" || fieldKey === "nodes" ) {
         value = getFieldValue(component, fieldKey, coordinates);
       }
     }
     
     unitData[fieldKey] = value ?? "null";
   });
-
   return unitData;
 }
 
