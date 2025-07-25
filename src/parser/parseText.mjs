@@ -7,6 +7,5 @@ export default function parseText(input) {
     const parser = new nearley.Parser(nearley.Grammar.fromCompiled(grammar));
     parser.feed(input);
     const parsedData = parser.results[0];  // Parsed output
-    console.log(parsedData);
     return parsedData;
 }
