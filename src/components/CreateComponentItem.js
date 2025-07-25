@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { Button, Dialog, DialogActions, DialogContent, DialogContentText, 
-         ListItem, ListItemText,TextField } from "@mui/material";
+         ListItem, ListItemText,TextField, SvgIcon } from "@mui/material";
 
-export const CreateComponentItem = ({name, icon, text, formFields, createFunction}) => {
+export const CreateComponentItem = ({name, icon, text, formFields, createFunction, archive}) => {
   const [openPopup, setOpenPopup] = React.useState(false);
 
   const handleOpenPopup = () => {
@@ -12,6 +12,7 @@ export const CreateComponentItem = ({name, icon, text, formFields, createFunctio
   const handleClosePopup = () => {
     setOpenPopup(false);
   };
+
 
   const handleCreateComponent = (event) => {
     event.preventDefault();
@@ -25,7 +26,7 @@ export const CreateComponentItem = ({name, icon, text, formFields, createFunctio
     <React.Fragment>
       <ListItem>
         <Button onClick={handleOpenPopup}>
-          <ListItemText>{name}</ListItemText>
+          <ListItemText><SvgIcon component={archive}></SvgIcon> {name}</ListItemText>
         </Button>
       </ListItem>
       <Dialog open={openPopup} onClose={handleClosePopup} fullWidth> 

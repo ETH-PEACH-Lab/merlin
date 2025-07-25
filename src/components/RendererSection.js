@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import MermaidRenderer from "./MermaidRenderer";
 import { ElementEditor } from "./ElementEditor";
 import { CreateComponentItem } from "./CreateComponentItem";
 import Button from '@mui/material/Button';
-import { Box, Typography, Card, CardContent, ListItemIcon, ListItemText, Popover, ListItem, List, IconButton, ButtonGroup,
-         Tooltip, TextField, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Snackbar, Alert } from "@mui/material";
+import { Box, Typography, ListItemText, Popover, ListItem, List, IconButton,
+         Tooltip, TextField, Snackbar, Alert } from "@mui/material";
 import DownloadIcon from '@mui/icons-material/Download';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import ImageIcon from '@mui/icons-material/Image';
@@ -21,6 +21,8 @@ import GifBox from '@mui/icons-material/GifBox';
 import Movie from '@mui/icons-material/Movie';
 import { useParseCompile } from "../context/ParseCompileContext";
 import { createShareableUrl, copyToClipboard } from "../utils/urlSharing";
+import { arrayIcon, stackIcon, matrixIcon, linkedListIcon, treeIcon, graphIcon, textIcon } from "./CustomIcons";
+
 const RendererSection = ({
   mermaidCode,
   handleExport,
@@ -110,10 +112,6 @@ const RendererSection = ({
   };
 
   const handleSnackbarClose = () => {
-    setSnackbarOpen(false);
-  };
-
-  const handleErrorSnackbarClose = () => {
     setSnackbarOpen(false);
   };
 
@@ -310,6 +308,7 @@ const RendererSection = ({
               vertical: 'bottom',
               horizontal: 'left',
             }}>
+              
             <List>
               <CreateComponentItem 
                 name={"Array"} 
@@ -333,6 +332,7 @@ const RendererSection = ({
                   createComponent("array", {value: values, color: colors, arrow: arrows}, currentPage);
                   handleCloseDropdown();
                 }} 
+                archive={arrayIcon}
               />
               <CreateComponentItem 
                 name={"Stack"} 
@@ -356,6 +356,7 @@ const RendererSection = ({
                   createComponent("stack", {value: values, color: colors, arrow: arrows}, currentPage);
                   handleCloseDropdown();
                 }} 
+                archive={stackIcon}
               />
               <CreateComponentItem 
                 name={"Matrix"} 
@@ -387,6 +388,7 @@ const RendererSection = ({
                   createComponent("matrix", {value: valuesExtended, color: colors, arrow: arrows}, currentPage);
                   handleCloseDropdown();
                 }} 
+                archive={matrixIcon}
               />
               <CreateComponentItem 
                 name={"Linked List"} 
@@ -411,6 +413,7 @@ const RendererSection = ({
                   createComponent("linkedlist", {nodes: nodes, value: values, color: colors, arrow: arrows}, currentPage);
                   handleCloseDropdown();
                 }} 
+                archive={linkedListIcon}
               />              
               <CreateComponentItem 
                 name={"Tree"} 
@@ -483,6 +486,7 @@ const RendererSection = ({
                     arrow: arrows}, currentPage);
                   handleCloseDropdown();
                 }} 
+                archive={treeIcon}
               />
               <CreateComponentItem 
                 name={"Graph"} 
@@ -556,6 +560,7 @@ const RendererSection = ({
                     arrow: arrows, hidden: hidden}, currentPage);
                   handleCloseDropdown();
                 }} 
+                archive={graphIcon}
               />
               <CreateComponentItem 
                 name={"Text"} 
@@ -576,6 +581,7 @@ const RendererSection = ({
                   createComponent("text", {value: formJson.text}, currentPage);
                   handleCloseDropdown();
                 }} 
+                archive={textIcon}
               />
             </List>
           </Popover>
