@@ -251,21 +251,26 @@ const RendererSection = ({
                 </ListItem>
               </List>
             </Popover>
-            <Tooltip title="Share via URL">
+            <Tooltip title={pages.length === 0 ? "No pages to share" : "Share via URL"}>
               <span>
                 <IconButton
                   aria-describedby={id}
                   onClick={handleShare}
                   sx={{ mr: 1 }}
                   size="small"
+                  disabled={pages.length === 0}
                 >
                   <ShareIcon sx={{ fontSize: 20 }}></ShareIcon>
                 </IconButton>
               </span>
             </Tooltip>
-            <Tooltip title="Save">
+            <Tooltip title={pages.length === 0 ? "No pages to save" : "Save"}>
               <span>
-                <IconButton onClick={handleSave} size="small">
+                <IconButton 
+                  onClick={handleSave}
+                  size="small"
+                  disabled={pages.length === 0}
+                >
                   <SaveIcon sx={{ fontSize: 20 }}></SaveIcon>
                 </IconButton>
               </span>
