@@ -28,7 +28,7 @@ export const CreateComponentItem = ({name, icon, text, formFields, createFunctio
           <ListItemText>{name}</ListItemText>
         </Button>
       </ListItem>
-      <Dialog open={openPopup} onClose={handleClosePopup}>
+      <Dialog open={openPopup} onClose={handleClosePopup} fullWidth> 
         <DialogContent sx={{ paddingBottom: 0 }}>
         <DialogContentText>
           {text}

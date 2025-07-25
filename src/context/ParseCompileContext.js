@@ -373,7 +373,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
     const createComponent = useCallback((componentType, componentBody, page) => {
         if (!parsedCode) return;
 
-        if (typeof componentBody.nodes !== undefined){
+        if ("nodes" in componentBody){
             setNodeCount(nodeCount + componentBody.nodes.length);
         }
 

@@ -557,6 +557,26 @@ const RendererSection = ({
                   handleCloseDropdown();
                 }} 
               />
+              <CreateComponentItem 
+                name={"Text"} 
+                icon={<RectangleOutlinedIcon />}
+                text={"Enter the text."}
+                formFields={<TextField autoFocus required margin="dense"
+                  name="text" label="Text" fullWidth variant="standard"/>
+                }
+                createFunction={(formJson) => {
+                  if (pages.length == 0){
+                    setSnackbarMessage("Please add a page before you add a component");
+                    setSnackbarSeverity('error');
+                    setSnackbarOpen(true);
+                    handleCloseDropdown();
+                    return;
+                  }
+
+                  createComponent("text", {value: formJson.text}, currentPage);
+                  handleCloseDropdown();
+                }} 
+              />
             </List>
           </Popover>
         </Box>
