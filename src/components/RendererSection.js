@@ -13,7 +13,6 @@ import SaveIcon from '@mui/icons-material/Save';
 import ShareIcon from '@mui/icons-material/Share';
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
-import RectangleOutlinedIcon from '@mui/icons-material/RectangleOutlined';
 import SlideshowIcon from '@mui/icons-material/Slideshow';
 import SettingsIcon from '@mui/icons-material/Settings';
 import WebIcon from '@mui/icons-material/Web';
@@ -312,7 +311,7 @@ const RendererSection = ({
             <List>
               <CreateComponentItem 
                 name={"Array"} 
-                icon={<RectangleOutlinedIcon />}
+                icon={arrayIcon}
                 text={"Enter the values of the array comma-separated. Eg: 1, 2, 3"}
                 formFields={<TextField autoFocus required margin="dense"
                   name="values" label="Values" fullWidth variant="standard"/>
@@ -332,11 +331,10 @@ const RendererSection = ({
                   createComponent("array", {value: values, color: colors, arrow: arrows}, currentPage);
                   handleCloseDropdown();
                 }} 
-                archive={arrayIcon}
               />
               <CreateComponentItem 
                 name={"Stack"} 
-                icon={<RectangleOutlinedIcon />}
+                icon={stackIcon}
                 text={"Enter the values of the stack comma-separated. Eg: 1, 2, 3"}
                 formFields={<TextField autoFocus required margin="dense"
                   name="values" label="Values" fullWidth variant="standard"/>
@@ -356,11 +354,10 @@ const RendererSection = ({
                   createComponent("stack", {value: values, color: colors, arrow: arrows}, currentPage);
                   handleCloseDropdown();
                 }} 
-                archive={stackIcon}
               />
               <CreateComponentItem 
                 name={"Matrix"} 
-                icon={<RectangleOutlinedIcon />}
+                icon={matrixIcon}
                 text={`Enter the values in a row comma-separated and use a semicolon
                         to begin a new row. Eg: 1, 2, 3; 4, 5, 6`}
                 formFields={<TextField autoFocus required margin="dense"
@@ -388,11 +385,10 @@ const RendererSection = ({
                   createComponent("matrix", {value: valuesExtended, color: colors, arrow: arrows}, currentPage);
                   handleCloseDropdown();
                 }} 
-                archive={matrixIcon}
               />
               <CreateComponentItem 
                 name={"Linked List"} 
-                icon={<RectangleOutlinedIcon />}
+                icon={linkedListIcon}
                 text={"Enter the values of the linked list comma-separated. Eg: 1, 2, 3"}
                 formFields={<TextField autoFocus required margin="dense"
                   name="values" label="Values" fullWidth variant="standard"/>
@@ -413,11 +409,10 @@ const RendererSection = ({
                   createComponent("linkedlist", {nodes: nodes, value: values, color: colors, arrow: arrows}, currentPage);
                   handleCloseDropdown();
                 }} 
-                archive={linkedListIcon}
               />              
               <CreateComponentItem 
                 name={"Tree"} 
-                icon={<RectangleOutlinedIcon />}
+                icon={treeIcon}
                 text={`Enter the edges separated by a - (Eg parent-child1, parent-child2) and optionally give the nodes 
                   a value (Eg parent: p, child1: c1).`}
                 formFields={
@@ -486,11 +481,10 @@ const RendererSection = ({
                     arrow: arrows}, currentPage);
                   handleCloseDropdown();
                 }} 
-                archive={treeIcon}
               />
               <CreateComponentItem 
                 name={"Graph"} 
-                icon={<RectangleOutlinedIcon />}
+                icon={graphIcon}
                 text={`Enter the edges separated by a - (Eg n1-n2, n2-n3) and optionally give the nodes 
                   a value (Eg n1: 1, n2: 2).`}
                 formFields={
@@ -560,11 +554,10 @@ const RendererSection = ({
                     arrow: arrows, hidden: hidden}, currentPage);
                   handleCloseDropdown();
                 }} 
-                archive={graphIcon}
               />
               <CreateComponentItem 
                 name={"Text"} 
-                icon={<RectangleOutlinedIcon />}
+                icon={textIcon}
                 text={"Enter the text."}
                 formFields={<TextField autoFocus required margin="dense"
                   name="text" label="Text" fullWidth variant="standard"/>
@@ -581,7 +574,6 @@ const RendererSection = ({
                   createComponent("text", {value: formJson.text}, currentPage);
                   handleCloseDropdown();
                 }} 
-                archive={textIcon}
               />
             </List>
           </Popover>

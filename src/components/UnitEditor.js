@@ -1,11 +1,5 @@
 import React, { useEffect, useState } from "react";
-import {
-  Box,
-  IconButton,
-  Popover,
-  TextField,
-  Tooltip
-} from "@mui/material";
+import { Box, IconButton, Popover, TextField, Tooltip, SvgIcon } from "@mui/material";
 import AddIcon from '@mui/icons-material/Add';
 import ClearIcon from '@mui/icons-material/Clear';
 import EditIcon from '@mui/icons-material/Edit';
@@ -13,12 +7,8 @@ import FormatColorFillIcon from '@mui/icons-material/FormatColorFill';
 import RectangleOutlinedIcon from '@mui/icons-material/RectangleOutlined';
 import TextRotateVerticalIcon from '@mui/icons-material/TextRotateVertical';
 import { useParseCompile } from "../context/ParseCompileContext";
-import { 
-  parseInspectorIndex, 
-  createUnitData, 
-  getComponentFields, 
-  convertValueToType,
-} from "../compiler/dslUtils.mjs";
+import { parseInspectorIndex, createUnitData, getComponentFields, convertValueToType } from "../compiler/dslUtils.mjs";
+import { removeSubtreeIcon } from "./CustomIcons";
 
 
 const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate, onRemove, leaveFunction }) => {
@@ -43,11 +33,13 @@ const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate, onRemo
       case "Remove":
         return <ClearIcon></ClearIcon>;
       case "Value":
-        return <EditIcon></EditIcon>
+        return <EditIcon></EditIcon>;
       case "Color":
-        return <FormatColorFillIcon></FormatColorFillIcon>
+        return <FormatColorFillIcon></FormatColorFillIcon>;
       case "Add Arrow": 
-        return <TextRotateVerticalIcon></TextRotateVerticalIcon>
+        return <TextRotateVerticalIcon></TextRotateVerticalIcon>;
+      case "Remove Subtree":
+        return removeSubtreeIcon;
       default: 
         return <RectangleOutlinedIcon></RectangleOutlinedIcon>
     }
@@ -98,7 +90,7 @@ const DynamicInput = ({ fieldKey, fieldConfig, value, onChange, onUpdate, onRemo
        <Tooltip title={label}>
         <span style={{marginLeft: "10px", marginRight: "10px"}}>
           <IconButton size="small" onClick={(e) => {onRemove(e, true);}}>
-            {getIcon(label)}
+            <SvgIcon component={removeSubtreeIcon}></SvgIcon> 
           </IconButton>
         </span>
       </Tooltip>
