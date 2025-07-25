@@ -334,6 +334,33 @@ show randomTextToo
 
 page
 `,
+	},{
+		id:"linkedlistTraverse",
+		title:"Example - Linked List Traversal",
+		userCode: `linkedlist traverse = {
+  nodes: [start, mid1, mid2, end]
+  value: ["first", "second", "third", "last"]
+  color: [null, null, null, null]
+}
+
+page
+show traverse
+
+page
+traverse.setColor(0, "blue")
+traverse.setArrow(0, "visiting")
+
+page
+traverse.setColor(0, "gray")
+traverse.setColor(1, "blue")
+traverse.setArrow(0, "visited")
+traverse.setArrow(1, "visiting")
+
+page
+traverse.setColor(1, "gray")
+traverse.setColor(2, "blue")
+traverse.setArrow(1, "visited")
+traverse.setArrow(2, "visiting")`,
 	},
 	{
 		id: "TutorialFibonacci",
