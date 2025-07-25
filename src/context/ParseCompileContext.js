@@ -250,6 +250,12 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             const args = {index: nodeName, value: val}
             parsedCode.cmds.splice(pageEndIndex, 0, { name: component, target: "nodes", type: "add", args: args});
         }
+        else if (type === "linkedlist"){
+            const nodeName = "n" + `${ nodeCount }`;
+            setNodeCount(nodeCount + 1);
+            const args = {index: coordinates.index + 1, value: nodeName, nodeValue: val}
+            parsedCode.cmds.splice(pageEndIndex, 0, { name: component, target: "nodes", type: "insert", args: args});
+        }
         // For stacks and arrays insert a new value
         else {
             const idx = (type === "stack") ? coordinates.index : coordinates.index + 1;

@@ -223,7 +223,6 @@ export const UnitEditor = ({
   };
 
   const handleFieldUpdate = (fieldKey, value) => {
-    console.log(currentUnitData);
     if (fieldKey === "add"){
       handleAddUnit(value);
     } 
