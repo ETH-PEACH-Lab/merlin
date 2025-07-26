@@ -8,7 +8,7 @@ import RectangleOutlinedIcon from '@mui/icons-material/RectangleOutlined';
 import TextRotateVerticalIcon from '@mui/icons-material/TextRotateVertical';
 import { useParseCompile } from "../context/ParseCompileContext";
 import { parseInspectorIndex, createUnitData, getComponentFields } from "../compiler/dslUtils.mjs";
-import { removeSubtreeIcon } from "./CustomIcons";
+import { removeSubtreeIcon, addColumnIcon, addRowIcon, removeColumnIcon, removeRowIcon } from "./CustomIcons";
 
 
 const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, leaveFunction }) => {
@@ -38,7 +38,15 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, le
       case "Add Arrow": 
         return <TextRotateVerticalIcon></TextRotateVerticalIcon>;
       case "Remove Subtree":
-        return removeSubtreeIcon;
+        return  <SvgIcon component={removeSubtreeIcon}></SvgIcon> 
+      case "Add Row":
+        return  <SvgIcon component={addRowIcon}></SvgIcon> 
+      case "Remove Row":
+        return  <SvgIcon component={removeRowIcon}></SvgIcon> 
+      case "Add Column":
+        return  <SvgIcon component={addColumnIcon}></SvgIcon> 
+      case "Remove Column":
+        return  <SvgIcon component={removeColumnIcon}></SvgIcon> 
       default: 
         return <RectangleOutlinedIcon></RectangleOutlinedIcon>
     }
@@ -61,7 +69,7 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, le
        <Tooltip title={label}>
         <span style={{marginLeft: "10px", marginRight: "10px"}}>
           <IconButton size="small" onClick={(e) => {onRemove(e, true);}}>
-            <SvgIcon component={removeSubtreeIcon}></SvgIcon> 
+            {getIcon(label)}
           </IconButton>
         </span>
       </Tooltip>
