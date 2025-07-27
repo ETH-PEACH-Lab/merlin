@@ -270,13 +270,13 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
 
         if (type === "tree"){
-            const removeType = removeCommand === "Remove Subtree" ? "remove_subtree" : "remove";
+            const removeType = removeCommand === "removeSubtree" ? "remove_subtree" : "remove";
             parsedCode.cmds.splice(pageEndIndex, 0, { name: component, target: "nodes", type: removeType, args: node });
         } 
 
         else if (type === "matrix"){
-            const removeType = removeCommand === "Remove Row" ? "remove_matrix_row" : "remove_matrix_column";
-            const coord = removeCommand === "Remove Row" ? coordinates.row : coordinates.col
+            const removeType = removeCommand === "removeRow" ? "remove_matrix_row" : "remove_matrix_column";
+            const coord = removeCommand === "removeRow" ? coordinates.row : coordinates.col
             parsedCode.cmds.splice(pageEndIndex, 0, { name: component, target: "value", type: removeType, args: coord });
         } 
 
