@@ -64,23 +64,12 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, le
     }
   };
 
-  if (label === "Remove Subtree"){
+  // For any type of remove, there is no need for any input field
+  if (["Remove", "Remove Subtree", "Remove Row", "Remove Column"].includes(label)){
     return (
        <Tooltip title={label}>
         <span style={{marginLeft: "10px", marginRight: "10px"}}>
-          <IconButton size="small" onClick={(e) => {onRemove(e, true);}}>
-            {getIcon(label)}
-          </IconButton>
-        </span>
-      </Tooltip>
-    );
-  }
-
-  if (label === "Remove"){
-    return (
-       <Tooltip title={label}>
-        <span style={{marginLeft: "10px", marginRight: "10px"}}>
-          <IconButton size="small" onClick={(e) => {onRemove(e, false);}}>
+          <IconButton size="small" onClick={(e) => {onRemove(e, label);}}>
             {getIcon(label)}
           </IconButton>
         </span>
@@ -180,7 +169,7 @@ export const UnitEditor = ({
     );
   };
 
-  const handleRemoveUnit = (event, isSubTree = false) => {
+  const handleRemoveUnit = (event, removeType) => {
     leaveFunction();
     removeUnit(
           currentUnitData.page,
@@ -188,7 +177,7 @@ export const UnitEditor = ({
           currentUnitData.type,
           currentUnitData.coordinates,
           currentUnitData.nodes,
-          isSubTree
+          removeType
     );
   };
 

@@ -266,14 +266,20 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
     }, [parsedCode]);
 
     // Remove the selected unit
-    const removeUnit = useCallback((page, component, type, coordinates, node, isSubTree) => {
+    const removeUnit = useCallback((page, component, type, coordinates, node, removeCommand) => {
         const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
-        // For trees, remove the entire subtree
+
         if (type === "tree"){
-            const removeType = isSubTree ? "remove_subtree" : "remove";
+            const removeType = removeCommand === "Remove Subtree" ? "remove_subtree" : "remove";
             parsedCode.cmds.splice(pageEndIndex, 0, { name: component, target: "nodes", type: removeType, args: node });
         } 
-        //For stacks, arrays, graphs and linkedlists remove the node
+
+        else if (type === "matrix"){
+            const removeType = removeCommand === "Remove Row" ? "remove_matrix_row" : "remove_matrix_column";
+            const coord = removeCommand === "Remove Row" ? coordinates.row : coordinates.col
+            parsedCode.cmds.splice(pageEndIndex, 0, { name: component, target: "value", type: removeType, args: coord });
+        } 
+
         else {
             parsedCode.cmds.splice(pageEndIndex, 0, { name: component, target: "all", type: "remove_at", args: coordinates.index });
         }

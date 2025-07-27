@@ -141,6 +141,10 @@ export function getComponentFields(componentType) {
       value: "Value",
       color: "Color",
       arrow: "Add Arrow",
+      addRow: "Add Row",
+      addColumn: "Add Column",
+      removeRow: "Remove Row",
+      removeColumn: "Remove Column",
     },
     stack: {
       add: "Add",
