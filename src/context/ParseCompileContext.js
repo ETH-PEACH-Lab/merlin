@@ -283,7 +283,6 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
     const updateValue = useCallback(
         (page, componentName, coordinates, fieldKey, value) => {
             if (!parsedCode) return;
-            
             // Handle position field updates (no coordinates needed)
             if (fieldKey === "position") {
                 // No need to check current value for position fields - they're simple replacements

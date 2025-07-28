@@ -1,3 +1,4 @@
+import { type } from 'os';
 import { 
   languageConfig,
   typeDocumentation,
@@ -483,27 +484,6 @@ export function registerCustomLanguage(monaco) {
     return suggestions;
   }
 
-  // Function to get positioning template suggestions
-  function getPositioningTemplates() {
-    return [
-      {
-        label: 'Complete layout example',
-        insertText: `\${1:// Data structures}\nstack callStack = {\n\tvalue: ["main", "process", "calculate"]\n\tcolor: [null, "blue", null]\n\tarrow: [null, null, "top"]\n}\n\narray numbers = {\n\tvalue: [1, 2, 3, 4, 5]\n\tcolor: ["red", "green", "blue", "orange", "purple"]\n}\n\n\${2:// Layout and display}\npage 2x2\nshow callStack top-left\nshow numbers (1, 0)\n\n\${3:// Method calls}\ncallStack.setColor(0, "green")\nnumbers.setValue(0, 42)`,
-        documentation: 'Complete example with data structures, positioning, and method calls'
-      },
-      {
-        label: 'Grid layout with positioning',
-        insertText: `page \${1:2x2}\nshow \${2:variable1} \${3:top-left}\nshow \${4:variable2} \${5:(1, 0)}\nshow \${6:variable3} \${7:bottom-right}`,
-        documentation: 'Grid layout with multiple positioning styles'
-      },
-      {
-        label: 'Range positioning example',
-        insertText: `page \${1:4x3}\nshow \${2:variable1} \${3:(0..2, 0)}\nshow \${4:variable2} \${5:(0, 1..2)}\nshow \${6:variable3} \${7:bottom-right}`,
-        documentation: 'Example using range positioning to span multiple cells'
-      }
-    ];
-  }
-
   // Function to get method signature for autocomplete with smart array handling
   function getMethodSignature(methodName, varType) {
     const signatureFunction = methodSignatures[methodName];
@@ -601,107 +581,149 @@ export function registerCustomLanguage(monaco) {
 
   monaco.languages.setLanguageConfiguration("customLang", monacoLanguageConfig); 
  
+  // Helper function to analyze context once
+  function analyzeContext(model, position) {
+    const word = model.getWordUntilPosition(position);
+    const line = model.getLineContent(position.lineNumber);
+    const beforeCursor = line.substring(0, position.column - 1);
+    const allLines = model.getValue().split('\n');
+    const beforeLines = allLines.slice(0, position.lineNumber - 1).reverse();
+    const afterLines = allLines.slice(position.lineNumber - 1);
+    const currentLine = allLines[position.lineNumber - 1];
+
+    // Get cached parsed data
+    const { variableTypes, nodeData, gridLayout } = parseCache.getCachedData(model, position);
+    const variableNames = Object.keys(variableTypes);
+
+    // Analyze different contexts
+    const context = {
+      word,
+      line,
+      beforeCursor,
+      currentLine,
+      variableTypes,
+      nodeData,
+      gridLayout,
+      variableNames,
+      
+      // Context flags
+      isMethodCall: false,
+      isAfterDot: false,
+      isInComponentDefinition: false,
+      isAtLineStart: false,
+      isAfterShowHide: false,
+      isAfterPage: false,
+      isInsideParens: false,
+      isInAttributeValue: false,
+      
+      // Extracted data
+      methodCallContext: null,
+      variableNameAtPosition: null,
+      componentDefinitionType: null,
+      showHideMatch: null,
+      attributeValueMatch: null,
+      insideParensMatch: null
+    };
+
+    // Check method call context
+    context.methodCallContext = getMethodCallContext(model, position);
+    context.isMethodCall = context.methodCallContext && context.methodCallContext.isMethodCall;
+
+    // Check if after dot
+    context.variableNameAtPosition = getVariableNameAtPosition(model, position);
+    context.isAfterDot = !!context.variableNameAtPosition;
+
+    // Check if inside component definition
+    let defType = null;
+    for (const l of beforeLines) {
+      const m = l.match(/^\s*([a-zA-Z]+)\s+\w+\s*=\s*\{/);
+      const afterMatch = afterLines.find(line => line.match(/^\s*}/));
+      if (m && languageConfig.components.includes(m[1]) && afterMatch && !currentLine.includes(':')) {
+        defType = m[1];
+        break;
+      }
+    }
+    context.isInComponentDefinition = !!defType;
+    context.componentDefinitionType = defType;
+
+    // Check other contexts
+    context.isAtLineStart = beforeCursor.trim() === '' || beforeCursor.match(/^\s*$/);
+    context.showHideMatch = beforeCursor.match(/\b(show|hide)\s+(\w+)?\s*$/);
+    context.isAfterShowHide = !!context.showHideMatch;
+    context.isAfterPage = beforeCursor.match(/\bpage\s+$/);
+    context.attributeValueMatch = beforeCursor.match(/(\w+):\s*(?:\[([^\]]*))?\s*$/);
+    context.isInAttributeValue = !!context.attributeValueMatch;
+    context.insideParensMatch = beforeCursor.match(/\(\s*([^)]*?)$/);
+    context.isInsideParens = !!context.insideParensMatch;
+
+    return context;
+  }
+
   // Register completion provider for comprehensive autocomplete
   monaco.languages.registerCompletionItemProvider("customLang", {
-    triggerCharacters: ['.', ' '],
+    triggerCharacters: ['.', ' ', ],
     provideCompletionItems: function(model, position) {
       try {
-        const word = model.getWordUntilPosition(position);
+        const context = analyzeContext(model, position);
         const range = {
           startLineNumber: position.lineNumber,
           endLineNumber: position.lineNumber,
-          startColumn: word.startColumn,
-          endColumn: word.endColumn
+          startColumn: context.word.startColumn,
+          endColumn: context.word.endColumn
         };
 
-        const line = model.getLineContent(position.lineNumber);
-        const beforeCursor = line.substring(0, position.column - 1);
-        
         // Skip general completion if we're inside a method call
-        const methodCallContext = getMethodCallContext(model, position);
-        if (methodCallContext && methodCallContext.isMethodCall) {
+        if (context.isMethodCall) {
           return { suggestions: [] }; // Let method argument provider handle it
         }
-        
-        // Get cached parsed data
-        const { variableTypes, nodeData, gridLayout } = parseCache.getCachedData(model, position);
-        const variableNames = Object.keys(variableTypes);
 
-        // Check if we're after a dot (method completion)
-        const varName = getVariableNameAtPosition(model, position);
-        if (varName) {
-          const varType = variableTypes[varName];
+        const suggestions = [];
+
+        // Method completion after dot
+        if (context.isAfterDot) {
+          const varType = context.variableTypes[context.variableNameAtPosition];
           if (varType) {
             const methods = getMethodsForType(varType);
-            const suggestions = methods.map(method => ({
-              label: method,
-              kind: monaco.languages.CompletionItemKind.Method,
-              insertText: getMethodSignature(method, varType),
-              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-              detail: `${varType} method`,
-              documentation: methodDescriptions[method] || `Method for ${varType}`,
-              range: range,
-              sortText: `0${method}`,
-              command: {
-                id: 'editor.action.triggerParameterHints',
-                title: 'Trigger signature help'
-              }
-            }));
+            methods.forEach(method => {
+              suggestions.push({
+                label: method,
+                kind: monaco.languages.CompletionItemKind.Method,
+                insertText: getMethodSignature(method, varType),
+                insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                detail: `${varType} method`,
+                documentation: methodDescriptions[method] || `Method for ${varType}`,
+                range: range,
+                sortText: `0${method}`,
+                command: {
+                  id: 'editor.action.triggerParameterHints',
+                  title: 'Trigger signature help'
+                }
+              });
+            });
             return { suggestions };
           }
         }
 
-        // Context-aware suggestions based on line content and position
-        const suggestions = [];
+        // Component definition properties
+        if (context.isInComponentDefinition) {
+          const props = typeDocumentation[context.componentDefinitionType]?.supportedProperties || [];
+          props.forEach(prop => {
+            suggestions.push({
+              label: prop,
+              kind: monaco.languages.CompletionItemKind.Property,
+              insertText: `${prop}: $0`,
+              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              detail: `${context.componentDefinitionType} property`,
+              documentation: typeDocumentation[context.componentDefinitionType]?.description || '',
+              range: range,
+              sortText: `0prop_${prop}`
+            });
+          });
+          return { suggestions };
+        }
 
         // At the beginning of a line - suggest components and keywords
-        if (beforeCursor.trim() === '' || beforeCursor.match(/^\s*$/)) {
-          // Add component types with basic templates from languageConfig
-          languageConfig.components.forEach(component => {
-            // Add basic template from languageConfig if available
-            const basicTemplate = languageConfig.basicTypeTemplates[component];
-            if (basicTemplate) {
-              suggestions.push({
-                label: basicTemplate.label,
-                kind: monaco.languages.CompletionItemKind.Snippet,
-                insertText: basicTemplate.insertText,
-                insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-                detail: 'Basic template',
-                documentation: basicTemplate.documentation,
-                range: range,
-                sortText: `0${component}` // Highest priority for basic templates
-              });
-            }
-
-            // Add simple component declaration
-            suggestions.push({
-              label: component,
-              kind: monaco.languages.CompletionItemKind.Class,
-              insertText: `${component} \${1:variableName} = {\n\t\${2:}\n}`,
-              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-              detail: 'Data structure',
-              documentation: typeDocumentation[component]?.description || `Create a new ${component}`,
-              range: range,
-              sortText: `1${component}`
-            });
-            
-            // Add advanced template suggestions for each component type
-            const advancedTemplate = getTemplateSuggestions(component);
-            if (advancedTemplate) {
-              suggestions.push({
-                label: `${component} (advanced)`,
-                kind: monaco.languages.CompletionItemKind.Snippet,
-                insertText: advancedTemplate.insertText,
-                insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-                detail: 'Advanced template',
-                documentation: advancedTemplate.documentation,
-                range: range,
-                sortText: `2${component}` // Lower priority for advanced templates
-              });
-            }
-          });
-
-          // Add keywords
+        if (context.isAtLineStart) {
           languageConfig.keywords.forEach(keyword => {
             let insertText = keyword;
             let detail = 'Keyword';
@@ -728,27 +750,12 @@ export function registerCustomLanguage(monaco) {
               sortText: `2${keyword}`
             });
           });
-          
-          // Add positioning templates at the beginning of lines
-          const positioningTemplates = getPositioningTemplates();
-          positioningTemplates.forEach((template, index) => {
-            suggestions.push({
-              label: template.label,
-              kind: monaco.languages.CompletionItemKind.Snippet,
-              insertText: template.insertText,
-              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-              detail: 'Template',
-              documentation: template.documentation,
-              range: range,
-              sortText: `0template${index}`
-            });
-          });
         }
         
         // After 'show' or 'hide' keywords - suggest variable names
-        if (beforeCursor.match(/\b(show|hide)\s+$/)) {
-          variableNames.forEach(varName => {
-            const varType = variableTypes[varName];
+        if (context.isAfterShowHide && context.showHideMatch[2] === undefined) {
+          context.variableNames.forEach(varName => {
+            const varType = context.variableTypes[varName];
             suggestions.push({
               label: varName,
               kind: monaco.languages.CompletionItemKind.Variable,
@@ -762,12 +769,8 @@ export function registerCustomLanguage(monaco) {
         }
 
         // After 'show variableName' - suggest positioning
-        const showVariableMatch = beforeCursor.match(/\b(show|hide)\s+(\w+)\s+$/);
-        if (showVariableMatch) {
-          const [, command, varName] = showVariableMatch;
-          
-          // Use cached grid layout data
-          // gridLayout already available from cached data above
+        if (context.isAfterShowHide && context.showHideMatch[2] !== undefined) {
+          const [, command, varName] = context.showHideMatch;
           
           // Add named positions
           languageConfig.positionKeywords.forEach(pos => {
@@ -783,15 +786,15 @@ export function registerCustomLanguage(monaco) {
           });
           
           // Add smart coordinate suggestions based on grid layout
-          if (gridLayout) {
-            const smartSuggestions = getSmartPositionSuggestions(gridLayout);
+          if (context.gridLayout) {
+            const smartSuggestions = getSmartPositionSuggestions(context.gridLayout);
             smartSuggestions.forEach(({ coord, desc }, index) => {
               suggestions.push({
                 label: coord,
                 kind: monaco.languages.CompletionItemKind.Value,
                 insertText: coord,
                 detail: 'Smart coordinate',
-                documentation: `${desc} (based on ${gridLayout.cols}x${gridLayout.rows} grid)`,
+                documentation: `${desc} (based on ${context.gridLayout.cols}x${context.gridLayout.rows} grid)`,
                 range: range,
                 sortText: `0smart${index}`
               });
@@ -836,7 +839,7 @@ export function registerCustomLanguage(monaco) {
         }
 
         // After 'page' keyword - suggest grid layouts
-        if (beforeCursor.match(/\bpage\s+$/)) {
+        if (context.isAfterPage) {
           const gridExamples = [
             { grid: '2x1', desc: '2 columns, 1 row' },
             { grid: '1x2', desc: '1 column, 2 rows' },
@@ -874,30 +877,25 @@ export function registerCustomLanguage(monaco) {
           });
         }
 
-        // When typing variable names in method calls or assignments
-        if (beforeCursor.match(/\w+\.\w*$/) === null && // Not after a dot
-            !beforeCursor.match(/^\s*(show|hide)\s+$/) && // Not after show/hide
-            !beforeCursor.match(/^\s*$/) && // Not at beginning of line
-            beforeCursor.length > 0) { // Not empty
-          
-          // Check if we're in a context where variable names make sense
+        // Variable name suggestions in appropriate contexts
+        if (!context.isAfterDot && !context.isAfterShowHide && !context.isAtLineStart && context.beforeCursor.length > 0) {
           const isInVariableContext = (
-            beforeCursor.match(/^\s*\w*$/) || // Just typing a word at start of line
-            beforeCursor.match(/\s+\w*$/) || // Typing a word after whitespace
-            beforeCursor.match(/\(\w*$/) || // Inside function parentheses
-            beforeCursor.match(/,\s*\w*$/) || // After comma in parameter list
-            word.word.length > 0 // Currently typing a word
+            context.beforeCursor.match(/^\s*\w*$/) || // Just typing a word at start of line
+            context.beforeCursor.match(/\s+\w*$/) || // Typing a word after whitespace
+            context.beforeCursor.match(/\(\w*$/) || // Inside function parentheses
+            context.beforeCursor.match(/,\s*\w*$/) || // After comma in parameter list
+            context.word.word.length > 0 // Currently typing a word
           );
           
           if (isInVariableContext) {
-            variableNames.forEach(varName => {
-              const varType = variableTypes[varName];
+            context.variableNames.forEach(varName => {
+              const varType = context.variableTypes[varName];
               
               // Calculate relevance score for better sorting
               let sortScore = 3;
-              if (word.word && varName.toLowerCase().startsWith(word.word.toLowerCase())) {
+              if (context.word.word && varName.toLowerCase().startsWith(context.word.word.toLowerCase())) {
                 sortScore = 0; // Highest priority for prefix matches
-              } else if (word.word && varName.toLowerCase().includes(word.word.toLowerCase())) {
+              } else if (context.word.word && varName.toLowerCase().includes(context.word.word.toLowerCase())) {
                 sortScore = 1; // High priority for substring matches
               }
               
@@ -915,13 +913,13 @@ export function registerCustomLanguage(monaco) {
           }
         }
 
-        // Suggest attributes when inside component declaration
-        if (beforeCursor.includes('{') && !beforeCursor.includes('}')) {
-          const openBraceIndex = beforeCursor.lastIndexOf('{');
-          const textAfterBrace = beforeCursor.substring(openBraceIndex + 1);
+        // Attribute suggestions when inside component declaration
+        if (context.beforeCursor.includes('{') && !context.beforeCursor.includes('}')) {
+          const openBraceIndex = context.beforeCursor.lastIndexOf('{');
+          const textAfterBrace = context.beforeCursor.substring(openBraceIndex + 1);
           
           // Check if we're in a component declaration
-          const componentMatch = beforeCursor.match(/(\w+)\s+\w+\s*=\s*\{[^}]*$/);
+          const componentMatch = context.beforeCursor.match(/(\w+)\s+\w+\s*=\s*\{[^}]*$/);
           if (componentMatch) {
             const componentType = componentMatch[1];
             if (languageConfig.components.includes(componentType)) {
@@ -971,10 +969,9 @@ export function registerCustomLanguage(monaco) {
           }
         }
 
-        // Enhanced suggestions for attribute values
-        const attributeValueMatch = beforeCursor.match(/(\w+):\s*(?:\[([^\]]*))?\s*$/);
-        if (attributeValueMatch) {
-          const [, attributeName, arrayContent] = attributeValueMatch;
+        // Attribute value suggestions
+        if (context.isInAttributeValue) {
+          const [, attributeName, arrayContent] = context.attributeValueMatch;
           
           if (attributeName === 'color') {
             // Add null first
@@ -1016,11 +1013,11 @@ export function registerCustomLanguage(monaco) {
             });
           } else if (attributeName === 'edges') {
             // If we have nodes in context, suggest edge combinations
-            if (nodeData.allNodes.length > 0) {
+            if (context.nodeData.allNodes.length > 0) {
               const edgeSuggestions = [];
-              for (let i = 0; i < Math.min(nodeData.allNodes.length, 5); i++) {
-                for (let j = i + 1; j < Math.min(nodeData.allNodes.length, 5); j++) {
-                  edgeSuggestions.push(`${nodeData.allNodes[i]}-${nodeData.allNodes[j]}`);
+              for (let i = 0; i < Math.min(context.nodeData.allNodes.length, 5); i++) {
+                for (let j = i + 1; j < Math.min(context.nodeData.allNodes.length, 5); j++) {
+                  edgeSuggestions.push(`${context.nodeData.allNodes[i]}-${context.nodeData.allNodes[j]}`);
                 }
               }
               edgeSuggestions.forEach((edge, index) => {
@@ -1074,8 +1071,8 @@ export function registerCustomLanguage(monaco) {
           }
         }
 
-        // Add position keywords when appropriate
-        if (beforeCursor.match(/:\s*$/) || beforeCursor.match(/=\s*$/)) {
+        // Position keywords when appropriate
+        if (context.beforeCursor.match(/:\s*$/) || context.beforeCursor.match(/=\s*$/)) {
           languageConfig.positionKeywords.forEach(pos => {
             suggestions.push({
               label: pos,
@@ -1090,16 +1087,13 @@ export function registerCustomLanguage(monaco) {
         }
 
         // Inside parentheses for positioning - suggest coordinate patterns
-        const insideParensMatch = beforeCursor.match(/\(\s*([^)]*?)$/);
-        if (insideParensMatch) {
-          const [, content] = insideParensMatch;
-          // Use cached grid layout data
-          // gridLayout already available from cached data above
+        if (context.isInsideParens) {
+          const [, content] = context.insideParensMatch;
           
           // If no content yet, suggest common coordinates
           if (content.trim() === '') {
-            if (gridLayout) {
-              const smartSuggestions = getSmartPositionSuggestions(gridLayout);
+            if (context.gridLayout) {
+              const smartSuggestions = getSmartPositionSuggestions(context.gridLayout);
               smartSuggestions.slice(0, 6).forEach(({ coord, desc }, index) => {
                 // Remove parentheses since we're already inside them
                 const coordContent = coord.replace(/[()]/g, '');
@@ -1108,7 +1102,7 @@ export function registerCustomLanguage(monaco) {
                   kind: monaco.languages.CompletionItemKind.Value,
                   insertText: coordContent,
                   detail: 'Smart coordinate',
-                  documentation: `${desc} (based on ${gridLayout.cols}x${gridLayout.rows} grid)`,
+                  documentation: `${desc} (based on ${context.gridLayout.cols}x${context.gridLayout.rows} grid)`,
                   range: range,
                   sortText: `0smart${index}`
                 });
@@ -1144,16 +1138,16 @@ export function registerCustomLanguage(monaco) {
               let rowSuggestions = ['0', '1', '2', '3', '0..1', '0..2', '1..2'];
               
               // If we know the grid size, limit suggestions to valid rows
-              if (gridLayout) {
+              if (context.gridLayout) {
                 rowSuggestions = [];
-                for (let row = 0; row < gridLayout.rows; row++) {
+                for (let row = 0; row < context.gridLayout.rows; row++) {
                   rowSuggestions.push(row.toString());
                 }
                 // Add some range suggestions
-                if (gridLayout.rows > 1) {
+                if (context.gridLayout.rows > 1) {
                   rowSuggestions.push('0..1');
-                  if (gridLayout.rows > 2) {
-                    rowSuggestions.push(`0..${gridLayout.rows - 1}`);
+                  if (context.gridLayout.rows > 2) {
+                    rowSuggestions.push(`0..${context.gridLayout.rows - 1}`);
                   }
                 }
               }
@@ -1164,8 +1158,8 @@ export function registerCustomLanguage(monaco) {
                   kind: monaco.languages.CompletionItemKind.Value,
                   insertText: row,
                   detail: 'Row',
-                  documentation: gridLayout ? 
-                    `Row ${row} (grid has ${gridLayout.rows} rows)` : 
+                  documentation: context.gridLayout ? 
+                    `Row ${row} (grid has ${context.gridLayout.rows} rows)` : 
                     `Row ${row}`,
                   range: range,
                   sortText: `0row${index}`
@@ -1187,33 +1181,27 @@ export function registerCustomLanguage(monaco) {
   monaco.languages.registerCompletionItemProvider("customLang", {
     provideCompletionItems: function(model, position) {
       try {
-        const word = model.getWordUntilPosition(position);
-        if (!word || word.word.length < 2) return { suggestions: [] }; // Only show for 2+ characters
+        const context = analyzeContext(model, position);
+        if (!context.word || context.word.word.length < 2) return { suggestions: [] }; // Only show for 2+ characters
         
         const range = {
           startLineNumber: position.lineNumber,
           endLineNumber: position.lineNumber,
-          startColumn: word.startColumn,
-          endColumn: word.endColumn
+          startColumn: context.word.startColumn,
+          endColumn: context.word.endColumn
         };
 
-        const line = model.getLineContent(position.lineNumber);
-        const beforeCursor = line.substring(0, position.column - 1);
-        
-        // Get cached parsed data
-        const { variableTypes } = parseCache.getCachedData(model, position);
-        const variableNames = Object.keys(variableTypes);
         const suggestions = [];
 
         // Filter variables by what's being typed
-        const currentWord = word.word.toLowerCase();
-        const matchingVariables = variableNames.filter(varName => 
+        const currentWord = context.word.word.toLowerCase();
+        const matchingVariables = context.variableNames.filter(varName => 
           varName.toLowerCase().includes(currentWord)
         );
 
         // Add matching variables with high priority
         matchingVariables.forEach(varName => {
-          const varType = variableTypes[varName];
+          const varType = context.variableTypes[varName];
           let sortScore = varName.toLowerCase().startsWith(currentWord) ? '0' : '1';
           
           suggestions.push({
@@ -1253,32 +1241,18 @@ export function registerCustomLanguage(monaco) {
         
         matchingComponents.forEach(component => {
           let sortScore = component.toLowerCase().startsWith(currentWord) ? '0' : '2';
-          
-          // Add basic template from languageConfig if available
-          const basicTemplate = languageConfig.basicTypeTemplates[component];
-          if (basicTemplate) {
-            suggestions.push({
-              label: basicTemplate.label,
-              kind: monaco.languages.CompletionItemKind.Snippet,
-              insertText: basicTemplate.insertText,
-              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-              detail: 'Basic template',
-              documentation: basicTemplate.documentation,
-              range: range,
-              sortText: `${sortScore}${component}_template`,
-              filterText: component
-            });
-          }
-          
-          // Also add simple component name for cases where user just wants the type name
+
+          // Add simple component declaration with suggestion
+          const componentDocumentation = typeDocumentation[component];
           suggestions.push({
             label: component,
             kind: monaco.languages.CompletionItemKind.Class,
-            insertText: component,
+            insertText: componentDocumentation.insertText || `${component} \${1:variableName} = {\n\t\${2:}\n}`,
+            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
             detail: 'Data structure type',
-            documentation: typeDocumentation[component]?.description || `${component} data structure`,
+            documentation: componentDocumentation.description || `${component} data structure`,
             range: range,
-            sortText: `${sortScore}${component}_simple`,
+            sortText: `${sortScore}${component}`,
             filterText: component
           });
         });
@@ -1296,34 +1270,27 @@ export function registerCustomLanguage(monaco) {
     triggerCharacters: ['(', ',', ' ', '"', '.', '-', ''],
     provideCompletionItems: function(model, position) {
       try {
-        const line = model.getLineContent(position.lineNumber);
-        const beforeCursor = line.substring(0, position.column - 1);
+        const context = analyzeContext(model, position);
         
-        const methodContext = getMethodCallContext(model, position);
-        
-        if (!methodContext) {
+        if (!context.methodCallContext) {
           return { suggestions: [] };
         }
         
-        const word = model.getWordUntilPosition(position);
         const range = {
           startLineNumber: position.lineNumber,
           endLineNumber: position.lineNumber,
-          startColumn: word.startColumn,
-          endColumn: word.endColumn
+          startColumn: context.word.startColumn,
+          endColumn: context.word.endColumn
         };
 
-        const { variableName, methodName, parameterIndex } = methodContext;
+        const { variableName, methodName, parameterIndex } = context.methodCallContext;
         
         // Safety checks to prevent undefined errors
         if (!variableName || !methodName || parameterIndex === undefined) {
           return { suggestions: [] };
         }
         
-        // Get cached parsed data
-        const { variableTypes, nodeData } = parseCache.getCachedData(model, position);
-        const varType = variableTypes[variableName];
-        
+        const varType = context.variableTypes[variableName];
         const suggestions = [];
 
         // Add null suggestion for most parameters
@@ -1341,9 +1308,9 @@ export function registerCustomLanguage(monaco) {
         if (methodName === 'setColor' || methodName === 'setColors') {
           // Detect if user already typed a quote
           let alreadyQuoted = false;
-          if (word && word.word && (word.word.startsWith('"') || word.word.startsWith("'"))) {
+          if (context.word && context.word.word && (context.word.word.startsWith('"') || context.word.word.startsWith("'"))) {
             alreadyQuoted = true;
-          } else if (beforeCursor.endsWith('"') || beforeCursor.endsWith("'")) {
+          } else if (context.beforeCursor.endsWith('"') || context.beforeCursor.endsWith("'")) {
             alreadyQuoted = true;
           }
 
@@ -1377,7 +1344,7 @@ export function registerCustomLanguage(monaco) {
         if (methodName === 'addNode' || methodName === 'insertNode') {
           if (parameterIndex === 0) {
             // First parameter is node name (no quotes)
-            const existingNodes = nodeData.nodesByVariable[variableName] || [];
+            const existingNodes = context.nodeData.nodesByVariable[variableName] || [];
             const suggestedNodes = ['client', 'server', 'router', 'database', 'user', 'admin', 'offline', 'node1', 'node2', 'node3'];
             
             suggestedNodes.forEach((nodeName, index) => {
@@ -1413,7 +1380,7 @@ export function registerCustomLanguage(monaco) {
         if (methodName === 'removeNode') {
           if (parameterIndex === 0) {
             // Suggest existing nodes for removal (no quotes)
-            const existingNodes = nodeData.nodesByVariable[variableName] || [];
+            const existingNodes = context.nodeData.nodesByVariable[variableName] || [];
             existingNodes.forEach((nodeName, index) => {
               suggestions.push({
                 label: nodeName,
@@ -1431,7 +1398,7 @@ export function registerCustomLanguage(monaco) {
         if (methodName === 'setColor' && (varType === 'graph' || varType === 'tree')) {
           if (parameterIndex === 0) {
             // First parameter is node name for graph/tree setColor (no quotes)
-            const existingNodes = nodeData.nodesByVariable[variableName] || nodeData.allNodes;
+            const existingNodes = context.nodeData.nodesByVariable[variableName] || context.nodeData.allNodes;
             existingNodes.forEach((nodeName, index) => {
               suggestions.push({
                 label: nodeName,
@@ -1446,7 +1413,7 @@ export function registerCustomLanguage(monaco) {
           }
           if (parameterIndex === 0) {
             // First parameter is node name for graph/tree setArrow (no quotes)
-            const existingNodes = nodeData.nodesByVariable[variableName] || nodeData.allNodes;
+            const existingNodes = context.nodeData.nodesByVariable[variableName] || context.nodeData.allNodes;
             existingNodes.forEach((nodeName, index) => {
               suggestions.push({
                 label: nodeName,
@@ -1463,9 +1430,8 @@ export function registerCustomLanguage(monaco) {
 
         if (methodName === 'addEdge' || methodName === 'removeEdge') {
           // Smart edge parameter suggestions - progressive completion
-          const existingNodes = nodeData.nodesByVariable[variableName] || nodeData.allNodes || 
-            ['client', 'server', 'router', 'database', 'offline', 'admin']; // fallback nodes
-          
+          const existingNodes = context.nodeData.nodesByVariable[variableName] || context.nodeData.allNodes || ['n1', 'n2', 'n3']; // fallback nodes
+
           // Get the current line to better understand context
           const line = model.getLineContent(position.lineNumber);
           const beforeCursor = line.substring(0, position.column - 1);
@@ -1480,7 +1446,7 @@ export function registerCustomLanguage(monaco) {
           
           // Check if we're in the middle of typing an edge (contains -)
           // Use regex to detect if cursor is after a dash (e.g., parent-)
-          const dashMatch = beforeCursor.match(/([A-Za-z0-9_]+)-$/);
+          const dashMatch = currentParamText.match(/([A-Za-z0-9_]+)-$/);
           if (dashMatch) {
             const beforeDash = dashMatch[1];
             const secondNodeOptions = existingNodes.filter(node => node !== beforeDash);
@@ -1513,7 +1479,7 @@ export function registerCustomLanguage(monaco) {
 
           // Progressive completion for setChild/addChild (tree edge methods)
           if (methodName === 'setChild' || methodName === 'addChild') {
-            const existingNodes = nodeData.nodesByVariable[variableName] || nodeData.allNodes || ['CEO', 'CTO', 'CFO', 'LeadDev', 'Intern'];
+            const existingNodes = context.nodeData.nodesByVariable[variableName] || context.nodeData.allNodes || ['CEO', 'CTO', 'CFO', 'LeadDev', 'Intern'];
             const line = model.getLineContent(position.lineNumber);
             const beforeCursor = line.substring(0, position.column - 1);
             const methodStart = beforeCursor.lastIndexOf('(');
@@ -1880,13 +1846,27 @@ export function registerCustomLanguage(monaco) {
             ...(docLink ? [{ value: docLink, isTrusted: true }] : [])
           ]
         };
-      }
+           }
 
       return null;
     }
   });
+
+  monaco.languages.registerInlineCompletionsProvider('customLang', {
+    provideInlineCompletions(model, position, context, token) {
+      // Simple inline suggestions for page and show commands
+      const inlineItems = [];
+      
+      const nothingToShowFixes = getNothingToShowQuickFixes(model, true);
+      inlineItems.push(...nothingToShowFixes);
+
+      return { items: inlineItems, dispose: () => {} };
+    },
+    handleItemDidShow: () => {},
+    freeInlineCompletions: () => {},
+  });
  
- // Register code action provider for Quick Fixes
+  // Register code action provider for Quick Fixes
   monaco.languages.registerCodeActionProvider("customLang", {
     provideCodeActions: function(model, range, context, token) {
       const actions = [];
@@ -1894,7 +1874,7 @@ export function registerCustomLanguage(monaco) {
       const word = model.getWordAtPosition({ lineNumber: range.startLineNumber, column: range.startColumn });
       
       // Quick fix for "Nothing to show" error - always check this one
-      const nothingToShowFixes = getNothingToShowQuickFixes(model, range);
+      const nothingToShowFixes = getNothingToShowQuickFixes(model);
       actions.push(...nothingToShowFixes);
       
       // For other fixes, we need a word
@@ -2222,9 +2202,11 @@ export function registerCustomLanguage(monaco) {
   }
 
   // Quick fix for "Nothing to show" compile error
-  function getNothingToShowQuickFixes(model, range) {
+  function getNothingToShowQuickFixes(model, isInline = false) {
+    // If isInline, we need to provide data in form of { label, insertText, range, sortText }
     const actions = [];
-    
+    const inlineItems = [];
+
     // Get all the text in the model
     const fullText = model.getValue();
     
@@ -2278,12 +2260,29 @@ export function registerCustomLanguage(monaco) {
             }]
           }
         };
-        
-        actions.push(action);
+        if (isInline) {
+          // For inline completions, we need to return { label, insertText, range, sortText }
+          inlineItems.push({
+            label: 'Add page and show commands',
+            insertText: fixText,
+            range: new monaco.Range(
+              lastLine, lastColumn,
+              lastLine, lastColumn
+            ),
+            sortText: '0fix'
+          });
+        } else {
+          // For code actions, we return the full action object
+          actions.push(action);
+        }
       }
     }
     
-    return actions;
+    if (isInline) {
+      return inlineItems;
+    } else {
+      return actions;
+    }
   }
 
 }

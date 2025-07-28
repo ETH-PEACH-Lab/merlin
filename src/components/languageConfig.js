@@ -3,7 +3,7 @@
 
 export const languageConfig = {
   // Basic language tokens
-  keywords: ['page', 'show', 'hide', 'visslides', 'data', 'draw'],
+  keywords: ['page', 'show', 'hide'],
   
   symbols: [':', ':=', '=', '*', ',', '@', '&', '(', ')', '[', ']', '{', '}'],
   
@@ -40,45 +40,6 @@ export const languageConfig = {
   fontWeights: ['normal', 'bold', 'bolder', 'lighter', '100', '200', '300', '400', '500', '600', '700', '800', '900'],
   fontFamilies: ['Arial', 'Helvetica', 'Times New Roman', 'Times', 'Courier New', 'Courier', 'Georgia', 'Verdana', 'sans-serif', 'serif', 'monospace'],
   alignValues: ['left', 'center', 'right'],
-
-  // Basic type templates for autocomplete
-  basicTypeTemplates: {
-    array: {
-      label: 'Array - Basic template',
-      insertText: `array \${1:arr} = {\n    value: [\${2:1,2,3}]\n    color: [\${3:"red", null, "blue"}]\n    arrow: [\${4:null, "i", null}]\n}`,
-      documentation: 'Basic array with values, colors, and arrows'
-    },
-    matrix: {
-      label: 'Matrix - Basic template', 
-      insertText: `matrix \${1:grid} = {\n    value: [[\${2:1,2}],[\${3:3,4}]]\n    color: [[\${4:null, "red"}], [\${5:null, null}]]\n}`,
-      documentation: 'Basic 2x2 matrix with values and colors'
-    },
-    graph: {
-      label: 'Graph - Basic template',
-      insertText: `graph \${1:g} = {\n    nodes: [\${2:A,B,C}]\n    edges: [\${3:A-B, B-C}]\n    value: [\${4:1,2,3}]\n    color: [\${5:"red", null, "blue"}]\n}`,
-      documentation: 'Basic graph with 3 nodes, edges, values, and colors'
-    },
-    stack: {
-      label: 'Stack - Basic template',
-      insertText: `stack \${1:s} = {\n    value: [\${2:"main", "func"}]\n    color: [\${3:null, "blue"}]\n}`,
-      documentation: 'Basic stack with function call values and colors'
-    },
-    tree: {
-      label: 'Tree - Basic template', 
-      insertText: `tree \${1:t} = {\n    nodes: [\${2:root, left, right}]\n    children: [\${3:root-left, root-right}]\n    value: [\${4:1,2,3}]\n}`,
-      documentation: 'Basic binary tree with parent-child relationships and values'
-    },
-    linkedlist: {
-      label: 'LinkedList - Basic template',
-      insertText: `linkedlist \${1:ll} = {\n    nodes: [\${2:head, node1, tail}]\n    value: [\${3:1, 2, 3}]\n}`,
-      documentation: 'Basic linked list with 3 nodes and values'
-    },
-    text: {
-      label: 'Text - Basic template',
-      insertText: `text \${1:label} = {\n    value: \${2:"Hello, world!"}\n    fontSize: \${3:16}\n    color: \${4:"gray"}\n}`,
-      documentation: 'Basic text element with content, size, and color'
-    }
-  }
 };
 
 // Data structure type documentation with features and documentation links
@@ -86,37 +47,50 @@ export const typeDocumentation = {
   array: {
     description: 'Arrays represent ordered collections of elements with indexed access.',
     features: ['Fixed or dynamic size', 'Index-based element access', 'Support for colors and arrows'],
-    url: 'https://eth-peach-lab.github.io/merlin-docs/docs/data-structures/array'
+    url: 'https://eth-peach-lab.github.io/merlin-docs/docs/data-structures/array',
+    insertText: `array \${1:arr} = {\n    value: [\${2:1,2,3}]\n    color: [\${3:"red", null, "blue"}]\n    arrow: [\${4:null, "i", null}]\n}`,
+    supportedProperties: ['value', 'color', 'arrow', 'above', 'below', 'left', 'right']
   },
   matrix: {
     description: 'Matrices represent 2D grids of elements with row-column access.',
     features: ['2D grid structure', 'Row and column operations', 'Border support'],
-    url: 'https://eth-peach-lab.github.io/merlin-docs/docs/data-structures/matrix'
+    url: 'https://eth-peach-lab.github.io/merlin-docs/docs/data-structures/matrix',
+    insertText: `matrix \${1:grid} = {\n    value: [[\${2:1,2}],[\${3:3,4}]]\n    color: [[\${4:null, "red"}], [\${5:null, null}]]\n}`,
+    supportedProperties: ['value', 'color', 'arrow', 'above', 'below', 'left', 'right']
   },
   linkedlist: {
     description: 'Linked lists represent sequences of connected nodes.',
     features: ['Node-based structure', 'Dynamic size', 'Sequential access'],
-    url: 'https://eth-peach-lab.github.io/merlin-docs/docs/data-structures/linkedlist'
+    url: 'https://eth-peach-lab.github.io/merlin-docs/docs/data-structures/linkedlist',
+    insertText: `linkedlist \${1:ll} = {\n    nodes: [\${2:head, node1, tail}]\n    value: [\${3:1, 2, 3}]\n}`,
+    supportedProperties: ['nodes', 'value', 'color', 'arrow', 'above', 'below', 'left', 'right']
   },
   stack: {
     description: 'Stacks implement Last-In-First-Out (LIFO) data structure.',
     features: ['LIFO operations', 'Push/pop semantics', 'Visual stack representation'],
-    url: 'https://eth-peach-lab.github.io/merlin-docs/docs/data-structures/stack'
+    url: 'https://eth-peach-lab.github.io/merlin-docs/docs/data-structures/stack',
+    insertText: `stack \${1:s} = {\n    value: [\${2:"main", "func"}]\n    color: [\${3:null, "blue"}]\n}`,
+    supportedProperties: ['value', 'color', 'arrow', 'above', 'below', 'left', 'right']
   },
   tree: {
     description: 'Trees represent hierarchical data structures with parent-child relationships.',
     features: ['Hierarchical structure', 'Parent-child relationships', 'Subtree operations'],
-    url: 'https://eth-peach-lab.github.io/merlin-docs/docs/data-structures/tree'
+    url: 'https://eth-peach-lab.github.io/merlin-docs/docs/data-structures/tree',
+    insertText: `tree \${1:t} = {\n    nodes: [\${2:n1, n2, n3}]\n    children: [\${3:n1-n2, n1-n3}]\n    value: [\${4:1,2,3}]\n}`,
   },
   graph: {
     description: 'Graphs represent networks of interconnected nodes and edges.',
     features: ['Node and edge operations', 'Flexible connections', 'Visibility control'],
-    url: 'https://eth-peach-lab.github.io/merlin-docs/docs/data-structures/graph'
+    url: 'https://eth-peach-lab.github.io/merlin-docs/docs/data-structures/graph',
+    insertText: `graph \${1:g} = {\n    nodes: [\${2:A,B,C}]\n    edges: [\${3:A-B, B-C}]\n    value: [\${4:1,2,3}]\n    color: [\${5:"red", null, "blue"}]\n}`,
+    supportedProperties: ['nodes', 'edges', 'value', 'color', 'arrow', 'hidden', 'above', 'below', 'left', 'right']
   },
   text: {
     description: 'Text elements for displaying formatted text content.',
     features: ['Multi-line support', 'Font customization', 'Alignment options'],
-    url: 'https://eth-peach-lab.github.io/merlin-docs/docs/data-structures/text'
+    url: 'https://eth-peach-lab.github.io/merlin-docs/docs/data-structures/text',
+    insertText: `text \${1:label} = {\n    value: \${2:"Hello, world!"}\n    fontSize: \${3:16}\n    color: \${4:"gray"}\n}`,
+    supportedProperties: ['value', 'fontSize', 'fontWeight', 'fontFamily', 'align', 'lineSpacing', 'width', 'height']
   }
 };
 
@@ -137,7 +111,7 @@ export const typeMethodsMap = {
   matrix: {
     single: ['setValue', 'setColor', 'setArrow'],
     multiple: ['setValues', 'setColors', 'setArrows'],
-    matrixSpecific: ['addRow', 'addColumn', 'removeRow', 'removeColumn', 'addBorder']
+    matrixSpecific: ['addRow', 'addColumn', 'removeRow', 'removeColumn', 'addBorder', 'insertRow', 'insertColumn']
   },
   linkedlist: {
     single: ['setValue', 'setColor', 'setArrow'],
@@ -211,7 +185,9 @@ export const methodSignatures = {
   setChild: () => 'setChild(${1:parent}-${2:child})',
   removeSubtree: () => 'removeSubtree(${1:node})',
   addRow: () => 'addRow([${1:values}])',
-  addColumn: () => 'addColumn(${1:position}, [${2:values}])',
+  addColumn: () => 'addColumn([${1:values}])',
+  insertRow: () => 'insertRow(${1:index}, [${2:values}])',
+  insertColumn: () => 'insertColumn(${1:index}, [${2:values}])',
   removeRow: () => 'removeRow(${1:index})',
   removeColumn: () => 'removeColumn(${1:index})',
   addBorder: () => 'addBorder(${1:value}, ${2:color})',
@@ -337,6 +313,18 @@ export const methodDocumentation = {
     parameters: ['index: `number` - Position to insert at', 'value: `number|string|null` - The value to insert'],
     example: 'myArray.insertValue(2, 42)'
   },
+  insertRow: {
+    description: 'Insert row at specific index with optional values',
+    signature: 'insertRow(index, [values])',
+    parameters: ['index: `number` - Position to insert at', 'values: `array` - (optional) Array of values for the new row'],
+    example: 'myMatrix.insertRow(1, [4, 5, 6])'
+  },
+  insertColumn: {
+    description: 'Insert column at specific index with optional values',
+    signature: 'insertColumn(index, [values])',
+    parameters: ['index: `number` - Position to insert at', 'values: `array` - (optional) Array of values for the new column'],
+    example: 'myMatrix.insertColumn(1, [4, 5, 6])'
+  },
 
   // Remove Methods
   removeValue: {
@@ -418,16 +406,16 @@ export const methodDocumentation = {
 
   // Matrix-specific Methods
   addRow: {
-    description: 'Add row to matrix',
-    signature: 'addRow([values])',
-    parameters: ['values: `array` - Array of values for the new row'],
+    description: 'Add row at end of matrix',
+    signature: 'addRow([values]?)',
+    parameters: ['values?: `array` - (optional) Array of values for the new row'],
     example: 'myMatrix.addRow([1, 2, 3])'
   },
   addColumn: {
-    description: 'Add column to matrix at specified position',
-    signature: 'addColumn(position, [values])',
-    parameters: ['position: `number` - Column position to insert at', 'values: `array` - Array of values for the new column'],
-    example: 'myMatrix.addColumn(1, [4, 5, 6])'
+    description: 'Add column at end of matrix',
+    signature: 'addColumn([values]?)',
+    parameters: ['values?: `array` - Array of values for the new column'],
+    example: 'myMatrix.addColumn([4, 5, 6])'
   },
   removeRow: {
     description: 'Remove row from matrix',
@@ -440,6 +428,18 @@ export const methodDocumentation = {
     signature: 'removeColumn(index)',
     parameters: ['index: `number` - The column index to remove'],
     example: 'myMatrix.removeColumn(1)'
+  },
+  insertRow: {
+    description: 'Insert row at specific index with optional values',
+    signature: 'insertRow(index, [values]?)',
+    parameters: ['index: `number` - Position to insert at', 'values: `array` - (optional) Array of values for the new row'],
+    example: 'myMatrix.insertRow(1, [4, 5, 6])'
+  },
+  insertColumn: {
+    description: 'Insert column at specific index with optional values',
+    signature: 'insertColumn(index, [values]?)',
+    parameters: ['index: `number` - Position to insert at', 'values: `array` - (optional) Array of values for the new column'],
+    example: 'myMatrix.insertColumn(1, [4, 5, 6])'
   },
   addBorder: {
     description: 'Add border to matrix with value and color',
@@ -576,6 +576,8 @@ export const methodDescriptions = {
   removeRow: 'Remove row from matrix',
   removeColumn: 'Remove column from matrix',
   addBorder: 'Add border around matrix',
+  insertRow: 'Insert row at specific index with optional values',
+  insertColumn: 'Insert column at specific index with optional values',
   setFontSize: 'Set font size',
   setFontWeight: 'Set font weight',
   setFontFamily: 'Set font family',

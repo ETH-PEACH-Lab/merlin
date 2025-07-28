@@ -553,7 +553,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
             'set', 'set_multiple', 'set_matrix', 'set_matrix_multiple',
             'add', 'insert', 'remove', 'remove_at', 'remove_subtree',
             'add_child', 'set_child', 'add_matrix_row', 'add_matrix_column',
-            'remove_matrix_row', 'remove_matrix_column', 'add_matrix_border'
+            'remove_matrix_row', 'remove_matrix_column', 'add_matrix_border', 'insert_matrix_row', 'insert_matrix_column'
         ].includes(command.type)) {
             const targetObject = pages.length > 0 ? pages[pages.length - 1]?.find(comp => comp.name === command.name) : null;
             if (targetObject) {
@@ -1379,7 +1379,8 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                 }
                 break;
             }
-            case "add_matrix_row": {
+            case "add_matrix_row":
+            case "insert_matrix_row": {
                 const name = command.name;
                 const args = command.args; // Can be null, number, or array
                 const targetObject = pages[pages.length - 1].find(comp => comp.name === name);
@@ -1419,7 +1420,20 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                         let newRow;
                         let insertIndex;
                         
-                        if (Array.isArray(args)) {
+                        if (args && typeof args === 'object' && 'index' in args && 'value' in args) {
+                            // Two-argument form: insertRow(index, [values])
+                            insertIndex = Math.max(0, Math.min(args.index, currentMatrix.length));
+                            if (property === "value") {
+                                newRow = [...args.value];
+                            } else if (property === "color" || property === "arrow") {
+                                // For color and arrow, use null for all values
+                                newRow = Array(args.value.length).fill(null);
+                            }
+                            // Pad with null if the array is shorter than existing columns
+                            while (newRow.length < numCols) {
+                                newRow.push(null);
+                            }
+                        } else if (Array.isArray(args)) {
                             // If args is an array, use it as the new row values and add at the end
                             if (property === "value") {
                                 newRow = [...args];
@@ -1541,6 +1555,83 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                                 row.push(null);
                                 currentMatrix[i] = row;
                             }
+                        }
+                    });
+                } else {
+                    causeCompileError(`Component "${name}" not found on the current page.`, command);
+                }
+                break;
+            }
+            
+            case "insert_matrix_column": {
+                const name = command.name;
+                const args = command.args; // Can be null, number, or object with index and value
+                const targetObject = pages[pages.length - 1].find(comp => comp.name === name);
+
+                if (targetObject) {
+                    const body = targetObject.body;
+                    const matrixProperties = ["value", "color", "arrow"];
+                    
+                    // First, determine the current matrix dimensions
+                    let numCols = 0;
+                    let numRows = 0;
+                    matrixProperties.forEach(property => {
+                        if (body[property] && body[property].length > 0) {
+                            numRows = Math.max(numRows, body[property].length);
+                            numCols = Math.max(numCols, ...body[property].map(row => row.length));
+                        }
+                    });
+                    
+                    matrixProperties.forEach(property => {
+                        // Create the property if it doesn't exist
+                        if (!body[property]) {
+                            body[property] = [];
+                        }
+                        
+                        const currentMatrix = body[property];
+                        
+                        // Ensure the matrix has the right dimensions before adding
+                        while (currentMatrix.length < numRows) {
+                            currentMatrix.push(Array(numCols).fill(null));
+                        }
+                        currentMatrix.forEach(row => {
+                            while (row.length < numCols) {
+                                row.push(null);
+                            }
+                        });
+                        
+                        let insertIndex;
+                        let valuesToInsert;
+                        
+                        if (args && typeof args === 'object' && 'index' in args && 'value' in args) {
+                            // Two-argument form: insertColumn(index, [values])
+                            insertIndex = Math.max(0, Math.min(args.index, numCols));
+                            if (property === "value") {
+                                valuesToInsert = args.value;
+                            } else {
+                                valuesToInsert = Array(args.value.length).fill(null);
+                            }
+                        } else if (typeof args === 'number') {
+                            // Single-argument form: insertColumn(index)
+                            insertIndex = Math.max(0, Math.min(args, numCols));
+                            valuesToInsert = Array(numRows).fill(null);
+                        } else {
+                            // No arguments or null: insert at end
+                            insertIndex = numCols;
+                            valuesToInsert = Array(numRows).fill(null);
+                        }
+                        
+                        // Insert the column values at the specified index
+                        for (let i = 0; i < currentMatrix.length; i++) {
+                            const row = currentMatrix[i] || [];
+                            // Ensure row has enough columns before inserting
+                            while (row.length < insertIndex) {
+                                row.push(null);
+                            }
+                            // Insert the value at the specified index
+                            const valueToInsert = i < valuesToInsert.length ? valuesToInsert[i] : null;
+                            row.splice(insertIndex, 0, valueToInsert);
+                            currentMatrix[i] = row;
                         }
                     });
                 } else {
@@ -1816,7 +1907,7 @@ function preCheck(parsedDSL) {
         if (![
             "page", "show", "hide", "set", "set_multiple", "set_matrix", "set_matrix_multiple",
             "add", "insert", "remove", "remove_subtree", "remove_at", "comment",
-            "add_matrix_row", "add_matrix_column", "remove_matrix_row", "remove_matrix_column", "add_matrix_border", "add_child", "set_child"
+            "add_matrix_row", "add_matrix_column", "remove_matrix_row", "remove_matrix_column", "insert_matrix_row", "insert_matrix_column", "add_matrix_border", "add_child", "set_child"
         ].includes(cmd.type)) {
             throw createPreCheckError(
                 `Unknown command\n\nType: ${cmd.type}`,

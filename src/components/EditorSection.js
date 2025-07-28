@@ -19,6 +19,9 @@ const EditorSection = ({
   setEditor1Height,
   dslEditorEditable,
   setDslEditorEditable,
+  setCurrentPage,
+  currentPage,
+  pages,
 }) => {
   // Start collapsed by default
   const [isCollapsed, setIsCollapsed] = useState(true);
@@ -84,6 +87,9 @@ const EditorSection = ({
             value={unparsedCode}
             onChange={updateUnparsedCode}
             readOnly={!dslEditorEditable}
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
+            pages={pages}
           />
         </div>
       ) : (

@@ -65,8 +65,9 @@ export function findRelevantCommands(commands, pageStartIndex, pageEndIndex, com
         return { relevantCommands, commandsToRemove };
     }
     
+    // For matrix value updates, only consider set commands, not structural modifications
     const targetTypes = isMatrix 
-        ? ["set_matrix", "set_matrix_multiple", "add_matrix_row", "add_matrix_column", "remove_matrix_row", "remove_matrix_column", "add_matrix_border"]
+        ? ["set_matrix", "set_matrix_multiple"]
         : ["set", "set_multiple"];
     
     for (let i = pageStartIndex; i < pageEndIndex; i++) {

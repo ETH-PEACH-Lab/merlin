@@ -197,6 +197,7 @@ grid.setValue(0, 1, 5)
 page
 grid.setColor(1, 0, "green")
 grid.setValues([[3, 2], [_, 5]])
+grid.insertColumn(1, [8, 9])
 
 page
 grid.setArrow(1, 1, "target")
@@ -215,8 +216,8 @@ grid.setValue(3, 1, 8)
 grid.setValue(3, 2, 9)
 
 page
-// Add a new column at position 1
-grid.addColumn(1)
+// Add a new column
+grid.addColumn([1,2,3,4])
 grid.setValues([[1, 10, 5], [3, 11, 5], [_, 12, 9], [7, 13, 9]])
 grid.setColors([[null, "yellow", "blue"], ["green", "yellow", "orange"], [null, "yellow", "purple"], [null, "yellow", null]])
 
