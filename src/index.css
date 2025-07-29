@@ -54,6 +54,11 @@ body {
   color-scheme: dark;
 }
 
+.currentPageKeyword {
+  color: #8c7cff !important;
+  font-weight: bold !important;
+}
+
 /* Target specific scrollable elements */
 div[class*="MuiBox"], 
 .main-content,

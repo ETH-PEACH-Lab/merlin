@@ -24,6 +24,9 @@ const MermaidEditor = ({value = '', onChange= ()=>{}}) => {
         lineNumbers: "on",
         minimap: { enabled: false },
         readOnly: true,
+        inlineSuggest: {
+          enabled: true
+        }
       }}
     />
 
