@@ -234,7 +234,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
     };
 
     // Add a new unit
-    const addUnit = useCallback((page, component, type, coordinates, node, val) => {
+    const addUnit = useCallback((page, component, type, coordinates, node, val, addCommand) => {
         const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
         // For new tree nodes, directly add them as a child
         if (type === "tree"){
@@ -250,11 +250,18 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             const args = {index: nodeName, value: val}
             parsedCode.cmds.splice(pageEndIndex, 0, { name: component, target: "nodes", type: "add", args: args});
         }
+        // For linked lists insert a new node at a given position
         else if (type === "linkedlist"){
             const nodeName = "n" + `${ nodeCount }`;
             setNodeCount(nodeCount + 1);
             const args = {index: coordinates.index + 1, value: nodeName, nodeValue: val}
             parsedCode.cmds.splice(pageEndIndex, 0, { name: component, target: "nodes", type: "insert", args: args});
+        }
+        else if (type === "matrix"){
+            const addType = addCommand === "addRow" ? "insert_matrix_row" : "insert_matrix_column";
+            const coord = addCommand === "addRow" ? coordinates.row : coordinates.col + 1
+            const values = val.split(',').map(( value ) => value.trim());
+            parsedCode.cmds.splice(pageEndIndex, 0, { name: component, target: "value", type: addType, args: {index: coord, value: values} });
         }
         // For stacks and arrays insert a new value
         else {
@@ -269,7 +276,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
     const removeUnit = useCallback((page, component, type, coordinates, node, removeCommand) => {
         const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
 
-        if (type === "tree"){
+        if (type === "tree" || type === "graph"){
             const removeType = removeCommand === "removeSubtree" ? "remove_subtree" : "remove";
             parsedCode.cmds.splice(pageEndIndex, 0, { name: component, target: "nodes", type: removeType, args: node });
         } 

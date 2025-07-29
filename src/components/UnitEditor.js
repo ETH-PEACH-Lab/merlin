@@ -158,18 +158,19 @@ export const UnitEditor = ({
     }
   }, [inspectorIndex, currentPage, pages]);
 
-  const handleAddUnit = (value) => {
+  const handleAddUnit = (value, addCommand) => {
     addUnit(
           currentUnitData.page,
           currentUnitData.name,
           currentUnitData.type,
           currentUnitData.coordinates,
           currentUnitData.nodes,
-          value
+          value,
+          addCommand
     );
   };
 
-  const handleRemoveUnit = (event, removeType) => {
+  const handleRemoveUnit = (event, removeCommand) => {
     leaveFunction();
     removeUnit(
           currentUnitData.page,
@@ -177,7 +178,7 @@ export const UnitEditor = ({
           currentUnitData.type,
           currentUnitData.coordinates,
           currentUnitData.nodes,
-          removeType
+          removeCommand
     );
   };
 
@@ -187,8 +188,8 @@ export const UnitEditor = ({
 
   const handleFieldUpdate = (fieldKey, value) => {
     leaveFunction();
-    if (fieldKey === "add"){
-      handleAddUnit(value);
+    if (["add", "addRow", "addColumn"].includes(fieldKey)){
+      handleAddUnit(value, fieldKey);
     } 
     else {
       updateValue(

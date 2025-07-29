@@ -372,7 +372,6 @@ const RendererSection = ({
                     return;
                   }
                   const values = formJson.values.split(';').map((row)=>row.split(',').map((value)=>value.trim()));
-                  console.log(values);
                   const lengths = values.map( (innerList ) => innerList.length);
                   const maxLength = Math.max(...lengths);
                   const valuesExtended = values.map(( innerList ) => 
