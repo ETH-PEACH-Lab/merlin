@@ -58,7 +58,6 @@ const App = () => {
 
   useEffect(() => {
     loadSavedItems();
-
   }, []);
 
   // Listen for hash changes to support browser navigation
@@ -319,6 +318,9 @@ ${timestamp}
                     dslEditorEditable={dslEditorEditable}
                     setDslEditorEditable={setDslEditorEditable}
                     setCode1={updateUnparsedCode}
+                    currentPage={currentPage}
+                    setCurrentPage={setCurrentPage}
+                    pages={pages}
                   />
                   <div
                     style={{

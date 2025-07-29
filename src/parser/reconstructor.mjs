@@ -133,6 +133,10 @@ export function getMethodNameFromCommand(command) {
             return "removeColumn";
         case "add_matrix_border":
             return "addBorder";
+        case "insert_matrix_row":
+            return "insertRow";
+        case "insert_matrix_column":
+            return "insertColumn";
         default:
             return null;
     }
@@ -258,13 +262,25 @@ function reconstructCommand(cmd) {
             const subtreeNode = formatValue(cmd.args, cmd.target);
             return `${cmd.name}.${getMethodNameFromCommand(cmd)}(${subtreeNode})`;
             
-        case 'add_matrix_row':
-            const addRowValue = cmd.args !== null && cmd.args !== undefined ? cmd.args : '';
-            return `${cmd.name}.${getMethodNameFromCommand(cmd)}(${addRowValue})`;
+        case 'add_matrix_row': {
+            const method = getMethodNameFromCommand(cmd);
+            // Always reconstruct addRow, even with no args
+            if (cmd.args === undefined || cmd.args === null) {
+                return `${cmd.name}.${method}()`;
+            }
+            const value = formatValue(cmd.args);
+            return `${cmd.name}.${method}([${value}])`;
+        }
             
-        case 'add_matrix_column':
-            const addColValue = cmd.args !== null && cmd.args !== undefined ? cmd.args : '';
-            return `${cmd.name}.${getMethodNameFromCommand(cmd)}(${addColValue})`;
+        case 'add_matrix_column': {
+            const method = getMethodNameFromCommand(cmd);
+            // Always reconstruct addColumn, even with no args
+            if (cmd.args === undefined || cmd.args === null) {
+                return `${cmd.name}.${method}()`;
+            }
+            const value = formatValue(cmd.args);
+            return `${cmd.name}.${method}([${value}])`;
+        }
             
         case 'remove_matrix_row':
             return `${cmd.name}.${getMethodNameFromCommand(cmd)}(${cmd.args})`;
@@ -276,8 +292,27 @@ function reconstructCommand(cmd) {
             const borderValue = formatValue(cmd.args.index);
             const borderColor = formatValue(cmd.args.value);
             return `${cmd.name}.${getMethodNameFromCommand(cmd)}(${borderValue}, ${borderColor})`;
+        case 'insert_matrix_row': {
+            const methodRow = getMethodNameFromCommand(cmd);
+            if (cmd.args && cmd.args.index !== undefined && cmd.args.value !== undefined) {
+                const valsRow = formatValues('value', cmd.args.value);
+                return `${cmd.name}.${methodRow}(${cmd.args.index}, ${valsRow})`;
+            }
+            const argRow = cmd.args !== null && cmd.args !== undefined ? formatValue(cmd.args) : '';
+            return `${cmd.name}.${methodRow}(${argRow})`;
+        }
+        case 'insert_matrix_column': {
+            const methodCol = getMethodNameFromCommand(cmd);
+            if (cmd.args && cmd.args.index !== undefined && cmd.args.value !== undefined) {
+                const valsCol = formatValues('value', cmd.args.value);
+                return `${cmd.name}.${methodCol}(${cmd.args.index}, ${valsCol})`;
+            }
+            const argCol = cmd.args !== null && cmd.args !== undefined ? formatValue(cmd.args) : '';
+            return `${cmd.name}.${methodCol}(${argCol})`;
+        }
 
         default:
+            console.warn(`Reconstructing unknown command type: ${cmd.type}`);
             return null;
     }
 }

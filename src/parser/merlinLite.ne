@@ -317,6 +317,8 @@ commands -> (comment
           | set_text_aligns_multiple
           | add_matrix_row
           | add_matrix_column
+          | insert_matrix_row
+          | insert_matrix_column
           | remove_matrix_row
           | remove_matrix_column
           | add_matrix_border
@@ -389,6 +391,15 @@ insert_value -> cmd["insertValue", comma_sep[number, (number | string | nullT) {
 insert_node -> cmd["insertNode", insert_node_2_args] {% (details) => ({ type: "insert", target: "nodes", ...id(details) }) %}
 insert_node -> cmd["insertNode", insert_node_3_args] {% (details) => ({ type: "insert", target: "nodes", ...id(details) }) %}
 
+# Matrix insert functions
+# Two-argument version: insertRow(index, [values])
+insert_matrix_row -> cmd["insertRow", comma_sep[number, nns_list]] {% (details) => ({ type: "insert_matrix_row", target: "value", ...id(details) }) %}
+insert_matrix_column -> cmd["insertColumn", comma_sep[number, nns_list]] {% (details) => ({ type: "insert_matrix_column", target: "value", ...id(details) }) %}
+# One-argument version: insertRow(index) or insertRow()
+insert_matrix_row -> cmd["insertRow", ((nullT | number | nns_list) {% iid %}):?] {% (details) => ({ type: "insert_matrix_row", target: "value", ...id(details) }) %}
+insert_matrix_column -> cmd["insertColumn", ((nullT | number | nns_list) {% iid %}):?] {% (details) => ({ type: "insert_matrix_column", target: "value", ...id(details) }) %}
+
+
 # 2-argument version: insertNode(index, nodeName)  
 insert_node_2_args -> (number | word) "," _ word {% ([indexOrNode, , , nodeName]) => ({ index: indexOrNode[0], value: nodeName }) %}
 
@@ -406,8 +417,8 @@ remove_subtree -> cmd["removeSubtree", word] {% (details) => ({ type: "remove_su
 remove_at -> cmd["removeAt", number] {% (details) => ({ type: "remove_at", target: "all", ...id(details) }) %}
 
 # Matrix structural editing
-add_matrix_row -> cmd["addRow", ((nullT | number | nns_list) {% iid %}):?] {% (details) => ({ type: "add_matrix_row", target: "value", ...id(details) }) %}
-add_matrix_column -> cmd["addColumn", ((nullT | number | nns_list) {% iid %}):?] {% (details) => ({ type: "add_matrix_column", target: "value", ...id(details) }) %}
+add_matrix_row -> cmd["addRow", ((nullT | nns_list) {% iid %}):?] {% (details) => ({ type: "add_matrix_row", target: "value", ...id(details) }) %}
+add_matrix_column -> cmd["addColumn", ((nullT | nns_list) {% iid %}):?] {% (details) => ({ type: "add_matrix_column", target: "value", ...id(details) }) %}
 remove_matrix_row -> cmd["removeRow", number] {% (details) => ({ type: "remove_matrix_row", target: "value", ...id(details) }) %}
 remove_matrix_column -> cmd["removeColumn", number] {% (details) => ({ type: "remove_matrix_column", target: "value", ...id(details) }) %}
 add_matrix_border -> cmd["addBorder", comma_sep[(number | string | nullT) {% id %}, (string | nullT) {% id %}]] {% (details) => ({ type: "add_matrix_border", target: "value", ...id(details) }) %}
