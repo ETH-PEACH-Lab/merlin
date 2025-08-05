@@ -381,6 +381,18 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         [parsedCode, pages, reconstructMerlinLite]
     );
 
+    const updateValues = useCallback((componentType, componentName, page, fieldKey, prevValues, newValues) => {
+        const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
+        // For new tree nodes, directly add them as a child
+        if (componentType === "matrix"){
+
+        }
+        else {
+            parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, target: fieldKey, type: "set_multiple", args: newValues});
+        } 
+        reconstructMerlinLite();
+    }, [parsedCode]);
+
     // Create a new component and show it
     const createComponent = useCallback((componentType, componentBody, page) => {
         if (!parsedCode) return;
@@ -434,6 +446,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             reconstructMerlinLite,
             createComponent,
             updateValue,
+            updateValues,
             addUnit,
             removeUnit,
             addPage,
@@ -451,6 +464,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             reconstructMerlinLite,
             createComponent,
             updateValue,
+            updateValues,
             addUnit,
             removeUnit,
             addPage,

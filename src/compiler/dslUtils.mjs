@@ -138,13 +138,13 @@ export function getComponentFields(componentType) {
       arrow: "Add Arrow",
     },
     matrix: {
-      value: "Edit Value",
-      color: "Edit Color",
-      arrow: "Add Arrow",
       addRow: "Add Row",
       addColumn: "Add Column",
       removeRow: "Remove Row",
-      removeColumn: "Remove Column"
+      removeColumn: "Remove Column",
+      value: "Edit Value",
+      color: "Edit Color",
+      arrow: "Add Arrow",
     },
     stack: {
       add: "Add Unit",
@@ -157,6 +157,7 @@ export function getComponentFields(componentType) {
       add: "Add Unit",
       remove: "Remove Unit",
       nodes: "",
+      edges: "",
       value: "Edit Value",
       color: "Edit Color",
       arrow: "Add Arrow",
@@ -165,6 +166,7 @@ export function getComponentFields(componentType) {
       add: "Add Unit",
       remove: "Remove Unit",
       nodes: "",
+      edges: "",
       value: "Edit Value",
       color: "Edit Color",
       arrow: "Add Arrow",
@@ -192,6 +194,32 @@ export function getComponentFields(componentType) {
   };
 
   return fieldDefinitions[componentType] || {};
+}
+
+/**
+ * Creates component data object for the GUI editor
+ */
+export function createComponentData(parsedInfo) {
+  if (!parsedInfo) return null;
+
+  const { pageIdx, componentIdx, component, coordinates, componentName, componentType } = parsedInfo;
+
+  const componentData = {
+    component: componentIdx,
+    name: componentName,
+    page: pageIdx,
+    type: componentType,
+    body: component.body
+  };
+
+  const fields = getComponentFields(componentType);
+  Object.keys(fields).forEach(fieldKey => {
+    if (["nodes", "edges", "value", "color", "arrow"].includes(fieldKey))
+    componentData[fieldKey] = component.body[fieldKey] ?? "null"
+  });
+
+  return componentData;
+
 }
 
 /**
