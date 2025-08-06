@@ -2,8 +2,7 @@ import React, { useEffect, useState } from "react";
 import "./ElementEditor.css";
 import { UnitEditor } from "./UnitEditor";
 import { ComponentEditor } from "./ComponentEditor"
-import { parseInspectorIndex, createComponentData } from "../compiler/dslUtils.mjs";
-import { Button, Dialog, DialogActions, DialogContent, DialogContentText, Popover, Box, TextField } from "@mui/material";
+import { Dialog, DialogContent, Popover} from "@mui/material";
 import { useParseCompile } from "../context/ParseCompileContext";
 
 export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, currentPage}) => {
@@ -85,10 +84,7 @@ export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, curr
     }
     else if (e.detail === 2) {
       popoverLeave();
-      const parsedInfo = parseInspectorIndex({unitID, componentID, pageID}, pages, currentPage);
-      const { pageIdx, componentIdx, component, coordinates, componentName, componentType } = parsedInfo;
-      const data = createComponentData(parsedInfo);
-      setComponentData(data);
+      updateInspector(unitID, componentID, pageID);
       handleOpenDialog();
     }
     else {
@@ -97,14 +93,11 @@ export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, curr
     }
   }
 
-
-
   return (
     <React.Fragment>
       <Dialog open={openDialog} onClose={handleCloseDialog} fullWidth> 
         <DialogContent sx={{ paddingBottom: 0 }}>
-          {componentData &&
-          <ComponentEditor initialComponentData={componentData} leaveFunction={handleCloseDialog}/> }
+          <ComponentEditor inspectorIndex={inspectorIndex} currentPage={currentPage} leaveFunction={handleCloseDialog}/>
         </DialogContent>
       </Dialog>
       <Popover
