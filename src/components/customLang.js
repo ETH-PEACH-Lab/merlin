@@ -350,6 +350,20 @@ export function registerCustomLanguage(monaco) {
     const line = model.getLineContent(position.lineNumber);
     const beforeCursor = line.substring(0, position.column - 1);
     
+    // Check for chained placement notation: variableName.above., variableName.below., etc.
+    const chainedMatch = beforeCursor.match(/(\w+)\.(above|below|left|right)\.$/);
+    if (chainedMatch) {
+      // Return special marker to indicate this is a chained text object access
+      return `${chainedMatch[1]}._text_placement_${chainedMatch[2]}`;
+    }
+    
+    // Check for partial chained notation: variableName.above.methodName
+    const partialChainedMatch = beforeCursor.match(/(\w+)\.(above|below|left|right)\.(\w*)$/);
+    if (partialChainedMatch) {
+      // Return special marker to indicate this is a chained text object access
+      return `${partialChainedMatch[1]}._text_placement_${partialChainedMatch[2]}`;
+    }
+    
     // Look for pattern: variableName. (at the end of the line before cursor)
     const match = beforeCursor.match(/(\w+)\.$/);
     if (match) {
@@ -681,17 +695,23 @@ export function registerCustomLanguage(monaco) {
 
         // Method completion after dot
         if (context.isAfterDot) {
-          const varType = context.variableTypes[context.variableNameAtPosition];
-          if (varType) {
-            const methods = getMethodsForType(varType);
-            methods.forEach(method => {
+          // Check if this is a chained text object access
+          if (context.variableNameAtPosition && context.variableNameAtPosition.includes('_text_placement_')) {
+            // Extract the original variable name and placement direction
+            const parts = context.variableNameAtPosition.split('._text_placement_');
+            const originalVarName = parts[0];
+            const placementDirection = parts[1];
+            
+            // Get text object methods since we're accessing a linked text object
+            const textMethods = getMethodsForType('text');
+            textMethods.forEach(method => {
               suggestions.push({
                 label: method,
                 kind: monaco.languages.CompletionItemKind.Method,
-                insertText: getMethodSignature(method, varType),
+                insertText: getMethodSignature(method, 'text'),
                 insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-                detail: `${varType} method`,
-                documentation: methodDescriptions[method] || `Method for ${varType}`,
+                detail: `text method (${placementDirection} text)`,
+                documentation: (methodDescriptions[method] || `Method for text object`) + ` - Applied to ${placementDirection} text of ${originalVarName}`,
                 range: range,
                 sortText: `0${method}`,
                 command: {
@@ -701,6 +721,46 @@ export function registerCustomLanguage(monaco) {
               });
             });
             return { suggestions };
+          } else {
+            // Regular variable method completion
+            const varType = context.variableTypes[context.variableNameAtPosition];
+            if (varType) {
+              const methods = getMethodsForType(varType);
+              methods.forEach(method => {
+                suggestions.push({
+                  label: method,
+                  kind: monaco.languages.CompletionItemKind.Method,
+                  insertText: getMethodSignature(method, varType),
+                  insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                  detail: `${varType} method`,
+                  documentation: methodDescriptions[method] || `Method for ${varType}`,
+                  range: range,
+                  sortText: `0${method}`,
+                  command: {
+                    id: 'editor.action.triggerParameterHints',
+                    title: 'Trigger signature help'
+                  }
+                });
+              });
+              
+              // Also add placement properties for accessing linked text objects
+              if (varType !== 'text') { // Don't add placement properties to text objects themselves
+                const placements = ['above', 'below', 'left', 'right'];
+                placements.forEach(placement => {
+                  suggestions.push({
+                    label: placement,
+                    kind: monaco.languages.CompletionItemKind.Property,
+                    insertText: placement,
+                    detail: `${placement} text object`,
+                    documentation: `Access the text object positioned ${placement} relative to ${context.variableNameAtPosition}`,
+                    range: range,
+                    sortText: `1${placement}` // Sort after methods with '1' prefix
+                  });
+                });
+              }
+              
+              return { suggestions };
+            }
           }
         }
 
@@ -1584,21 +1644,49 @@ export function registerCustomLanguage(monaco) {
         }
 
         // Show alignment suggestions for setAlign and setAligns
-        if (methodName === 'setAlign' || methodName === 'setAligns') {
-          languageConfig.alignValues.forEach((align, index) => {
-            suggestions.push({
-              label: align,
-              kind: monaco.languages.CompletionItemKind.EnumMember,
-              insertText: `"${align}"`,
-              detail: 'Text alignment',
-              documentation: `Align text to ${align}`,
-              range: range,
-              sortText: `1align${index}`
+          if (methodName === 'setAlign' || methodName === 'setAligns') {
+            languageConfig.alignValues.forEach((align, index) => {
+              suggestions.push({
+                label: align,
+                kind: monaco.languages.CompletionItemKind.EnumMember,
+                insertText: `"${align}"`,
+                detail: 'Text alignment',
+                documentation: `Align text to ${align}`,
+                range: range,
+                sortText: `1align${index}`
+              });
             });
-          });
-        }
+          }
 
-        return { suggestions };
+          if (methodName === 'setText') {
+            if (parameterIndex === 0) {
+              // First parameter is text content (string or null)
+              suggestions.push({
+                label: '"text content"',
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: '"${1:text content}"',
+                insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                detail: 'Text to display',
+                documentation: 'Text content to display at the position',
+                range: range,
+                sortText: '1text'
+              });
+            } else if (parameterIndex === 1) {
+              // Second parameter is position ("above", "below", "left", "right")
+              const positions = ['above', 'below', 'left', 'right'];
+              positions.forEach((pos, index) => {
+                suggestions.push({
+                  label: pos,
+                  kind: monaco.languages.CompletionItemKind.EnumMember,
+                  insertText: `"${pos}"`,
+                  detail: 'Text position',
+                  documentation: `Position text ${pos} the component`,
+                  range: range,
+                  sortText: `1pos${index}`
+                });
+              });
+            }
+          }        return { suggestions };
       } catch (error) {
         console.error('Error in method argument completion provider:', error);
         return { suggestions: [] };

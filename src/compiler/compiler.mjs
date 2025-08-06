@@ -553,13 +553,29 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
             'set', 'set_multiple', 'set_matrix', 'set_matrix_multiple',
             'add', 'insert', 'remove', 'remove_at', 'remove_subtree',
             'add_child', 'set_child', 'add_matrix_row', 'add_matrix_column',
-            'remove_matrix_row', 'remove_matrix_column', 'add_matrix_border', 'insert_matrix_row', 'insert_matrix_column'
+            'remove_matrix_row', 'remove_matrix_column', 'add_matrix_border', 'insert_matrix_row', 'insert_matrix_column', 'set_text', 'set_chained'
         ].includes(command.type)) {
             const targetObject = pages.length > 0 ? pages[pages.length - 1]?.find(comp => comp.name === command.name) : null;
             if (targetObject) {
                 const methodName = getMethodNameFromCommand(command);
-                if (methodName && !isMethodSupported(targetObject.type, methodName)) {
-                    causeCompileError(`Method not supported\n\nMethod: ${methodName}\nComponent type: ${targetObject.type}\nComponent: ${command.name}`, command);
+                if (methodName) {
+                    // For chained commands, validate against text object methods instead
+                    if (command.type === 'set_chained') {
+                        if (!isMethodSupported('text', methodName)) {
+                            causeCompileError(`Method not supported on linked text object\n\nMethod: ${methodName}\nComponent type: text\nParent component: ${command.name}`, command);
+                        }
+                    } else if (!isMethodSupported(targetObject.type, methodName)) {
+                        causeCompileError(`Method not supported\n\nMethod: ${methodName}\nComponent type: ${targetObject.type}\nComponent: ${command.name}`, command);
+                    } else if (targetObject.type === 'text' && command.type === 'set_multiple') {
+                        // Special check for multi-line methods on single-line text objects
+                        const body = targetObject.body;
+                        const isMultiLineMethod = methodName && (methodName.endsWith('s') || methodName.includes('Multiple'));
+                        const hasArrayValue = Array.isArray(body.value);
+                        
+                        if (isMultiLineMethod && !hasArrayValue) {
+                            causeCompileError(`Cannot use multi-line method on single-line text\n\nMethod: ${methodName}\nText type: Single-line\nSuggestion: Use ${methodName.replace(/s$/, '')} instead, or convert to multi-line text with setValue([...])`, command);
+                        }
+                    }
                 }
             }
         }
@@ -740,8 +756,11 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                             break;
                         }
                     } else {
-                        // For non-node components, ensure index is a number
-                        if (typeof indexOrNodeName !== 'number') {
+                        // For non-node components, ensure index is a number or undefined (for text objects)
+                        if (targetObject.type === "text" && indexOrNodeName === undefined) {
+                            // Allow undefined index for text objects (means replace entire value)
+                            index = undefined;
+                        } else if (typeof indexOrNodeName !== 'number') {
                             causeCompileError(`Invalid index type\n\nExpected number, got: ${typeof indexOrNodeName}\nIndex: ${indexOrNodeName}\nProperty: ${property}\nComponent: ${name}`, command);
                             break;
                         }
@@ -753,7 +772,12 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                     if (targetObject.type === "text") {
                         if (property === "value") {
                             // For text components, check if we're setting an array element or the whole value
-                            if (isValidIndex) {
+                            if (index === undefined) {
+                                // No index provided - replace entire value
+                                // If current value is array and new value is string, replace with string
+                                // If current value is string and new value is string, replace with string
+                                body[property] = newValue;
+                            } else if (isValidIndex) {
                                 // Setting a specific line in a multi-line text
                                 if (!Array.isArray(body[property])) {
                                     // Convert single string to array if needed
@@ -770,7 +794,10 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                             }
                         } else {
                             // For other text properties (fontSize, color, etc.)
-                            if (isValidIndex) {
+                            if (index === undefined) {
+                                // No index provided - replace entire property value
+                                body[property] = newValue;
+                            } else if (isValidIndex) {
                                 // Setting array-based property
                                 if (!Array.isArray(body[property])) {
                                     // Convert single value to array, preserving existing value
@@ -1812,6 +1839,175 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                 if (!body2.nodes.includes(parent2)) body2.nodes.push(parent2);
                 break;
 
+            case "set_text": {
+                const name = command.name;
+                const text = command.args.index; // text value comes from index field
+                const position = command.args.value.value; // position comes from token's value field
+                const targetObject = pages[pages.length - 1].find(comp => comp.name === name);
+                
+                if (!targetObject) {
+                    causeCompileError(`Component not on page\n\nName: ${name}`, command);
+                    break;
+                }
+                
+                // setText is not allowed on text objects themselves
+                if (targetObject.type === "text") {
+                    causeCompileError(`setText cannot be used on text objects\n\nUse setValue, setFontSize, etc. instead.\nComponent: ${name}`, command);
+                    break;
+                }
+                
+                // Find the placement text component for this position
+                const textComponentName = `${name}_${position}`;
+                let textComponent = pages[pages.length - 1].find(comp => comp.name === textComponentName);
+                
+                if (text === null || text === undefined) {
+                    // Remove the text object if it exists
+                    if (textComponent) {
+                        const index = pages[pages.length - 1].indexOf(textComponent);
+                        if (index > -1) {
+                            pages[pages.length - 1].splice(index, 1);
+                        }
+                    }
+                    // Also remove from the component definition if it was set as a property
+                    if (targetObject.body[position]) {
+                        delete targetObject.body[position];
+                    }
+                } else {
+                    // Set or update the text
+                    if (textComponent) {
+                        // Update existing text component
+                        if (Array.isArray(text)) {
+                            // Convert array to single line string
+                            textComponent.body.value = text.join(' ');
+                        } else {
+                            textComponent.body.value = text;
+                        }
+                    } else {
+                        // Check if there's a reference to another text object in the definition
+                        const referencedTextName = targetObject.body[position];
+                        if (referencedTextName && typeof referencedTextName === 'string') {
+                            // Find if this references an existing text component
+                            const referencedComponent = findComponentDefinitionByName(definitions, referencedTextName);
+                            if (referencedComponent && referencedComponent.type === 'text') {
+                                // Update the referenced text object directly
+                                if (Array.isArray(text)) {
+                                    referencedComponent.body.value = text.join(' ');
+                                } else {
+                                    referencedComponent.body.value = text;
+                                }
+                                // Find the text component on the current page and update it
+                                textComponent = pages[pages.length - 1].find(comp => comp.name === referencedTextName);
+                                if (textComponent) {
+                                    if (Array.isArray(text)) {
+                                        textComponent.body.value = text.join(' ');
+                                    } else {
+                                        textComponent.body.value = text;
+                                    }
+                                }
+                                break;
+                            }
+                        }
+                        
+                        // Create new text component
+                        const newTextComponent = {
+                            type: 'text',
+                            name: textComponentName,
+                            body: { value: Array.isArray(text) ? text.join(' ') : text },
+                            position: 'previous',
+                            placement: position
+                        };
+                        pages[pages.length - 1].push(newTextComponent);
+                        
+                        // Also update the main component's definition to reference this text
+                        targetObject.body[position] = textComponentName;
+                    }
+                }
+                break;
+            }
+
+            case "set_chained": {
+                const name = command.name;
+                const placement = Array.isArray(command.placement) ? command.placement[0].value : command.placement;
+                const property = command.target;
+                const args = command.args;
+                const targetObject = pages[pages.length - 1].find(comp => comp.name === name);
+                
+                if (!targetObject) {
+                    causeCompileError(`Component not on page\n\nName: ${name}`, command);
+                    break;
+                }
+                
+                // Find the text component for this placement
+                const textComponentName = `${name}_${placement}`;
+                let textComponent = pages[pages.length - 1].find(comp => comp.name === textComponentName);
+                
+                // Check if the placement refers to a referenced text object
+                if (!textComponent && targetObject.body[placement]) {
+                    const referencedTextName = targetObject.body[placement];
+                    if (typeof referencedTextName === 'string') {
+                        textComponent = pages[pages.length - 1].find(comp => comp.name === referencedTextName);
+                    }
+                }
+                
+                if (!textComponent) {
+                    // Create a new text component if it doesn't exist
+                    textComponent = {
+                        type: 'text',
+                        name: textComponentName,
+                        body: { value: "" },
+                        position: 'previous',
+                        placement: placement
+                    };
+                    pages[pages.length - 1].push(textComponent);
+                    targetObject.body[placement] = textComponentName;
+                }
+                
+                if (textComponent.type !== "text") {
+                    causeCompileError(`Chained method can only be used on text objects\n\nComponent: ${textComponent.name} is not a text object`, command);
+                    break;
+                }
+                
+                // Apply the method to the text component using the same logic as regular text commands
+                if (property === "value") {
+                    // Handle setValue for text - check if args has index or is direct value
+                    if (typeof args === 'object' && args.index !== undefined) {
+                        // Array-style operation with index: setValue(index, value)
+                        if (!Array.isArray(textComponent.body[property])) {
+                            textComponent.body[property] = [textComponent.body[property] || ""];
+                        }
+                        // Ensure array is long enough
+                        while (textComponent.body[property].length <= args.index) {
+                            textComponent.body[property].push("");
+                        }
+                        textComponent.body[property][args.index] = args.value;
+                    } else {
+                        // Direct value setting: setValue("text") or setValue(["line1", "line2"])
+                        textComponent.body[property] = args;
+                    }
+                } else {
+                    // Handle other properties (fontSize, color, etc.)
+                    if (typeof args === 'object' && args.index !== undefined) {
+                        // Array-style operation with index
+                        if (!Array.isArray(textComponent.body[property])) {
+                            const existingValue = textComponent.body[property];
+                            textComponent.body[property] = [];
+                            if (existingValue !== undefined && existingValue !== null) {
+                                textComponent.body[property][0] = existingValue;
+                            }
+                        }
+                        // Ensure array is long enough
+                        while (textComponent.body[property].length <= args.index) {
+                            textComponent.body[property].push(null);
+                        }
+                        textComponent.body[property][args.index] = args.value;
+                    } else {
+                        // Direct property setting
+                        textComponent.body[property] = args;
+                    }
+                }
+                break;
+            }
+
         }
     });
 
@@ -1907,7 +2103,7 @@ function preCheck(parsedDSL) {
         if (![
             "page", "show", "hide", "set", "set_multiple", "set_matrix", "set_matrix_multiple",
             "add", "insert", "remove", "remove_subtree", "remove_at", "comment",
-            "add_matrix_row", "add_matrix_column", "remove_matrix_row", "remove_matrix_column", "insert_matrix_row", "insert_matrix_column", "add_matrix_border", "add_child", "set_child"
+            "add_matrix_row", "add_matrix_column", "remove_matrix_row", "remove_matrix_column", "insert_matrix_row", "insert_matrix_column", "add_matrix_border", "add_child", "set_child", "set_text", "set_chained"
         ].includes(cmd.type)) {
             throw createPreCheckError(
                 `Unknown command\n\nType: ${cmd.type}`,
@@ -1918,7 +2114,7 @@ function preCheck(parsedDSL) {
 
 
     // Check if the first command is a page (only if there are commands)
-    if (parsedDSL.cmds.length > 0 && parsedDSL.cmds[0].type !== "page") {
+    if (parsedDSL.cmds.length > 0 && parsedDSL.cmds[0].type !== "page" && parsedDSL.cmds[0].type !== "comment") {
         throw createPreCheckError("Command before page\n\nPlease start a page using 'page'.\nThen use any other commands.", parsedDSL.cmds[0]);
     }
 }

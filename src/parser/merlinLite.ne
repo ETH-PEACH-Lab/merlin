@@ -83,6 +83,9 @@ matrix_row[X] -> lbrac nlow:? $X (nlow:? comma nlow:? $X):* nlow:? rbrac {% ([, 
 # Commands
 cmd[X, Y] -> wordL dot $X lparen _ $Y _ rparen {% ([wordL, dot, , , , args]) => ({ args: id(args), ...wordL }) %}
 
+# Chained commands for text object methods (e.g., object.below.setFontSize())
+chained_cmd[X, Y] -> wordL dot ("above" | "below" | "left" | "right") dot $X lparen _ $Y _ rparen {% ([wordL, , placement, , , , , args]) => ({ args: id(args), placement: placement, ...wordL }) %}
+
 # Matrix commands with 3 parameters (row, col, value)
 triple_cmd[X, Y] -> wordL dot $X lparen _ number _ comma _ number _ comma _ $Y _ rparen {% ([wordL, , , , , row, , , , col, , , , value]) => ({ args: { row: row, col: col, value: id(value) }, ...wordL }) %}
 
@@ -145,19 +148,26 @@ root -> nlw:* one_per_line[definition_or_command]:? nlw:* {% ([, items]) => {
     const allItems = (items ?? []).flat();
     const defs = [];
     const cmds = [];
+    let lastAddedType = null;
     
     allItems.forEach(item => {
         if (!item) return;
-        
-        // Definitions have a 'class' property (from getDef function)
-        if (item.class) {
+
+        // Add comments to last added type
+        if (item.type === 'comment') {
+            if (lastAddedType === 'command') {
+                cmds.push(item);
+            } else {
+                defs.push(item);
+            }
+        } else if (item.class) {
+            // Definitions have a 'class' property (from getDef function)
             defs.push(item);
-        } else if (item.type === "comment") {
-            // Comments go to definitions by default (legacy behavior)
-            defs.push(item);
+            lastAddedType = 'definition';   
         } else if (item.type) {
             // Everything else with a type is a command
             cmds.push(item);
+            lastAddedType = 'command';
         }
     });
     
@@ -304,6 +314,7 @@ commands -> (comment
           | remove_child
           | remove_subtree
           | remove_at
+          | set_text_value
           | set_text_fontSize
           | set_text_fontWeight
           | set_text_fontFamily
@@ -315,6 +326,16 @@ commands -> (comment
           | set_text_fontWeights_multiple
           | set_text_fontFamilies_multiple
           | set_text_aligns_multiple
+          | set_text
+          | set_chained_text_fontSize
+          | set_chained_text_color
+          | set_chained_text_fontWeight
+          | set_chained_text_fontFamily
+          | set_chained_text_align
+          | set_chained_text_value
+          | set_chained_text_lineSpacing
+          | set_chained_text_width
+          | set_chained_text_height
           | add_matrix_row
           | add_matrix_column
           | insert_matrix_row
@@ -350,6 +371,7 @@ set_matrix_arrow -> triple_cmd["setArrow", (number | string | nullT) {% id %}] {
 set_edges -> cmd["setEdges", e_list] {% (details) => ({ type: "set_multiple", target: "edges", ...id(details) }) %}
 
 # Set a value in a text
+set_text_value -> cmd["setValue", (string | s_list) {% id %}] {% (details) => ({ type: "set", target: "value", ...id(details) }) %}
 set_text_fontSize -> cmd["setFontSize", (number | comma_sep[number, (number | nullT) {% id %}]) {% id %}] {% (details) => ({ type: "set", target: "fontSize", ...id(details) }) %}
 set_text_color -> cmd["setColor", (string | comma_sep[number, (string | nullT) {% id %}]) {% id %}] {% (details) => ({ type: "set", target: "color", ...id(details) }) %}
 set_text_fontWeight -> cmd["setFontWeight", (string | comma_sep[number, (string | nullT) {% id %}]) {% id %}] {% (details) => ({ type: "set", target: "fontWeight", ...id(details) }) %}
@@ -377,6 +399,20 @@ set_text_fontSizes_multiple -> cmd["setFontSizes", list[(number | nullT | pass) 
 set_text_fontWeights_multiple -> cmd["setFontWeights", list[(string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "fontWeight", ...id(details) }) %}
 set_text_fontFamilies_multiple -> cmd["setFontFamilies", list[(string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "fontFamily", ...id(details) }) %}
 set_text_aligns_multiple -> cmd["setAligns", list[(string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "align", ...id(details) }) %}
+
+# Set text for non-text objects
+set_text -> cmd["setText", comma_sep[(string | nullT) {% id %}, ("\"above\"" | "\"below\"" | "\"left\"" | "\"right\"") {% id %}]] {% (details) => ({ type: "set_text", ...id(details) }) %}
+
+# Chained text object methods
+set_chained_text_fontSize -> chained_cmd["setFontSize", (number | comma_sep[number, (number | nullT) {% id %}]) {% id %}] {% (details) => ({ type: "set_chained", target: "fontSize", ...id(details) }) %}
+set_chained_text_color -> chained_cmd["setColor", (string | comma_sep[number, (string | nullT) {% id %}]) {% id %}] {% (details) => ({ type: "set_chained", target: "color", ...id(details) }) %}
+set_chained_text_fontWeight -> chained_cmd["setFontWeight", (string | comma_sep[number, (string | nullT) {% id %}]) {% id %}] {% (details) => ({ type: "set_chained", target: "fontWeight", ...id(details) }) %}
+set_chained_text_fontFamily -> chained_cmd["setFontFamily", (string | comma_sep[number, (string | nullT) {% id %}]) {% id %}] {% (details) => ({ type: "set_chained", target: "fontFamily", ...id(details) }) %}
+set_chained_text_align -> chained_cmd["setAlign", (string | comma_sep[number, (string | nullT) {% id %}]) {% id %}] {% (details) => ({ type: "set_chained", target: "align", ...id(details) }) %}
+set_chained_text_value -> chained_cmd["setValue", (string | s_list) {% id %}] {% (details) => ({ type: "set_chained", target: "value", ...id(details) }) %}
+set_chained_text_lineSpacing -> chained_cmd["setLineSpacing", number] {% (details) => ({ type: "set_chained", target: "lineSpacing", ...id(details) }) %}
+set_chained_text_width -> chained_cmd["setWidth", number] {% (details) => ({ type: "set_chained", target: "width", ...id(details) }) %}
+set_chained_text_height -> chained_cmd["setHeight", number] {% (details) => ({ type: "set_chained", target: "height", ...id(details) }) %}
 
 # Add functions
 add_value -> cmd["addValue", (number | string | nullT) {% id %}] {% (details) => ({ type: "add", target: "value", ...id(details) }) %}
