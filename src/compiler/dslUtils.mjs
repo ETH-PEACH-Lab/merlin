@@ -214,7 +214,7 @@ export function createComponentData(parsedInfo) {
 
   const fields = getComponentFields(componentType);
   Object.keys(fields).forEach(fieldKey => {
-    if (["nodes", "edges", "value", "color", "arrow"].includes(fieldKey))
+    if (["nodes", "edges", "value", "color", "arrow", "above", "below", "left", "right"].includes(fieldKey))
     componentData[fieldKey] = component.body[fieldKey] ?? "null"
   });
 

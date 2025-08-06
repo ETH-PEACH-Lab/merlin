@@ -3,7 +3,6 @@ import "./ElementEditor.css";
 import { UnitEditor } from "./UnitEditor";
 import { ComponentEditor } from "./ComponentEditor"
 import { Dialog, DialogContent, Popover} from "@mui/material";
-import { useParseCompile } from "../context/ParseCompileContext";
 
 export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, currentPage}) => {
   useEffect(()=>{
@@ -17,28 +16,28 @@ export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, curr
     }
   }
 
-  const [anchorEl, setAnchorEl] = useState(null);
-  const open = Boolean(anchorEl);
-  const id = open ? "mouse-over-popover" : undefined;
-  const [openDialog, setOpenDialog] = React.useState(false);
-  const [componentData, setComponentData] = React.useState(null);
-  const { pages } = useParseCompile();
-  
-  const handleOpenDialog = () => {
-    setOpenDialog(true);
-  };
+  const [unitAnchorEl, setUnitAnchorEl] = useState(null);
+  const [componentAnchorEl, setComponentAnchorEl] = useState(null);
+  const unitToolbarOpen = Boolean(unitAnchorEl);
+  const unitToolbar = unitToolbarOpen ? "unit-toolbar-popover" : undefined;
+  const componentToolbarOpen = Boolean(componentAnchorEl);
+  const componentToolbar = componentToolbarOpen ? "component-toolbar-popover" : undefined;
 
-  const handleCloseDialog = () => {
-    setOpenDialog(false);
-  };
-
-  const popoverEnter = (target) => {
+  const unitPopoverEnter = (target) => {
     target.setAttribute("stroke", "green");
-    setAnchorEl(target);
+    setUnitAnchorEl(target);
   };
 
-  const popoverLeave = () => {
-    setAnchorEl(null);
+  const unitPopoverLeave = () => {
+    setUnitAnchorEl(null);
+  };
+
+  const componentPopoverEnter = (target) => {
+    setComponentAnchorEl(target);
+  };
+
+  const componentPopoverLeave = () => {
+    setComponentAnchorEl(null);
   };
 
   const onMouseOut = (e) => {
@@ -80,30 +79,25 @@ export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, curr
     const pageID = current?current.id: null;
 
     if (typeof target === "undefined" || e.target.parentElement !== target.parentElement){
-      popoverLeave();
+      unitPopoverLeave();
     }
     else if (e.detail === 2) {
-      popoverLeave();
+      unitPopoverLeave();
       updateInspector(unitID, componentID, pageID);
-      handleOpenDialog();
+      componentPopoverEnter(target);
     }
     else {
       updateInspector(unitID, componentID, pageID);
-      popoverEnter(target);
+      unitPopoverEnter(target);
     }
   }
 
   return (
     <React.Fragment>
-      <Dialog open={openDialog} onClose={handleCloseDialog} fullWidth> 
-        <DialogContent sx={{ paddingBottom: 0 }}>
-          <ComponentEditor inspectorIndex={inspectorIndex} currentPage={currentPage} leaveFunction={handleCloseDialog}/>
-        </DialogContent>
-      </Dialog>
       <Popover
-        id={id}
-        open={open}
-        anchorEl={anchorEl}
+        id={componentToolbar}
+        open={componentToolbarOpen}
+        anchorEl={componentAnchorEl}
         anchorOrigin={{
           vertical: "top",
           horizontal: "center",
@@ -114,8 +108,26 @@ export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, curr
         }}
         slotProps={{ paper: { sx: { pointerEvents: "auto" } } }}
         sx={{ pointerEvents: "none" }}>
-        <div id="mouse-over-popover-div">
-          <UnitEditor inspectorIndex={inspectorIndex} currentPage={currentPage} leaveFunction={popoverLeave}/>
+        <div>
+          <ComponentEditor inspectorIndex={inspectorIndex} currentPage={currentPage} leaveFunction={componentPopoverLeave}/>
+        </div>
+      </Popover>
+      <Popover
+        id={unitToolbar}
+        open={unitToolbarOpen}
+        anchorEl={unitAnchorEl}
+        anchorOrigin={{
+          vertical: "top",
+          horizontal: "center",
+        }}
+        transformOrigin={{
+          vertical: "bottom",
+          horizontal: "center",
+        }}
+        slotProps={{ paper: { sx: { pointerEvents: "auto" } } }}
+        sx={{ pointerEvents: "none" }}>
+        <div>
+          <UnitEditor inspectorIndex={inspectorIndex} currentPage={currentPage} leaveFunction={unitPopoverLeave}/>
         </div>
       </Popover>
     </React.Fragment>
