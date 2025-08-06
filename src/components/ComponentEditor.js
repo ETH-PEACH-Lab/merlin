@@ -1,13 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { Box, IconButton, Popover, TextField, Tooltip, SvgIcon } from "@mui/material";
-import AddIcon from '@mui/icons-material/Add';
-import ClearIcon from '@mui/icons-material/Clear';
-import EditIcon from '@mui/icons-material/Edit';
-import FormatColorFillIcon from '@mui/icons-material/FormatColorFill';
+import { Box, Button, Dialog, DialogActions, DialogContent, IconButton, TextField, Tooltip } from "@mui/material";
+import FormatShapesIcon from '@mui/icons-material/FormatShapes';
+import Grid3x3Icon from '@mui/icons-material/Grid3x3';
 import RectangleOutlinedIcon from '@mui/icons-material/RectangleOutlined';
-import TextRotateVerticalIcon from '@mui/icons-material/TextRotateVertical';
+import TextFormatIcon from '@mui/icons-material/TextFormat';
 import { useParseCompile } from "../context/ParseCompileContext";
-import { Button, DialogActions, Dialog, DialogContent } from "@mui/material";
 import { parseInspectorIndex, createComponentData } from "../compiler/dslUtils.mjs";
 
 
@@ -17,15 +14,6 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
   const [openDialog, setOpenDialog] = useState(false);
   const [dialogType, setDialogType] = useState(null);
   const { pages, updateValues } = useParseCompile();
-  
-  const handleOpenDialog = (event, type) => {
-    setDialogType(type);
-    setOpenDialog(true);
-  };
-
-  const handleCloseDialog = () => {
-    setOpenDialog(false);
-  };
 
   useEffect(() => {
     if (inspectorIndex) {
@@ -39,12 +27,21 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
     }
   }, [inspectorIndex, currentPage, pages]);
 
+    
+  const handleOpenDialog = (event, type) => {
+    setDialogType(type);
+    setOpenDialog(true);
+  };
+
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+  };
+
   const handleFieldChange = (e) => {
     setCurrentComponentData({ ...currentComponentData, [e.target.name]: e.target.value });
   };
 
   const handleEditComponent = (event) => {
-    console.log(currentComponentData);
     event.preventDefault();
     ["nodes", "edges", "value", "color", "arrow"].forEach(fieldKey => {
       const newValue = currentComponentData[fieldKey]
@@ -56,58 +53,66 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
     leaveFunction();
   };
 
-  const displayValue = (value) => {
-    if (value === null || typeof value === 'string' || value instanceof String){
-      return value;
-    }
-    return value.map(( value ) => (value === null) ? "_" : value);
-  };
-
   const getIcon = (name) => {
     switch (name){
       case "styling":
-        return <AddIcon></AddIcon>;
-      case "structure":
-        return <ClearIcon></ClearIcon>;
+        return <FormatShapesIcon></FormatShapesIcon>;
       case "text":
-        return <EditIcon></EditIcon>;
-      case "postion":
-        return <FormatColorFillIcon></FormatColorFillIcon>;
+        return <TextFormatIcon></TextFormatIcon>;
+      case "position":
+        return <Grid3x3Icon></Grid3x3Icon>;
       default: 
         return <RectangleOutlinedIcon></RectangleOutlinedIcon>
     }
+  };
+
+  const getTextField = (name, label, values, specialType="") => {
+    var valuesFormatted = values;
+
+    if (values instanceof Array){
+      if (specialType === "nodes"){
+        valuesFormatted = values.map(( value ) => value + ":" + currentComponentData.value[values.indexOf(value)]);
+      }
+      else if (specialType === "edges"){
+        valuesFormatted = values.map(( value ) => value.start + "-" + value.end);
+      }
+      else{
+        valuesFormatted = values.map(( value ) => (value === null) ? "_" : value);
+      }
+    }
+    return <TextField name={name} label={label} value={valuesFormatted} margin="dense" 
+                      fullWidth variant="standard" onChange={handleFieldChange}/>;
   };
 
   const getDialogFields = () =>{
     switch (dialogType){
     case "Styling":
       return (
-        <div>
-          <TextField name="value" label="Values" value={displayValue(currentComponentData?.value)} margin="dense" fullWidth variant="standard" onChange={handleFieldChange}/>
-          <TextField name="color" label="Colors" value={displayValue(currentComponentData?.color)} margin="dense" fullWidth variant="standard" onChange={handleFieldChange}/>
-          <TextField name="arrow" label="Arrows" value={displayValue(currentComponentData?.arrow)} margin="dense" fullWidth variant="standard" onChange={handleFieldChange}/>
-        </div>
-      );
-    case "Structure":
-      return (
-        <div>
-          <TextField name="nodes" label="Nodes" value={displayValue(currentComponentData?.nodes)} margin="dense" fullWidth variant="standard" onChange={handleFieldChange}/>
-          <TextField name="edges" label="Edges" value={displayValue(currentComponentData?.edges)} margin="dense" fullWidth variant="standard" onChange={handleFieldChange}/>        
-        </div>
+      <div>
+        {(currentComponentData.type === "tree" || currentComponentData.type === "graph") ? 
+          getTextField("nodes", "Nodes", currentComponentData?.nodes, "nodes") : 
+          getTextField("value", "Values", currentComponentData?.value) 
+        }
+        {(currentComponentData.type === "tree" || currentComponentData.type === "graph") ? 
+          getTextField("edges", "Edges", currentComponentData?.edges, "edges") : null
+        }
+        {getTextField("color", "Colors", currentComponentData?.color)}
+        {getTextField("arrow", "Arrows", currentComponentData?.arrow)}
+      </div>
       );
     case "Text":
       return (
         <div>
-          <TextField name="text_above" label="Text above" value={currentComponentData?.above} margin="dense" fullWidth variant="standard" onChange={handleFieldChange}/>
-          <TextField name="text_below" label="Text below" value={currentComponentData?.below} margin="dense" fullWidth variant="standard" onChange={handleFieldChange}/>
-          <TextField name="text_left"  label="Text left"  value={currentComponentData?.left}  margin="dense" fullWidth variant="standard" onChange={handleFieldChange}/>
-          <TextField name="text_right" label="Text right" value={currentComponentData?.right} margin="dense" fullWidth variant="standard" onChange={handleFieldChange}/>
+          {getTextField("text_above", "Text above", currentComponentData?.above)}
+          {getTextField("text_below", "Text below", currentComponentData?.below)}
+          {getTextField("text_left", "Text left", currentComponentData?.left)}
+          {getTextField("text_right", "Text right", currentComponentData?.right)}
         </div>
       );
     case "Position":
       return (
         <div>
-          <TextField name="position" label="Position" value="" margin="dense" fullWidth variant="standard" onChange={handleFieldChange}/>
+          {getTextField("position", "Position", currentComponentData?.position)}
         </div>
       );
     }
@@ -127,7 +132,7 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
         
         {/* Dynamically generate inputs based on type definition */}
         {currentComponentData && 
-          Object.entries({styling: "Styling", structure: "Structure", text: "Text", position: "Position"}).map(([fieldKey, label]) => (
+          Object.entries({styling: "Styling", text: "Text", position: "Position"}).map(([fieldKey, label]) => (
           <Tooltip title={label}>
               <span style={{marginLeft: "10px", marginRight: "10px"}}>
               <IconButton size="small" onClick={(e) => {handleOpenDialog(e, label);}}>
@@ -142,7 +147,7 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
         <DialogContent sx={{ paddingBottom: 0 }}>
           {currentComponentData &&
           <form onSubmit={handleEditComponent}>
-            {getDialogFields()}
+              {getDialogFields()}
             <DialogActions>
               <Button onClick={leaveFunction}>Cancel</Button>
               <Button type="submit">Save</Button>
