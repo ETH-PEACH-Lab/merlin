@@ -7,6 +7,9 @@ export default function reconstructDSL(parsedDSL) {
     if (parsedDSL.defs) {
         parsedDSL.defs.forEach(def => {
             if (def.type === 'comment') {
+                if (shouldAddEmptyLine(lines)) {
+                    lines.push('');
+                }
                 lines.push(`// ${def.content}`);
             } else {
                 lines.push(reconstructDefinition(def));
@@ -20,6 +23,9 @@ export default function reconstructDSL(parsedDSL) {
     if (parsedDSL.cmds) {
         parsedDSL.cmds.forEach(cmd => {
             if (cmd.type === 'comment') {
+                if (shouldAddEmptyLine(lines)) {
+                    lines.push('');
+                }
                 lines.push(`// ${cmd.content}`);
             } else {
                 const reconstructed = reconstructCommand(cmd);
@@ -31,6 +37,11 @@ export default function reconstructDSL(parsedDSL) {
     }
     
     return lines.join('\n').trim();
+}
+
+function shouldAddEmptyLine(lines) {
+    const prevLine = lines[lines.length - 1];
+    return lines.length > 0 && !prevLine.startsWith('// ') && !prevLine.startsWith('page') && prevLine !== '';
 }
 
 function reconstructDefinition(def) {
@@ -137,6 +148,22 @@ export function getMethodNameFromCommand(command) {
             return "insertRow";
         case "insert_matrix_column":
             return "insertColumn";
+        case "set_text":
+            return "setText";
+        case "set_chained":
+            // For chained commands, we need to get the target method name
+            const targetMethodMap = {
+                'fontSize': 'setFontSize',
+                'color': 'setColor', 
+                'fontWeight': 'setFontWeight',
+                'fontFamily': 'setFontFamily',
+                'align': 'setAlign',
+                'value': 'setValue',
+                'lineSpacing': 'setLineSpacing',
+                'width': 'setWidth',
+                'height': 'setHeight'
+            };
+            return targetMethodMap[command.target] || command.target;
         default:
             return null;
     }
@@ -309,6 +336,34 @@ function reconstructCommand(cmd) {
             }
             const argCol = cmd.args !== null && cmd.args !== undefined ? formatValue(cmd.args) : '';
             return `${cmd.name}.${methodCol}(${argCol})`;
+        }
+
+        case 'set_text': {
+            const methodName = getMethodNameFromCommand(cmd);
+            const text = formatValue(cmd.args.index); // text comes from index field
+            const position = `"${cmd.args.value.value}"`; // position comes from token's value field, wrap in quotes
+            return `${cmd.name}.${methodName}(${text}, ${position})`;
+        }
+
+        case 'set_chained': {
+            const methodName = getMethodNameFromCommand(cmd);
+            const placement = Array.isArray(cmd.placement) ? cmd.placement[0].value : cmd.placement;
+            
+            // Handle different argument structures for chained commands
+            if (cmd.target === 'value' && Array.isArray(cmd.args)) {
+                // setValue with array
+                const values = formatValues('value', cmd.args);
+                return `${cmd.name}.${placement}.${methodName}(${values})`;
+            } else if (typeof cmd.args === 'object' && cmd.args.index !== undefined) {
+                // Indexed operation: obj.below.setColor(index, value)
+                const index = cmd.args.index;
+                const value = formatValue(cmd.args.value, cmd.target);
+                return `${cmd.name}.${placement}.${methodName}(${index}, ${value})`;
+            } else {
+                // Direct operation: obj.below.setFontSize(16)
+                const value = formatValue(cmd.args, cmd.target);
+                return `${cmd.name}.${placement}.${methodName}(${value})`;
+            }
         }
 
         default:

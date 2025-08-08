@@ -100,42 +100,48 @@ export const typeMethodsMap = {
     single: ['setValue', 'setColor', 'setArrow'],
     multiple: ['setValues', 'setColors', 'setArrows'],
     addInsert: ['addValue', 'insertValue'],
-    remove: ['removeValue', 'removeAt']
+    remove: ['removeValue', 'removeAt'],
+    textControl: ['setText']
   },
   stack: {
     single: ['setValue', 'setColor', 'setArrow'],
     multiple: ['setValues', 'setColors', 'setArrows'],
     addInsert: ['addValue', 'insertValue'],
-    remove: ['removeValue', 'removeAt']
+    remove: ['removeValue', 'removeAt'],
+    textControl: ['setText']
   },
   matrix: {
     single: ['setValue', 'setColor', 'setArrow'],
     multiple: ['setValues', 'setColors', 'setArrows'],
-    matrixSpecific: ['addRow', 'addColumn', 'removeRow', 'removeColumn', 'addBorder', 'insertRow', 'insertColumn']
+    matrixSpecific: ['addRow', 'addColumn', 'removeRow', 'removeColumn', 'addBorder', 'insertRow', 'insertColumn'],
+    textControl: ['setText']
   },
   linkedlist: {
     single: ['setValue', 'setColor', 'setArrow'],
     multiple: ['setValues', 'setColors', 'setArrows'],
     addInsert: ['addNode', 'insertNode'],
-    remove: ['removeAt', 'removeNode']
+    remove: ['removeAt', 'removeNode'],
+    textControl: ['setText']
   },
   graph: {
     single: ['setValue', 'setColor', 'setArrow', 'setHidden'],
     multiple: ['setValues', 'setColors', 'setArrows', 'setHidden'],
     addInsert: ['addNode', 'addEdge', 'insertNode'],
     remove: ['removeNode', 'removeEdge'],
-    graphSpecific: ['setEdges']
+    graphSpecific: ['setEdges'],
+    textControl: ['setText']
   },
   tree: {
     single: ['setValue', 'setColor', 'setArrow'],
     multiple: ['setValues', 'setColors', 'setArrows'],
     addInsert: ['addNode', 'addChild', 'insertNode'],
     remove: ['removeNode', 'removeSubtree'],
-    treeSpecific: ['setChild']
+    treeSpecific: ['setChild'],
+    textControl: ['setText']
   },
   text: {
-    single: ['setFontSize', 'setColor', 'setFontWeight', 'setFontFamily', 'setAlign'],
-    multiple: ['setFontSizes', 'setColors', 'setFontWeights', 'setFontFamilies', 'setAligns'],
+    single: ['setValue', 'setFontSize', 'setColor', 'setFontWeight', 'setFontFamily', 'setAlign'],
+    multiple: ['setValues', 'setFontSizes', 'setColors', 'setFontWeights', 'setFontFamilies', 'setAligns'],
     textSpecific: ['setLineSpacing', 'setWidth', 'setHeight']
   }
 };
@@ -201,7 +207,8 @@ export const methodSignatures = {
   setAligns: () => 'setAligns([${1:alignments}])',
   setLineSpacing: () => 'setLineSpacing(${1:spacing})',
   setWidth: () => 'setWidth(${1:width})',
-  setHeight: () => 'setHeight(${1:height})'
+  setHeight: () => 'setHeight(${1:height})',
+  setText: () => 'setText(${1:"text"}, ${2:"position"})'
 };
 
 // Comprehensive method documentation with type-specific variations
@@ -546,6 +553,18 @@ export const methodDocumentation = {
     signature: 'setHeight(height)',
     parameters: ['height: `number` - Text box height in pixels'],
     example: 'myText.setHeight(100)'
+  },
+
+  // Text positioning method for non-text objects
+  setText: {
+    description: 'Set or remove text at a specific position around the component',
+    signature: 'setText(text, position)',
+    parameters: [
+      'text: `string|null` - Text to display or null to remove',
+      'position: `string` - Position around the object ("above", "below", "left", "right")'
+    ],
+    example: 'myArray.setText("Label", "above") or myArray.setText(null, "above")',
+    note: 'Creates or modifies placement text objects. Use null to remove text. If text object already exists at position, updates it directly.'
   }
 };
 
@@ -588,7 +607,8 @@ export const methodDescriptions = {
   setAligns: 'Set multiple text alignments',
   setLineSpacing: 'Set spacing between lines',
   setWidth: 'Set text box width',
-  setHeight: 'Set text box height'
+  setHeight: 'Set text box height',
+  setText: 'Set or remove text at a specific position around the component'
 };
 
 // Theme configuration for syntax highlighting
