@@ -163,9 +163,11 @@ export const UnitEditor = ({
           currentUnitData.page,
           currentUnitData.name,
           currentUnitData.type,
+          value,
           currentUnitData.coordinates,
           currentUnitData.nodes,
-          value,
+          null,
+          null,
           addCommand
     );
   };

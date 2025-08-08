@@ -9,6 +9,8 @@ import parseText from "../parser/parseText.mjs";
 import reconstructor from "../parser/reconstructor.mjs";
 import compiler from "../compiler/compiler.mjs";
 import { createOptimizedCommand, findRelevantCommands } from "../parser/commandUtils.mjs";
+import { node } from "prop-types";
+import { LensTwoTone } from "@mui/icons-material";
 
 const ParseCompileContext = createContext();
 
@@ -233,65 +235,83 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         return [pageStartIndex, pageEndIndex];
     };
 
+    
     // Add a new unit
-    const addUnit = useCallback((page, component, type, coordinates, node, val, addCommand) => {
+    const addUnit = useCallback((page, componentName, componentType, val, coordinates=null, parent=null, nodeName=null, addCommand="") => {
         const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
-        // For new tree nodes, directly add them as a child
-        if (type === "tree"){
-            const nodeName = "n" + `${ nodeCount }`;
+        // In case node name is needed and not defined or not valid, change node name
+        if (["tree", "graph", "linkedlist"].includes(componentType) && (nodeName === null || nodeName.toUpperCase() === nodeName.toLowerCase())){
+            nodeName = "n" + `${ nodeCount }`;
             setNodeCount(nodeCount + 1);
-            const args = {index: {start: node, end: nodeName}, value: val}
-            parsedCode.cmds.splice(pageEndIndex, 0, { name: component, target: "nodes", type: "add_child", args: args});
+        }
+        // For new tree nodes, directly add them as a child
+        if (componentType === "tree"){
+            const args = {index: {start: parent, end: nodeName}, value: val}
+            parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, target: "nodes", type: "add_child", args: args});
         } 
         // For graphs add a new node
-        else if (type === "graph"){
-            const nodeName = "n" + `${ nodeCount }`;
-            setNodeCount(nodeCount + 1);
+        else if (componentType === "graph"){
             const args = {index: nodeName, value: val}
-            parsedCode.cmds.splice(pageEndIndex, 0, { name: component, target: "nodes", type: "add", args: args});
+            parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, target: "nodes", type: "add", args: args});
         }
         // For linked lists insert a new node at a given position
-        else if (type === "linkedlist"){
-            const nodeName = "n" + `${ nodeCount }`;
-            setNodeCount(nodeCount + 1);
+        else if (componentType === "linkedlist"){
             const args = {index: coordinates.index + 1, value: nodeName, nodeValue: val}
-            parsedCode.cmds.splice(pageEndIndex, 0, { name: component, target: "nodes", type: "insert", args: args});
+            parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, target: "nodes", type: "insert", args: args});
         }
-        else if (type === "matrix"){
+        // For matrices 
+        else if (componentType === "matrix"){
             const addType = addCommand === "addRow" ? "insert_matrix_row" : "insert_matrix_column";
             const coord = addCommand === "addRow" ? coordinates.row : coordinates.col + 1
             const values = val.split(',').map(( value ) => value.trim());
-            parsedCode.cmds.splice(pageEndIndex, 0, { name: component, target: "value", type: addType, args: {index: coord, value: values} });
+            parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, target: "value", type: addType, args: {index: coord, value: values} });
         }
         // For stacks and arrays insert a new value
         else {
-            const idx = (type === "stack") ? coordinates.index : coordinates.index + 1;
+            const idx = (componentType === "stack") ? coordinates.index : coordinates.index + 1;
             const args = {index: idx, value: val};
-            parsedCode.cmds.splice(pageEndIndex, 0, { name: component, target: "value", type: "insert", args: args});
+            parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, target: "value", type: "insert", args: args});
         }
         reconstructMerlinLite();
     }, [parsedCode]);
 
+
+    // Add an edge to a graph or tree
+    const addEdge = useCallback((page, componentName, componentType, node0, node1) => {
+        const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
+        parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, target: "edges", type: "add", args: { start: node0, end:node1 } });        reconstructMerlinLite();
+    }, [parsedCode]);
+
+
     // Remove the selected unit
-    const removeUnit = useCallback((page, component, type, coordinates, node, removeCommand) => {
+    const removeUnit = useCallback((page, componentName, componentType, coordinates=null, nodeName=null, removeCommand="") => {
         const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
 
-        if (type === "tree" || type === "graph"){
+        if (componentType === "tree" || componentType === "graph"){
             const removeType = removeCommand === "removeSubtree" ? "remove_subtree" : "remove";
-            parsedCode.cmds.splice(pageEndIndex, 0, { name: component, target: "nodes", type: removeType, args: node });
+            parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, target: "nodes", type: removeType, args: nodeName });
         } 
 
-        else if (type === "matrix"){
+        else if (componentType === "matrix"){
             const removeType = removeCommand === "removeRow" ? "remove_matrix_row" : "remove_matrix_column";
             const coord = removeCommand === "removeRow" ? coordinates.row : coordinates.col
-            parsedCode.cmds.splice(pageEndIndex, 0, { name: component, target: "value", type: removeType, args: coord });
+            parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, target: "value", type: removeType, args: coord });
         } 
 
         else {
-            parsedCode.cmds.splice(pageEndIndex, 0, { name: component, target: "all", type: "remove_at", args: coordinates.index });
+            parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, target: "all", type: "remove_at", args: coordinates.index });
         }
         reconstructMerlinLite();
     }, [parsedCode]);
+
+
+    // Add an edge to a graph or tree
+    const removeEdge = useCallback((page, componentName, componentType, node0, node1) => {
+        const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
+        parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, target: "edges", type: "remove", args: { start: node0, end:node1 } });
+        reconstructMerlinLite();
+    }, [parsedCode]);
+
 
     const updateValue = useCallback(
         (page, componentName, coordinates, fieldKey, value) => {
@@ -381,15 +401,80 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         [parsedCode, pages, reconstructMerlinLite]
     );
 
-    const updateValues = useCallback((componentType, componentName, page, fieldKey, prevValues, newValues) => {
-        const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
-        // For new tree nodes, directly add them as a child
-        if (componentType === "matrix"){
+    const updateValues = useCallback((page, componentName, componentType, fieldKey, prevValues, newValues, prevEdges, newEdges) => {
+        let updateValues = false;
+        if (["graph", "tree"].includes(componentType)){
+			let nodes = new Array();
+            if (typeof newValues === "string"){
+				newValues = newValues.split(',').map(( value ) => value.trim());
+                const values = new Array();
+                for (let i = 0; i<newValues.length; i++){
+                    if (newValues[i].split(':').length === 2){
+                        nodes.push(newValues[i].split(':')[0]);
+                        values.push(newValues[i].split(':')[1]);
+                    }
+                }
+                newValues = new Array();
 
+                // Check for all previous nodes if they were deleted, if yes, delete them and if no, update their values
+                for (let i = 0; i < prevValues.length; i++) { 
+                    if (nodes.indexOf(prevValues[i]) === -1){
+                        removeUnit(page, componentName, componentType, null, prevValues[i], null);
+                    }
+                    else {
+						updateValues = true;
+                        newValues.push(values[nodes.indexOf(prevValues[i])]);
+                    }
+                }  
+                // Add the nodes that user created
+                for (let i = 0; i < nodes.length; i++) { 
+                    if (prevValues.indexOf(nodes[i]) === -1){
+                        addUnit(page, componentName, componentType, values[i], null, null, nodes[i]);                
+                    }
+                } 
+            }
+            
+            if (newEdges !== null){
+				// Remove the edges that the user deleted
+                for (let i = 0; i<prevEdges.length; i++){
+                    if (newEdges.indexOf(prevEdges[i]) === -1){
+                        removeEdge(page, componentName, componentType, prevEdges[i].split("-")[0], prevEdges[i].split("-")[1]);
+                    }
+                }
+				// Add the edges that the user created
+                for (let i = 0; i<newEdges.length; i++){
+                    if (newEdges[i].split("-").length === 2){
+                        let [n0, n1] = newEdges[i].split("-");
+                        if (nodes.indexOf(n0.trim()) !== -1 && nodes.indexOf(n1.trim()) !== -1  && prevEdges.indexOf(newEdges[i]) === -1){
+                            addEdge(page, componentName, componentType, n0, n1);
+                        }
+                    }
+                }
+            }
         }
-        else {
-            parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, target: fieldKey, type: "set_multiple", args: newValues});
-        } 
+        else if (["array", "stack", "linkedlist"].includes(componentType)){
+			updateValues = true;
+            for (let i = newValues.length; i < prevValues.length; i++) { 
+                removeUnit(page, componentName, componentType, {index: 1});
+            }      
+            if (["linkedlist"].includes(componentType)){
+                for (let i = prevValues.length; i < newValues.length; i++) { 
+                    addUnit(page, componentName, componentType, {index: 1}, null);
+                }
+            }  
+        }
+
+        if (updateValues){
+            const [newPageStartIndex, newPageEndIndex] = findPageBeginningAndEnd(page);
+            parsedCode.cmds.splice(newPageEndIndex, 0, { name: componentName, target: "value", type: "set_multiple", args: newValues}); 
+            reconstructMerlinLite();
+        }
+    }, [parsedCode]);
+
+    // Update the colors and arrows multiple units
+    const updateUnitStyles = useCallback((page, componentName, fieldKey, newValues) => {
+        const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
+        parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, target: fieldKey, type: "set_multiple", args: newValues});
         reconstructMerlinLite();
     }, [parsedCode]);
 
@@ -447,8 +532,11 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             createComponent,
             updateValue,
             updateValues,
+            updateUnitStyles,
             addUnit,
             removeUnit,
+            addEdge,
+            removeEdge,
             addPage,
             removePage,
         }),
@@ -465,8 +553,11 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             createComponent,
             updateValue,
             updateValues,
+            updateUnitStyles,
             addUnit,
             removeUnit,
+            addEdge,
+            removeEdge,
             addPage,
             removePage,
         ]

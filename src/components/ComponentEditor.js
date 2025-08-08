@@ -13,7 +13,7 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
   const [prevComponentData, setPrevComponentData] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [dialogType, setDialogType] = useState(null);
-  const { pages, updateValues } = useParseCompile();
+  const { pages, updateValues, updateUnitStyles } = useParseCompile();
 
   useEffect(() => {
     if (inspectorIndex) {
@@ -43,13 +43,41 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
 
   const handleEditComponent = (event) => {
     event.preventDefault();
-    ["nodes", "edges", "value", "color", "arrow"].forEach(fieldKey => {
-      const newValue = currentComponentData[fieldKey]
-      if (typeof newValue === 'string' || newValue instanceof String){
-        const newValueParsed = newValue.split(',').map(( value ) => value.trim());
-        updateValues(currentComponentData.type, currentComponentData.name, currentComponentData.page, fieldKey, prevComponentData[fieldKey], newValueParsed);
+    // Update the values, this can include adding or removing values
+    if (typeof currentComponentData["value"] === 'string'){
+      updateValues(
+        currentComponentData.page,
+        currentComponentData.name,
+        currentComponentData.type,
+        "value",
+        prevComponentData["value"],
+        currentComponentData["value"].split(',').map(( value ) => value.trim())
+      );
+    }
+    // Update the nodes, edges and values
+    else if (typeof currentComponentData["nodes"] === 'string' || typeof currentComponentData["edges"] === 'string'){
+      updateValues(
+        currentComponentData.page,
+        currentComponentData.name,
+        currentComponentData.type,
+        "nodes",
+        prevComponentData["nodes"],
+        currentComponentData["nodes"],
+        prevComponentData["edges"].map(( edge ) => edge.start + "-" + edge.end),
+        typeof currentComponentData["edges"] === 'string' ? currentComponentData["edges"].split(',').map(( value ) => value.trim()) : null
+      );
+    }
+    // For arrows and colors update the styles
+    ["color", "arrow"].forEach(fieldKey => {
+      if (typeof currentComponentData[fieldKey] === 'string'){
+        updateUnitStyles(
+          currentComponentData.page,
+          currentComponentData.name,
+          fieldKey,
+          currentComponentData[fieldKey].split(',').map(( value ) => value.trim())
+        );
       }
-    })
+    });
     leaveFunction();
   };
 
@@ -89,7 +117,7 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
     case "Styling":
       return (
       <div>
-        {(currentComponentData.type === "tree" || currentComponentData.type === "graph") ? 
+        {(currentComponentData.type === "tree" || currentComponentData.type === "graph" || currentComponentData.type === "linkedlist") ? 
           getTextField("nodes", "Nodes", currentComponentData?.nodes, "nodes") : 
           getTextField("value", "Values", currentComponentData?.value) 
         }
@@ -133,7 +161,7 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
         {/* Dynamically generate inputs based on type definition */}
         {currentComponentData && 
           Object.entries({styling: "Styling", text: "Text", position: "Position"}).map(([fieldKey, label]) => (
-          <Tooltip title={label}>
+          <Tooltip title={label} key={fieldKey}>
               <span style={{marginLeft: "10px", marginRight: "10px"}}>
               <IconButton size="small" onClick={(e) => {handleOpenDialog(e, label);}}>
                   {getIcon(fieldKey)}
