@@ -244,13 +244,13 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             nodeName = "n" + `${ nodeCount }`;
             setNodeCount(nodeCount + 1);
         }
-        // For new tree nodes, directly add them as a child
-        if (componentType === "tree"){
+        // For new tree nodes, we can directly add them as a child
+        if (componentType === "tree" && addCommand === "addChild"){
             const args = {index: {start: parent, end: nodeName}, value: val}
             parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, target: "nodes", type: "add_child", args: args});
         } 
-        // For graphs add a new node
-        else if (componentType === "graph"){
+        // For graphs and trees, we can add a new node
+        else if (componentType === "graph" || componentType === "tree"){
             const args = {index: nodeName, value: val}
             parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, target: "nodes", type: "add", args: args});
         }
@@ -279,7 +279,13 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
     // Add an edge to a graph or tree
     const addEdge = useCallback((page, componentName, componentType, node0, node1) => {
         const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
-        parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, target: "edges", type: "add", args: { start: node0, end:node1 } });        reconstructMerlinLite();
+        if (componentType === "tree"){
+			parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, type: "set_child", args: { start: node0, end: node1 } }); 
+		}
+		else{
+            parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, target: "edges", type: "add", args: { start: node0, end: node1 } }); 
+        }       
+        reconstructMerlinLite();
     }, [parsedCode]);
 
 
@@ -305,11 +311,16 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
     }, [parsedCode]);
 
 
-    // Add an edge to a graph or tree
+    // Remove an edge from the graph. In case of tree, remove entire subtree below the edge.
     const removeEdge = useCallback((page, componentName, componentType, node0, node1) => {
-        const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
-        parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, target: "edges", type: "remove", args: { start: node0, end:node1 } });
-        reconstructMerlinLite();
+		if (componentType === "tree"){
+			removeUnit(page, componentName, componentType, null, node1, "removeSubtree");
+		}
+		else{
+			const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
+			parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, target: "edges", type: "remove", args: { start: node0, end:node1 } });
+			reconstructMerlinLite();
+		}
     }, [parsedCode]);
 
 
@@ -437,7 +448,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             if (newEdges !== null){
 				// Remove the edges that the user deleted
                 for (let i = 0; i<prevEdges.length; i++){
-                    if (newEdges.indexOf(prevEdges[i]) === -1){
+                    if (newEdges.indexOf(prevEdges[i]) === -1 && nodes.indexOf(prevEdges[i].split("-")[0]) !== -1 && nodes.indexOf(prevEdges[i].split("-")[1]) !== -1){
                         removeEdge(page, componentName, componentType, prevEdges[i].split("-")[0], prevEdges[i].split("-")[1]);
                     }
                 }

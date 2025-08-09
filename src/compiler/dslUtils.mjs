@@ -163,7 +163,7 @@ export function getComponentFields(componentType) {
       arrow: "Add Arrow",
     },
     tree: {
-      add: "Add Unit",
+      addChild: "Add Unit",
       remove: "Remove Unit",
       nodes: "",
       edges: "",

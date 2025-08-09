@@ -37,6 +37,8 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, le
         return <FormatColorFillIcon></FormatColorFillIcon>;
       case "arrow": 
         return <TextRotateVerticalIcon></TextRotateVerticalIcon>;
+      case "addChild":
+        return <AddIcon></AddIcon>;
       case "removeSubtree":
         return  <SvgIcon component={removeSubtreeIcon}></SvgIcon> 
       case "addRow":
@@ -93,7 +95,7 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, le
   }
 
   // Regular text/number inputs
-  if (["add", "value", "arrow", "addRow", "addColumn"].includes(fieldKey)){
+  if (["add", "value", "arrow", "addRow", "addColumn", "addChild"].includes(fieldKey)){
     return (
       <React.Fragment>
         <Tooltip title={label} sx={{ mr: 5 }}>
@@ -167,7 +169,6 @@ export const UnitEditor = ({
           currentUnitData.coordinates,
           currentUnitData.nodes,
           null,
-          null,
           addCommand
     );
   };
@@ -190,7 +191,9 @@ export const UnitEditor = ({
 
   const handleFieldUpdate = (fieldKey, value) => {
     leaveFunction();
-    if (["add", "addRow", "addColumn"].includes(fieldKey)){
+    if (["add", "addRow", "addColumn", "addChild"].includes(fieldKey)){
+      console.log("here");
+      console.log(fieldKey);
       handleAddUnit(value, fieldKey);
     } 
     else {
