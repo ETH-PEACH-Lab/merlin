@@ -41,6 +41,13 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
     setCurrentComponentData({ ...currentComponentData, [e.target.name]: e.target.value });
   };
 
+  const parseUserInput = (input, componentType) => {
+    if (componentType === "matrix"){
+      return input.split('],').map(( row ) =>  row.replaceAll("[", "").replaceAll("]", "").split(","));
+    }
+    return input.split(',').map(( value ) => value.trim());
+  }
+
   const handleEditComponent = (event) => {
     event.preventDefault();
     // Update the values, this can include adding or removing values
@@ -51,7 +58,7 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
         currentComponentData.type,
         "value",
         prevComponentData["value"],
-        currentComponentData["value"].split(',').map(( value ) => value.trim())
+        parseUserInput(currentComponentData["value"], currentComponentData.type)
       );
     }
     // Update the nodes, edges and values
@@ -64,7 +71,7 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
         prevComponentData["nodes"],
         currentComponentData["nodes"],
         prevComponentData["edges"].map(( edge ) => edge.start + "-" + edge.end),
-        typeof currentComponentData["edges"] === 'string' ? currentComponentData["edges"].split(',').map(( value ) => value.trim()) : null
+        typeof currentComponentData["edges"] === 'string' ? parseUserInput(currentComponentData["edges"], currentComponentData.type) : null
       );
     }
     // For arrows and colors update the styles
@@ -74,7 +81,7 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
           currentComponentData.page,
           currentComponentData.name,
           fieldKey,
-          currentComponentData[fieldKey].split(',').map(( value ) => value.trim())
+          parseUserInput(currentComponentData[fieldKey], currentComponentData.type)
         );
       }
     });
@@ -94,15 +101,18 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
     }
   };
 
-  const getTextField = (name, label, values, specialType="") => {
+  const getTextField = (name, label, values, componentType, specialField="") => {
     var valuesFormatted = values;
 
     if (values instanceof Array){
-      if (specialType === "nodes"){
+      if (specialField === "nodes"){
         valuesFormatted = values.map(( value ) => value + ":" + currentComponentData.value[values.indexOf(value)]);
       }
-      else if (specialType === "edges"){
+      else if (specialField === "edges"){
         valuesFormatted = values.map(( value ) => value.start + "-" + value.end);
+      }
+      else if (componentType === "matrix"){
+        valuesFormatted = values.map(( row ) => "[" + row.map(( value ) => (value === null) ? "_" : value) + "]");
       }
       else{
         valuesFormatted = values.map(( value ) => (value === null) ? "_" : value);
@@ -118,29 +128,29 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
       return (
       <div>
         {(currentComponentData.type === "tree" || currentComponentData.type === "graph" || currentComponentData.type === "linkedlist") ? 
-          getTextField("nodes", "Nodes", currentComponentData?.nodes, "nodes") : 
-          getTextField("value", "Values", currentComponentData?.value) 
+          getTextField("nodes", "Nodes", currentComponentData?.nodes, currentComponentData?.type, "nodes") : 
+          getTextField("value", "Values", currentComponentData?.value, currentComponentData?.type) 
         }
         {(currentComponentData.type === "tree" || currentComponentData.type === "graph") ? 
-          getTextField("edges", "Edges", currentComponentData?.edges, "edges") : null
+          getTextField("edges", "Edges", currentComponentData?.edges, currentComponentData?.type, "edges") : null
         }
-        {getTextField("color", "Colors", currentComponentData?.color)}
-        {getTextField("arrow", "Arrows", currentComponentData?.arrow)}
+        {getTextField("color", "Colors", currentComponentData?.color, currentComponentData?.type)}
+        {getTextField("arrow", "Arrows", currentComponentData?.arrow, currentComponentData?.type)}
       </div>
       );
     case "Text":
       return (
         <div>
-          {getTextField("text_above", "Text above", currentComponentData?.above)}
-          {getTextField("text_below", "Text below", currentComponentData?.below)}
-          {getTextField("text_left", "Text left", currentComponentData?.left)}
-          {getTextField("text_right", "Text right", currentComponentData?.right)}
+          {getTextField("text_above", "Text above", currentComponentData?.above, currentComponentData?.type)}
+          {getTextField("text_below", "Text below", currentComponentData?.below, currentComponentData?.type)}
+          {getTextField("text_left", "Text left", currentComponentData?.left, currentComponentData?.type)}
+          {getTextField("text_right", "Text right", currentComponentData?.right, currentComponentData?.type)}
         </div>
       );
     case "Position":
       return (
         <div>
-          {getTextField("position", "Position", currentComponentData?.position)}
+          {getTextField("position", "Position", currentComponentData?.position, currentComponentData?.type)}
         </div>
       );
     }

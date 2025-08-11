@@ -474,6 +474,9 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
                 }
             }  
         }
+        else if (["matrix"].includes(componentType)){
+            updateValues = true;
+        }
 
         if (updateValues){
             const [newPageStartIndex, newPageEndIndex] = findPageBeginningAndEnd(page);
