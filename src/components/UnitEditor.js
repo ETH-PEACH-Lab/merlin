@@ -192,8 +192,6 @@ export const UnitEditor = ({
   const handleFieldUpdate = (fieldKey, value) => {
     leaveFunction();
     if (["add", "addRow", "addColumn", "addChild"].includes(fieldKey)){
-      console.log("here");
-      console.log(fieldKey);
       handleAddUnit(value, fieldKey);
     } 
     else {

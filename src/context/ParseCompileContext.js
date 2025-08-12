@@ -261,9 +261,10 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         }
         // For matrices 
         else if (componentType === "matrix"){
+            console.log(coordinates);
             const addType = addCommand === "addRow" ? "insert_matrix_row" : "insert_matrix_column";
-            const coord = addCommand === "addRow" ? coordinates.row : coordinates.col + 1
-            const values = val.split(',').map(( value ) => value.trim());
+            const coord = addCommand === "addRow" ? coordinates.row : coordinates.col + 1;
+            const values = val === null ? [null] : val.split(',').map(( value ) => value.trim());
             parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, target: "value", type: addType, args: {index: coord, value: values} });
         }
         // For stacks and arrays insert a new value
@@ -476,6 +477,21 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         }
         else if (["matrix"].includes(componentType)){
             updateValues = true;
+            const newRows = newValues.length;
+            const newColumns = newValues[0].length;
+            for (let i = prevValues.length; i < newRows; i++) { 
+                addUnit(page, componentName, componentType, null, {row: 1, col: 1}, null, null, "addRow");
+            }
+            for (let i = prevValues[0].length; i < newColumns; i++) { 
+                addUnit(page, componentName, componentType, null, {row: 1, col: 1}, null, null, "addColumn");
+            }
+            for (let i = newRows; i < prevValues.length; i++) { 
+                removeUnit(page, componentName, componentType, {row: 1, col: 1}, null, "removeRow");
+            }
+            for (let i = newColumns; i < prevValues[0].length; i++) { 
+                removeUnit(page, componentName, componentType, {row: 1, col: 1}, null, "removeColumn");
+            }
+
         }
 
         if (updateValues){
