@@ -214,7 +214,7 @@ export function createComponentData(parsedInfo) {
 
   const fields = getComponentFields(componentType);
   Object.keys(fields).forEach(fieldKey => {
-    if (["nodes", "edges", "value", "color", "arrow", "above", "below", "left", "right"].includes(fieldKey)){
+    if (["nodes", "edges", "value", "color", "arrow"].includes(fieldKey)){
           componentData[fieldKey] = component.body[fieldKey] ?? "null"
     }
     // exception for trees where the edges are called children
@@ -222,6 +222,9 @@ export function createComponentData(parsedInfo) {
       componentData[fieldKey] = component.body["children"] ?? "null"
     }
   });
+  ["above", "below", "left", "right"].forEach(fieldKey => {
+    componentData[fieldKey] = component.body[fieldKey] ?? ""
+  })
 
   return componentData;
 

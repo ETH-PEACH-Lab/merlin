@@ -13,7 +13,7 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
   const [prevComponentData, setPrevComponentData] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [dialogType, setDialogType] = useState(null);
-  const { pages, updateValues, updateUnitStyles } = useParseCompile();
+  const { pages, updateValues, updateUnitStyles, updateText } = useParseCompile();
 
   useEffect(() => {
     if (inspectorIndex) {
@@ -85,6 +85,16 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
         );
       }
     });
+    ["above", "below", "left", "right"].forEach(fieldKey => {
+      if (currentComponentData[fieldKey] != ""){
+        updateText(
+          currentComponentData.page,
+          currentComponentData.name,
+          fieldKey,
+          currentComponentData[fieldKey]
+        );
+      }
+    });
     leaveFunction();
   };
 
@@ -141,10 +151,10 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
     case "Text":
       return (
         <div>
-          {getTextField("text_above", "Text above", currentComponentData?.above, currentComponentData?.type)}
-          {getTextField("text_below", "Text below", currentComponentData?.below, currentComponentData?.type)}
-          {getTextField("text_left", "Text left", currentComponentData?.left, currentComponentData?.type)}
-          {getTextField("text_right", "Text right", currentComponentData?.right, currentComponentData?.type)}
+          {getTextField("above", "Text above", currentComponentData?.above, currentComponentData?.type)}
+          {getTextField("below", "Text below", currentComponentData?.below, currentComponentData?.type)}
+          {getTextField("left", "Text left", currentComponentData?.left, currentComponentData?.type)}
+          {getTextField("right", "Text right", currentComponentData?.right, currentComponentData?.type)}
         </div>
       );
     case "Position":

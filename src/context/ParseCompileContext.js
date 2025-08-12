@@ -261,7 +261,6 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         }
         // For matrices 
         else if (componentType === "matrix"){
-            console.log(coordinates);
             const addType = addCommand === "addRow" ? "insert_matrix_row" : "insert_matrix_column";
             const coord = addCommand === "addRow" ? coordinates.row : coordinates.col + 1;
             const values = val === null ? [null] : val.split(',').map(( value ) => value.trim());
@@ -508,6 +507,13 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         reconstructMerlinLite();
     }, [parsedCode]);
 
+    // Update the component texts
+    const updateText = useCallback((page, componentName, fieldKey, newValue) => {
+        const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
+        parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, type: "set_text", args: {index: newValue, value: {value: fieldKey}}});
+        reconstructMerlinLite();
+    }, [parsedCode]);
+
     // Create a new component and show it
     const createComponent = useCallback((componentType, componentBody, page) => {
         if (!parsedCode) return;
@@ -569,6 +575,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             removeEdge,
             addPage,
             removePage,
+            updateText
         }),
         [
             unparsedCode,
@@ -590,6 +597,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             removeEdge,
             addPage,
             removePage,
+            updateText
         ]
     );
 
