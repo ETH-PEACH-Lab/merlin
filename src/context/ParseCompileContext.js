@@ -553,6 +553,13 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         reconstructMerlinLite();
     }, [parsedCode]);
 
+    // Set the positioning grid for the current page
+    const setPageGrid = useCallback((currentPage, gridSize) => {
+        const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(currentPage - 1);
+        parsedCode?.cmds.splice(pageStartIndex - 1, 1, { type: "page", layout: gridSize.split("x")});
+        reconstructMerlinLite();
+    }, [parsedCode]);
+
     // Memoize context value
     const contextValue = useMemo(
         () => ({
@@ -575,6 +582,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             removeEdge,
             addPage,
             removePage,
+            setPageGrid,
             updateText
         }),
         [
@@ -597,6 +605,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             removeEdge,
             addPage,
             removePage,
+            setPageGrid,
             updateText
         ]
     );
