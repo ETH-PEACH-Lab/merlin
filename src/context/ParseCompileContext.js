@@ -216,7 +216,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         let pageEndIndex = parsedCode.cmds.length;
         let currentPage = 0;
         
-        for (let i = 0; i < parsedCode?.cmds.length; i++) {
+        for (let i = 0; i < parsedCode.cmds.length; i++) {
             if (parsedCode.cmds[i].type === "page") {
                 if (currentPage === pageNumber) {
                     pageStartIndex = i + 1;
@@ -541,6 +541,18 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         reconstructMerlinLite();
     }, [parsedCode]);
 
+    // Remove a component
+    const removeComponent = useCallback((componentName) => {    
+        let len = parsedCode.cmds.length;    
+        for (let i = len - 1; i >= 0; i--){
+            if ((parsedCode.cmds[i].type === "show" && parsedCode.cmds[i].value === componentName) || parsedCode.cmds[i].name === componentName) {
+                parsedCode.cmds.splice(i, 1);
+            }
+        }
+
+        reconstructMerlinLite();
+    }, [parsedCode]);
+
     // Add a page after the current page
     const addPage = useCallback((currentPage) => {
         if (currentPage == 0){
@@ -591,7 +603,8 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             removePage,
             setPageGrid,
             updateText,
-            updatePosition
+            updatePosition,
+            removeComponent
         }),
         [
             unparsedCode,
@@ -615,7 +628,8 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             removePage,
             setPageGrid,
             updateText,
-            updatePosition
+            updatePosition,
+            removeComponent
         ]
     );
 

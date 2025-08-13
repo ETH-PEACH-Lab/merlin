@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Box, Button, Dialog, DialogActions, DialogContent, IconButton, TextField, Tooltip } from "@mui/material";
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, IconButton, TextField, Tooltip } from "@mui/material";
+import ClearIcon from '@mui/icons-material/Clear';
 import FormatShapesIcon from '@mui/icons-material/FormatShapes';
 import Grid3x3Icon from '@mui/icons-material/Grid3x3';
 import RectangleOutlinedIcon from '@mui/icons-material/RectangleOutlined';
@@ -13,7 +14,7 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
   const [prevComponentData, setPrevComponentData] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [dialogType, setDialogType] = useState(null);
-  const { pages, updateValues, updateUnitStyles, updateText, updatePosition } = useParseCompile();
+  const { pages, updateValues, updateUnitStyles, updateText, updatePosition, removeComponent } = useParseCompile();
 
   useEffect(() => {
     if (inspectorIndex) {
@@ -28,7 +29,7 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
   }, [inspectorIndex, currentPage, pages]);
 
     
-  const handleOpenDialog = (event, type) => {
+  const handleToolbarClick = (event, type) => {
     setDialogType(type);
     setOpenDialog(true);
   };
@@ -50,6 +51,13 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
 
   const handleEditComponent = (event) => {
     event.preventDefault();
+    if (dialogType === "Remove"){
+      leaveFunction();
+      removeComponent(currentComponentData.name);
+      return;
+    }
+
+
     // Update the values, this can include adding or removing values
     if (typeof currentComponentData["value"] === 'string'){
       updateValues(
@@ -113,6 +121,8 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
         return <TextFormatIcon></TextFormatIcon>;
       case "position":
         return <Grid3x3Icon></Grid3x3Icon>;
+      case "remove":
+        return <ClearIcon></ClearIcon>;
       default: 
         return <RectangleOutlinedIcon></RectangleOutlinedIcon>
     }
@@ -170,6 +180,15 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
           {getTextField("position", "Position", currentComponentData?.position, currentComponentData?.type)}
         </div>
       );
+    case "Remove":
+      return (
+        <div>
+          <DialogContentText>
+            Do you really want to delete this component?
+          </DialogContentText>
+        </div>
+      );
+
     }
   }
 
@@ -186,11 +205,13 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
       >
         
         {/* Dynamically generate inputs based on type definition */}
-        {currentComponentData && 
-          Object.entries({styling: "Styling", text: "Text", position: "Position"}).map(([fieldKey, label]) => (
+        {currentComponentData &&
+          Object.entries({remove: "Remove", styling: "Styling", text: "Text", position: "Position"}).map(([fieldKey, label]) => (
           <Tooltip title={label} key={fieldKey}>
               <span style={{marginLeft: "10px", marginRight: "10px"}}>
-              <IconButton size="small" onClick={(e) => {handleOpenDialog(e, label);}}>
+              <IconButton size="small" 
+                          disabled={label === "Remove" && currentPage !== 1}
+                          onClick={(e) => {handleToolbarClick(e, label);}}>
                   {getIcon(fieldKey)}
               </IconButton>
               </span>

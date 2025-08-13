@@ -80,6 +80,7 @@ export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, curr
 
     if (typeof target === "undefined" || e.target.parentElement !== target.parentElement){
       unitPopoverLeave();
+      componentPopoverLeave();
     }
     else if (e.detail === 2) {
       unitPopoverLeave();

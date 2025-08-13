@@ -189,6 +189,7 @@ const RendererSection = ({
           <Tooltip title="Set positioning">
             <span>
               <IconButton
+                disabled={pages.length === 0}
                 onClick={handleOpenPopup}
                 sx={{ mr: 1 }}
                 size="small"
