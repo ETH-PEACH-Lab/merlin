@@ -13,7 +13,7 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
   const [prevComponentData, setPrevComponentData] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [dialogType, setDialogType] = useState(null);
-  const { pages, updateValues, updateUnitStyles, updateText } = useParseCompile();
+  const { pages, updateValues, updateUnitStyles, updateText, updatePosition } = useParseCompile();
 
   useEffect(() => {
     if (inspectorIndex) {
@@ -95,6 +95,13 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
         );
       }
     });
+    if (currentComponentData["position"] !== "" && currentComponentData["position"] !== prevComponentData["position"]){
+      updatePosition(
+        currentComponentData.page,
+        currentComponentData.name,
+        currentComponentData["position"]
+      );
+    }
     leaveFunction();
   };
 

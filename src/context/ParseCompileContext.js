@@ -514,6 +514,13 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         reconstructMerlinLite();
     }, [parsedCode]);
 
+    // Update the position of the component
+    const updatePosition = useCallback((page, componentName, newValue) => {
+        const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
+        parsedCode.cmds.splice(pageStartIndex, 0, { type: "show", value: componentName, position: newValue.split(",")});
+        reconstructMerlinLite();
+    }, [parsedCode]);
+
     // Create a new component and show it
     const createComponent = useCallback((componentType, componentBody, page) => {
         if (!parsedCode) return;
@@ -583,7 +590,8 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             addPage,
             removePage,
             setPageGrid,
-            updateText
+            updateText,
+            updatePosition
         }),
         [
             unparsedCode,
@@ -606,7 +614,8 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             addPage,
             removePage,
             setPageGrid,
-            updateText
+            updateText,
+            updatePosition
         ]
     );
 
