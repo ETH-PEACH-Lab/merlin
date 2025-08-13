@@ -184,7 +184,7 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
       return (
         <div>
           <DialogContentText>
-            Do you really want to delete this component?
+            Do you really want to delete this component? It will be deleted from all pages.
           </DialogContentText>
         </div>
       );
@@ -209,9 +209,7 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
           Object.entries({remove: "Remove", styling: "Styling", text: "Text", position: "Position"}).map(([fieldKey, label]) => (
           <Tooltip title={label} key={fieldKey}>
               <span style={{marginLeft: "10px", marginRight: "10px"}}>
-              <IconButton size="small" 
-                          disabled={label === "Remove" && currentPage !== 1}
-                          onClick={(e) => {handleToolbarClick(e, label);}}>
+              <IconButton size="small" onClick={(e) => {handleToolbarClick(e, label);}}>
                   {getIcon(fieldKey)}
               </IconButton>
               </span>
