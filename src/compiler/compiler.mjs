@@ -1920,6 +1920,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                         
                         // Also update the main component's definition to reference this text
                         targetObject.body[position] = textComponentName;
+                        targetObject.body["text_" + position] = text;
                     }
                 }
                 break;

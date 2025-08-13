@@ -222,7 +222,7 @@ export function createComponentData(parsedInfo) {
       componentData[fieldKey] = component.body["children"] ?? "null"
     }
   });
-  ["above", "below", "left", "right"].forEach(fieldKey => {
+  ["text_above", "text_below", "text_left", "text_right"].forEach(fieldKey => {
     componentData[fieldKey] = component.body[fieldKey] ?? ""
   })
 

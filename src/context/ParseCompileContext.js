@@ -510,7 +510,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
     // Update the component texts
     const updateText = useCallback((page, componentName, fieldKey, newValue) => {
         const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
-        parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, type: "set_text", args: {index: newValue, value: {value: fieldKey}}});
+        parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, type: "set_text", args: {index: newValue, value: {value: fieldKey.split("_")[1]}}});
         reconstructMerlinLite();
     }, [parsedCode]);
 

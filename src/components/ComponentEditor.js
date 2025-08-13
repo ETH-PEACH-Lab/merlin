@@ -85,8 +85,8 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
         );
       }
     });
-    ["above", "below", "left", "right"].forEach(fieldKey => {
-      if (currentComponentData[fieldKey] != ""){
+    ["text_above", "text_below", "text_left", "text_right"].forEach(fieldKey => {
+      if (currentComponentData[fieldKey] !== "" && currentComponentData[fieldKey] !== prevComponentData[fieldKey]){
         updateText(
           currentComponentData.page,
           currentComponentData.name,
@@ -151,10 +151,10 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
     case "Text":
       return (
         <div>
-          {getTextField("above", "Text above", currentComponentData?.above, currentComponentData?.type)}
-          {getTextField("below", "Text below", currentComponentData?.below, currentComponentData?.type)}
-          {getTextField("left", "Text left", currentComponentData?.left, currentComponentData?.type)}
-          {getTextField("right", "Text right", currentComponentData?.right, currentComponentData?.type)}
+          {getTextField("text_above", "Text above", currentComponentData?.text_above, currentComponentData?.type)}
+          {getTextField("text_below", "Text below", currentComponentData?.text_below, currentComponentData?.type)}
+          {getTextField("text_left", "Text left", currentComponentData?.text_left, currentComponentData?.type)}
+          {getTextField("text_right", "Text right", currentComponentData?.text_right, currentComponentData?.type)}
         </div>
       );
     case "Position":
