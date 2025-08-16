@@ -2,9 +2,8 @@ import React, { useState } from "react";
 import MermaidRenderer from "./MermaidRenderer";
 import { ElementEditor } from "./ElementEditor";
 import { CreateComponentItem } from "./CreateComponentItem";
-import Button from '@mui/material/Button';
-import { Box, Typography, ListItemText, Popover, ListItem, List, IconButton,
-         Tooltip, TextField, Snackbar, Alert } from "@mui/material";
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, Typography, ListItemText, Popover,
+  ListItem, List, IconButton, Tooltip, TextField, Snackbar, Alert } from "@mui/material";
 import DownloadIcon from '@mui/icons-material/Download';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import ImageIcon from '@mui/icons-material/Image';
@@ -13,6 +12,7 @@ import SaveIcon from '@mui/icons-material/Save';
 import ShareIcon from '@mui/icons-material/Share';
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
+import Grid3x3Icon from '@mui/icons-material/Grid3x3';
 import SlideshowIcon from '@mui/icons-material/Slideshow';
 import SettingsIcon from '@mui/icons-material/Settings';
 import WebIcon from '@mui/icons-material/Web';
@@ -41,13 +41,22 @@ const RendererSection = ({
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
   const [anchorEl1, setAnchorEl1] = useState(null);
   const [anchorEl2, setAnchorEl2] = useState(null);
+  const [openPopup, setOpenPopup] = React.useState(false);
   
-  const { pages, addPage, removePage, unparsedCode, createComponent } = useParseCompile();
+  const { pages, addPage, removePage, unparsedCode, createComponent, setPageGrid } = useParseCompile();
 
   const handleAddPage = () => {
     const pageBefore = (pages.length === 0) ? 0 : currentPage;
     addPage(pageBefore);
     setCurrentPage(pageBefore + 1);
+  };
+
+  const handleSetPageGrid = (event) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const formJson = Object.fromEntries(formData.entries());
+    setPageGrid(currentPage, formJson.size);
+    handleClosePopup();
   };
 
   const handleRemovePage = () => {
@@ -58,6 +67,14 @@ const RendererSection = ({
     } else {
       setCurrentPage(1);
     }
+  };
+  
+  const handleOpenPopup = () => {
+    setOpenPopup(true);
+  };
+
+  const handleClosePopup = () => {
+    setOpenPopup(false);
   };
 
   const handleExpand1 = (event) => {
@@ -169,6 +186,32 @@ const RendererSection = ({
               </IconButton>
             </span>
           </Tooltip>
+          <Tooltip title="Set positioning">
+            <span>
+              <IconButton
+                disabled={pages.length === 0}
+                onClick={handleOpenPopup}
+                sx={{ mr: 1 }}
+                size="small"
+              >
+                <Grid3x3Icon sx={{ fontSize: 20 }}></Grid3x3Icon>
+              </IconButton>
+            </span>
+          </Tooltip>
+            <Dialog open={openPopup} onClose={handleClosePopup} fullWidth> 
+              <DialogContent sx={{ paddingBottom: 0 }}>
+              <DialogContentText>
+                Enter the size of the grid (for example 2x2)
+              </DialogContentText>
+              <form onSubmit={handleSetPageGrid}>
+                <TextField autoFocus required margin="dense" name="size" label="Grid size" fullWidth variant="standard"/>
+                <DialogActions>
+                  <Button onClick={handleClosePopup}>Cancel</Button>
+                  <Button type="submit">Save</Button>
+                </DialogActions>
+              </form>
+            </DialogContent>
+          </Dialog>
           </Box>
         </Box>
         <Box display="flex">
@@ -372,7 +415,6 @@ const RendererSection = ({
                     return;
                   }
                   const values = formJson.values.split(';').map((row)=>row.split(',').map((value)=>value.trim()));
-                  console.log(values);
                   const lengths = values.map( (innerList ) => innerList.length);
                   const maxLength = Math.max(...lengths);
                   const valuesExtended = values.map(( innerList ) => 

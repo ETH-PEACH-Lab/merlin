@@ -8,7 +8,7 @@ import RectangleOutlinedIcon from '@mui/icons-material/RectangleOutlined';
 import TextRotateVerticalIcon from '@mui/icons-material/TextRotateVertical';
 import { useParseCompile } from "../context/ParseCompileContext";
 import { parseInspectorIndex, createUnitData, getComponentFields } from "../compiler/dslUtils.mjs";
-import { removeSubtreeIcon } from "./CustomIcons";
+import { removeSubtreeIcon, addColumnIcon, addRowIcon, removeColumnIcon, removeRowIcon } from "./CustomIcons";
 
 
 const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, leaveFunction }) => {
@@ -27,18 +27,28 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, le
 
   const getIcon = (name) => {
     switch (name){
-      case "Add":
+      case "add":
         return <AddIcon></AddIcon>;
-      case "Remove":
+      case "remove":
         return <ClearIcon></ClearIcon>;
-      case "Value":
+      case "value":
         return <EditIcon></EditIcon>;
-      case "Color":
+      case "color":
         return <FormatColorFillIcon></FormatColorFillIcon>;
-      case "Add Arrow": 
+      case "arrow": 
         return <TextRotateVerticalIcon></TextRotateVerticalIcon>;
-      case "Remove Subtree":
-        return removeSubtreeIcon;
+      case "addChild":
+        return <AddIcon></AddIcon>;
+      case "removeSubtree":
+        return  <SvgIcon component={removeSubtreeIcon}></SvgIcon> 
+      case "addRow":
+        return  <SvgIcon component={addRowIcon}></SvgIcon> 
+      case "removeRow":
+        return  <SvgIcon component={removeRowIcon}></SvgIcon> 
+      case "addColumn":
+        return  <SvgIcon component={addColumnIcon}></SvgIcon> 
+      case "removeColumn":
+        return  <SvgIcon component={removeColumnIcon}></SvgIcon> 
       default: 
         return <RectangleOutlinedIcon></RectangleOutlinedIcon>
     }
@@ -56,24 +66,13 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, le
     }
   };
 
-  if (label === "Remove Subtree"){
+  // For any type of remove, there is no need for any input field
+  if (["remove", "removeSubtree", "removeRow", "removeColumn"].includes(fieldKey)){
     return (
        <Tooltip title={label}>
         <span style={{marginLeft: "10px", marginRight: "10px"}}>
-          <IconButton size="small" onClick={(e) => {onRemove(e, true);}}>
-            <SvgIcon component={removeSubtreeIcon}></SvgIcon> 
-          </IconButton>
-        </span>
-      </Tooltip>
-    );
-  }
-
-  if (label === "Remove"){
-    return (
-       <Tooltip title={label}>
-        <span style={{marginLeft: "10px", marginRight: "10px"}}>
-          <IconButton size="small" onClick={(e) => {onRemove(e, false);}}>
-            {getIcon(label)}
+          <IconButton size="small" onClick={(e) => {onRemove(e, fieldKey);}}>
+            {getIcon(fieldKey)}
           </IconButton>
         </span>
       </Tooltip>
@@ -81,14 +80,14 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, le
   }
 
   // For the color field, use a color picker
-  if (label === "Color"){
+  if (fieldKey === "color"){
     return (
        <Tooltip title={label}>
         <span style={{marginLeft: "10px", marginRight: "10px"}}>
           <IconButton size="small">
             <input type="color" onChange={(e) => {onUpdate(fieldKey, e.target.value);}}
                    style={{opacity: 0, position: "absolute", top: 0, left: 0, width: "100%", height: "100%"}}/>
-            {getIcon(label)}
+            {getIcon(fieldKey)}
           </IconButton>
         </span>
       </Tooltip>
@@ -96,7 +95,7 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, le
   }
 
   // Regular text/number inputs
-  if (["Add", "Value", "Add Arrow"].includes(label)){
+  if (["add", "value", "arrow", "addRow", "addColumn", "addChild"].includes(fieldKey)){
     return (
       <React.Fragment>
         <Tooltip title={label} sx={{ mr: 5 }}>
@@ -104,7 +103,7 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, le
             <IconButton                 
               aria-describedby={id}
               onClick={handleOpenPopup}>
-                {getIcon(label)}
+                {getIcon(fieldKey)}
             </IconButton>
           </span>
         </Tooltip>
@@ -124,7 +123,7 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, le
           slotProps={{ paper: { sx: { pointerEvents: "auto" } } }}
           sx={{ pointerEvents: "none" }}>
             <TextField
-              label={label}
+              label={fieldKey === "addRow" || fieldKey === "addColumn" ? "Enter values comma-separated" : "Enter a value"}
               value={value !== null && value !== undefined && value !== "null" ? value :  ""}
               size="small"
               onChange={(e) => {onChange(fieldKey, e.target.value);}}
@@ -161,18 +160,20 @@ export const UnitEditor = ({
     }
   }, [inspectorIndex, currentPage, pages]);
 
-  const handleAddUnit = (value) => {
+  const handleAddUnit = (value, addCommand) => {
     addUnit(
           currentUnitData.page,
           currentUnitData.name,
           currentUnitData.type,
+          value,
           currentUnitData.coordinates,
           currentUnitData.nodes,
-          value
+          null,
+          addCommand
     );
   };
 
-  const handleRemoveUnit = (event, isSubTree = false) => {
+  const handleRemoveUnit = (event, removeCommand) => {
     leaveFunction();
     removeUnit(
           currentUnitData.page,
@@ -180,7 +181,7 @@ export const UnitEditor = ({
           currentUnitData.type,
           currentUnitData.coordinates,
           currentUnitData.nodes,
-          isSubTree
+          removeCommand
     );
   };
 
@@ -190,8 +191,8 @@ export const UnitEditor = ({
 
   const handleFieldUpdate = (fieldKey, value) => {
     leaveFunction();
-    if (fieldKey === "add"){
-      handleAddUnit(value);
+    if (["add", "addRow", "addColumn", "addChild"].includes(fieldKey)){
+      handleAddUnit(value, fieldKey);
     } 
     else {
       updateValue(

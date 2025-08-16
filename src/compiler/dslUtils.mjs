@@ -131,46 +131,52 @@ export function getFieldDropdownOptions(fieldKey) {
 export function getComponentFields(componentType) {
   const fieldDefinitions = {
     array: {
-      add: "Add",
-      remove: "Remove",
-      value: "Value",
-      color: "Color",
+      add: "Add Unit",
+      remove: "Remove Unit",
+      value: "Edit Value",
+      color: "Edit Color",
       arrow: "Add Arrow",
     },
     matrix: {
-      value: "Value",
-      color: "Color",
+      addRow: "Add Row",
+      addColumn: "Add Column",
+      removeRow: "Remove Row",
+      removeColumn: "Remove Column",
+      value: "Edit Value",
+      color: "Edit Color",
       arrow: "Add Arrow",
     },
     stack: {
-      add: "Add",
-      remove: "Remove",
-      value: "Value",
-      color: "Color",
+      add: "Add Unit",
+      remove: "Remove Unit",
+      value: "Edit Value",
+      color: "Edit Color",
       arrow: "Add Arrow",
     },
     graph: {
-      add: "Add",
-      remove: "Remove",
-      nodes: "Node",
-      value: "Value",
-      color: "Color",
+      add: "Add Unit",
+      remove: "Remove Unit",
+      nodes: "",
+      edges: "",
+      value: "Edit Value",
+      color: "Edit Color",
       arrow: "Add Arrow",
     },
     tree: {
-      add: "Add",
-      remove: "Remove",
-      nodes: "Node",
-      value: "Value",
-      color: "Color",
+      addChild: "Add Unit",
+      remove: "Remove Unit",
+      nodes: "",
+      edges: "",
+      value: "Edit Value",
+      color: "Edit Color",
       arrow: "Add Arrow",
       removeSubstree: "Remove Subtree",
     },
     linkedlist: {
-      add: "Add",
-      remove: "Remove",
-      value: "Value",
-      color: "Color",
+      add: "Add Unit",
+      remove: "Remove Unit",
+      value: "Edit Value",
+      color: "Edit Color",
       arrow: "Add Arrow",
     },
     // text: {
@@ -188,6 +194,40 @@ export function getComponentFields(componentType) {
   };
 
   return fieldDefinitions[componentType] || {};
+}
+
+/**
+ * Creates component data object for the GUI editor
+ */
+export function createComponentData(parsedInfo) {
+  if (!parsedInfo) return null;
+
+  const { pageIdx, componentIdx, component, coordinates, componentName, componentType } = parsedInfo;
+
+  const componentData = {
+    component: componentIdx,
+    name: componentName,
+    page: pageIdx,
+    type: componentType,
+    body: component.body
+  };
+
+  const fields = getComponentFields(componentType);
+  Object.keys(fields).forEach(fieldKey => {
+    if (["nodes", "edges", "value", "color", "arrow"].includes(fieldKey)){
+          componentData[fieldKey] = component.body[fieldKey] ?? "null"
+    }
+    // exception for trees where the edges are called children
+    if (fieldKey === "edges" && componentType === "tree"){
+      componentData[fieldKey] = component.body["children"] ?? "null"
+    }
+  });
+  ["text_above", "text_below", "text_left", "text_right", "position"].forEach(fieldKey => {
+    componentData[fieldKey] = component.body[fieldKey] ?? ""
+  })
+
+  return componentData;
+
 }
 
 /**

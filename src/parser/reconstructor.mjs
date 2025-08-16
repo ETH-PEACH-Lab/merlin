@@ -254,7 +254,7 @@ function reconstructCommand(cmd) {
             // Handle special case for nodes with optional value
             if (cmd.target === 'nodes' && cmd.args && typeof cmd.args === 'object' && cmd.args.index !== undefined) {
                 const nodeName = formatValue(cmd.args.index, cmd.target);
-                const nodeValue = formatValue(cmd.args.value, cmd.target);
+                const nodeValue = formatValue(cmd.args.value, "");
                 return `${cmd.name}.${addMethodName}(${nodeName}, ${nodeValue})`;
             } else {
                 const addValue = formatValue(cmd.args, cmd.target);
@@ -268,11 +268,12 @@ function reconstructCommand(cmd) {
             if (cmd.target === 'nodes' && cmd.args.nodeValue !== undefined) {
                 const insertIndex = cmd.args.index;
                 const insertNodeName = formatValue(cmd.args.value, cmd.target);
-                const insertNodeValue = formatValue(cmd.args.nodeValue, cmd.target);
+                const insertNodeValue = formatValue(cmd.args.nodeValue, "");
                 return `${cmd.name}.${insertMethodName}(${insertIndex}, ${insertNodeName}, ${insertNodeValue})`;
             } else {
                 const insertIndex = cmd.args.index;
                 const insertValue = formatValue(cmd.args.value, cmd.target);
+
                 return `${cmd.name}.${insertMethodName}(${insertIndex}, ${insertValue})`;
             }
             
