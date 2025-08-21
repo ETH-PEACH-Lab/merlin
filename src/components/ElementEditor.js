@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import "./ElementEditor.css";
 import { UnitEditor } from "./UnitEditor";
 import { ComponentEditor } from "./ComponentEditor"
-import { Dialog, DialogContent, Popover} from "@mui/material";
 
 export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, currentPage}) => {
   useEffect(()=>{
@@ -16,29 +15,10 @@ export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, curr
     }
   }
 
-  const [unitAnchorEl, setUnitAnchorEl] = useState(null);
-  const [componentAnchorEl, setComponentAnchorEl] = useState(null);
-  const unitToolbarOpen = Boolean(unitAnchorEl);
-  const unitToolbar = unitToolbarOpen ? "unit-toolbar-popover" : undefined;
-  const componentToolbarOpen = Boolean(componentAnchorEl);
-  const componentToolbar = componentToolbarOpen ? "component-toolbar-popover" : undefined;
-
-  const unitPopoverEnter = (target) => {
-    target.setAttribute("stroke", "green");
-    setUnitAnchorEl(target);
-  };
-
-  const unitPopoverLeave = () => {
-    setUnitAnchorEl(null);
-  };
-
-  const componentPopoverEnter = (target) => {
-    setComponentAnchorEl(target);
-  };
-
-  const componentPopoverLeave = () => {
-    setComponentAnchorEl(null);
-  };
+  const [unitTarget, setUnitTarget] = useState(null);
+  const [unitIsOpen, setUnitIsOpen] = useState(false);
+  const [componentTarget, setComponentTarget] = useState(null);
+  const [componentIsOpen, setComponentIsOpen] = useState(false);
 
   const onMouseOut = (e) => {
     let target = e.target.parentElement.getElementsByTagName("rect")[0] || e.target.parentElement.getElementsByTagName("circle")[0];
@@ -79,58 +59,26 @@ export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, curr
     const pageID = current?current.id: null;
 
     if (typeof target === "undefined" || e.target.parentElement !== target.parentElement){
-      unitPopoverLeave();
-      componentPopoverLeave();
+      setUnitIsOpen(false);
+      setComponentIsOpen(false);
     }
     else if (e.detail === 2) {
-      unitPopoverLeave();
+      setUnitIsOpen(false);
       updateInspector(unitID, componentID, pageID);
-      componentPopoverEnter(target);
+      setComponentTarget(target);
+      setComponentIsOpen(true);
     }
     else {
       updateInspector(unitID, componentID, pageID);
-      unitPopoverEnter(target);
+      setUnitTarget(target);
+      setUnitIsOpen(true);
     }
   }
 
   return (
     <React.Fragment>
-      <Popover
-        id={componentToolbar}
-        open={componentToolbarOpen}
-        anchorEl={componentAnchorEl}
-        anchorOrigin={{
-          vertical: "top",
-          horizontal: "center",
-        }}
-        transformOrigin={{
-          vertical: "bottom",
-          horizontal: "center",
-        }}
-        slotProps={{ paper: { sx: { pointerEvents: "auto" } } }}
-        sx={{ pointerEvents: "none" }}>
-        <div>
-          <ComponentEditor inspectorIndex={inspectorIndex} currentPage={currentPage} leaveFunction={componentPopoverLeave}/>
-        </div>
-      </Popover>
-      <Popover
-        id={unitToolbar}
-        open={unitToolbarOpen}
-        anchorEl={unitAnchorEl}
-        anchorOrigin={{
-          vertical: "top",
-          horizontal: "center",
-        }}
-        transformOrigin={{
-          vertical: "bottom",
-          horizontal: "center",
-        }}
-        slotProps={{ paper: { sx: { pointerEvents: "auto" } } }}
-        sx={{ pointerEvents: "none" }}>
-        <div>
-          <UnitEditor inspectorIndex={inspectorIndex} currentPage={currentPage} leaveFunction={unitPopoverLeave}/>
-        </div>
-      </Popover>
+          <ComponentEditor inspectorIndex={inspectorIndex} currentPage={currentPage} isOpen={componentIsOpen} target={componentTarget}/>
+          <UnitEditor inspectorIndex={inspectorIndex} currentPage={currentPage} isOpen={unitIsOpen} target={unitTarget}/>
     </React.Fragment>
   );
 }

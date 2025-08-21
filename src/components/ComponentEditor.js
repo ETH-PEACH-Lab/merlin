@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, IconButton, TextField, Tooltip } from "@mui/material";
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, IconButton, Popover, TextField, Tooltip } from "@mui/material";
 import ClearIcon from '@mui/icons-material/Clear';
 import FormatShapesIcon from '@mui/icons-material/FormatShapes';
 import Grid3x3Icon from '@mui/icons-material/Grid3x3';
@@ -9,12 +9,26 @@ import { useParseCompile } from "../context/ParseCompileContext";
 import { parseInspectorIndex, createComponentData } from "../compiler/dslUtils.mjs";
 
 
-export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) => {
+export const ComponentEditor = ({ inspectorIndex, currentPage, isOpen, target }) => {
+  const [componentAnchorEl, setComponentAnchorEl] = useState(null);
+  const componentToolbarOpen = Boolean(componentAnchorEl);
+  const componentToolbar = componentToolbarOpen ? "component-toolbar-popover" : undefined;
   const [currentComponentData, setCurrentComponentData] = useState(null);
   const [prevComponentData, setPrevComponentData] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [dialogType, setDialogType] = useState(null);
   const { pages, updateValues, updateUnitStyles, updateText, updatePosition, removeComponent } = useParseCompile();
+    
+  
+  const componentPopoverEnter = () => {
+    target.setAttribute("stroke", "green");
+    setComponentAnchorEl(target);
+  };
+
+  const componentPopoverLeave = () => {
+    setOpenDialog(false);
+    setComponentAnchorEl(null);
+  };
 
   useEffect(() => {
     if (inspectorIndex) {
@@ -24,11 +38,19 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
       if (componentData) {
         setCurrentComponentData(componentData);
         setPrevComponentData(componentData);
+        if (isOpen){
+          componentPopoverEnter();
+        }
       }
     }
   }, [inspectorIndex, currentPage, pages]);
-
     
+  useEffect(() => {
+    if (!isOpen){
+      componentPopoverLeave();
+    }
+  },[isOpen])
+
   const handleToolbarClick = (event, type) => {
     setDialogType(type);
     setOpenDialog(true);
@@ -52,7 +74,7 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
   const handleEditComponent = (event) => {
     event.preventDefault();
     if (dialogType === "Remove"){
-      leaveFunction();
+      componentPopoverLeave();
       removeComponent(currentComponentData.name);
       return;
     }
@@ -110,7 +132,7 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
         currentComponentData["position"]
       );
     }
-    leaveFunction();
+    componentPopoverLeave();
   };
 
   const getIcon = (name) => {
@@ -193,7 +215,20 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
   }
 
   return (
-    <React.Fragment>
+    <Popover
+      id={componentToolbar}
+      open={componentToolbarOpen}
+      anchorEl={componentAnchorEl}
+      anchorOrigin={{
+        vertical: "top",
+        horizontal: "center",
+      }}
+      transformOrigin={{
+        vertical: "bottom",
+        horizontal: "center",
+      }}
+      slotProps={{ paper: { sx: { pointerEvents: "auto" } } }}
+      sx={{ pointerEvents: "none" }}>
       <Box
         component="form"
         sx={{
@@ -223,14 +258,14 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
           <form onSubmit={handleEditComponent}>
               {getDialogFields()}
             <DialogActions>
-              <Button onClick={leaveFunction}>Cancel</Button>
+              <Button onClick={componentPopoverLeave}>Cancel</Button>
               <Button type="submit">Save</Button>
             </DialogActions>
           </form>
           }        
         </DialogContent>
       </Dialog>
-    </React.Fragment>
+    </Popover>
   );
 };
 

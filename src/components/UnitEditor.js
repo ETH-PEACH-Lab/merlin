@@ -140,14 +140,27 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, le
 export const UnitEditor = ({
   inspectorIndex,
   currentPage,
-  leaveFunction,
+  isOpen,
+  target
 }) => {
   const defaultUnitValue = {
     coordinates: null,
     type: null,
   };
+  const [unitAnchorEl, setUnitAnchorEl] = useState(null);
   const [currentUnitData, setUnitData] = useState(defaultUnitValue);
+  const unitToolbarOpen = Boolean(unitAnchorEl);
+  const unitToolbar = unitToolbarOpen ? "unit-toolbar-popover" : undefined;
   const { pages, updateValue, addUnit, removeUnit } = useParseCompile();
+
+  const unitPopoverEnter = () => {
+    target.setAttribute("stroke", "green");
+    setUnitAnchorEl(target);
+  };
+
+  const unitPopoverLeave = () => {
+    setUnitAnchorEl(null);
+  };
 
   useEffect(() => {
     if (inspectorIndex) {
@@ -156,9 +169,19 @@ export const UnitEditor = ({
       
       if (unitData) {
         setUnitData(unitData);
+        if (isOpen){
+          unitPopoverEnter();
+        }
       }
     }
   }, [inspectorIndex, currentPage, pages]);
+
+  useEffect(() => {
+    if (!isOpen){
+      unitPopoverLeave();
+    }
+
+  },[isOpen])
 
   const handleAddUnit = (value, addCommand) => {
     addUnit(
@@ -206,6 +229,20 @@ export const UnitEditor = ({
   };
 
   return (
+  <Popover
+    id={unitToolbar}
+    open={unitToolbarOpen}
+    anchorEl={unitAnchorEl}
+    anchorOrigin={{
+      vertical: "top",
+      horizontal: "center",
+    }}
+    transformOrigin={{
+      vertical: "bottom",
+      horizontal: "center",
+    }}
+    slotProps={{ paper: { sx: { pointerEvents: "auto" } } }}
+    sx={{ pointerEvents: "none" }}>
     <Box
       component="form"
       sx={{
@@ -227,11 +264,12 @@ export const UnitEditor = ({
             onChange={handleFieldChange}
             onUpdate={handleFieldUpdate}
             onRemove={handleRemoveUnit}
-            leaveFunction={leaveFunction}
+            leaveFunction={unitPopoverLeave}
           />
         ))
       }
     </Box>
+    </Popover>
   );
 };
 
