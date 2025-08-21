@@ -444,8 +444,12 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
                     }
                 } 
             }
+            else {
+                nodes = newValues;
+            }
             
             if (newEdges !== null){
+                console.log(newEdges);
 				// Remove the edges that the user deleted
                 for (let i = 0; i<prevEdges.length; i++){
                     if (newEdges.indexOf(prevEdges[i]) === -1 && nodes.indexOf(prevEdges[i].split("-")[0]) !== -1 && nodes.indexOf(prevEdges[i].split("-")[1]) !== -1){
@@ -456,7 +460,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
                 for (let i = 0; i<newEdges.length; i++){
                     if (newEdges[i].split("-").length === 2){
                         let [n0, n1] = newEdges[i].split("-");
-                        if (nodes.indexOf(n0.trim()) !== -1 && nodes.indexOf(n1.trim()) !== -1  && prevEdges.indexOf(newEdges[i]) === -1){
+                        if (nodes.indexOf(n0.trim()) !== -1 && nodes.indexOf(n1.trim()) !== -1){
                             addEdge(page, componentName, componentType, n0, n1);
                         }
                     }
@@ -490,7 +494,6 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             for (let i = newColumns; i < prevValues[0].length; i++) { 
                 removeUnit(page, componentName, componentType, {row: 1, col: 1}, null, "removeColumn");
             }
-
         }
 
         if (updateValues){
@@ -516,7 +519,14 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
 
     // Update the position of the component
     const updatePosition = useCallback((page, componentName, newValue) => {
+        let len = parsedCode.cmds.length;    
+        for (let i = len - 1; i >= 0; i--){
+            if ((parsedCode.cmds[i].type === "show" && parsedCode.cmds[i].value === componentName)) {
+                parsedCode.cmds.splice(i, 1);
+            }
+        }
         const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
+
         parsedCode.cmds.splice(pageStartIndex, 0, { type: "show", value: componentName, position: newValue.split(",")});
         reconstructMerlinLite();
     }, [parsedCode]);

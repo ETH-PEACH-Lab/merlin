@@ -16,9 +16,7 @@ export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, curr
   }
 
   const [unitTarget, setUnitTarget] = useState(null);
-  const [unitIsOpen, setUnitIsOpen] = useState(false);
   const [componentTarget, setComponentTarget] = useState(null);
-  const [componentIsOpen, setComponentIsOpen] = useState(false);
 
   const onMouseOut = (e) => {
     let target = e.target.parentElement.getElementsByTagName("rect")[0] || e.target.parentElement.getElementsByTagName("circle")[0];
@@ -59,26 +57,24 @@ export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, curr
     const pageID = current?current.id: null;
 
     if (typeof target === "undefined" || e.target.parentElement !== target.parentElement){
-      setUnitIsOpen(false);
-      setComponentIsOpen(false);
+      setUnitTarget(null);
+      setComponentTarget(null);
     }
     else if (e.detail === 2) {
-      setUnitIsOpen(false);
+      setUnitTarget(null);
       updateInspector(unitID, componentID, pageID);
       setComponentTarget(target);
-      setComponentIsOpen(true);
     }
     else {
       updateInspector(unitID, componentID, pageID);
       setUnitTarget(target);
-      setUnitIsOpen(true);
     }
   }
 
   return (
     <React.Fragment>
-          <ComponentEditor inspectorIndex={inspectorIndex} currentPage={currentPage} isOpen={componentIsOpen} target={componentTarget}/>
-          <UnitEditor inspectorIndex={inspectorIndex} currentPage={currentPage} isOpen={unitIsOpen} target={unitTarget}/>
+          <ComponentEditor inspectorIndex={inspectorIndex} currentPage={currentPage}target={componentTarget} setTarget={setComponentTarget}/>
+          <UnitEditor inspectorIndex={inspectorIndex} currentPage={currentPage} target={unitTarget} setTarget={setUnitTarget}/>
     </React.Fragment>
   );
 }

@@ -140,8 +140,8 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, le
 export const UnitEditor = ({
   inspectorIndex,
   currentPage,
-  isOpen,
-  target
+  target,
+  setTarget
 }) => {
   const defaultUnitValue = {
     coordinates: null,
@@ -160,6 +160,7 @@ export const UnitEditor = ({
 
   const unitPopoverLeave = () => {
     setUnitAnchorEl(null);
+    setTarget(null);
   };
 
   useEffect(() => {
@@ -169,7 +170,7 @@ export const UnitEditor = ({
       
       if (unitData) {
         setUnitData(unitData);
-        if (isOpen){
+        if (target){
           unitPopoverEnter();
         }
       }
@@ -177,11 +178,11 @@ export const UnitEditor = ({
   }, [inspectorIndex, currentPage, pages]);
 
   useEffect(() => {
-    if (!isOpen){
+    if (!target){
       unitPopoverLeave();
     }
 
-  },[isOpen])
+  },[target])
 
   const handleAddUnit = (value, addCommand) => {
     addUnit(
@@ -197,7 +198,7 @@ export const UnitEditor = ({
   };
 
   const handleRemoveUnit = (event, removeCommand) => {
-    leaveFunction();
+    unitPopoverLeave();
     removeUnit(
           currentUnitData.page,
           currentUnitData.name,
@@ -213,7 +214,7 @@ export const UnitEditor = ({
   };
 
   const handleFieldUpdate = (fieldKey, value) => {
-    leaveFunction();
+    unitPopoverLeave();
     if (["add", "addRow", "addColumn", "addChild"].includes(fieldKey)){
       handleAddUnit(value, fieldKey);
     } 
