@@ -73,8 +73,8 @@ export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, curr
 
   return (
     <React.Fragment>
-          <ComponentEditor inspectorIndex={inspectorIndex} currentPage={currentPage}target={componentTarget} setTarget={setComponentTarget}/>
-          <UnitEditor inspectorIndex={inspectorIndex} currentPage={currentPage} target={unitTarget} setTarget={setUnitTarget}/>
+      <ComponentEditor inspectorIndex={inspectorIndex} currentPage={currentPage} componentAnchorEl={componentTarget} setComponentAnchorEl={setComponentTarget}/>
+      <UnitEditor inspectorIndex={inspectorIndex} currentPage={currentPage} unitAnchorEl={unitTarget} setUnitAnchorEl={setUnitTarget}/>
     </React.Fragment>
   );
 }

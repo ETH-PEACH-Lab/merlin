@@ -9,8 +9,7 @@ import { useParseCompile } from "../context/ParseCompileContext";
 import { parseInspectorIndex, createComponentData } from "../compiler/dslUtils.mjs";
 
 
-export const ComponentEditor = ({ inspectorIndex, currentPage, target, setTarget }) => {
-  const [componentAnchorEl, setComponentAnchorEl] = useState(null);
+export const ComponentEditor = ({ inspectorIndex, currentPage, componentAnchorEl, setComponentAnchorEl }) => {
   const componentToolbarOpen = Boolean(componentAnchorEl);
   const componentToolbar = componentToolbarOpen ? "component-toolbar-popover" : undefined;
   const [currentComponentData, setCurrentComponentData] = useState(null);
@@ -21,14 +20,12 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, target, setTarget
     
   
   const componentPopoverEnter = () => {
-    target.setAttribute("stroke", "green");
-    setComponentAnchorEl(target);
+    componentAnchorEl.setAttribute("stroke", "green");
   };
 
   const componentPopoverLeave = () => {
     setOpenDialog(false);
     setComponentAnchorEl(null);
-    setTarget(null);
   };
 
   useEffect(() => {
@@ -39,7 +36,7 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, target, setTarget
       if (componentData) {
         setCurrentComponentData(componentData);
         setPrevComponentData(componentData);
-        if (target){
+        if (componentAnchorEl){
           componentPopoverEnter();
         }
       }
@@ -47,10 +44,10 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, target, setTarget
   }, [inspectorIndex, currentPage, pages]);
     
   useEffect(() => {
-    if (!target){
+    if (!componentAnchorEl){
       componentPopoverLeave();
     }
-  },[target])
+  },[componentAnchorEl])
 
   const handleToolbarClick = (event, type) => {
     setDialogType(type);

@@ -137,30 +137,19 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, le
   }
 };
 
-export const UnitEditor = ({
-  inspectorIndex,
-  currentPage,
-  target,
-  setTarget
-}) => {
-  const defaultUnitValue = {
-    coordinates: null,
-    type: null,
-  };
-  const [unitAnchorEl, setUnitAnchorEl] = useState(null);
-  const [currentUnitData, setUnitData] = useState(defaultUnitValue);
+export const UnitEditor = ({inspectorIndex, currentPage, unitAnchorEl, setUnitAnchorEl}) => {
+
+  const [currentUnitData, setUnitData] = useState(null);
   const unitToolbarOpen = Boolean(unitAnchorEl);
   const unitToolbar = unitToolbarOpen ? "unit-toolbar-popover" : undefined;
   const { pages, updateValue, addUnit, removeUnit } = useParseCompile();
 
   const unitPopoverEnter = () => {
-    target.setAttribute("stroke", "green");
-    setUnitAnchorEl(target);
+    unitAnchorEl.setAttribute("stroke", "green");
   };
 
   const unitPopoverLeave = () => {
     setUnitAnchorEl(null);
-    setTarget(null);
   };
 
   useEffect(() => {
@@ -170,7 +159,7 @@ export const UnitEditor = ({
       
       if (unitData) {
         setUnitData(unitData);
-        if (target){
+        if (unitAnchorEl){
           unitPopoverEnter();
         }
       }
@@ -178,11 +167,11 @@ export const UnitEditor = ({
   }, [inspectorIndex, currentPage, pages]);
 
   useEffect(() => {
-    if (!target){
+    if (!unitAnchorEl){
       unitPopoverLeave();
     }
 
-  },[target])
+  },[unitAnchorEl])
 
   const handleAddUnit = (value, addCommand) => {
     addUnit(
@@ -255,7 +244,7 @@ export const UnitEditor = ({
     >
       
       {/* Dynamically generate inputs based on type definition */}
-      {currentUnitData.type && 
+      {currentUnitData && currentUnitData.type && 
         Object.entries(getComponentFields(currentUnitData.type)).map(([fieldKey, label]) => (
           <DynamicInput
             key={fieldKey}
