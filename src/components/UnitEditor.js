@@ -53,11 +53,6 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, le
         return <RectangleOutlinedIcon></RectangleOutlinedIcon>
     }
   };
-  
-  // TODO Check if this is needed
-  const handleBlur = () => {
-    onUpdate(fieldKey, value);
-  };
 
   const handleKeyDown = (ev) => {
     if (ev.key === 'Enter') {
@@ -119,7 +114,6 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, le
             vertical: "center",
             horizontal: "center",
           }}
-          onMouseLeave={handleClosePopup}
           slotProps={{ paper: { sx: { pointerEvents: "auto" } } }}
           sx={{ pointerEvents: "none" }}>
             <TextField
@@ -127,7 +121,6 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, le
               value={value !== null && value !== undefined && value !== "null" ? value :  ""}
               size="small"
               onChange={(e) => {onChange(fieldKey, e.target.value);}}
-              // onBlur={handleBlur}
               onKeyDown={handleKeyDown}
               style={{margin: "15px 10px 10px 10px"}}
             />
