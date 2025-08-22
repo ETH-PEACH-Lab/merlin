@@ -137,7 +137,7 @@ function createOptimizedArrayCommand(relevantCommands, componentName, fieldKey, 
     }
     
     // Handle the new modification
-    if (value === "_" || value === undefined || value === "") {
+    if (value === "_" || value === undefined) {
         // Remove the modification (undo/clear)
         mergedModifications.delete(idx);
     } else {
@@ -149,7 +149,7 @@ function createOptimizedArrayCommand(relevantCommands, componentName, fieldKey, 
         // No modifications left, don't add any command
         return null;
     } else if (mergedModifications.size === 1 && mergedModifications.has(idx) && 
-               !(value === "_" || value === undefined || value === "")) {
+               !(value === "_" || value === undefined)) {
         // Only one modification, use "set"
         return {
             type: "set",
@@ -302,7 +302,7 @@ function createOptimizedMatrixCommand(relevantCommands, componentName, fieldKey,
     
     // Handle the new modification
     const currentKey = `${row},${col}`;
-    if (value === "_" || value === undefined || value === "") {
+    if (value === "_" || value === undefined) {
         // Remove the modification (undo/clear)
         mergedModifications.delete(currentKey);
     } else {
@@ -315,7 +315,7 @@ function createOptimizedMatrixCommand(relevantCommands, componentName, fieldKey,
         // No modifications left, don't add any command
         return null;
     } else if (mergedModifications.size === 1 && mergedModifications.has(currentKey) && 
-               !(value === "_" || value === undefined || value === "")) {
+               !(value === "_" || value === undefined)) {
         // Only one modification, use "set_matrix"
         return {
             type: "set_matrix",
