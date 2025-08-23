@@ -48,48 +48,55 @@ export const typeDocumentation = {
     description: 'Arrays represent ordered collections of elements with indexed access.',
     features: ['Fixed or dynamic size', 'Index-based element access', 'Support for colors and arrows'],
     url: 'https://eth-peach-lab.github.io/merlin-docs/docs/data-structures/array',
-    insertText: `array \${1:arr} = {\n    value: [\${2:1,2,3}]\n    color: [\${3:"red", null, "blue"}]\n    arrow: [\${4:null, "i", null}]\n}`,
+    insertText: `array \${1:arr} = {\n  value: [\${2:1,2,3}]\n  color: [\${3:"red", null, "blue"}]\n  arrow: [\${4:null, "i", null}]\n}`,
+    insertTextName: 'arr',
     supportedProperties: ['value', 'color', 'arrow', 'above', 'below', 'left', 'right']
   },
   matrix: {
     description: 'Matrices represent 2D grids of elements with row-column access.',
     features: ['2D grid structure', 'Row and column operations', 'Border support'],
     url: 'https://eth-peach-lab.github.io/merlin-docs/docs/data-structures/matrix',
-    insertText: `matrix \${1:grid} = {\n    value: [[\${2:1,2}],[\${3:3,4}]]\n    color: [[\${4:null, "red"}], [\${5:null, null}]]\n}`,
+    insertText: `matrix \${1:grid} = {\n  value: [[\${2:1,2}],[\${3:3,4}]]\n  color: [[\${4:null, "red"}], [\${5:null, null}]]\n}`,
+    insertTextName: 'grid',
     supportedProperties: ['value', 'color', 'arrow', 'above', 'below', 'left', 'right']
   },
   linkedlist: {
     description: 'Linked lists represent sequences of connected nodes.',
     features: ['Node-based structure', 'Dynamic size', 'Sequential access'],
     url: 'https://eth-peach-lab.github.io/merlin-docs/docs/data-structures/linkedlist',
-    insertText: `linkedlist \${1:ll} = {\n    nodes: [\${2:head, node1, tail}]\n    value: [\${3:1, 2, 3}]\n}`,
+    insertText: `linkedlist \${1:ll} = {\n  nodes: [\${2:head, node1, tail}]\n  value: [\${3:1, 2, 3}]\n}`,
+    insertTextName: 'll',
     supportedProperties: ['nodes', 'value', 'color', 'arrow', 'above', 'below', 'left', 'right']
   },
   stack: {
     description: 'Stacks implement Last-In-First-Out (LIFO) data structure.',
     features: ['LIFO operations', 'Push/pop semantics', 'Visual stack representation'],
     url: 'https://eth-peach-lab.github.io/merlin-docs/docs/data-structures/stack',
-    insertText: `stack \${1:s} = {\n    value: [\${2:"main", "func"}]\n    color: [\${3:null, "blue"}]\n}`,
+    insertText: `stack \${1:s} = {\n  value: [\${2:"main", "func"}]\n  color: [\${3:null, "blue"}]\n}`,
+    insertTextName: 's',
     supportedProperties: ['value', 'color', 'arrow', 'above', 'below', 'left', 'right']
   },
   tree: {
     description: 'Trees represent hierarchical data structures with parent-child relationships.',
     features: ['Hierarchical structure', 'Parent-child relationships', 'Subtree operations'],
     url: 'https://eth-peach-lab.github.io/merlin-docs/docs/data-structures/tree',
-    insertText: `tree \${1:t} = {\n    nodes: [\${2:n1, n2, n3}]\n    children: [\${3:n1-n2, n1-n3}]\n    value: [\${4:1,2,3}]\n}`,
+    insertText: `tree \${1:t} = {\n  nodes: [\${2:n1, n2, n3}]\n  children: [\${3:n1-n2, n1-n3}]\n  value: [\${4:1,2,3}]\n}`,
+    insertTextName: 't',
   },
   graph: {
     description: 'Graphs represent networks of interconnected nodes and edges.',
     features: ['Node and edge operations', 'Flexible connections', 'Visibility control'],
     url: 'https://eth-peach-lab.github.io/merlin-docs/docs/data-structures/graph',
-    insertText: `graph \${1:g} = {\n    nodes: [\${2:A,B,C}]\n    edges: [\${3:A-B, B-C}]\n    value: [\${4:1,2,3}]\n    color: [\${5:"red", null, "blue"}]\n}`,
+    insertText: `graph \${1:g} = {\n  nodes: [\${2:A,B,C}]\n  edges: [\${3:A-B, B-C}]\n  value: [\${4:1,2,3}]\n  color: [\${5:"red", null, "blue"}]\n}`,
+    insertTextName: 'g',
     supportedProperties: ['nodes', 'edges', 'value', 'color', 'arrow', 'hidden', 'above', 'below', 'left', 'right']
   },
   text: {
     description: 'Text elements for displaying formatted text content.',
     features: ['Multi-line support', 'Font customization', 'Alignment options'],
     url: 'https://eth-peach-lab.github.io/merlin-docs/docs/data-structures/text',
-    insertText: `text \${1:label} = {\n    value: \${2:"Hello, world!"}\n    fontSize: \${3:16}\n    color: \${4:"gray"}\n}`,
+    insertText: `text \${1:label} = {\n  value: \${2:"Hello, world!"}\n  fontSize: \${3:16}\n  color: \${4:"gray"}\n}`,
+    insertTextName: 'label',
     supportedProperties: ['value', 'fontSize', 'fontWeight', 'fontFamily', 'align', 'lineSpacing', 'width', 'height']
   }
 };

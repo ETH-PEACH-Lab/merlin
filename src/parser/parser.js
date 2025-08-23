@@ -6,7 +6,7 @@ function id(x) { return x[0]; }
 const moo = require("moo");
 
 const lexer = moo.compile({
-  nlw: { match: /[ \t]*\n[ \t]*/, lineBreaks: true },
+  nlw: { match: /[ \t]*\r?\n[ \t]*/, lineBreaks: true },
   ws:     /[ \t]+/,
   nullT: { match: /null/, value: () => null },
   number: /-?(?:[0-9]*\.[0-9]+|[0-9]+)/,

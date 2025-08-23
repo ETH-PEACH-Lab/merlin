@@ -2070,7 +2070,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
 function preCheck(parsedDSL) {
     if (!parsedDSL || !parsedDSL.defs || !parsedDSL.cmds || 
         (Array.isArray(parsedDSL.defs) && Array.isArray(parsedDSL.cmds) && 
-         parsedDSL.defs.length === 0 && parsedDSL.cmds.length === 0)) {
+         parsedDSL.defs.length !== 0 && parsedDSL.cmds.length === 0)) {
         throw new Error("Nothing to show\n\nPlease define an object and a page.\nThen show it using the 'show' command");
     }
 
