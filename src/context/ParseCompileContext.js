@@ -45,6 +45,11 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         const allEmpty = codeLines.every(line => line.trim() === '');
         if (allEmpty) {
             setError(null);
+
+            // Clear Merlin Renderer
+            setParsedCode(null);
+            setCompiledMerlin(null);
+            setPages([]);
             return;
         }
 
