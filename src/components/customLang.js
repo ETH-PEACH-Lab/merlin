@@ -12,6 +12,39 @@ import {
 } from './languageConfig.js';
 
 export function registerCustomLanguage(monaco) {
+  // Helper: check if the entire model already contains any 'page' or 'show' at line start
+  function modelHasPageOrShow(model) {
+    if (!model) return false;
+    const text = model.getValue();
+    // Check per line to ensure we only match commands starting a line (ignoring leading spaces)
+    return text.split('\n').some(line => /^\s*(page|show)\b/.test(line));
+  }
+
+  // Helper: build insert text with optional page/show trailer based on typeDocumentation.insertTextName
+  function buildInsertTextWithPageShow(baseInsertText, componentType, model) {
+    try {
+      if (!model || modelHasPageOrShow(model)) {
+        return baseInsertText;
+      }
+      const nameHint = typeDocumentation?.[componentType]?.insertTextName || 'item';
+
+      // Determine if baseInsertText ends with a closing brace at end of string (possibly with whitespace)
+      const trimmed = baseInsertText.trimEnd();
+      const endsWithBrace = /\}\s*$/.test(trimmed);
+
+      // Ensure a single trailing newline after the definition, then add page and show lines
+      const newline = '\n';
+      const suffix = `${newline}${newline}page${newline}show ${nameHint}`;
+
+      if (endsWithBrace) {
+        // If base already places cursor markers like $0 after brace, preserve them by appending after
+        return `${baseInsertText}${suffix}`;
+      }
+      return `${baseInsertText}${suffix}`;
+    } catch (_) {
+      return baseInsertText;
+    }
+  }
   // Prevent multiple registrations
   if (window.customLangRegistered) {
     return;
@@ -1307,7 +1340,11 @@ export function registerCustomLanguage(monaco) {
           suggestions.push({
             label: component,
             kind: monaco.languages.CompletionItemKind.Class,
-            insertText: componentDocumentation.insertText || `${component} \${1:variableName} = {\n\t\${2:}\n}`,
+            insertText: buildInsertTextWithPageShow(
+              componentDocumentation.insertText || `${component} \${1:variableName} = {\n\t\${2:}\n}`,
+              component,
+              model
+            ),
             insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
             detail: 'Data structure type',
             documentation: componentDocumentation.description || `${component} data structure`,
@@ -1967,48 +2004,25 @@ export function registerCustomLanguage(monaco) {
       
       // For other fixes, we need a word
       if (!word) return { actions, dispose: () => {} };
+      // Aggregate quick fixes
+      actions.push(...getAttributeQuickFixes(line, word, range, model));
+      actions.push(...getMethodQuickFixes(line, word, range, model));
+      actions.push(...getComponentQuickFixes(line, word, range, model));
+      actions.push(...getSyntaxQuickFixes(line, word, range, model));
+      actions.push(...getArrayMethodQuickFixes(line, word, range, model));
 
-      // Quick fix for misspelled attributes
-      const attributeFixes = getAttributeQuickFixes(line, word, range, model);
-      actions.push(...attributeFixes);
+      return { actions, dispose: () => {} };
 
-      // Quick fix for misspelled methods
-      const methodFixes = getMethodQuickFixes(line, word, range, model);
-      actions.push(...methodFixes);
-
-      // Quick fix for misspelled components
-      const componentFixes = getComponentQuickFixes(line, word, range, model);
-      actions.push(...componentFixes);
-
-      // Quick fix for common syntax errors
-      const syntaxFixes = getSyntaxQuickFixes(line, word, range, model);
-      actions.push(...syntaxFixes);
-
-      // Quick fix for array method misuse
-      const arrayMethodFixes = getArrayMethodQuickFixes(line, word, range, model);
-      actions.push(...arrayMethodFixes);
-
-      return {
-        actions: actions,
-        dispose: () => {}
-      };
+      // Leverage helper functions defined below
     }
   });
 
-  // Helper function to calculate Levenshtein distance
+  // Levenshtein distance helper
   function levenshteinDistance(a, b) {
-    if (a.length === 0) return b.length;
-    if (b.length === 0) return a.length;
-
-    const matrix = [];
-    for (let i = 0; i <= b.length; i++) {
-      matrix[i] = [i];
-    }
-    for (let j = 0; j <= a.length; j++) {
-      matrix[0][j] = j;
-    }
-
+    const matrix = Array.from({ length: b.length + 1 }, () => new Array(a.length + 1).fill(0));
+    for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
     for (let i = 1; i <= b.length; i++) {
+      matrix[i][0] = i;
       for (let j = 1; j <= a.length; j++) {
         if (b.charAt(i - 1) === a.charAt(j - 1)) {
           matrix[i][j] = matrix[i - 1][j - 1];
@@ -2040,12 +2054,12 @@ export function registerCustomLanguage(monaco) {
   // Quick fixes for misspelled attributes
   function getAttributeQuickFixes(line, word, range, model) {
     const actions = [];
-    const currentWord = word.word;
-    
+    const currentWord = word?.word;
+    if (!currentWord) return actions;
+
     // Check if this looks like an attribute (followed by colon)
     if (line.includes(`${currentWord}:`)) {
       const suggestions = findClosestMatches(currentWord, languageConfig.attributes);
-      
       suggestions.forEach(suggestion => {
         actions.push({
           title: `Change "${currentWord}" to "${suggestion}"`,
@@ -2054,20 +2068,223 @@ export function registerCustomLanguage(monaco) {
           edit: {
             edits: [{
               resource: model.uri,
-              versionId: model.getVersionId(),
-              textEdits: [{
+              edit: {
                 range: new monaco.Range(
                   range.startLineNumber, word.startColumn,
                   range.startLineNumber, word.endColumn
                 ),
                 text: suggestion
-              }]
+              }
             }]
           }
         });
       });
     }
-    
+
+    return actions;
+  }
+
+  // Quick fixes for misspelled methods
+  function getMethodQuickFixes(line, word, range, model) {
+    const actions = [];
+    const currentWord = word.word;
+    // Check if this looks like a method call (preceded by dot)
+    const beforeWord = line.substring(0, word.startColumn - 1);
+    const methodCallMatch = beforeWord.match(/(\w+)\.$/);
+    if (methodCallMatch) {
+      const variableName = methodCallMatch[1];
+      const { variableTypes } = parseCache.getCachedData(model, { 
+        lineNumber: range.startLineNumber, 
+        column: word.startColumn 
+      });
+      const varType = variableTypes[variableName];
+      if (varType) {
+        const availableMethods = getMethodsForType(varType);
+        const suggestions = findClosestMatches(currentWord, availableMethods);
+        suggestions.forEach(suggestion => {
+          actions.push({
+            title: `Change "${currentWord}" to "${suggestion}"`,
+            kind: 'quickfix',
+            diagnostics: [],
+            edit: {
+              edits: [{
+                resource: model.uri,
+                textEdit: {
+                  range: new monaco.Range(
+                    range.startLineNumber, word.startColumn,
+                    range.startLineNumber, word.endColumn
+                  ),
+                  text: suggestion
+                }
+              }]
+            }
+          });
+        });
+      }
+    }
+    return actions;
+  }
+
+  // Quick fixes for misspelled components
+  function getComponentQuickFixes(line, word, range, model) {
+    const actions = [];
+    const currentWord = word.word;
+    // Check if this looks like a component declaration or an unknown type token
+    const looksLikeDeclaration = line.match(/^\s*\w+\s+\w+\s*=\s*\{/);
+    const unknownTypeToken = line.includes(`${currentWord} `) && !languageConfig.components.includes(currentWord);
+    if (looksLikeDeclaration || unknownTypeToken) {
+      const suggestions = findClosestMatches(currentWord, languageConfig.components);
+      suggestions.forEach(suggestion => {
+        actions.push({
+          title: `Change "${currentWord}" to "${suggestion}"`,
+          kind: 'quickfix',
+          diagnostics: [],
+          edit: {
+            edits: [{
+              resource: model.uri,
+              edit: {
+                range: new monaco.Range(
+                  range.startLineNumber, word.startColumn,
+                  range.startLineNumber, word.endColumn
+                ),
+                text: suggestion
+              }
+            }]
+          }
+        });
+      });
+    }
+    return actions;
+  }
+
+  // Quick fixes for common syntax errors
+  function getSyntaxQuickFixes(line, word, range, model) {
+    const actions = [];
+    const trimmedLine = line.trim();
+    // Fix missing colon after attribute
+    if (trimmedLine.match(/^\s*\w+\s+[^:=]/) && languageConfig.attributes.includes(word.word)) {
+      actions.push({
+        title: `Add colon after "${word.word}"`,
+        kind: 'quickfix',
+        diagnostics: [],
+        edit: {
+          edits: [{
+            resource: model.uri,
+            edit: {
+              range: new monaco.Range(
+                range.startLineNumber, word.endColumn,
+                range.startLineNumber, word.endColumn
+              ),
+              text: ':'
+            }
+          }]
+        }
+      });
+    }
+
+    // Fix missing equals sign in component declaration
+    if (trimmedLine.match(/^\s*\w+\s+\w+\s*\{/) && languageConfig.components.includes(word.word)) {
+      const braceIndex = line.indexOf('{');
+      if (braceIndex > 0) {
+        actions.push({
+          title: `Add "= " before "{"`,
+          kind: 'quickfix',
+          diagnostics: [],
+          edit: {
+            edits: [{
+              resource: model.uri,
+              edit: {
+                range: new monaco.Range(
+                  range.startLineNumber, braceIndex,
+                  range.startLineNumber, braceIndex
+                ),
+                text: '= '
+              }
+            }]
+          }
+        });
+      }
+    }
+
+    // Fix missing parentheses in method calls
+    if (line.includes(`${word.word}.`) || line.includes(`.${word.word}`)) {
+      const all = staticCache.getAllMethods();
+      if (all.includes(word.word) && !line.includes(`${word.word}(`)) {
+        actions.push({
+          title: `Add parentheses to "${word.word}" method call`,
+          kind: 'quickfix',
+          diagnostics: [],
+          edit: {
+            edits: [{
+              resource: model.uri,
+              edit: {
+                range: new monaco.Range(
+                  range.startLineNumber, word.endColumn,
+                  range.startLineNumber, word.endColumn
+                ),
+                text: '()'
+              }
+            }]
+          }
+        });
+      }
+    }
+
+    // Fix common typos in keywords
+    const keywordSuggestions = findClosestMatches(word.word, languageConfig.keywords);
+    if (keywordSuggestions.length > 0 && !languageConfig.keywords.includes(word.word)) {
+      keywordSuggestions.forEach(suggestion => {
+        actions.push({
+          title: `Change "${word.word}" to "${suggestion}"`,
+          kind: 'quickfix',
+          diagnostics: [],
+          edit: {
+            edits: [{
+              resource: model.uri,
+              edit: {
+                range: new monaco.Range(
+                  range.startLineNumber, word.startColumn,
+                  range.startLineNumber, word.endColumn
+                ),
+                text: suggestion
+              }
+            }]
+          }
+        });
+      });
+    }
+    return actions;
+  }
+
+  // NEW: Quick fixes for array method misuse
+  function getArrayMethodQuickFixes(line, word, range, model) {
+    const actions = [];
+    const currentWord = word.word;
+    // Check if this is a method call with parameters
+    const methodCallMatch = line.match(new RegExp(`(\\w+)\\.(${currentWord})\\s*\\(([^)]*)\\)`));
+    if (methodCallMatch) {
+      const [, , methodName, params] = methodCallMatch;
+      const suggestions = getArrayMethodSuggestions(methodName, params);
+      suggestions.forEach(suggestion => {
+        actions.push({
+          title: suggestion.title,
+          kind: 'quickfix',
+          diagnostics: [],
+          edit: {
+            edits: [{
+              resource: model.uri,
+              edit: {
+                range: new monaco.Range(
+                  range.startLineNumber, word.startColumn,
+                  range.startLineNumber, word.endColumn
+                ),
+                text: suggestion.replacement
+              }
+            }]
+          }
+        });
+      });
+    }
     return actions;
   }
 

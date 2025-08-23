@@ -40,7 +40,14 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         const codeLines = code.split('\n');
         const totalLines = codeLines.length;
         const validCurrentLine = Math.max(1, Math.min(currentLine, totalLines));
-        
+
+        // Check if all lines are empty or whitespaces, if so don't compile or parse (no error)
+        const allEmpty = codeLines.every(line => line.trim() === '');
+        if (allEmpty) {
+            setError(null);
+            return;
+        }
+
         // If skipCurrentLine is true, remove the current line from processing
         if (skipCurrentLine && validCurrentLine <= totalLines) {
             codeLines[validCurrentLine - 1] = ''; // Replace current line with empty string
