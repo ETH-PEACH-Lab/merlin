@@ -262,7 +262,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         // For matrices 
         else if (componentType === "matrix"){
             const addType = addCommand === "addRow" ? "insert_matrix_row" : "insert_matrix_column";
-            const coord = addCommand === "addRow" ? coordinates.row : coordinates.col + 1;
+            const coord = addCommand === "addRow" ? coordinates.row + 1 : coordinates.col + 1;
             const values = val === null ? [null] : val.split(',').map(( value ) => value.trim());
             parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, target: "value", type: addType, args: {index: coord, value: values} });
         }

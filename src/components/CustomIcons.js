@@ -84,7 +84,7 @@ export const removeSubtreeIcon = () => (
 );
 
 export const addRowIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#ffffff">
+  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#ffffff" style={{transform: "rotate(180deg)"}}>
     <path d="M200-160h560v-240H200v240Zm640 80H120v-720h160v80h-80v240h560v-240h-80v-80h160v720ZM480-480Zm0 80v-80 80Zm0 0Zm-40-240v-80h-80v-80h80v-80h80v80h80v80h-80v80h-80Z"/>
   </svg>
 )
@@ -96,7 +96,7 @@ export const addColumnIcon = () => (
 )
 
 export const removeRowIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e3e3e3">
+  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#ffffff" style={{transform: "rotate(180deg)"}}>
     <g>
       <path id="svg_1" d="M200-160h560v-240H200v240Zm640 80H120v-720h160v80h-80v240h560v-240h-80v-80h160v720ZM480-480Zm0 80v-80 80Zm0"/>
       <g style={{transform: "rotate(45deg)"}}>
@@ -107,7 +107,7 @@ export const removeRowIcon = () => (
 )
 
 export const removeColumnIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e3e3e3" style={{transform: "rotate(90deg)"}}>
+  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#ffffff" style={{transform: "rotate(90deg)"}}>
     <g>
       <title>Layer 1</title>
       <path id="svg_1" d="M200-160h560v-240H200v240Zm640 80H120v-720h160v80h-80v240h560v-240h-80v-80h160v720ZM480-480Zm0 80v-80 80Zm0"/>

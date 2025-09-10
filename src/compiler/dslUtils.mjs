@@ -170,7 +170,7 @@ export function getComponentFields(componentType) {
       value: "Edit Value",
       color: "Edit Color",
       arrow: "Add Arrow",
-      removeSubstree: "Remove Subtree",
+      removeSubtree: "Remove Subtree",
     },
     linkedlist: {
       add: "Add Unit",
