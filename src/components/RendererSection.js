@@ -193,7 +193,7 @@ const RendererSection = ({
               </IconButton>
             </span>
           </Tooltip>
-          <Tooltip title="Set positioning">
+          <Tooltip title="Set Page Grid">
             <span>
               <IconButton
                 disabled={pages.length === 0}

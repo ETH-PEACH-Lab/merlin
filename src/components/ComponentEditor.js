@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, IconButton, Popover, TextField, Tooltip } from "@mui/material";
-import ClearIcon from '@mui/icons-material/Clear';
+import DeleteIcon from "@mui/icons-material/Delete";
 import FormatShapesIcon from '@mui/icons-material/FormatShapes';
 import Grid3x3Icon from '@mui/icons-material/Grid3x3';
 import RectangleOutlinedIcon from '@mui/icons-material/RectangleOutlined';
-import TextFormatIcon from '@mui/icons-material/TextFormat';
+import TitleIcon from '@mui/icons-material/Title';
 import { useParseCompile } from "../context/ParseCompileContext";
 import { parseInspectorIndex, createComponentData } from "../compiler/dslUtils.mjs";
 
@@ -138,11 +138,11 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, componentAnchorEl
       case "styling":
         return <FormatShapesIcon></FormatShapesIcon>;
       case "text":
-        return <TextFormatIcon></TextFormatIcon>;
+        return <TitleIcon></TitleIcon>;
       case "position":
         return <Grid3x3Icon></Grid3x3Icon>;
       case "remove":
-        return <ClearIcon></ClearIcon>;
+        return <DeleteIcon></DeleteIcon>;
       default: 
         return <RectangleOutlinedIcon></RectangleOutlinedIcon>
     }
@@ -239,7 +239,7 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, componentAnchorEl
         
         {/* Dynamically generate inputs based on type definition */}
         {currentComponentData &&
-          Object.entries({remove: "Remove", styling: "Styling", text: "Text", position: "Position"}).map(([fieldKey, label]) => (
+          Object.entries({remove: "Remove", styling: "Structure & Styling", text: "Text", position: "Position"}).map(([fieldKey, label]) => (
           <Tooltip title={label} key={fieldKey}>
               <span style={{marginLeft: "10px", marginRight: "10px"}}>
               <IconButton size="small" onClick={(e) => {handleToolbarClick(e, label);}}>
