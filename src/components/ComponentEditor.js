@@ -20,7 +20,7 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, componentAnchorEl
     
   
   const componentPopoverEnter = () => {
-    componentAnchorEl.setAttribute("stroke", "green");
+    componentAnchorEl.setAttribute("stroke", "#90cafd");
   };
 
   const componentPopoverLeave = () => {

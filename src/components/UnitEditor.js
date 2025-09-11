@@ -138,7 +138,7 @@ export const UnitEditor = ({inspectorIndex, currentPage, unitAnchorEl, setUnitAn
   const { pages, updateValue, addUnit, removeUnit } = useParseCompile();
 
   const unitPopoverEnter = () => {
-    unitAnchorEl.setAttribute("stroke", "green");
+    unitAnchorEl.setAttribute("stroke", "#90cafd");
   };
 
   const unitPopoverLeave = () => {
