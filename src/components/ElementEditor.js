@@ -3,20 +3,38 @@ import { Snackbar, Alert } from "@mui/material";
 import "./ElementEditor.css";
 import { UnitEditor } from "./UnitEditor";
 import { ComponentEditor } from "./ComponentEditor"
+import { useParseCompile } from "../context/ParseCompileContext";
+import { parseInspectorIndex, getFieldValue } from "../compiler/dslUtils.mjs";
 
 export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, currentPage}) => {
+
+  const [edgeTarget, setEdgeTarget] = useState(null);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const id = snackbarOpen ? 'edit-edge-snackbar' : undefined;
+  const [unitTarget, setUnitTarget] = useState(null);
+  const [componentTarget, setComponentTarget] = useState(null);
+
+  const { pages, editEdge } = useParseCompile();
+
   useEffect(()=> {
     initListener();
   }, [svgElement])
-
-  const [edgeTarget, setEdgeTarget] = useState(null);
 
   useEffect(() => {
     if (edgeTarget){
       setSnackbarOpen(true);
     }
-    console.log(edgeTarget);
   }, [edgeTarget]);
+
+  useEffect(()=> {
+    if (snackbarOpen){
+      document.getElementById("edit-edge-snackbar").dataset.page=edgeTarget.page;
+      document.getElementById("edit-edge-snackbar").dataset.name=edgeTarget.name;
+      document.getElementById("edit-edge-snackbar").dataset.nodes=edgeTarget.nodes;
+      document.getElementById("edit-edge-snackbar").dataset.firstNode=edgeTarget.firstNode;
+      document.getElementById("edit-edge-snackbar").dataset.command=edgeTarget.command;
+    }
+  }, [snackbarOpen])
 
   const initListener = () => {
     if(svgElement){
@@ -28,10 +46,6 @@ export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, curr
   const handleSnackbarClose = () => {
     setSnackbarOpen(false);
   };
-
-  const [unitTarget, setUnitTarget] = useState(null);
-  const [componentTarget, setComponentTarget] = useState(null);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
 
   const onMouseOut = (e) => {
     let target = e.target.parentElement.getElementsByTagName("rect")[0] || e.target.parentElement.getElementsByTagName("circle")[0];
@@ -71,18 +85,22 @@ export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, curr
     }
     const pageID = current?current.id: null;
 
+    // If the user did not click on a unit, close the toolbar
     if (typeof target === "undefined" || e.target.parentElement !== target.parentElement){
       setUnitTarget(null);
       setComponentTarget(null);
     }
-    else if (edgeTarget){
-
+    // If the snackbar asked the user to select another unit, add or remove the edge
+    else if (document.getElementById("edit-edge-snackbar")){
+      editEdge(document.getElementById("edit-edge-snackbar").dataset, unitID.slice(5));
     }
+    // If the user double-clicked on a unit, open the component menu
     else if (e.detail === 2) {
       setUnitTarget(null);
       updateInspector(unitID, componentID, pageID);
       setComponentTarget(target);
     }
+    // Otherwise, open the unit menu
     else {
       updateInspector(unitID, componentID, pageID);
       setUnitTarget(target);
@@ -95,7 +113,8 @@ export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, curr
       <UnitEditor inspectorIndex={inspectorIndex} currentPage={currentPage} unitAnchorEl={unitTarget} setUnitAnchorEl={setUnitTarget} setEdgeTarget={setEdgeTarget}/>
       <Snackbar 
         open={snackbarOpen} 
-        autoHideDuration={4000} 
+        id={id}
+        autoHideDuration={20000} 
         onClose={handleSnackbarClose}
         anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
         sx={{

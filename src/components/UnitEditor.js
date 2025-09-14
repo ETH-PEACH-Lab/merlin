@@ -206,8 +206,9 @@ export const UnitEditor = ({inspectorIndex, currentPage, unitAnchorEl, setUnitAn
 
   const handleEditEdge = (event, editCommand) => {
     unitPopoverLeave();
-    setEdgeTarget({page: currentUnitData.page, name: currentUnitData.name, nodes: currentUnitData.nodes,
-      command: editCommand});
+    console.log(currentUnitData);
+    setEdgeTarget({page: currentUnitData.page, name: currentUnitData.name, firstNode: currentUnitData.nodes,
+      nodes: currentUnitData.allNodes, command: editCommand});
   }
 
   const handleFieldChange = (fieldKey, value) => {

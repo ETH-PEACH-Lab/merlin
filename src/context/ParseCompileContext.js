@@ -11,6 +11,8 @@ import compiler from "../compiler/compiler.mjs";
 import { createOptimizedCommand, findRelevantCommands } from "../parser/commandUtils.mjs";
 import { node } from "prop-types";
 import { LensTwoTone } from "@mui/icons-material";
+import { second } from "@eth-peach-lab/mermaid-merlin/packages/mermaid/dist/chunks/mermaid.esm/chunk-CPLSQCOS.mjs";
+import { Dataset } from "@mui/icons-material";
 
 const ParseCompileContext = createContext();
 
@@ -285,6 +287,18 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
 		else{
             parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, target: "edges", type: "add", args: { start: node0, end: node1 } }); 
         }       
+        reconstructMerlinLite();
+    }, [parsedCode]);
+
+    const editEdge = useCallback((data, secondNodeIdx) => {
+        const nodeArray = data.nodes.split(",");
+
+        if (data.command === "addEdge"){
+            addEdge(parseInt(data.page, 10), data.name, "graph", data.firstNode, nodeArray[secondNodeIdx]);
+        }
+        else{
+            removeEdge(parseInt(data.page, 10), data.name, "graph", data.firstNode, nodeArray[secondNodeIdx]);
+        }
         reconstructMerlinLite();
     }, [parsedCode]);
 
@@ -608,6 +622,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             addUnit,
             removeUnit,
             addEdge,
+            editEdge,
             removeEdge,
             addPage,
             removePage,
@@ -633,6 +648,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             addUnit,
             removeUnit,
             addEdge,
+            editEdge,
             removeEdge,
             addPage,
             removePage,

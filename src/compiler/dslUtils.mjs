@@ -248,6 +248,7 @@ export function createUnitData(parsedInfo) {
     name: componentName,
     page: pageIdx,
     type: componentType,
+    allNodes: component.body.nodes
   };
 
   // Add fields based on type definition
