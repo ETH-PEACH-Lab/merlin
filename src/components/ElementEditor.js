@@ -1,12 +1,22 @@
 import React, { useEffect, useState } from "react";
+import { Snackbar, Alert } from "@mui/material";
 import "./ElementEditor.css";
 import { UnitEditor } from "./UnitEditor";
 import { ComponentEditor } from "./ComponentEditor"
 
 export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, currentPage}) => {
-  useEffect(()=>{
+  useEffect(()=> {
     initListener();
   }, [svgElement])
+
+  const [edgeTarget, setEdgeTarget] = useState(null);
+
+  useEffect(() => {
+    if (edgeTarget){
+      setSnackbarOpen(true);
+    }
+    console.log(edgeTarget);
+  }, [edgeTarget]);
 
   const initListener = () => {
     if(svgElement){
@@ -15,8 +25,13 @@ export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, curr
     }
   }
 
+  const handleSnackbarClose = () => {
+    setSnackbarOpen(false);
+  };
+
   const [unitTarget, setUnitTarget] = useState(null);
   const [componentTarget, setComponentTarget] = useState(null);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
 
   const onMouseOut = (e) => {
     let target = e.target.parentElement.getElementsByTagName("rect")[0] || e.target.parentElement.getElementsByTagName("circle")[0];
@@ -60,6 +75,9 @@ export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, curr
       setUnitTarget(null);
       setComponentTarget(null);
     }
+    else if (edgeTarget){
+
+    }
     else if (e.detail === 2) {
       setUnitTarget(null);
       updateInspector(unitID, componentID, pageID);
@@ -74,7 +92,20 @@ export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, curr
   return (
     <React.Fragment>
       <ComponentEditor inspectorIndex={inspectorIndex} currentPage={currentPage} componentAnchorEl={componentTarget} setComponentAnchorEl={setComponentTarget}/>
-      <UnitEditor inspectorIndex={inspectorIndex} currentPage={currentPage} unitAnchorEl={unitTarget} setUnitAnchorEl={setUnitTarget}/>
+      <UnitEditor inspectorIndex={inspectorIndex} currentPage={currentPage} unitAnchorEl={unitTarget} setUnitAnchorEl={setUnitTarget} setEdgeTarget={setEdgeTarget}/>
+      <Snackbar 
+        open={snackbarOpen} 
+        autoHideDuration={4000} 
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        sx={{
+        '&.MuiSnackbar-root': { top: '150px' },
+        }}
+      >
+        <Alert onClose={handleSnackbarClose} severity={'info'} sx={{ width: '100%' }}>
+          Select a second node by clicking on it.
+        </Alert>
+      </Snackbar>
     </React.Fragment>
   );
 }

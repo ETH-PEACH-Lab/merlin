@@ -11,7 +11,7 @@ import { parseInspectorIndex, createUnitData, getComponentFields } from "../comp
 import { removeSubtreeIcon, addColumnIcon, addRowIcon, removeColumnIcon, removeRowIcon } from "./CustomIcons";
 
 
-const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, leaveFunction }) => {
+const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, onEditEdge, leaveFunction }) => {
   const [anchorEl, setAnchorEl] = React.useState(null);
   const open = Boolean(anchorEl);
   const id = open ? 'edit-unit-text-input-popover' : undefined;
@@ -60,6 +60,19 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, le
       ev.preventDefault();
     }
   };
+
+  // For adding or removing edges, we wait for another node to be selected
+  if (["addEdge", "removeEdge"].includes(fieldKey)){
+    return (
+      <Tooltip title={label}>
+        <span style={{marginLeft: "10px", marginRight: "10px"}}>
+          <IconButton size="small" onClick={(e) => {onEditEdge(e, fieldKey);}}>
+            {getIcon(fieldKey)}
+          </IconButton>
+        </span>
+      </Tooltip>
+    );
+  }
 
   // For any type of remove, there is no need for any input field
   if (["remove", "removeSubtree", "removeRow", "removeColumn"].includes(fieldKey)){
@@ -130,7 +143,7 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, le
   }
 };
 
-export const UnitEditor = ({inspectorIndex, currentPage, unitAnchorEl, setUnitAnchorEl}) => {
+export const UnitEditor = ({inspectorIndex, currentPage, unitAnchorEl, setUnitAnchorEl, setEdgeTarget}) => {
 
   const [currentUnitData, setUnitData] = useState(null);
   const unitToolbarOpen = Boolean(unitAnchorEl);
@@ -191,6 +204,12 @@ export const UnitEditor = ({inspectorIndex, currentPage, unitAnchorEl, setUnitAn
     );
   };
 
+  const handleEditEdge = (event, editCommand) => {
+    unitPopoverLeave();
+    setEdgeTarget({page: currentUnitData.page, name: currentUnitData.name, nodes: currentUnitData.nodes,
+      command: editCommand});
+  }
+
   const handleFieldChange = (fieldKey, value) => {
     setUnitData(prev => ({ ...prev, [fieldKey]: value }));
   };
@@ -247,6 +266,7 @@ export const UnitEditor = ({inspectorIndex, currentPage, unitAnchorEl, setUnitAn
             onChange={handleFieldChange}
             onUpdate={handleFieldUpdate}
             onRemove={handleRemoveUnit}
+            onEditEdge={handleEditEdge}
             leaveFunction={unitPopoverLeave}
           />
         ))

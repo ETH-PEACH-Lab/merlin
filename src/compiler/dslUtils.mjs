@@ -161,6 +161,8 @@ export function getComponentFields(componentType) {
       value: "Edit Value",
       color: "Edit Color",
       arrow: "Add Arrow",
+      addEdge: "Add Edge",
+      removeEdge: "Remove Edge",
     },
     tree: {
       addChild: "Add Unit",
@@ -170,6 +172,8 @@ export function getComponentFields(componentType) {
       value: "Edit Value",
       color: "Edit Color",
       arrow: "Add Arrow",
+      addEdge: "Add Edge",
+      removeEdge: "Remove Edge",
       removeSubtree: "Remove Subtree",
     },
     linkedlist: {
