@@ -8,7 +8,7 @@ import RectangleOutlinedIcon from '@mui/icons-material/RectangleOutlined';
 import TextRotateVerticalIcon from '@mui/icons-material/TextRotateVertical';
 import { useParseCompile } from "../context/ParseCompileContext";
 import { parseInspectorIndex, createUnitData, getComponentFields } from "../compiler/dslUtils.mjs";
-import { removeSubtreeIcon, addColumnIcon, addRowIcon, removeColumnIcon, removeRowIcon } from "./CustomIcons";
+import { addEdgeIcon, removeEdgeIcon, addColumnIcon, addRowIcon, removeColumnIcon, removeRowIcon } from "./CustomIcons";
 
 
 const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, onEditEdge, leaveFunction }) => {
@@ -37,10 +37,14 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, on
         return <FormatColorFillIcon></FormatColorFillIcon>;
       case "arrow": 
         return <TextRotateVerticalIcon></TextRotateVerticalIcon>;
+      case "addEdge":
+        return <SvgIcon component={addEdgeIcon}></SvgIcon> 
+      case "removeEdge":
+        return <SvgIcon component={removeEdgeIcon}></SvgIcon> 
       case "addChild":
         return <AddIcon></AddIcon>;
       case "removeSubtree":
-        return  <SvgIcon component={removeSubtreeIcon}></SvgIcon> 
+        return  <SvgIcon component={removeEdgeIcon}></SvgIcon> 
       case "addRow":
         return  <SvgIcon component={addRowIcon}></SvgIcon> 
       case "removeRow":
