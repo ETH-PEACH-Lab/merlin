@@ -11,7 +11,7 @@ import { parseInspectorIndex, createUnitData, getComponentFields } from "../comp
 import { addEdgeIcon, removeEdgeIcon, addColumnIcon, addRowIcon, removeColumnIcon, removeRowIcon } from "./CustomIcons";
 
 
-const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, onEditEdge, leaveFunction }) => {
+const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, onEditEdge, leaveFunction, error }) => {
   const [anchorEl, setAnchorEl] = React.useState(null);
   const open = Boolean(anchorEl);
   const id = open ? 'edit-unit-text-input-popover' : undefined;
@@ -70,7 +70,7 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, on
     return (
       <Tooltip title={label}>
         <span style={{marginLeft: "10px", marginRight: "10px"}}>
-          <IconButton size="small" onClick={(e) => {onEditEdge(e, fieldKey);}}>
+          <IconButton disabled={error !== null} size="small" onClick={(e) => {onEditEdge(e, fieldKey);}}  sx={{ fill: (error !== null) ? 'gray' : 'white' }}>
             {getIcon(fieldKey)}
           </IconButton>
         </span>
@@ -83,7 +83,7 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, on
     return (
        <Tooltip title={label}>
         <span style={{marginLeft: "10px", marginRight: "10px"}}>
-          <IconButton size="small" onClick={(e) => {onRemove(e, fieldKey);}}>
+          <IconButton disabled={error !== null} size="small" onClick={(e) => {onRemove(e, fieldKey);}} sx={{ fill: (error !== null) ? 'gray' : 'white' }}>
             {getIcon(fieldKey)}
           </IconButton>
         </span>
@@ -96,7 +96,7 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, on
     return (
        <Tooltip title={label}>
         <span style={{marginLeft: "10px", marginRight: "10px"}}>
-          <IconButton size="small">
+          <IconButton disabled={error !== null} size="small">
             <input type="color" onChange={(e) => {onUpdate(fieldKey, e.target.value);}}
                    style={{opacity: 0, position: "absolute", top: 0, left: 0, width: "100%", height: "100%"}}/>
             {getIcon(fieldKey)}
@@ -112,9 +112,11 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, on
       <React.Fragment>
         <Tooltip title={label} sx={{ mr: 5 }}>
           <span style={{marginLeft: "10px", marginRight: "10px"}}>
-            <IconButton                 
+            <IconButton
+              disabled={error !== null}                 
               aria-describedby={id}
-              onClick={handleOpenPopup}>
+              onClick={handleOpenPopup}
+              sx={{ fill: (error !== null) ? 'gray' : 'white' }}>
                 {getIcon(fieldKey)}
             </IconButton>
           </span>
@@ -152,7 +154,7 @@ export const UnitEditor = ({inspectorIndex, currentPage, unitAnchorEl, setUnitAn
   const [currentUnitData, setUnitData] = useState(null);
   const unitToolbarOpen = Boolean(unitAnchorEl);
   const unitToolbar = unitToolbarOpen ? "unit-toolbar-popover" : undefined;
-  const { pages, updateValue, addUnit, removeUnit } = useParseCompile();
+  const { pages, updateValue, addUnit, removeUnit, error } = useParseCompile();
 
   const unitPopoverEnter = () => {
     unitAnchorEl.setAttribute("stroke", "#90cafd");
@@ -273,6 +275,7 @@ export const UnitEditor = ({inspectorIndex, currentPage, unitAnchorEl, setUnitAn
             onRemove={handleRemoveUnit}
             onEditEdge={handleEditEdge}
             leaveFunction={unitPopoverLeave}
+            error={error}
           />
         ))
       }

@@ -16,7 +16,7 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, componentAnchorEl
   const [prevComponentData, setPrevComponentData] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [dialogType, setDialogType] = useState(null);
-  const { pages, updateValues, updateUnitStyles, updateText, updatePosition, removeComponent } = useParseCompile();
+  const { pages, updateValues, updateUnitStyles, updateText, updatePosition, removeComponent, error } = useParseCompile();
     
   
   const componentPopoverEnter = () => {
@@ -244,7 +244,7 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, componentAnchorEl
           Object.entries({remove: "Remove", styling: "Structure & Styling", text: "Text", position: "Position"}).map(([fieldKey, label]) => (
           <Tooltip title={label} key={fieldKey}>
               <span style={{marginLeft: "10px", marginRight: "10px"}}>
-              <IconButton size="small" onClick={(e) => {handleToolbarClick(e, fieldKey);}}>
+              <IconButton disabled={error !== null} size="small" onClick={(e) => {handleToolbarClick(e, fieldKey);}}>
                   {getIcon(fieldKey)}
               </IconButton>
               </span>

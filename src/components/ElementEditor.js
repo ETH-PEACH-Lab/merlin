@@ -98,6 +98,7 @@ export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, curr
     }
     // If the snackbar asked the user to select another unit, add or remove the edge
     else if (document.getElementById("edit-edge-snackbar")){
+      handleSnackbarClose();
       editEdge(document.getElementById("edit-edge-snackbar").dataset, unitID.slice(5));
     }
     // If the user double-clicked on a unit, open the component menu
@@ -120,7 +121,7 @@ export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, curr
       <Snackbar 
         open={snackbarOpen} 
         id={id}
-        autoHideDuration={20000} 
+        autoHideDuration={null} 
         onClose={handleSnackbarClose}
         anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
         sx={{

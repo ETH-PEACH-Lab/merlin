@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import MermaidRenderer from "./MermaidRenderer";
 import { ElementEditor } from "./ElementEditor";
 import { CreateComponentItem } from "./CreateComponentItem";
@@ -39,11 +39,12 @@ const RendererSection = ({
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
+  const [snackbarDuration, setSnackbarDuration] = useState(4000);
   const [anchorEl1, setAnchorEl1] = useState(null);
   const [dropdownAnchor, setDropdownAnchor] = useState(null);
   const [openPopup, setOpenPopup] = React.useState(false);
   
-  const { pages, addPage, removePage, unparsedCode, createComponent, setPageGrid } = useParseCompile();
+  const { pages, addPage, removePage, unparsedCode, createComponent, setPageGrid, error } = useParseCompile();
 
   const handleAddPage = () => {
     const pageBefore = (pages.length === 0) ? 0 : currentPage;
@@ -58,6 +59,15 @@ const RendererSection = ({
     setPageGrid(currentPage, formJson.size);
     handleClosePopup();
   };
+
+    useEffect(() => {
+      if (error && pages.length !== 0){
+        handleOpenSnackbar("You have a syntax error. Please fix it using the code editor before using the GUI controls.", "error", null);
+      }
+      else{
+        handleCloseSnackbar();
+      }
+    },[error])
 
   const handleRemovePage = () => {
     const pageBefore = currentPage;
@@ -100,6 +110,17 @@ const RendererSection = ({
     setDropdownAnchor(null);
   };
 
+  const handleOpenSnackbar = (message, severity, duration = 4000) => {
+    setSnackbarDuration(duration)
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setSnackbarOpen(true);
+  }
+
+  const handleCloseSnackbar = () => {
+    setSnackbarOpen(false);
+  };
+
   const handleClickPrev = () => {
     const newCurrentPage = currentPage - 1 >= 1? currentPage - 1 : 1 ;
     setCurrentPage(newCurrentPage);
@@ -116,27 +137,19 @@ const RendererSection = ({
       if (shareableUrl) {
         const success = await copyToClipboard(shareableUrl);
         if (success) {
-          setSnackbarMessage('Shareable URL copied to clipboard!');
-          setSnackbarSeverity('success');
+          handleOpenSnackbar("Shareable URL copied to clipboard!", "success");
         } else {
-          setSnackbarMessage('Failed to copy URL to clipboard');
-          setSnackbarSeverity('error');
+          handleOpenSnackbar("Failed to copy URL to clipboard", "error");
         }
       } else {
-        setSnackbarMessage('Failed to create shareable URL');
-        setSnackbarSeverity('error');
+        handleOpenSnackbar("Failed to create shareable URL", "error");
       }
     } catch (error) {
-      console.error('Error sharing:', error);
-      setSnackbarMessage('Error creating shareable URL');
-      setSnackbarSeverity('error');
+      console.error("Error sharing:", error);
+      handleOpenSnackbar("Error creating shareable URL", "error");
     }
-    setSnackbarOpen(true);
   };
 
-  const handleSnackbarClose = () => {
-    setSnackbarOpen(false);
-  };
 
   const open = Boolean(anchorEl);
   const id = open ? 'simple-popover' : undefined;
@@ -173,6 +186,7 @@ const RendererSection = ({
             <Tooltip title="Add a Page">
             <span>
               <IconButton
+                disabled={pages.length !== 0 && error !== null}
                 onClick={handleAddPage}
                 sx={{ mr: 1 }}
                 size="small"
@@ -184,7 +198,7 @@ const RendererSection = ({
           <Tooltip title="Remove Current Page">
             <span>
               <IconButton
-                disabled={currentPage === 1 || pages.length === 0}
+                disabled={currentPage === 1 || pages.length === 0 || error !== null}
                 onClick={handleRemovePage}
                 sx={{ mr: 1 }}
                 size="small"
@@ -196,7 +210,7 @@ const RendererSection = ({
           <Tooltip title="Set Page Grid">
             <span>
               <IconButton
-                disabled={pages.length === 0}
+                disabled={pages.length === 0 || error !== null}
                 onClick={handleOpenPopup}
                 sx={{ mr: 1 }}
                 size="small"
@@ -339,6 +353,7 @@ const RendererSection = ({
           <Tooltip title="Create a Component">
             <span>
               <IconButton
+                disabled={pages.length !== 0 && error !== null}
                 aria-describedby={dropdown}
                 onClick={handleOpenDropdown}
                 sx={{ mr: 1 }}
@@ -465,9 +480,7 @@ const RendererSection = ({
 
                   if (edgeSet.size === 0){
                     handleCloseDropdown();
-                    setSnackbarMessage("Couldn't parse edges");
-                    setSnackbarSeverity('error');
-                    setSnackbarOpen(true);
+                    handleOpenSnackbar("Couldn't parse edges", "error");
                     return;
                   }
 
@@ -530,9 +543,7 @@ const RendererSection = ({
 
                   if (edgeSet.size === 0){
                     handleCloseDropdown();
-                    setSnackbarMessage("Couldn't parse edges");
-                    setSnackbarSeverity('error');
-                    setSnackbarOpen(true);
+                    handleOpenSnackbar("Couldn't parse edges", "error");
                     return;
                   }
 
@@ -608,14 +619,14 @@ const RendererSection = ({
       
       <Snackbar 
         open={snackbarOpen} 
-        autoHideDuration={4000} 
-        onClose={handleSnackbarClose}
+        autoHideDuration={snackbarDuration} 
+        onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
         sx={{
         '&.MuiSnackbar-root': { top: '150px' },
       }}
       >
-        <Alert onClose={handleSnackbarClose} severity={snackbarSeverity} sx={{ width: '100%' }}>
+        <Alert onClose={handleCloseSnackbar} severity={snackbarSeverity} sx={{ width: '100%' }}>
           {snackbarMessage}
         </Alert>
       </Snackbar>
