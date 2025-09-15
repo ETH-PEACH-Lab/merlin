@@ -190,7 +190,9 @@ function reconstructCommand(cmd) {
                 return `show ${cmd.value} ${formatPosition(cmd.position)}`;
             }
             return `show ${cmd.value}`;
-            
+
+        case 'hide':
+           return `hide ${cmd.value}`;   
             
         case 'set':
             // Special handling for text components

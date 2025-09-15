@@ -566,11 +566,22 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
     }, [parsedCode]);
 
     // Remove a component
-    const removeComponent = useCallback((componentName) => {    
-        let len = parsedCode.cmds.length;    
-        for (let i = len - 1; i >= 0; i--){
-            if ((parsedCode.cmds[i].type === "show" && parsedCode.cmds[i].value === componentName) || parsedCode.cmds[i].name === componentName) {
-                parsedCode.cmds.splice(i, 1);
+    const removeComponent = useCallback((page, componentName) => {    
+        const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
+        // Insert a hide command
+        parsedCode.cmds.splice(pageEndIndex, 0, { type: "hide", value: componentName });
+        // Find the next show command
+        let nextShow = pageEndIndex;
+        while (nextShow < parsedCode.cmds.length){
+            if (parsedCode.cmds[nextShow].type === "show" && parsedCode.cmds[nextShow].value === componentName){
+                break;
+            }
+            nextShow++;
+        }
+        // Remove all commands that affect the component between the hide and the next show
+        for (let j = nextShow - 1; j > pageEndIndex; j--){
+            if (parsedCode.cmds[j].name === componentName) {
+                parsedCode.cmds.splice(j, 1);
             }
         }
 

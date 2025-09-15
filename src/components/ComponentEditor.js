@@ -72,8 +72,8 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, componentAnchorEl
   const handleEditComponent = (event) => {
     event.preventDefault();
     componentPopoverLeave();
-    if (dialogType === "Remove"){
-      removeComponent(currentComponentData.name);
+    if (dialogType === "remove"){
+      removeComponent(currentComponentData.page, currentComponentData.name);
       return;
     }
 
@@ -171,7 +171,7 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, componentAnchorEl
 
   const getDialogFields = () =>{
     switch (dialogType){
-    case "Styling":
+    case "styling":
       return (
       <div>
         {(currentComponentData.type === "tree" || currentComponentData.type === "graph" || currentComponentData.type === "linkedlist") ? 
@@ -185,7 +185,7 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, componentAnchorEl
         {getTextField("arrow", "Arrows", currentComponentData?.arrow, currentComponentData?.type)}
       </div>
       );
-    case "Text":
+    case "text":
       return (
         <div>
           {getTextField("text_above", "Text above", currentComponentData?.text_above, currentComponentData?.type)}
@@ -194,17 +194,19 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, componentAnchorEl
           {getTextField("text_right", "Text right", currentComponentData?.text_right, currentComponentData?.type)}
         </div>
       );
-    case "Position":
+    case "position":
       return (
         <div>
           {getTextField("position", "Position", currentComponentData?.position, currentComponentData?.type)}
         </div>
       );
-    case "Remove":
+    case "remove":
       return (
         <div>
           <DialogContentText>
-            Do you really want to delete this component? It will be deleted from all pages.
+            Do you really want to delete this component? <br></br> 
+            This action also deletes all styling commands for this component on the following pages
+            up until the component is shown again.
           </DialogContentText>
         </div>
       );
@@ -242,7 +244,7 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, componentAnchorEl
           Object.entries({remove: "Remove", styling: "Structure & Styling", text: "Text", position: "Position"}).map(([fieldKey, label]) => (
           <Tooltip title={label} key={fieldKey}>
               <span style={{marginLeft: "10px", marginRight: "10px"}}>
-              <IconButton size="small" onClick={(e) => {handleToolbarClick(e, label);}}>
+              <IconButton size="small" onClick={(e) => {handleToolbarClick(e, fieldKey);}}>
                   {getIcon(fieldKey)}
               </IconButton>
               </span>
@@ -257,7 +259,7 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, componentAnchorEl
               {getDialogFields()}
             <DialogActions>
               <Button onClick={componentPopoverLeave}>Cancel</Button>
-              <Button type="submit">Save</Button>
+              <Button type="submit">Delete</Button>
             </DialogActions>
           </form>
           }        
