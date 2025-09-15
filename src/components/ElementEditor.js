@@ -4,7 +4,6 @@ import "./ElementEditor.css";
 import { UnitEditor } from "./UnitEditor";
 import { ComponentEditor } from "./ComponentEditor"
 import { useParseCompile } from "../context/ParseCompileContext";
-import { parseInspectorIndex, getFieldValue } from "../compiler/dslUtils.mjs";
 
 export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, currentPage}) => {
 
@@ -14,7 +13,7 @@ export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, curr
   const [unitTarget, setUnitTarget] = useState(null);
   const [componentTarget, setComponentTarget] = useState(null);
 
-  const { pages, editEdge } = useParseCompile();
+  const { editEdge } = useParseCompile();
 
   useEffect(()=> {
     initListener();
@@ -41,6 +40,7 @@ export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, curr
       svgElement.addEventListener("click", onClick);
       svgElement.addEventListener("mouseout", onMouseOut);
     }
+    document.getElementsByClassName("container")[0].addEventListener("click", onDocumentClick);
   }
 
   const handleSnackbarClose = () => {
@@ -63,7 +63,13 @@ export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, curr
     }
   }
 
+  const onDocumentClick = (e) => {
+    setUnitTarget(null);
+    setComponentTarget(null);
+  }
+
   const onClick = (e) =>{
+    e.stopPropagation();
     let target = e.target.parentElement.getElementsByTagName("rect")[0] || e.target.parentElement.getElementsByTagName("circle")[0];
     let current = target;
   
