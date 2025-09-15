@@ -3,6 +3,7 @@ import { Snackbar, Alert } from "@mui/material";
 import "./ElementEditor.css";
 import { UnitEditor } from "./UnitEditor";
 import { ComponentEditor } from "./ComponentEditor"
+import { TextEditor } from "./TextEditor"
 import { useParseCompile } from "../context/ParseCompileContext";
 
 export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, currentPage}) => {
@@ -12,7 +13,7 @@ export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, curr
   const id = snackbarOpen ? 'edit-edge-snackbar' : undefined;
   const [unitTarget, setUnitTarget] = useState(null);
   const [componentTarget, setComponentTarget] = useState(null);
-
+  const [textTarget, setTextTarget] = useState(null);
   const { editEdge } = useParseCompile();
 
   useEffect(()=> {
@@ -70,47 +71,56 @@ export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, curr
 
   const onClick = (e) =>{
     e.stopPropagation();
+
     let target = e.target.parentElement.getElementsByTagName("rect")[0] || e.target.parentElement.getElementsByTagName("circle")[0];
-    let current = target;
-  
-    // Traverse up the DOM tree to find the nearest <g class="unit"> element
-    while (current && !current.classList.contains("unit")) {
-        current = current.parentElement;
-    }
-    const unitID = current? current.id: null;
 
-    // Traverse up the DOM tree to find the nearest <g class="component"> element
-    while (current && !current.classList.contains("component")) {
-        current = current.parentElement;
-    }
-    const componentID = current? current.id: null;
-
-    // Traverse up the DOM tree to find the nearest <g class="page"> element
-    while (current && !current.classList.contains("page")) {
-        current = current.parentElement;
-    }
-    const pageID = current?current.id: null;
-
-    // If the user did not click on a unit, close the toolbar
-    if (typeof target === "undefined" || e.target.parentElement !== target.parentElement){
+    // If the user did not click on a text component or on a unit, close the toolbars
+    if (!e.target.classList.contains("textElement") && (typeof target === "undefined" || e.target.parentElement !== target.parentElement)){
       setUnitTarget(null);
       setComponentTarget(null);
     }
-    // If the snackbar asked the user to select another unit, add or remove the edge
-    else if (document.getElementById("edit-edge-snackbar")){
-      handleSnackbarClose();
-      editEdge(document.getElementById("edit-edge-snackbar").dataset, unitID.slice(5));
-    }
-    // If the user double-clicked on a unit, open the component menu
-    else if (e.detail === 2) {
-      setUnitTarget(null);
-      updateInspector(unitID, componentID, pageID);
-      setComponentTarget(target);
-    }
-    // Otherwise, open the unit menu
     else {
-      updateInspector(unitID, componentID, pageID);
-      setUnitTarget(target);
+      let current = e.target.classList.contains("textElement") ? e.target : target;
+
+      // Traverse up the DOM tree to find the nearest <g class="unit"> element
+      while (current && !current.classList.contains("unit")) {
+          current = current.parentElement;
+      }
+      const unitID = current? current.id: null;
+
+      // Traverse up the DOM tree to find the nearest <g class="component"> element
+      while (current && !current.classList.contains("component")) {
+          current = current.parentElement;
+      }
+      const componentID = current? current.id: null;
+
+      // Traverse up the DOM tree to find the nearest <g class="page"> element
+      while (current && !current.classList.contains("page")) {
+          current = current.parentElement;
+      }
+      const pageID = current?current.id: null;
+
+      
+      // If the snackbar asked the user to select another unit, add or remove the edge
+      if (document.getElementById("edit-edge-snackbar")){
+        handleSnackbarClose();
+        editEdge(document.getElementById("edit-edge-snackbar").dataset, unitID.slice(5));
+      }
+      else if (e.target.classList.contains("textElement")){
+        updateInspector(unitID, componentID, pageID);
+        setTextTarget(e.target);
+      }
+      // If the user double-clicked on a unit, open the component menu
+      else if (e.detail === 2) {
+        setUnitTarget(null);
+        updateInspector(unitID, componentID, pageID);
+        setComponentTarget(target);
+      }
+      // Otherwise, open the unit menu
+      else {
+        updateInspector(unitID, componentID, pageID);
+        setUnitTarget(target);
+      }
     }
   }
 
@@ -118,6 +128,7 @@ export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, curr
     <React.Fragment>
       <ComponentEditor inspectorIndex={inspectorIndex} currentPage={currentPage} componentAnchorEl={componentTarget} setComponentAnchorEl={setComponentTarget}/>
       <UnitEditor inspectorIndex={inspectorIndex} currentPage={currentPage} unitAnchorEl={unitTarget} setUnitAnchorEl={setUnitTarget} setEdgeTarget={setEdgeTarget}/>
+      <TextEditor inspectorIndex={inspectorIndex} currentPage={currentPage} textAnchorEl={textTarget} setTextAnchorEl={setTextTarget}/>
       <Snackbar 
         open={snackbarOpen} 
         id={id}

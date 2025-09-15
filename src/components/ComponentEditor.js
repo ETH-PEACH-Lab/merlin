@@ -130,7 +130,6 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, componentAnchorEl
         currentComponentData["position"]
       );
     }
-    componentPopoverLeave();
   };
 
   const getIcon = (name) => {
@@ -259,7 +258,7 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, componentAnchorEl
               {getDialogFields()}
             <DialogActions>
               <Button onClick={componentPopoverLeave}>Cancel</Button>
-              <Button type="submit">Delete</Button>
+              <Button type="submit">Save</Button>
             </DialogActions>
           </form>
           }        

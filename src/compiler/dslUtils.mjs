@@ -181,18 +181,18 @@ export function getComponentFields(componentType) {
       color: "Edit Color",
       arrow: "Add Arrow",
     },
-    // text: {
-    //   value: ["Value", "string"],
-    //   fontSize: ["Font Size", "number"],
-    //   color: "Color",
-    //   fontWeight: ["Font Weight", "string"],
-    //   fontFamily: ["Font Family", "string"],
-    //   align: ["Alignment", "string"],
-    //   lineSpacing: ["Line Spacing", "number"],
-    //   width: ["Width", "number"],
-    //   height: ["Height", "number"],
-    //   position: ["Position", "position"],
-    // },
+    text: {
+      value: ["Value", "string"],
+      fontSize: ["Font Size", "number"],
+      color: "Color",
+      fontWeight: ["Font Weight", "string"],
+      fontFamily: ["Font Family", "string"],
+      align: ["Alignment", "string"],
+      lineSpacing: ["Line Spacing", "number"],
+      width: ["Width", "number"],
+      height: ["Height", "number"],
+      position: ["Position", "position"],
+    },
   };
 
   return fieldDefinitions[componentType] || {};
@@ -246,8 +246,11 @@ export function createUnitData(parsedInfo) {
     name: componentName,
     page: pageIdx,
     type: componentType,
-    allNodes: component.body.nodes
   };
+
+  if (componentType === "graph"){
+    unitData["allNodes"] =  component.body.nodes;
+  }
 
   // Add fields based on type definition
   const fields = getComponentFields(componentType);
