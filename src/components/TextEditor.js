@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, FormLabel, FormControlLabel, IconButton, Popover, Radio, RadioGroup, TextField, Tooltip } from "@mui/material";
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, FormControl,
+  FormControlLabel, FormLabel, InputLabel, IconButton, MenuItem, Popover, Select, Radio, RadioGroup,
+  TextField, Tooltip } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from '@mui/icons-material/Edit';
 import FormatColorFillIcon from '@mui/icons-material/FormatColorFill';
@@ -7,7 +9,7 @@ import FormatItalicIcon from '@mui/icons-material/FormatItalic';
 import Grid3x3Icon from '@mui/icons-material/Grid3x3';
 import RectangleOutlinedIcon from '@mui/icons-material/RectangleOutlined';
 import { useParseCompile } from "../context/ParseCompileContext";
-import { parseInspectorIndex, createUnitData } from "../compiler/dslUtils.mjs";
+import { parseInspectorIndex, createUnitData, getFieldDropdownOptions } from "../compiler/dslUtils.mjs";
 
 
 export const TextEditor = ({ inspectorIndex, currentPage, textAnchorEl, setTextAnchorEl }) => {
@@ -19,7 +21,6 @@ export const TextEditor = ({ inspectorIndex, currentPage, textAnchorEl, setTextA
   const [dialogType, setDialogType] = useState(null);
   const { pages, updateValue, updateText, updatePosition, removeComponent, error } = useParseCompile();
     
-  
   const textPopoverEnter = () => {
     textAnchorEl.setAttribute("stroke", "#90cafd");
   };
@@ -33,7 +34,6 @@ export const TextEditor = ({ inspectorIndex, currentPage, textAnchorEl, setTextA
     if (inspectorIndex) {
       const parsedInfo = parseInspectorIndex(inspectorIndex, pages, currentPage);
       const textData = createUnitData(parsedInfo);
-      console.log(textData);
       
       if (textData) {
         setCurrentTextData(textData);
@@ -64,6 +64,10 @@ export const TextEditor = ({ inspectorIndex, currentPage, textAnchorEl, setTextA
     setCurrentTextData({ ...currentTextData, [e.target.name]: e.target.value });
   };
 
+  const handleSelectChange = (fieldKey, value) => {
+    setCurrentTextData({ ...currentTextData, [fieldKey]: value });
+  };
+
   const handleColorUpdate = (fieldKey, value) => {
     textPopoverLeave();
     updateValue(currentTextData.page,
@@ -77,17 +81,17 @@ export const TextEditor = ({ inspectorIndex, currentPage, textAnchorEl, setTextA
   const handleEditText = (event) => {
     event.preventDefault();
     textPopoverLeave();
-    console.log(currentTextData);
     if (dialogType === "remove"){
       removeComponent(currentTextData.page, currentTextData.name);
       return;
     }
-    ["width", "height", "fontSize", "lineSpacing", "value", "align"].forEach(fieldKey => {
+    ["width", "height", "fontSize", "lineSpacing", "value", "align", "fontWeight", "fontFamily"].forEach(fieldKey => {
       if (currentTextData[fieldKey] !== "" && currentTextData[fieldKey] !== prevTextData[fieldKey]){
         updateText(
           currentTextData.page,
           currentTextData.name,
           currentTextData.type,
+          currentTextData.coordinates["index"],
           fieldKey,
           currentTextData[fieldKey]
         );
@@ -146,8 +150,39 @@ export const TextEditor = ({ inspectorIndex, currentPage, textAnchorEl, setTextA
       return (
       <div>
           {getTextField("fontSize", "Font Size", currentTextData?.fontSize)}
-          {getTextField("fontFamily", "Font Family", currentTextData?.fontFamily)}
-          {getTextField("fontWeight", "Font Weight", currentTextData?.fontWeight)}
+          <FormControl variant="standard" sx={{ m: 1, minWidth: 120 }}>
+          <InputLabel id="font-family-select-label">Font Family</InputLabel>
+            <Select
+              labelId="font-family-select-label"
+              id="font-family-select"
+              label="Font Family"
+              name="fontFamily"
+              value={currentTextData?.fontFamily}
+              onChange={(e) => {handleSelectChange("fontFamily", e.target.value);}}
+            >
+          {getFieldDropdownOptions("fontFamily").map((option) => (
+            <MenuItem key={option.value} value={option.value} name={option.value}>
+              {option.label}
+            </MenuItem>
+          ))}
+            </Select>
+          </FormControl>
+          <FormControl variant="standard" sx={{ m: 1, minWidth: 120 }}>
+            <InputLabel id="font-weight-select-label">Font Weight</InputLabel>
+            <Select
+              labelId="font-weight-select-label"
+              id="font-weight-select"
+              label="Font Weight"
+              value={currentTextData?.fontWeight}
+              onChange={(e) => {handleSelectChange("fontWeight", e.target.value);}}
+            >
+          {getFieldDropdownOptions("fontWeight").map((option) => (
+            <MenuItem key={option.value} value={option.value}>
+              {option.label}
+            </MenuItem>
+          ))}
+            </Select>
+          </FormControl>
           {getTextField("lineSpacing", "Line Spacing", currentTextData?.lineSpacing)}
       </div>
       );

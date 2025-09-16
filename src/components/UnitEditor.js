@@ -20,11 +20,6 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, on
     setAnchorEl(event.currentTarget);
   };
 
-  const handleClosePopup = () => {
-    leaveFunction();
-    setAnchorEl(null);
-  };
-
   const getIcon = (name) => {
     switch (name){
       case "add":
@@ -212,7 +207,6 @@ export const UnitEditor = ({inspectorIndex, currentPage, unitAnchorEl, setUnitAn
 
   const handleEditEdge = (event, editCommand) => {
     unitPopoverLeave();
-    console.log(currentUnitData);
     setEdgeTarget({page: currentUnitData.page, name: currentUnitData.name, firstNode: currentUnitData.nodes,
       nodes: currentUnitData.allNodes, command: editCommand});
   }

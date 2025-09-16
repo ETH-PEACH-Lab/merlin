@@ -119,6 +119,7 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, componentAnchorEl
           currentComponentData.page,
           currentComponentData.name,
           currentComponentData.type,
+          null,
           fieldKey,
           currentComponentData[fieldKey]
         );

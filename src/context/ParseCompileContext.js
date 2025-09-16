@@ -463,7 +463,6 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             }
             
             if (newEdges !== null){
-                console.log(newEdges);
 				// Remove the edges that the user deleted
                 for (let i = 0; i<prevEdges.length; i++){
                     if (newEdges.indexOf(prevEdges[i]) === -1 && nodes.indexOf(prevEdges[i].split("-")[0]) !== -1 && nodes.indexOf(prevEdges[i].split("-")[1]) !== -1){
@@ -525,7 +524,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
     }, [parsedCode]);
 
     // Update the component texts
-    const updateText = useCallback((page, componentName, componentType, fieldKey, newValue) => {
+    const updateText = useCallback((page, componentName, componentType, index, fieldKey, newValue) => {
         const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
         if (componentType !== "text"){
             parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, type: "set_text", args: {index: newValue, value: {value: fieldKey.split("_")[1]}}});
@@ -536,7 +535,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             }
             else {
                 const valueParsed = (fieldKey === "fontSize") ? parseInt(newValue, 10) : newValue;
-                parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, type: "set", target: fieldKey, args: {index: 0, value: valueParsed }});
+                parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, type: "set", target: fieldKey, args: {index: index, value: valueParsed }});
             }
         }
         reconstructMerlinLite();
