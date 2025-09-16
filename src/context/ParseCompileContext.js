@@ -525,9 +525,20 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
     }, [parsedCode]);
 
     // Update the component texts
-    const updateText = useCallback((page, componentName, fieldKey, newValue) => {
+    const updateText = useCallback((page, componentName, componentType, fieldKey, newValue) => {
         const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
-        parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, type: "set_text", args: {index: newValue, value: {value: fieldKey.split("_")[1]}}});
+        if (componentType !== "text"){
+            parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, type: "set_text", args: {index: newValue, value: {value: fieldKey.split("_")[1]}}});
+        }
+        else {
+            if (["height", "width", "lineSpacing"].includes(fieldKey)){
+                parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, type: "set", target: fieldKey, args: parseInt(newValue)});
+            }
+            else {
+                const valueParsed = (fieldKey === "fontSize") ? parseInt(newValue, 10) : newValue;
+                parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, type: "set", target: fieldKey, args: {index: 0, value: valueParsed }});
+            }
+        }
         reconstructMerlinLite();
     }, [parsedCode]);
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, IconButton, Popover, TextField, Tooltip } from "@mui/material";
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, FormLabel, FormControlLabel, IconButton, Popover, Radio, RadioGroup, TextField, Tooltip } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from '@mui/icons-material/Edit';
 import FormatColorFillIcon from '@mui/icons-material/FormatColorFill';
@@ -17,7 +17,7 @@ export const TextEditor = ({ inspectorIndex, currentPage, textAnchorEl, setTextA
   const [prevTextData, setPrevTextData] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [dialogType, setDialogType] = useState(null);
-  const { pages, updateValues, updateUnitStyles, updateText, updatePosition, removeComponent, error } = useParseCompile();
+  const { pages, updateValue, updateText, updatePosition, removeComponent, error } = useParseCompile();
     
   
   const textPopoverEnter = () => {
@@ -33,11 +33,11 @@ export const TextEditor = ({ inspectorIndex, currentPage, textAnchorEl, setTextA
     if (inspectorIndex) {
       const parsedInfo = parseInspectorIndex(inspectorIndex, pages, currentPage);
       const textData = createUnitData(parsedInfo);
+      console.log(textData);
       
       if (textData) {
         setCurrentTextData(textData);
         setPrevTextData(textData);
-        console.log(textData);
         if (textAnchorEl){
           textPopoverEnter();
         }
@@ -61,55 +61,33 @@ export const TextEditor = ({ inspectorIndex, currentPage, textAnchorEl, setTextA
   };
 
   const handleFieldChange = (e) => {
-    console.log("c", currentTextData);
-    console.log("d", prevTextData);
     setCurrentTextData({ ...currentTextData, [e.target.name]: e.target.value });
   };
 
-  const parseUserInput = (input, textType) => {
-    if (textType === "matrix"){
-      return input.split('],').map(( row ) =>  row.replaceAll("[", "").replaceAll("]", "").split(","));
-    }
-    return input.split(',').map(( value ) => value.trim());
+  const handleColorUpdate = (fieldKey, value) => {
+    textPopoverLeave();
+    updateValue(currentTextData.page,
+      currentTextData.name,
+      currentTextData.coordinates, 
+      fieldKey,
+      value
+    );
   }
 
   const handleEditText = (event) => {
     event.preventDefault();
     textPopoverLeave();
+    console.log(currentTextData);
     if (dialogType === "remove"){
       removeComponent(currentTextData.page, currentTextData.name);
       return;
     }
-
-    // Update the nodes, edges and values
-    if (typeof currentTextData["nodes"] === 'string' || typeof currentTextData["edges"] === 'string'){
-      updateValues(
-        currentTextData.page,
-        currentTextData.name,
-        currentTextData.type,
-        "nodes",
-        prevTextData["nodes"],
-        currentTextData["nodes"],
-        prevTextData["edges"].map(( edge ) => edge.start + "-" + edge.end),
-        typeof currentTextData["edges"] === 'string' ? parseUserInput(currentTextData["edges"], currentTextData.type) : null
-      );
-    }
-    // For arrows and colors update the styles
-    ["color", "arrow"].forEach(fieldKey => {
-      if (typeof currentTextData[fieldKey] === 'string'){
-        updateUnitStyles(
-          currentTextData.page,
-          currentTextData.name,
-          fieldKey,
-          parseUserInput(currentTextData[fieldKey], currentTextData.type)
-        );
-      }
-    });
-    ["value"].forEach(fieldKey => {
+    ["width", "height", "fontSize", "lineSpacing", "value", "align"].forEach(fieldKey => {
       if (currentTextData[fieldKey] !== "" && currentTextData[fieldKey] !== prevTextData[fieldKey]){
         updateText(
           currentTextData.page,
           currentTextData.name,
+          currentTextData.type,
           fieldKey,
           currentTextData[fieldKey]
         );
@@ -141,7 +119,7 @@ export const TextEditor = ({ inspectorIndex, currentPage, textAnchorEl, setTextA
     }
   };
 
-  const getTextField = (name, label, values, textType, specialField="") => {
+  const getTextField = (name, label, values, specialField="") => {
     var valuesFormatted = values;
 
     if (values instanceof Array){
@@ -164,22 +142,39 @@ export const TextEditor = ({ inspectorIndex, currentPage, textAnchorEl, setTextA
 
   const getDialogFields = () =>{
     switch (dialogType){
-    case "color":
+    case "font":
       return (
       <div>
-
+          {getTextField("fontSize", "Font Size", currentTextData?.fontSize)}
+          {getTextField("fontFamily", "Font Family", currentTextData?.fontFamily)}
+          {getTextField("fontWeight", "Font Weight", currentTextData?.fontWeight)}
+          {getTextField("lineSpacing", "Line Spacing", currentTextData?.lineSpacing)}
       </div>
       );
     case "text":
       return (
         <div>
-          {getTextField("value", "Text", currentTextData?.value, currentTextData?.type)}
+          {getTextField("value", "Text", currentTextData?.value)}
         </div>
       );
     case "position":
       return (
         <div>
-          {getTextField("position", "Position", currentTextData?.position, currentTextData?.type)}
+          <FormLabel id="demo-row-radio-buttons-group-label">Align</FormLabel>
+            <RadioGroup
+              row
+              aria-labelledby="demo-row-radio-buttons-group-label"
+              name="align"
+              value={currentTextData?.align}
+              onChange={handleFieldChange}
+            >
+              <FormControlLabel value="left" control={<Radio />} label="Left"/>
+              <FormControlLabel value="center" control={<Radio />} label="Center" />
+              <FormControlLabel value="right" control={<Radio />} label="Right" />
+            </RadioGroup>
+          {getTextField("height", "Height", currentTextData?.height)}
+          {getTextField("width", "Width", currentTextData?.width)}
+          {getTextField("position", "Position", currentTextData?.position)}
         </div>
       );
     case "remove":
@@ -227,7 +222,7 @@ export const TextEditor = ({ inspectorIndex, currentPage, textAnchorEl, setTextA
               <span style={{marginLeft: "10px", marginRight: "10px"}}>
                 {fieldKey === "color" ? (
                   <IconButton disabled={error !== null} size="small">
-                    <input type="color" onChange={(e) => {onUpdate(fieldKey, e.target.value);}}
+                    <input type="color" onChange={(e) => {handleColorUpdate(fieldKey, e.target.value);}}
                       style={{opacity: 0, position: "absolute", top: 0, left: 0, width: "100%", height: "100%"}}/>
                     {getIcon(fieldKey)}
                   </IconButton>) : (
@@ -256,4 +251,3 @@ export const TextEditor = ({ inspectorIndex, currentPage, textAnchorEl, setTextA
     </Popover>
   );
 };
-
