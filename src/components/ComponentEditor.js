@@ -1,20 +1,32 @@
 import React, { useEffect, useState } from "react";
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, IconButton, TextField, Tooltip } from "@mui/material";
-import ClearIcon from '@mui/icons-material/Clear';
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, IconButton, Popover, TextField, Tooltip } from "@mui/material";
+import DeleteIcon from "@mui/icons-material/Delete";
 import FormatShapesIcon from '@mui/icons-material/FormatShapes';
 import Grid3x3Icon from '@mui/icons-material/Grid3x3';
 import RectangleOutlinedIcon from '@mui/icons-material/RectangleOutlined';
-import TextFormatIcon from '@mui/icons-material/TextFormat';
+import TitleIcon from '@mui/icons-material/Title';
 import { useParseCompile } from "../context/ParseCompileContext";
 import { parseInspectorIndex, createComponentData } from "../compiler/dslUtils.mjs";
 
 
-export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) => {
+export const ComponentEditor = ({ inspectorIndex, currentPage, componentAnchorEl, setComponentAnchorEl }) => {
+  const componentToolbarOpen = Boolean(componentAnchorEl);
+  const componentToolbar = componentToolbarOpen ? "component-toolbar-popover" : undefined;
   const [currentComponentData, setCurrentComponentData] = useState(null);
   const [prevComponentData, setPrevComponentData] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [dialogType, setDialogType] = useState(null);
-  const { pages, updateValues, updateUnitStyles, updateText, updatePosition, removeComponent } = useParseCompile();
+  const { pages, updateValues, updateUnitStyles, updateText, updatePosition, removeComponent, error } = useParseCompile();
+    
+  
+  const componentPopoverEnter = () => {
+    componentAnchorEl.setAttribute("stroke", "#90cafd");
+  };
+
+  const componentPopoverLeave = () => {
+    setOpenDialog(false);
+    setComponentAnchorEl(null);
+  };
 
   useEffect(() => {
     if (inspectorIndex) {
@@ -24,11 +36,19 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
       if (componentData) {
         setCurrentComponentData(componentData);
         setPrevComponentData(componentData);
+        if (componentAnchorEl){
+          componentPopoverEnter();
+        }
       }
     }
   }, [inspectorIndex, currentPage, pages]);
-
     
+  useEffect(() => {
+    if (!componentAnchorEl){
+      componentPopoverLeave();
+    }
+  },[componentAnchorEl])
+
   const handleToolbarClick = (event, type) => {
     setDialogType(type);
     setOpenDialog(true);
@@ -51,9 +71,9 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
 
   const handleEditComponent = (event) => {
     event.preventDefault();
-    if (dialogType === "Remove"){
-      leaveFunction();
-      removeComponent(currentComponentData.name);
+    componentPopoverLeave();
+    if (dialogType === "remove"){
+      removeComponent(currentComponentData.page, currentComponentData.name);
       return;
     }
 
@@ -98,6 +118,8 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
         updateText(
           currentComponentData.page,
           currentComponentData.name,
+          currentComponentData.type,
+          null,
           fieldKey,
           currentComponentData[fieldKey]
         );
@@ -110,7 +132,6 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
         currentComponentData["position"]
       );
     }
-    leaveFunction();
   };
 
   const getIcon = (name) => {
@@ -118,11 +139,11 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
       case "styling":
         return <FormatShapesIcon></FormatShapesIcon>;
       case "text":
-        return <TextFormatIcon></TextFormatIcon>;
+        return <TitleIcon></TitleIcon>;
       case "position":
         return <Grid3x3Icon></Grid3x3Icon>;
       case "remove":
-        return <ClearIcon></ClearIcon>;
+        return <DeleteIcon></DeleteIcon>;
       default: 
         return <RectangleOutlinedIcon></RectangleOutlinedIcon>
     }
@@ -151,7 +172,7 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
 
   const getDialogFields = () =>{
     switch (dialogType){
-    case "Styling":
+    case "styling":
       return (
       <div>
         {(currentComponentData.type === "tree" || currentComponentData.type === "graph" || currentComponentData.type === "linkedlist") ? 
@@ -165,7 +186,7 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
         {getTextField("arrow", "Arrows", currentComponentData?.arrow, currentComponentData?.type)}
       </div>
       );
-    case "Text":
+    case "text":
       return (
         <div>
           {getTextField("text_above", "Text above", currentComponentData?.text_above, currentComponentData?.type)}
@@ -174,17 +195,19 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
           {getTextField("text_right", "Text right", currentComponentData?.text_right, currentComponentData?.type)}
         </div>
       );
-    case "Position":
+    case "position":
       return (
         <div>
-          {getTextField("position", "Position", currentComponentData?.position, currentComponentData?.type)}
+          {getTextField("position", "Position (comma-separated, for example: 1,1)", currentComponentData?.position, currentComponentData?.type)}
         </div>
       );
-    case "Remove":
+    case "remove":
       return (
         <div>
           <DialogContentText>
-            Do you really want to delete this component? It will be deleted from all pages.
+            Do you really want to delete this component? <br></br> 
+            This action also deletes all styling commands for this component on the following pages
+            up until the component is shown again.
           </DialogContentText>
         </div>
       );
@@ -193,7 +216,20 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
   }
 
   return (
-    <React.Fragment>
+    <Popover
+      id={componentToolbar}
+      open={componentToolbarOpen}
+      anchorEl={componentAnchorEl}
+      anchorOrigin={{
+        vertical: "top",
+        horizontal: "center",
+      }}
+      transformOrigin={{
+        vertical: "bottom",
+        horizontal: "center",
+      }}
+      slotProps={{ paper: { sx: { pointerEvents: "auto" } } }}
+      sx={{ pointerEvents: "none" }}>
       <Box
         component="form"
         sx={{
@@ -206,10 +242,10 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
         
         {/* Dynamically generate inputs based on type definition */}
         {currentComponentData &&
-          Object.entries({remove: "Remove", styling: "Styling", text: "Text", position: "Position"}).map(([fieldKey, label]) => (
+          Object.entries({remove: "Remove", styling: "Edit Structure & Styling", text: "Edit Text", position: "Edit Position"}).map(([fieldKey, label]) => (
           <Tooltip title={label} key={fieldKey}>
               <span style={{marginLeft: "10px", marginRight: "10px"}}>
-              <IconButton size="small" onClick={(e) => {handleToolbarClick(e, label);}}>
+              <IconButton disabled={error !== null} size="small" onClick={(e) => {handleToolbarClick(e, fieldKey);}}>
                   {getIcon(fieldKey)}
               </IconButton>
               </span>
@@ -223,14 +259,14 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, leaveFunction }) 
           <form onSubmit={handleEditComponent}>
               {getDialogFields()}
             <DialogActions>
-              <Button onClick={leaveFunction}>Cancel</Button>
+              <Button onClick={componentPopoverLeave}>Cancel</Button>
               <Button type="submit">Save</Button>
             </DialogActions>
           </form>
           }        
         </DialogContent>
       </Dialog>
-    </React.Fragment>
+    </Popover>
   );
 };
 

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import MermaidRenderer from "./MermaidRenderer";
 import { ElementEditor } from "./ElementEditor";
 import { CreateComponentItem } from "./CreateComponentItem";
@@ -18,6 +18,8 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import WebIcon from '@mui/icons-material/Web';
 import GifBox from '@mui/icons-material/GifBox';
 import Movie from '@mui/icons-material/Movie';
+import UndoIcon from '@mui/icons-material/Undo';
+import RedoIcon from '@mui/icons-material/Redo';
 import { useParseCompile } from "../context/ParseCompileContext";
 import { createShareableUrl, copyToClipboard } from "../utils/urlSharing";
 import { arrayIcon, stackIcon, matrixIcon, linkedListIcon, treeIcon, graphIcon, textIcon } from "./CustomIcons";
@@ -39,11 +41,12 @@ const RendererSection = ({
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('success');
+  const [snackbarDuration, setSnackbarDuration] = useState(4000);
   const [anchorEl1, setAnchorEl1] = useState(null);
-  const [anchorEl2, setAnchorEl2] = useState(null);
+  const [dropdownAnchor, setDropdownAnchor] = useState(null);
   const [openPopup, setOpenPopup] = React.useState(false);
   
-  const { pages, addPage, removePage, unparsedCode, createComponent, setPageGrid } = useParseCompile();
+  const { pages, addPage, removePage, unparsedCode, createComponent, setPageGrid, error, undo, redo, pastActions, undoneActions } = useParseCompile();
 
   const handleAddPage = () => {
     const pageBefore = (pages.length === 0) ? 0 : currentPage;
@@ -58,6 +61,15 @@ const RendererSection = ({
     setPageGrid(currentPage, formJson.size);
     handleClosePopup();
   };
+
+    useEffect(() => {
+      if (error && pages.length !== 0){
+        handleOpenSnackbar("You have a syntax error. Please fix it using the code editor before using the GUI controls.", "error", null);
+      }
+      else{
+        handleCloseSnackbar();
+      }
+    },[error])
 
   const handleRemovePage = () => {
     const pageBefore = currentPage;
@@ -85,12 +97,30 @@ const RendererSection = ({
     setAnchorEl1(null);
   };
 
-  const handleExpand2 = (event) => {
-    setAnchorEl2(event.currentTarget);
+  const handleOpenDropdown = (event) => {
+    if (pages.length == 0){
+      setSnackbarMessage("Please add a page before you add a component");
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    }
+    else {
+      setDropdownAnchor(event.currentTarget);
+    }
   };
 
   const handleCloseDropdown = () => {
-    setAnchorEl2(null);
+    setDropdownAnchor(null);
+  };
+
+  const handleOpenSnackbar = (message, severity, duration = 4000) => {
+    setSnackbarDuration(duration)
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setSnackbarOpen(true);
+  }
+
+  const handleCloseSnackbar = () => {
+    setSnackbarOpen(false);
   };
 
   const handleClickPrev = () => {
@@ -109,34 +139,26 @@ const RendererSection = ({
       if (shareableUrl) {
         const success = await copyToClipboard(shareableUrl);
         if (success) {
-          setSnackbarMessage('Shareable URL copied to clipboard!');
-          setSnackbarSeverity('success');
+          handleOpenSnackbar("Shareable URL copied to clipboard!", "success");
         } else {
-          setSnackbarMessage('Failed to copy URL to clipboard');
-          setSnackbarSeverity('error');
+          handleOpenSnackbar("Failed to copy URL to clipboard", "error");
         }
       } else {
-        setSnackbarMessage('Failed to create shareable URL');
-        setSnackbarSeverity('error');
+        handleOpenSnackbar("Failed to create shareable URL", "error");
       }
     } catch (error) {
-      console.error('Error sharing:', error);
-      setSnackbarMessage('Error creating shareable URL');
-      setSnackbarSeverity('error');
+      console.error("Error sharing:", error);
+      handleOpenSnackbar("Error creating shareable URL", "error");
     }
-    setSnackbarOpen(true);
   };
 
-  const handleSnackbarClose = () => {
-    setSnackbarOpen(false);
-  };
 
   const open = Boolean(anchorEl);
   const id = open ? 'simple-popover' : undefined;
   const open1 = Boolean(anchorEl1);
   const id1 = open1 ? 'simple-popover1' : undefined;
-  const open2 = Boolean(anchorEl2);
-  const id2 = open2 ? 'simple-popover2' : undefined;
+  const dropdownOpen = Boolean(dropdownAnchor);
+  const dropdown = dropdownOpen ? 'dropdown' : undefined;
 
 
   return (
@@ -166,6 +188,7 @@ const RendererSection = ({
             <Tooltip title="Add a Page">
             <span>
               <IconButton
+                disabled={pages.length !== 0 && error !== null}
                 onClick={handleAddPage}
                 sx={{ mr: 1 }}
                 size="small"
@@ -177,7 +200,7 @@ const RendererSection = ({
           <Tooltip title="Remove Current Page">
             <span>
               <IconButton
-                disabled={currentPage === 1 || pages.length === 0}
+                disabled={currentPage === 1 || pages.length === 0 || error !== null}
                 onClick={handleRemovePage}
                 sx={{ mr: 1 }}
                 size="small"
@@ -186,10 +209,10 @@ const RendererSection = ({
               </IconButton>
             </span>
           </Tooltip>
-          <Tooltip title="Set positioning">
+          <Tooltip title="Set Page Grid">
             <span>
               <IconButton
-                disabled={pages.length === 0}
+                disabled={pages.length === 0 || error !== null}
                 onClick={handleOpenPopup}
                 sx={{ mr: 1 }}
                 size="small"
@@ -198,20 +221,44 @@ const RendererSection = ({
               </IconButton>
             </span>
           </Tooltip>
-            <Dialog open={openPopup} onClose={handleClosePopup} fullWidth> 
-              <DialogContent sx={{ paddingBottom: 0 }}>
+          <Dialog open={openPopup} onClose={handleClosePopup} fullWidth> 
+            <DialogContent sx={{ paddingBottom: 0 }}>
               <DialogContentText>
                 Enter the size of the grid (for example 2x2)
               </DialogContentText>
               <form onSubmit={handleSetPageGrid}>
-                <TextField autoFocus required margin="dense" name="size" label="Grid size" fullWidth variant="standard"/>
-                <DialogActions>
-                  <Button onClick={handleClosePopup}>Cancel</Button>
-                  <Button type="submit">Save</Button>
-                </DialogActions>
+                  <TextField autoFocus required margin="dense" name="size" label="Grid size" fullWidth variant="standard"/>
+                  <DialogActions>
+                    <Button onClick={handleClosePopup}>Cancel</Button>
+                    <Button type="submit">Save</Button>
+                  </DialogActions>
               </form>
             </DialogContent>
           </Dialog>
+          <Tooltip title="Undo">
+            <span>
+              <IconButton
+                disabled={pages.length === 0 || error !== null || pastActions.length < 1}
+                onClick={undo}
+                sx={{ mr: 1 }}
+                size="small"
+              >
+                <UndoIcon sx={{ fontSize: 20 }}></UndoIcon>
+              </IconButton>
+            </span>
+          </Tooltip>
+          <Tooltip title="Redo">
+            <span>
+              <IconButton
+                disabled={pages.length === 0 || error !== null || undoneActions.length < 1 }
+                onClick={redo}
+                sx={{ mr: 1 }}
+                size="small"
+              >
+                <RedoIcon sx={{ fontSize: 20 }}></RedoIcon>
+              </IconButton>
+            </span>
+          </Tooltip>
           </Box>
         </Box>
         <Box display="flex">
@@ -332,19 +379,20 @@ const RendererSection = ({
           <Tooltip title="Create a Component">
             <span>
               <IconButton
-                aria-describedby={id2}
-                onClick={handleExpand2}
+                disabled={pages.length !== 0 && error !== null}
+                aria-describedby={dropdown}
+                onClick={handleOpenDropdown}
                 sx={{ mr: 1 }}
                 size="small"
               >
-                <Typography aria-describedby={id2} variant="overline" >New</Typography>
+                <Typography aria-describedby={dropdown} variant="overline" >New</Typography>
                 <AddIcon sx={{ fontSize: 20 }}></AddIcon>
               </IconButton>
             </span>
           </Tooltip>
-          <Popover id={id2}
-            open={open2}
-            anchorEl={anchorEl2}
+          <Popover id={dropdown}
+            open={dropdownOpen}
+            anchorEl={dropdownAnchor}
             onClose={handleCloseDropdown}
             anchorOrigin={{
               vertical: 'bottom',
@@ -360,13 +408,6 @@ const RendererSection = ({
                   name="values" label="Values" fullWidth variant="standard"/>
                 }
                 createFunction={(formJson) => {
-                  if (pages.length == 0){
-                    setSnackbarMessage("Please add a page before you add a component");
-                    setSnackbarSeverity('error');
-                    setSnackbarOpen(true);
-                    handleCloseDropdown();
-                    return;
-                  }
                   const values = formJson.values.split(',').map(( value ) => value.trim());
                   const colors = Array(values.length).fill(null);
                   const arrows = Array(values.length).fill(null);
@@ -383,13 +424,6 @@ const RendererSection = ({
                   name="values" label="Values" fullWidth variant="standard"/>
                 }
                 createFunction={(formJson) => {
-                  if (pages.length == 0){
-                    setSnackbarMessage("Please add a page before you add a component");
-                    setSnackbarSeverity('error');
-                    setSnackbarOpen(true);
-                    handleCloseDropdown();
-                    return;
-                  }
                   const values = formJson.values.split(',').map(( value ) => value.trim());
                   const colors = Array(values.length).fill(null);
                   const arrows = Array(values.length).fill(null);
@@ -407,13 +441,6 @@ const RendererSection = ({
                   name="values" label="Values" fullWidth variant="standard"/>
                 }
                 createFunction={(formJson) => {
-                  if (pages.length == 0){
-                    setSnackbarMessage("Please add a page before you add a component");
-                    setSnackbarSeverity('error');
-                    setSnackbarOpen(true);
-                    handleCloseDropdown();
-                    return;
-                  }
                   const values = formJson.values.split(';').map((row)=>row.split(',').map((value)=>value.trim()));
                   const lengths = values.map( (innerList ) => innerList.length);
                   const maxLength = Math.max(...lengths);
@@ -436,13 +463,6 @@ const RendererSection = ({
                   name="values" label="Values" fullWidth variant="standard"/>
                 }
                 createFunction={(formJson) => {
-                  if (pages.length == 0){
-                    setSnackbarMessage("Please add a page before you add a component");
-                    setSnackbarSeverity('error');
-                    setSnackbarOpen(true);
-                    handleCloseDropdown();
-                    return;
-                  }
                   const values = formJson.values.split(',').map(( value ) => value.trim());
                   const nodes = [...Array(values.length).keys()].map( (value) => "n" + value);
                   const colors = Array(values.length).fill(null);
@@ -466,13 +486,6 @@ const RendererSection = ({
                   </React.Fragment>
                 }
                 createFunction={(formJson) => {
-                  if (pages.length == 0){
-                    setSnackbarMessage("Please add a page before you add a component");
-                    setSnackbarSeverity('error');
-                    setSnackbarOpen(true);
-                    handleCloseDropdown();
-                    return;
-                  }
                   const edgeStrings = formJson.edges.split(',').map(( value ) => value.replace(" ", ""));
                   let nodesSet = new Set();
                   let edgeSet = new Set();
@@ -493,9 +506,7 @@ const RendererSection = ({
 
                   if (edgeSet.size === 0){
                     handleCloseDropdown();
-                    setSnackbarMessage("Couldn't parse edges");
-                    setSnackbarSeverity('error');
-                    setSnackbarOpen(true);
+                    handleOpenSnackbar("Couldn't parse edges", "error");
                     return;
                   }
 
@@ -538,13 +549,6 @@ const RendererSection = ({
                   </React.Fragment>
                 }
                 createFunction={(formJson) => {
-                  if (pages.length == 0){
-                    setSnackbarMessage("Please add a page before you add a component");
-                    setSnackbarSeverity('error');
-                    setSnackbarOpen(true);
-                    handleCloseDropdown();
-                    return;
-                  }
                   const edgeStrings = formJson.edges.split(',').map(( value ) => value.replace(" ", ""));
                   let nodesSet = new Set();
                   let edgeSet = new Set();
@@ -565,9 +569,7 @@ const RendererSection = ({
 
                   if (edgeSet.size === 0){
                     handleCloseDropdown();
-                    setSnackbarMessage("Couldn't parse edges");
-                    setSnackbarSeverity('error');
-                    setSnackbarOpen(true);
+                    handleOpenSnackbar("Couldn't parse edges", "error");
                     return;
                   }
 
@@ -605,14 +607,6 @@ const RendererSection = ({
                   name="text" label="Text" fullWidth variant="standard"/>
                 }
                 createFunction={(formJson) => {
-                  if (pages.length == 0){
-                    setSnackbarMessage("Please add a page before you add a component");
-                    setSnackbarSeverity('error');
-                    setSnackbarOpen(true);
-                    handleCloseDropdown();
-                    return;
-                  }
-
                   createComponent("text", {value: formJson.text}, currentPage);
                   handleCloseDropdown();
                 }} 
@@ -651,14 +645,14 @@ const RendererSection = ({
       
       <Snackbar 
         open={snackbarOpen} 
-        autoHideDuration={4000} 
-        onClose={handleSnackbarClose}
+        autoHideDuration={snackbarDuration} 
+        onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
         sx={{
         '&.MuiSnackbar-root': { top: '150px' },
       }}
       >
-        <Alert onClose={handleSnackbarClose} severity={snackbarSeverity} sx={{ width: '100%' }}>
+        <Alert onClose={handleCloseSnackbar} severity={snackbarSeverity} sx={{ width: '100%' }}>
           {snackbarMessage}
         </Alert>
       </Snackbar>

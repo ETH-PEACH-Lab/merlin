@@ -11,12 +11,16 @@ import compiler from "../compiler/compiler.mjs";
 import { createOptimizedCommand, findRelevantCommands } from "../parser/commandUtils.mjs";
 import { node } from "prop-types";
 import { LensTwoTone } from "@mui/icons-material";
+import { second } from "@eth-peach-lab/mermaid-merlin/packages/mermaid/dist/chunks/mermaid.esm/chunk-CPLSQCOS.mjs";
+import { Dataset } from "@mui/icons-material";
 
 const ParseCompileContext = createContext();
 
 export function ParseCompileProvider({ children, initialCode = "" }) {
     const [unparsedCode, setUnparsedCode] = useState(initialCode);
     const [parsedCode, setParsedCode] = useState(null);
+    const [pastActions, setPastActions] = useState([]);
+    const [undoneActions, setUndoneActions] = useState([]);
     const [compiledMerlin, setCompiledMerlin] = useState(null);
     const [pages, setPages] = useState([]);
     const [componentCount, setcomponentCount] = useState(1);
@@ -250,6 +254,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
     
     // Add a new unit
     const addUnit = useCallback((page, componentName, componentType, val, coordinates=null, parent=null, nodeName=null, addCommand="") => {
+        pastActions.push(structuredClone(unparsedCode));
         const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
         // In case node name is needed and not defined or not valid, change node name
         if (["tree", "graph", "linkedlist"].includes(componentType) && (nodeName === null || nodeName.toUpperCase() === nodeName.toLowerCase())){
@@ -274,7 +279,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         // For matrices 
         else if (componentType === "matrix"){
             const addType = addCommand === "addRow" ? "insert_matrix_row" : "insert_matrix_column";
-            const coord = addCommand === "addRow" ? coordinates.row : coordinates.col + 1;
+            const coord = addCommand === "addRow" ? coordinates.row + 1 : coordinates.col + 1;
             const values = val === null ? [null] : val.split(',').map(( value ) => value.trim());
             parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, target: "value", type: addType, args: {index: coord, value: values} });
         }
@@ -290,6 +295,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
 
     // Add an edge to a graph or tree
     const addEdge = useCallback((page, componentName, componentType, node0, node1) => {
+        pastActions.push(structuredClone(unparsedCode));
         const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
         if (componentType === "tree"){
 			parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, type: "set_child", args: { start: node0, end: node1 } }); 
@@ -300,9 +306,23 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         reconstructMerlinLite();
     }, [parsedCode]);
 
+    const editEdge = useCallback((data, secondNodeIdx) => {
+        pastActions.push(structuredClone(unparsedCode));
+        const nodeArray = data.nodes.split(",");
+
+        if (data.command === "addEdge"){
+            addEdge(parseInt(data.page, 10), data.name, "graph", data.firstNode, nodeArray[secondNodeIdx]);
+        }
+        else{
+            removeEdge(parseInt(data.page, 10), data.name, "graph", data.firstNode, nodeArray[secondNodeIdx]);
+        }
+        reconstructMerlinLite();
+    }, [parsedCode]);
+
 
     // Remove the selected unit
     const removeUnit = useCallback((page, componentName, componentType, coordinates=null, nodeName=null, removeCommand="") => {
+        pastActions.push(structuredClone(unparsedCode));
         const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
 
         if (componentType === "tree" || componentType === "graph"){
@@ -325,6 +345,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
 
     // Remove an edge from the graph. In case of tree, remove entire subtree below the edge.
     const removeEdge = useCallback((page, componentName, componentType, node0, node1) => {
+        pastActions.push(structuredClone(unparsedCode));
 		if (componentType === "tree"){
 			removeUnit(page, componentName, componentType, null, node1, "removeSubtree");
 		}
@@ -336,95 +357,95 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
     }, [parsedCode]);
 
 
-    const updateValue = useCallback(
-        (page, componentName, coordinates, fieldKey, value) => {
-            if (!parsedCode) return;
-            // Handle position field updates (no coordinates needed)
-            if (fieldKey === "position") {
-                // No need to check current value for position fields - they're simple replacements
-            } else {
-                // Check if the value is already set to the same value for array/matrix fields
-                const currentComponent = pages[page]?.find(comp => comp.name === componentName);
-                if (currentComponent) {
-                    let currentValue;
-                    if (coordinates?.isMatrix) {
-                        const { row, col } = coordinates;
-                        currentValue = currentComponent.body[fieldKey]?.[row]?.[col];
-                    } else if (coordinates?.index !== undefined) {
-                        const { index } = coordinates;
-                        currentValue = currentComponent.body[fieldKey]?.[index];
-                    }
-                    
-                    if (currentValue === value && value !== "_") {
-                        return;
-                    }
-                }
-            }
-
-            const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
-            
-            
-            // Use unified command optimization for both arrays and matrices
-            const { relevantCommands, commandsToRemove } = findRelevantCommands(
-                parsedCode.cmds, 
-                pageStartIndex, 
-                pageEndIndex, 
-                componentName, 
-                fieldKey,
-                coordinates?.isMatrix || false,
-                coordinates  // Pass coordinates to distinguish global vs per-element properties
-            );
-
+    const updateValue = useCallback((page, componentName, coordinates, fieldKey, value) => {
+        if (!parsedCode) return;
+        pastActions.push(structuredClone(unparsedCode));
+        // Handle position field updates (no coordinates needed)
+        if (fieldKey === "position") {
+            // No need to check current value for position fields - they're simple replacements
+        } else {
+            // Check if the value is already set to the same value for array/matrix fields
             const currentComponent = pages[page]?.find(comp => comp.name === componentName);
-            
-            const newCommand = createOptimizedCommand(
-                relevantCommands, 
-                componentName, 
-                fieldKey, 
-                coordinates, 
-                value,
-                currentComponent
-            );
-            
-            // Remove old commands (in reverse order to maintain indices)
-            commandsToRemove.reverse().forEach(index => {
-                parsedCode.cmds.splice(index, 1);
-            });
-            
-            // Add the new command at appropriate position
-            if (newCommand) {
-                let insertIndex;
-                
-                // For show commands, insert before any other commands 
-                // that reference the same component to avoid "Component not on page" errors
-                if (newCommand.type === "show") {
-                    // Find the earliest command in the page that references this component
-                    let earliestCommandIndex = pageEndIndex - commandsToRemove.length;
-                    
-                    for (let i = pageStartIndex; i < pageEndIndex - commandsToRemove.length; i++) {
-                        const cmd = parsedCode.cmds[i];
-                        if (cmd && cmd.name === componentName && cmd.type !== "show") {
-                            earliestCommandIndex = i;
-                            break;
-                        }
-                    }
-                    
-                    insertIndex = earliestCommandIndex;
-                } else {
-                    // For other commands, insert at the end of the page
-                    insertIndex = pageEndIndex - commandsToRemove.length;
+            if (currentComponent) {
+                let currentValue;
+                if (coordinates?.isMatrix) {
+                    const { row, col } = coordinates;
+                    currentValue = currentComponent.body[fieldKey]?.[row]?.[col];
+                } else if (coordinates?.index !== undefined) {
+                    const { index } = coordinates;
+                    currentValue = currentComponent.body[fieldKey]?.[index];
                 }
                 
-                parsedCode.cmds.splice(insertIndex, 0, newCommand);
+                if (currentValue === value && value !== "_") {
+                    return;
+                }
             }
+        }
+
+        const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
+        
+        
+        // Use unified command optimization for both arrays and matrices
+        const { relevantCommands, commandsToRemove } = findRelevantCommands(
+            parsedCode.cmds, 
+            pageStartIndex, 
+            pageEndIndex, 
+            componentName, 
+            fieldKey,
+            coordinates?.isMatrix || false,
+            coordinates  // Pass coordinates to distinguish global vs per-element properties
+        );
+
+        const currentComponent = pages[page]?.find(comp => comp.name === componentName);
+        
+        const newCommand = createOptimizedCommand(
+            relevantCommands, 
+            componentName, 
+            fieldKey, 
+            coordinates, 
+            value,
+            currentComponent
+        );
             
-            // Trigger reconstruction and recompilation
-            reconstructMerlinLite();
-        },
-        [parsedCode, pages, reconstructMerlinLite]
-    );
+        // Remove old commands (in reverse order to maintain indices)
+        commandsToRemove.reverse().forEach(index => {
+            parsedCode.cmds.splice(index, 1);
+        });
+        
+        // Add the new command at appropriate position
+        if (newCommand) {
+            let insertIndex;
+            
+            // For show commands, insert before any other commands 
+            // that reference the same component to avoid "Component not on page" errors
+            if (newCommand.type === "show") {
+                // Find the earliest command in the page that references this component
+                let earliestCommandIndex = pageEndIndex - commandsToRemove.length;
+                
+                for (let i = pageStartIndex; i < pageEndIndex - commandsToRemove.length; i++) {
+                    const cmd = parsedCode.cmds[i];
+                    if (cmd && cmd.name === componentName && cmd.type !== "show") {
+                        earliestCommandIndex = i;
+                        break;
+                    }
+                }
+                
+                insertIndex = earliestCommandIndex;
+            } else {
+                // For other commands, insert at the end of the page
+                insertIndex = pageEndIndex - commandsToRemove.length;
+            }
+                
+            parsedCode.cmds.splice(insertIndex, 0, newCommand);
+        }
+        
+        // Trigger reconstruction and recompilation
+        reconstructMerlinLite();
+    },
+    [parsedCode, pages, reconstructMerlinLite]);
 
     const updateValues = useCallback((page, componentName, componentType, fieldKey, prevValues, newValues, prevEdges, newEdges) => {
+        pastActions.push(structuredClone(unparsedCode));
         let updateValues = false;
         if (["graph", "tree"].includes(componentType)){
 			let nodes = new Array();
@@ -456,6 +477,9 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
                     }
                 } 
             }
+            else {
+                nodes = newValues;
+            }
             
             if (newEdges !== null){
 				// Remove the edges that the user deleted
@@ -468,7 +492,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
                 for (let i = 0; i<newEdges.length; i++){
                     if (newEdges[i].split("-").length === 2){
                         let [n0, n1] = newEdges[i].split("-");
-                        if (nodes.indexOf(n0.trim()) !== -1 && nodes.indexOf(n1.trim()) !== -1  && prevEdges.indexOf(newEdges[i]) === -1){
+                        if (nodes.indexOf(n0.trim()) !== -1 && nodes.indexOf(n1.trim()) !== -1){
                             addEdge(page, componentName, componentType, n0, n1);
                         }
                     }
@@ -502,7 +526,6 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             for (let i = newColumns; i < prevValues[0].length; i++) { 
                 removeUnit(page, componentName, componentType, {row: 1, col: 1}, null, "removeColumn");
             }
-
         }
 
         if (updateValues){
@@ -514,21 +537,42 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
 
     // Update the colors and arrows multiple units
     const updateUnitStyles = useCallback((page, componentName, fieldKey, newValues) => {
+        pastActions.push(structuredClone(unparsedCode));
         const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
         parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, target: fieldKey, type: "set_multiple", args: newValues});
         reconstructMerlinLite();
     }, [parsedCode]);
 
     // Update the component texts
-    const updateText = useCallback((page, componentName, fieldKey, newValue) => {
+    const updateText = useCallback((page, componentName, componentType, index, fieldKey, newValue) => {
+        pastActions.push(structuredClone(unparsedCode));
         const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
-        parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, type: "set_text", args: {index: newValue, value: {value: fieldKey.split("_")[1]}}});
+        if (componentType !== "text"){
+            parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, type: "set_text", args: {index: newValue, value: {value: fieldKey.split("_")[1]}}});
+        }
+        else {
+            if (["height", "width", "lineSpacing"].includes(fieldKey)){
+                parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, type: "set", target: fieldKey, args: parseInt(newValue)});
+            }
+            else {
+                const valueParsed = (fieldKey === "fontSize") ? parseInt(newValue, 10) : newValue;
+                parsedCode.cmds.splice(pageEndIndex, 0, { name: componentName, type: "set", target: fieldKey, args: {index: index, value: valueParsed }});
+            }
+        }
         reconstructMerlinLite();
     }, [parsedCode]);
 
     // Update the position of the component
     const updatePosition = useCallback((page, componentName, newValue) => {
+        pastActions.push(structuredClone(unparsedCode));
+        let len = parsedCode.cmds.length;    
+        for (let i = len - 1; i >= 0; i--){
+            if ((parsedCode.cmds[i].type === "show" && parsedCode.cmds[i].value === componentName)) {
+                parsedCode.cmds.splice(i, 1);
+            }
+        }
         const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
+
         parsedCode.cmds.splice(pageStartIndex, 0, { type: "show", value: componentName, position: newValue.split(",")});
         reconstructMerlinLite();
     }, [parsedCode]);
@@ -536,6 +580,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
     // Create a new component and show it
     const createComponent = useCallback((componentType, componentBody, page) => {
         if (!parsedCode) return;
+        pastActions.push(structuredClone(unparsedCode));
 
         if ("nodes" in componentBody){
             setNodeCount(nodeCount + componentBody.nodes.length);
@@ -554,16 +599,42 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
     }, [parsedCode]);
 
     // Remove a component
-    const removeComponent = useCallback((componentName) => {    
-        let len = parsedCode.cmds.length;    
-        for (let i = len - 1; i >= 0; i--){
-            if ((parsedCode.cmds[i].type === "show" && parsedCode.cmds[i].value === componentName) || parsedCode.cmds[i].name === componentName) {
-                parsedCode.cmds.splice(i, 1);
+    const removeComponent = useCallback((page, componentName) => {  
+        pastActions.push(structuredClone(unparsedCode));  
+        const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
+        // Insert a hide command
+        parsedCode.cmds.splice(pageEndIndex, 0, { type: "hide", value: componentName });
+        // Find the next show command
+        let nextShow = pageEndIndex;
+        while (nextShow < parsedCode.cmds.length){
+            if (parsedCode.cmds[nextShow].type === "show" && parsedCode.cmds[nextShow].value === componentName){
+                break;
+            }
+            nextShow++;
+        }
+        // Remove all commands that affect the component between the hide and the next show
+        for (let j = nextShow - 1; j > pageEndIndex; j--){
+            if (parsedCode.cmds[j].name === componentName) {
+                parsedCode.cmds.splice(j, 1);
             }
         }
 
         reconstructMerlinLite();
     }, [parsedCode]);
+
+    const undo = useCallback(() => {
+        const prevState = pastActions.pop();
+        undoneActions.push(prevState);
+        updateUnparsedCode(prevState);
+
+    }, [parsedCode]); 
+
+    const redo = useCallback(() => {
+        const prevState = undoneActions.pop();
+        pastActions.push(prevState);
+        updateUnparsedCode(prevState);
+
+    }, [parsedCode]); 
 
     // Add a page after the current page
     const addPage = useCallback((currentPage) => {
@@ -572,6 +643,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         }
         else {
             const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(currentPage - 1);
+            pastActions.push(structuredClone(unparsedCode));
             parsedCode?.cmds.splice(pageEndIndex, 0, { type: "page" });
             reconstructMerlinLite();
         }
@@ -579,6 +651,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
 
     // Remove the current page
     const removePage = useCallback((currentPage) => {
+        pastActions.push(structuredClone(unparsedCode));
         const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(currentPage - 1);
         parsedCode?.cmds.splice(pageStartIndex - 1, pageEndIndex - pageStartIndex + 1);
         reconstructMerlinLite();
@@ -586,6 +659,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
 
     // Set the positioning grid for the current page
     const setPageGrid = useCallback((currentPage, gridSize) => {
+        pastActions.push(structuredClone(unparsedCode));
         const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(currentPage - 1);
         parsedCode?.cmds.splice(pageStartIndex - 1, 1, { type: "page", layout: gridSize.split("x")});
         reconstructMerlinLite();
@@ -600,6 +674,8 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             error,
             pages,
             currentCursorLine,
+            pastActions,
+            undoneActions,
             updateUnparsedCode,
             updateCursorLine,
             reconstructMerlinLite,
@@ -610,13 +686,16 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             addUnit,
             removeUnit,
             addEdge,
+            editEdge,
             removeEdge,
             addPage,
             removePage,
             setPageGrid,
             updateText,
             updatePosition,
-            removeComponent
+            removeComponent,
+            undo,
+            redo
         }),
         [
             unparsedCode,
@@ -625,6 +704,8 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             error,
             pages,
             currentCursorLine,
+            pastActions,
+            undoneActions,
             updateUnparsedCode,
             updateCursorLine,
             reconstructMerlinLite,
@@ -635,13 +716,16 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             addUnit,
             removeUnit,
             addEdge,
+            editEdge,
             removeEdge,
             addPage,
             removePage,
             setPageGrid,
             updateText,
             updatePosition,
-            removeComponent
+            removeComponent,
+            undo,
+            redo,
         ]
     );
 

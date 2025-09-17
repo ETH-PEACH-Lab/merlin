@@ -1,28 +1,24 @@
 import React, { useEffect, useState } from "react";
-import { Box, IconButton, Popover, TextField, Tooltip, SvgIcon } from "@mui/material";
+import { Box, IconButton, Popover, SvgIcon, TextField, Tooltip} from "@mui/material";
 import AddIcon from '@mui/icons-material/Add';
 import ClearIcon from '@mui/icons-material/Clear';
 import EditIcon from '@mui/icons-material/Edit';
 import FormatColorFillIcon from '@mui/icons-material/FormatColorFill';
 import RectangleOutlinedIcon from '@mui/icons-material/RectangleOutlined';
 import TextRotateVerticalIcon from '@mui/icons-material/TextRotateVertical';
+import { CirclePicker } from "react-color";
 import { useParseCompile } from "../context/ParseCompileContext";
 import { parseInspectorIndex, createUnitData, getComponentFields } from "../compiler/dslUtils.mjs";
-import { removeSubtreeIcon, addColumnIcon, addRowIcon, removeColumnIcon, removeRowIcon } from "./CustomIcons";
+import { addEdgeIcon, removeEdgeIcon, addColumnIcon, addRowIcon, removeColumnIcon, removeRowIcon } from "./CustomIcons";
 
 
-const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, leaveFunction }) => {
+const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, onEditEdge, error }) => {
   const [anchorEl, setAnchorEl] = React.useState(null);
   const open = Boolean(anchorEl);
-  const id = open ? 'edit-unit-text-input-popover' : undefined;
+  const id = open ? 'edit-unit-popover' : undefined;
   
   const handleOpenPopup = (event) => {
     setAnchorEl(event.currentTarget);
-  };
-
-  const handleClosePopup = () => {
-    leaveFunction();
-    setAnchorEl(null);
   };
 
   const getIcon = (name) => {
@@ -34,13 +30,17 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, le
       case "value":
         return <EditIcon></EditIcon>;
       case "color":
-        return <FormatColorFillIcon></FormatColorFillIcon>;
+        return <FormatColorFillIcon sx={{ color: (value !== null) ? value : "#ffffff" }}></FormatColorFillIcon>;
       case "arrow": 
         return <TextRotateVerticalIcon></TextRotateVerticalIcon>;
+      case "addEdge":
+        return <SvgIcon component={addEdgeIcon}></SvgIcon> 
+      case "removeEdge":
+        return <SvgIcon component={removeEdgeIcon}></SvgIcon> 
       case "addChild":
         return <AddIcon></AddIcon>;
       case "removeSubtree":
-        return  <SvgIcon component={removeSubtreeIcon}></SvgIcon> 
+        return  <SvgIcon component={removeEdgeIcon}></SvgIcon> 
       case "addRow":
         return  <SvgIcon component={addRowIcon}></SvgIcon> 
       case "removeRow":
@@ -53,11 +53,6 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, le
         return <RectangleOutlinedIcon></RectangleOutlinedIcon>
     }
   };
-  
-  // TODO Check if this is needed
-  const handleBlur = () => {
-    onUpdate(fieldKey, value);
-  };
 
   const handleKeyDown = (ev) => {
     if (ev.key === 'Enter') {
@@ -66,12 +61,17 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, le
     }
   };
 
-  // For any type of remove, there is no need for any input field
-  if (["remove", "removeSubtree", "removeRow", "removeColumn"].includes(fieldKey)){
+  // For adding or removing edges, we wait for another node to be selected
+  if (["addEdge", "removeEdge"].includes(fieldKey)){
     return (
-       <Tooltip title={label}>
+      <Tooltip title={label}>
         <span style={{marginLeft: "10px", marginRight: "10px"}}>
-          <IconButton size="small" onClick={(e) => {onRemove(e, fieldKey);}}>
+          <IconButton
+            disabled={error !== null}
+            size="small"
+            onClick={(e) => {onEditEdge(e, fieldKey);}}
+            sx={{ fill: (error !== null) ? 'gray' : 'white' }}
+          >
             {getIcon(fieldKey)}
           </IconButton>
         </span>
@@ -79,14 +79,17 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, le
     );
   }
 
-  // For the color field, use a color picker
-  if (fieldKey === "color"){
+  // For any type of remove, there is no need for any input field
+  if (["remove", "removeSubtree", "removeRow", "removeColumn"].includes(fieldKey)){
     return (
        <Tooltip title={label}>
         <span style={{marginLeft: "10px", marginRight: "10px"}}>
-          <IconButton size="small">
-            <input type="color" onChange={(e) => {onUpdate(fieldKey, e.target.value);}}
-                   style={{opacity: 0, position: "absolute", top: 0, left: 0, width: "100%", height: "100%"}}/>
+          <IconButton 
+            disabled={error !== null} 
+            size="small" 
+            onClick={(e) => {onRemove(e, fieldKey);}} 
+            sx={{ fill: (error !== null) ? 'gray' : 'white' }}
+          >
             {getIcon(fieldKey)}
           </IconButton>
         </span>
@@ -95,14 +98,17 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, le
   }
 
   // Regular text/number inputs
-  if (["add", "value", "arrow", "addRow", "addColumn", "addChild"].includes(fieldKey)){
+  if (["add", "value", "color", "arrow", "addRow", "addColumn", "addChild"].includes(fieldKey)){
     return (
       <React.Fragment>
         <Tooltip title={label} sx={{ mr: 5 }}>
           <span style={{marginLeft: "10px", marginRight: "10px"}}>
-            <IconButton                 
+            <IconButton
+              disabled={error !== null}                 
               aria-describedby={id}
-              onClick={handleOpenPopup}>
+              onClick={handleOpenPopup}
+              sx={{ fill: (error !== null) ? 'gray' : 'white' }}
+            >
                 {getIcon(fieldKey)}
             </IconButton>
           </span>
@@ -113,41 +119,47 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, le
           anchorEl={anchorEl}
           anchorOrigin={{
             vertical: "top",
-            horizontal: "right",
-          }}
-          transformOrigin={{
-            vertical: "center",
             horizontal: "center",
           }}
-          onMouseLeave={handleClosePopup}
+          transformOrigin={{
+            vertical: "bottom",
+            horizontal: "center",
+          }}
           slotProps={{ paper: { sx: { pointerEvents: "auto" } } }}
           sx={{ pointerEvents: "none" }}>
-            <TextField
-              label={fieldKey === "addRow" || fieldKey === "addColumn" ? "Enter values comma-separated" : "Enter a value"}
-              value={value !== null && value !== undefined && value !== "null" ? value :  ""}
-              size="small"
-              onChange={(e) => {onChange(fieldKey, e.target.value);}}
-              // onBlur={handleBlur}
-              onKeyDown={handleKeyDown}
-              style={{margin: "15px 10px 10px 10px"}}
-            />
+
+            {fieldKey === "color" ? (
+              <CirclePicker color={value} onChange={(selectedColor) => {onUpdate(fieldKey, selectedColor.hex);}} />
+            ) : ( 
+              <TextField
+                label={fieldKey === "addRow" || fieldKey === "addColumn" ? "Enter values comma-separated" : "Enter a value"}
+                value={value !== null && value !== undefined && value !== "null" ? value :  ""}
+                size="small"
+                onChange={(e) => {onChange(fieldKey, e.target.value);}}
+                onKeyDown={handleKeyDown}
+                style={{margin: "15px 10px 10px 10px"}}
+              />
+            )}
         </Popover>
       </React.Fragment>
     );
   }
 };
 
-export const UnitEditor = ({
-  inspectorIndex,
-  currentPage,
-  leaveFunction,
-}) => {
-  const defaultUnitValue = {
-    coordinates: null,
-    type: null,
+export const UnitEditor = ({inspectorIndex, currentPage, unitAnchorEl, setUnitAnchorEl, setEdgeTarget}) => {
+
+  const [currentUnitData, setUnitData] = useState(null);
+  const unitToolbarOpen = Boolean(unitAnchorEl);
+  const unitToolbar = unitToolbarOpen ? "unit-toolbar-popover" : undefined;
+  const { pages, updateValue, addUnit, removeUnit, error } = useParseCompile();
+
+  const unitPopoverEnter = () => {
+    unitAnchorEl.setAttribute("stroke", "#90cafd");
   };
-  const [currentUnitData, setUnitData] = useState(defaultUnitValue);
-  const { pages, updateValue, addUnit, removeUnit } = useParseCompile();
+
+  const unitPopoverLeave = () => {
+    setUnitAnchorEl(null);
+  };
 
   useEffect(() => {
     if (inspectorIndex) {
@@ -156,9 +168,19 @@ export const UnitEditor = ({
       
       if (unitData) {
         setUnitData(unitData);
+        if (unitAnchorEl){
+          unitPopoverEnter();
+        }
       }
     }
   }, [inspectorIndex, currentPage, pages]);
+
+  useEffect(() => {
+    if (!unitAnchorEl){
+      unitPopoverLeave();
+    }
+
+  },[unitAnchorEl])
 
   const handleAddUnit = (value, addCommand) => {
     addUnit(
@@ -174,7 +196,7 @@ export const UnitEditor = ({
   };
 
   const handleRemoveUnit = (event, removeCommand) => {
-    leaveFunction();
+    unitPopoverLeave();
     removeUnit(
           currentUnitData.page,
           currentUnitData.name,
@@ -185,12 +207,18 @@ export const UnitEditor = ({
     );
   };
 
+  const handleEditEdge = (event, editCommand) => {
+    unitPopoverLeave();
+    setEdgeTarget({page: currentUnitData.page, name: currentUnitData.name, firstNode: currentUnitData.nodes,
+      nodes: currentUnitData.allNodes, command: editCommand});
+  }
+
   const handleFieldChange = (fieldKey, value) => {
     setUnitData(prev => ({ ...prev, [fieldKey]: value }));
   };
 
   const handleFieldUpdate = (fieldKey, value) => {
-    leaveFunction();
+    unitPopoverLeave();
     if (["add", "addRow", "addColumn", "addChild"].includes(fieldKey)){
       handleAddUnit(value, fieldKey);
     } 
@@ -206,6 +234,20 @@ export const UnitEditor = ({
   };
 
   return (
+  <Popover
+    id={unitToolbar}
+    open={unitToolbarOpen}
+    anchorEl={unitAnchorEl}
+    anchorOrigin={{
+      vertical: "top",
+      horizontal: "center",
+    }}
+    transformOrigin={{
+      vertical: "bottom",
+      horizontal: "center",
+    }}
+    slotProps={{ paper: { sx: { pointerEvents: "auto" } } }}
+    sx={{ pointerEvents: "none" }}>
     <Box
       component="form"
       sx={{
@@ -217,7 +259,7 @@ export const UnitEditor = ({
     >
       
       {/* Dynamically generate inputs based on type definition */}
-      {currentUnitData.type && 
+      {currentUnitData && currentUnitData.type && 
         Object.entries(getComponentFields(currentUnitData.type)).map(([fieldKey, label]) => (
           <DynamicInput
             key={fieldKey}
@@ -227,11 +269,13 @@ export const UnitEditor = ({
             onChange={handleFieldChange}
             onUpdate={handleFieldUpdate}
             onRemove={handleRemoveUnit}
-            leaveFunction={leaveFunction}
+            onEditEdge={handleEditEdge}
+            error={error}
           />
         ))
       }
     </Box>
+    </Popover>
   );
 };
 
