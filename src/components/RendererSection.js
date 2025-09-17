@@ -18,6 +18,8 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import WebIcon from '@mui/icons-material/Web';
 import GifBox from '@mui/icons-material/GifBox';
 import Movie from '@mui/icons-material/Movie';
+import UndoIcon from '@mui/icons-material/Undo';
+import RedoIcon from '@mui/icons-material/Redo';
 import { useParseCompile } from "../context/ParseCompileContext";
 import { createShareableUrl, copyToClipboard } from "../utils/urlSharing";
 import { arrayIcon, stackIcon, matrixIcon, linkedListIcon, treeIcon, graphIcon, textIcon } from "./CustomIcons";
@@ -44,7 +46,7 @@ const RendererSection = ({
   const [dropdownAnchor, setDropdownAnchor] = useState(null);
   const [openPopup, setOpenPopup] = React.useState(false);
   
-  const { pages, addPage, removePage, unparsedCode, createComponent, setPageGrid, error } = useParseCompile();
+  const { pages, addPage, removePage, unparsedCode, createComponent, setPageGrid, error, undo, redo, pastActions, undoneActions } = useParseCompile();
 
   const handleAddPage = () => {
     const pageBefore = (pages.length === 0) ? 0 : currentPage;
@@ -219,20 +221,44 @@ const RendererSection = ({
               </IconButton>
             </span>
           </Tooltip>
-            <Dialog open={openPopup} onClose={handleClosePopup} fullWidth> 
-              <DialogContent sx={{ paddingBottom: 0 }}>
+          <Dialog open={openPopup} onClose={handleClosePopup} fullWidth> 
+            <DialogContent sx={{ paddingBottom: 0 }}>
               <DialogContentText>
                 Enter the size of the grid (for example 2x2)
               </DialogContentText>
               <form onSubmit={handleSetPageGrid}>
-                <TextField autoFocus required margin="dense" name="size" label="Grid size" fullWidth variant="standard"/>
-                <DialogActions>
-                  <Button onClick={handleClosePopup}>Cancel</Button>
-                  <Button type="submit">Save</Button>
-                </DialogActions>
+                  <TextField autoFocus required margin="dense" name="size" label="Grid size" fullWidth variant="standard"/>
+                  <DialogActions>
+                    <Button onClick={handleClosePopup}>Cancel</Button>
+                    <Button type="submit">Save</Button>
+                  </DialogActions>
               </form>
             </DialogContent>
           </Dialog>
+          <Tooltip title="Undo">
+            <span>
+              <IconButton
+                disabled={pages.length === 0 || error !== null || pastActions.length < 1}
+                onClick={undo}
+                sx={{ mr: 1 }}
+                size="small"
+              >
+                <UndoIcon sx={{ fontSize: 20 }}></UndoIcon>
+              </IconButton>
+            </span>
+          </Tooltip>
+          <Tooltip title="Redo">
+            <span>
+              <IconButton
+                disabled={pages.length === 0 || error !== null || undoneActions.length < 1 }
+                onClick={redo}
+                sx={{ mr: 1 }}
+                size="small"
+              >
+                <RedoIcon sx={{ fontSize: 20 }}></RedoIcon>
+              </IconButton>
+            </span>
+          </Tooltip>
           </Box>
         </Box>
         <Box display="flex">
