@@ -1,20 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { Box, IconButton, Popover, TextField, Tooltip, SvgIcon } from "@mui/material";
+import { Box, IconButton, Popover, SvgIcon, TextField, Tooltip} from "@mui/material";
 import AddIcon from '@mui/icons-material/Add';
 import ClearIcon from '@mui/icons-material/Clear';
 import EditIcon from '@mui/icons-material/Edit';
 import FormatColorFillIcon from '@mui/icons-material/FormatColorFill';
 import RectangleOutlinedIcon from '@mui/icons-material/RectangleOutlined';
 import TextRotateVerticalIcon from '@mui/icons-material/TextRotateVertical';
+import { CirclePicker } from "react-color";
 import { useParseCompile } from "../context/ParseCompileContext";
 import { parseInspectorIndex, createUnitData, getComponentFields } from "../compiler/dslUtils.mjs";
 import { addEdgeIcon, removeEdgeIcon, addColumnIcon, addRowIcon, removeColumnIcon, removeRowIcon } from "./CustomIcons";
 
 
-const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, onEditEdge, leaveFunction, error }) => {
+const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, onEditEdge, error }) => {
   const [anchorEl, setAnchorEl] = React.useState(null);
   const open = Boolean(anchorEl);
-  const id = open ? 'edit-unit-text-input-popover' : undefined;
+  const id = open ? 'edit-unit-popover' : undefined;
   
   const handleOpenPopup = (event) => {
     setAnchorEl(event.currentTarget);
@@ -29,7 +30,7 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, on
       case "value":
         return <EditIcon></EditIcon>;
       case "color":
-        return <FormatColorFillIcon></FormatColorFillIcon>;
+        return <FormatColorFillIcon sx={{ color: (value !== null) ? value : "#ffffff" }}></FormatColorFillIcon>;
       case "arrow": 
         return <TextRotateVerticalIcon></TextRotateVerticalIcon>;
       case "addEdge":
@@ -65,7 +66,12 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, on
     return (
       <Tooltip title={label}>
         <span style={{marginLeft: "10px", marginRight: "10px"}}>
-          <IconButton disabled={error !== null} size="small" onClick={(e) => {onEditEdge(e, fieldKey);}}  sx={{ fill: (error !== null) ? 'gray' : 'white' }}>
+          <IconButton
+            disabled={error !== null}
+            size="small"
+            onClick={(e) => {onEditEdge(e, fieldKey);}}
+            sx={{ fill: (error !== null) ? 'gray' : 'white' }}
+          >
             {getIcon(fieldKey)}
           </IconButton>
         </span>
@@ -78,22 +84,12 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, on
     return (
        <Tooltip title={label}>
         <span style={{marginLeft: "10px", marginRight: "10px"}}>
-          <IconButton disabled={error !== null} size="small" onClick={(e) => {onRemove(e, fieldKey);}} sx={{ fill: (error !== null) ? 'gray' : 'white' }}>
-            {getIcon(fieldKey)}
-          </IconButton>
-        </span>
-      </Tooltip>
-    );
-  }
-
-  // For the color field, use a color picker
-  if (fieldKey === "color"){
-    return (
-       <Tooltip title={label}>
-        <span style={{marginLeft: "10px", marginRight: "10px"}}>
-          <IconButton disabled={error !== null} size="small">
-            <input type="color" onChange={(e) => {onUpdate(fieldKey, e.target.value);}}
-                   style={{opacity: 0, position: "absolute", top: 0, left: 0, width: "100%", height: "100%"}}/>
+          <IconButton 
+            disabled={error !== null} 
+            size="small" 
+            onClick={(e) => {onRemove(e, fieldKey);}} 
+            sx={{ fill: (error !== null) ? 'gray' : 'white' }}
+          >
             {getIcon(fieldKey)}
           </IconButton>
         </span>
@@ -102,7 +98,7 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, on
   }
 
   // Regular text/number inputs
-  if (["add", "value", "arrow", "addRow", "addColumn", "addChild"].includes(fieldKey)){
+  if (["add", "value", "color", "arrow", "addRow", "addColumn", "addChild"].includes(fieldKey)){
     return (
       <React.Fragment>
         <Tooltip title={label} sx={{ mr: 5 }}>
@@ -111,7 +107,8 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, on
               disabled={error !== null}                 
               aria-describedby={id}
               onClick={handleOpenPopup}
-              sx={{ fill: (error !== null) ? 'gray' : 'white' }}>
+              sx={{ fill: (error !== null) ? 'gray' : 'white' }}
+            >
                 {getIcon(fieldKey)}
             </IconButton>
           </span>
@@ -122,22 +119,27 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, on
           anchorEl={anchorEl}
           anchorOrigin={{
             vertical: "top",
-            horizontal: "right",
+            horizontal: "center",
           }}
           transformOrigin={{
-            vertical: "center",
+            vertical: "bottom",
             horizontal: "center",
           }}
           slotProps={{ paper: { sx: { pointerEvents: "auto" } } }}
           sx={{ pointerEvents: "none" }}>
-            <TextField
-              label={fieldKey === "addRow" || fieldKey === "addColumn" ? "Enter values comma-separated" : "Enter a value"}
-              value={value !== null && value !== undefined && value !== "null" ? value :  ""}
-              size="small"
-              onChange={(e) => {onChange(fieldKey, e.target.value);}}
-              onKeyDown={handleKeyDown}
-              style={{margin: "15px 10px 10px 10px"}}
-            />
+
+            {fieldKey === "color" ? (
+              <CirclePicker color={value} onChange={(selectedColor) => {onUpdate(fieldKey, selectedColor.hex);}} />
+            ) : ( 
+              <TextField
+                label={fieldKey === "addRow" || fieldKey === "addColumn" ? "Enter values comma-separated" : "Enter a value"}
+                value={value !== null && value !== undefined && value !== "null" ? value :  ""}
+                size="small"
+                onChange={(e) => {onChange(fieldKey, e.target.value);}}
+                onKeyDown={handleKeyDown}
+                style={{margin: "15px 10px 10px 10px"}}
+              />
+            )}
         </Popover>
       </React.Fragment>
     );
@@ -268,7 +270,6 @@ export const UnitEditor = ({inspectorIndex, currentPage, unitAnchorEl, setUnitAn
             onUpdate={handleFieldUpdate}
             onRemove={handleRemoveUnit}
             onEditEdge={handleEditEdge}
-            leaveFunction={unitPopoverLeave}
             error={error}
           />
         ))

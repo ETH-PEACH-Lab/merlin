@@ -8,6 +8,7 @@ import FormatColorFillIcon from '@mui/icons-material/FormatColorFill';
 import FormatItalicIcon from '@mui/icons-material/FormatItalic';
 import Grid3x3Icon from '@mui/icons-material/Grid3x3';
 import RectangleOutlinedIcon from '@mui/icons-material/RectangleOutlined';
+import { CirclePicker } from "react-color";
 import { useParseCompile } from "../context/ParseCompileContext";
 import { parseInspectorIndex, createUnitData, getFieldDropdownOptions } from "../compiler/dslUtils.mjs";
 
@@ -19,10 +20,17 @@ export const TextEditor = ({ inspectorIndex, currentPage, textAnchorEl, setTextA
   const [prevTextData, setPrevTextData] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [dialogType, setDialogType] = useState(null);
+  const [anchorEl, setAnchorEl] = React.useState(null);
+  const open = Boolean(anchorEl);
+  const id = open ? 'edit-unit-popover' : undefined;
   const { pages, updateValue, updateText, updatePosition, removeComponent, error } = useParseCompile();
     
   const textPopoverEnter = () => {
     textAnchorEl.setAttribute("stroke", "#90cafd");
+  };
+
+  const handleOpenPopup = (event) => {
+    setAnchorEl(event.currentTarget);
   };
 
   const textPopoverLeave = () => {
@@ -68,13 +76,14 @@ export const TextEditor = ({ inspectorIndex, currentPage, textAnchorEl, setTextA
     setCurrentTextData({ ...currentTextData, [fieldKey]: value });
   };
 
-  const handleColorUpdate = (fieldKey, value) => {
+  const handleColorChange = (selectedColor) =>{
     textPopoverLeave();
-    updateValue(currentTextData.page,
+    updateValue(
+      currentTextData.page,
       currentTextData.name,
-      currentTextData.coordinates, 
-      fieldKey,
-      value
+      currentTextData.coordinates,
+      "color",
+      selectedColor.hex
     );
   }
 
@@ -106,12 +115,12 @@ export const TextEditor = ({ inspectorIndex, currentPage, textAnchorEl, setTextA
     }
   };
 
-  const getIcon = (name) => {
+  const getIcon = (name, value) => {
     switch (name){
       case "text":
         return <EditIcon></EditIcon>;
       case "color":
-        return <FormatColorFillIcon></FormatColorFillIcon>;
+        return <FormatColorFillIcon sx={{ color: (value !== null) ? value : "#ffffff" }}></FormatColorFillIcon>;
       case "font":
         return <FormatItalicIcon></FormatItalicIcon>
       case "position":
@@ -253,20 +262,43 @@ export const TextEditor = ({ inspectorIndex, currentPage, textAnchorEl, setTextA
         {/* Dynamically generate inputs based on type definition */}
         {currentTextData &&
           Object.entries({remove: "Remove", text: "Edit Text", color: "Edit Color", font: "Edit Font", position: "Edit Position"}).map(([fieldKey, label]) => (
+          <React.Fragment>
           <Tooltip title={label} key={fieldKey}>
               <span style={{marginLeft: "10px", marginRight: "10px"}}>
                 {fieldKey === "color" ? (
-                  <IconButton disabled={error !== null} size="small">
-                    <input type="color" onChange={(e) => {handleColorUpdate(fieldKey, e.target.value);}}
-                      style={{opacity: 0, position: "absolute", top: 0, left: 0, width: "100%", height: "100%"}}/>
-                    {getIcon(fieldKey)}
-                  </IconButton>) : (
+                  <IconButton
+                    disabled={error !== null}                 
+                    aria-describedby={id}
+                    onClick={handleOpenPopup}
+                    sx={{ fill: (error !== null) ? 'gray' : 'white' }}
+                  >
+                      {getIcon(fieldKey, currentTextData[fieldKey])}
+                  </IconButton>
+                  ) : (
                   <IconButton disabled={error !== null} size="small" onClick={(e) => {handleToolbarClick(e, fieldKey);}}>
-                    {getIcon(fieldKey)}
+                    {getIcon(fieldKey, currentTextData[fieldKey])}
                   </IconButton>)
                 }
               </span>
           </Tooltip>
+          <Popover
+            id={id}
+            open={open}
+            anchorEl={anchorEl}
+            anchorOrigin={{
+              vertical: "top",
+              horizontal: "center",
+            }}
+            transformOrigin={{
+              vertical: "bottom",
+              horizontal: "center",
+            }}
+            slotProps={{ paper: { sx: { pointerEvents: "auto" } } }}
+            sx={{ pointerEvents: "none" }}>
+                <CirclePicker color={currentTextData[fieldKey]} onChange={(selectedColor) => {handleColorChange(selectedColor)}}
+                />
+          </Popover>
+          </React.Fragment>
         ))
         }
       </Box>
