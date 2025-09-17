@@ -198,7 +198,7 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, componentAnchorEl
     case "position":
       return (
         <div>
-          {getTextField("position", "Position", currentComponentData?.position, currentComponentData?.type)}
+          {getTextField("position", "Position (comma-separated, for example: 1,1)", currentComponentData?.position, currentComponentData?.type)}
         </div>
       );
     case "remove":
@@ -242,7 +242,7 @@ export const ComponentEditor = ({ inspectorIndex, currentPage, componentAnchorEl
         
         {/* Dynamically generate inputs based on type definition */}
         {currentComponentData &&
-          Object.entries({remove: "Remove", styling: "Structure & Styling", text: "Text", position: "Position"}).map(([fieldKey, label]) => (
+          Object.entries({remove: "Remove", styling: "Edit Structure & Styling", text: "Edit Text", position: "Edit Position"}).map(([fieldKey, label]) => (
           <Tooltip title={label} key={fieldKey}>
               <span style={{marginLeft: "10px", marginRight: "10px"}}>
               <IconButton disabled={error !== null} size="small" onClick={(e) => {handleToolbarClick(e, fieldKey);}}>

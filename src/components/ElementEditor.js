@@ -78,6 +78,7 @@ export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, curr
     if (!e.target.classList.contains("textElement") && (typeof target === "undefined" || e.target.parentElement !== target.parentElement)){
       setUnitTarget(null);
       setComponentTarget(null);
+      setTextTarget(null);
     }
     else {
       let current = e.target.classList.contains("textElement") ? e.target : target;
@@ -108,16 +109,20 @@ export const ElementEditor = ({svgElement, updateInspector, inspectorIndex, curr
       }
       else if (e.target.classList.contains("textElement")){
         updateInspector(unitID, componentID, pageID);
+        setComponentTarget(null);
+        setUnitTarget(null);
         setTextTarget(e.target);
       }
       // If the user double-clicked on a unit, open the component menu
       else if (e.detail === 2) {
         setUnitTarget(null);
+        setTextTarget(null);
         updateInspector(unitID, componentID, pageID);
         setComponentTarget(target);
       }
       // Otherwise, open the unit menu
       else {
+        setTextTarget(null);
         updateInspector(unitID, componentID, pageID);
         setUnitTarget(target);
       }

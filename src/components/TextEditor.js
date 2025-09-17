@@ -158,7 +158,7 @@ export const TextEditor = ({ inspectorIndex, currentPage, textAnchorEl, setTextA
     case "font":
       return (
       <div>
-          {getTextField("fontSize", "Font Size", currentTextData?.fontSize)}
+          {getTextField("fontSize", "Font Size (as a number with no unit)", currentTextData?.fontSize)}
           <FormControl variant="standard" sx={{ m: 1, minWidth: 120 }}>
           <InputLabel id="font-family-select-label">Font Family</InputLabel>
             <Select
@@ -192,7 +192,7 @@ export const TextEditor = ({ inspectorIndex, currentPage, textAnchorEl, setTextA
           ))}
             </Select>
           </FormControl>
-          {getTextField("lineSpacing", "Line Spacing", currentTextData?.lineSpacing)}
+          {getTextField("lineSpacing", "Line Spacing (as a number with no unit)", currentTextData?.lineSpacing)}
       </div>
       );
     case "text":
@@ -216,9 +216,9 @@ export const TextEditor = ({ inspectorIndex, currentPage, textAnchorEl, setTextA
               <FormControlLabel value="center" control={<Radio />} label="Center" />
               <FormControlLabel value="right" control={<Radio />} label="Right" />
             </RadioGroup>
-          {getTextField("height", "Height", currentTextData?.height)}
-          {getTextField("width", "Width", currentTextData?.width)}
-          {getTextField("position", "Position", currentTextData?.position)}
+          {getTextField("height", "Height (as a number with no unit)", currentTextData?.height)}
+          {getTextField("width", "Width (as a number with no unit)", currentTextData?.width)}
+          {getTextField("position", "Position (comma-separated, for example: 1,1)", currentTextData?.position)}
         </div>
       );
     case "remove":
