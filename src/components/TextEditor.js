@@ -262,7 +262,6 @@ export const TextEditor = ({ inspectorIndex, currentPage, textAnchorEl, setTextA
         {/* Dynamically generate inputs based on type definition */}
         {currentTextData &&
           Object.entries({remove: "Remove", text: "Edit Text", color: "Edit Color", font: "Edit Font", position: "Edit Position"}).map(([fieldKey, label]) => (
-          <React.Fragment>
           <Tooltip title={label} key={fieldKey}>
               <span style={{marginLeft: "10px", marginRight: "10px"}}>
                 {fieldKey === "color" ? (
@@ -281,27 +280,26 @@ export const TextEditor = ({ inspectorIndex, currentPage, textAnchorEl, setTextA
                 }
               </span>
           </Tooltip>
-          <Popover
-            id={id}
-            open={open}
-            anchorEl={anchorEl}
-            anchorOrigin={{
-              vertical: "top",
-              horizontal: "center",
-            }}
-            transformOrigin={{
-              vertical: "bottom",
-              horizontal: "center",
-            }}
-            slotProps={{ paper: { sx: { pointerEvents: "auto" } } }}
-            sx={{ pointerEvents: "none" }}>
-                <CirclePicker color={currentTextData[fieldKey]} onChange={(selectedColor) => {handleColorChange(selectedColor)}}
-                />
-          </Popover>
-          </React.Fragment>
         ))
         }
       </Box>
+      <Popover
+        id={id}
+        open={open}
+        anchorEl={anchorEl}
+        anchorOrigin={{
+          vertical: "top",
+          horizontal: "center",
+        }}
+        transformOrigin={{
+          vertical: "bottom",
+          horizontal: "center",
+        }}
+        slotProps={{ paper: { sx: { pointerEvents: "auto" } } }}
+        sx={{ pointerEvents: "none" }}>
+            <CirclePicker color={currentTextData?.color} onChange={(selectedColor) => {handleColorChange(selectedColor)}}
+            />
+      </Popover>
       <Dialog open={openDialog} onClose={handleCloseDialog} fullWidth> 
         <DialogContent sx={{ paddingBottom: 0 }}>
           {currentTextData &&
