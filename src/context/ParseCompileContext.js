@@ -9,10 +9,6 @@ import parseText from "../parser/parseText.mjs";
 import reconstructor from "../parser/reconstructor.mjs";
 import compiler from "../compiler/compiler.mjs";
 import { createOptimizedCommand, findRelevantCommands } from "../parser/commandUtils.mjs";
-import { node } from "prop-types";
-import { LensTwoTone } from "@mui/icons-material";
-import { second } from "@eth-peach-lab/mermaid-merlin/packages/mermaid/dist/chunks/mermaid.esm/chunk-CPLSQCOS.mjs";
-import { Dataset } from "@mui/icons-material";
 
 const ParseCompileContext = createContext();
 

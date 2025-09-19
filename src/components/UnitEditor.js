@@ -6,9 +6,9 @@ import EditIcon from '@mui/icons-material/Edit';
 import FormatColorFillIcon from '@mui/icons-material/FormatColorFill';
 import RectangleOutlinedIcon from '@mui/icons-material/RectangleOutlined';
 import TextRotateVerticalIcon from '@mui/icons-material/TextRotateVertical';
-import { CirclePicker } from "react-color";
+import Circle from "@uiw/react-color-circle";
 import { useParseCompile } from "../context/ParseCompileContext";
-import { parseInspectorIndex, createUnitData, getComponentFields } from "../compiler/dslUtils.mjs";
+import { parseInspectorIndex, createUnitData, getComponentFields, getColors } from "../compiler/dslUtils.mjs";
 import { addEdgeIcon, removeEdgeIcon, addColumnIcon, addRowIcon, removeColumnIcon, removeRowIcon } from "./CustomIcons";
 
 
@@ -129,7 +129,9 @@ const DynamicInput = ({ fieldKey, label, value, onChange, onUpdate, onRemove, on
           sx={{ pointerEvents: "none" }}>
 
             {fieldKey === "color" ? (
-              <CirclePicker color={value} onChange={(selectedColor) => {onUpdate(fieldKey, selectedColor.hex);}} />
+              <div style={{ width: 256, padding: "5px" }}>
+                <Circle colors={getColors()} color={value} onChange={(selectedColor) => {onUpdate(fieldKey, selectedColor.hex);}} />
+              </div>
             ) : ( 
               <TextField
                 label={fieldKey === "addRow" || fieldKey === "addColumn" ? "Enter values comma-separated" : "Enter a value"}
