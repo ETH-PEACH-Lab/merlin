@@ -273,7 +273,7 @@ const RendererSection = ({
                   onClick={handleExpand1}
                   sx={{ mr: 1 }}
                   size="small"
-                  disabled={pages.length === 0}
+                  disabled={pages.length === 0 || (pages.length !== 0 && error !== null)}
                 >
                   <DownloadIcon sx={{ fontSize: 20 }}></DownloadIcon>
                 </IconButton>
@@ -345,7 +345,7 @@ const RendererSection = ({
                   onClick={handleShare}
                   sx={{ mr: 1 }}
                   size="small"
-                  disabled={pages.length === 0}
+                  disabled={pages.length === 0 || (pages.length !== 0 && error !== null)}
                 >
                   <ShareIcon sx={{ fontSize: 20 }}></ShareIcon>
                 </IconButton>
@@ -356,7 +356,7 @@ const RendererSection = ({
                 <IconButton 
                   onClick={handleSave}
                   size="small"
-                  disabled={pages.length === 0}
+                  disabled={pages.length === 0 || (pages.length !== 0 && error !== null)}
                 >
                   <SaveIcon sx={{ fontSize: 20 }}></SaveIcon>
                 </IconButton>
