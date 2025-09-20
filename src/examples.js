@@ -174,6 +174,34 @@ orgChart.setChild(CEO-TechLead)
 orgChart.removeSubtree(Intern)`,
 	},
 	{
+		id:"linkedlist",
+		title:"Example - Linked List",
+		userCode: `linkedlist traverse = {
+  nodes: [start, mid1, mid2, end]
+  value: ["first", "second", "third", "last"]
+  color: [null, null, null, null]
+}
+
+page
+show traverse
+
+page
+traverse.setColor(0, "blue")
+traverse.setArrow(0, "visiting")
+
+page
+traverse.setColor(0, "gray")
+traverse.setColor(1, "blue")
+traverse.setArrow(0, "visited")
+traverse.setArrow(1, "visiting")
+
+page
+traverse.setColor(1, "gray")
+traverse.setColor(2, "blue")
+traverse.setArrow(1, "visited")
+traverse.setArrow(2, "visiting")`,
+	},
+	{
 		id: "textAndFormattingExample",
 		title: "Example - Text and Formatting",
 		userCode: `array numbers = {
@@ -230,38 +258,11 @@ show randomTextToo
 
 page
 `,
-	},{
-		id:"linkedlistTraverse",
-		title:"Example - Linked List Traversal",
-		userCode: `linkedlist traverse = {
-  nodes: [start, mid1, mid2, end]
-  value: ["first", "second", "third", "last"]
-  color: [null, null, null, null]
-}
-
-page
-show traverse
-
-page
-traverse.setColor(0, "blue")
-traverse.setArrow(0, "visiting")
-
-page
-traverse.setColor(0, "gray")
-traverse.setColor(1, "blue")
-traverse.setArrow(0, "visited")
-traverse.setArrow(1, "visiting")
-
-page
-traverse.setColor(1, "gray")
-traverse.setColor(2, "blue")
-traverse.setArrow(1, "visited")
-traverse.setArrow(2, "visiting")`,
 	},
 	{
-		id: "TutorialFibonacci",
-		title: "Tutorial - Fibonacci",
-		userCode: `// Tutorial - Fibonacci sequence
+		id: "Fibonacci",
+		title: "Fibonacci",
+		userCode: `// Fibonacci sequence
 array arr1 = {
 	value: [1]
 }
@@ -277,8 +278,8 @@ page
 arr1.addValue(2)`,
 	},
 	{
-		id: "task1LCAofTree",
-		title: "Task 1 - LCA in a tree",
+		id: "LCAofTree",
+		title: "LCA in a tree",
 		userCode: `tree tr1 = {
 	nodes: [A, B, C, D, E, F, G]
 	value: [1, 2, 3, 4, 5, 6, 7]
@@ -290,8 +291,8 @@ page
 show tr1`,
 	},
 	{
-		id: "task2DepthFirstSearch",
-		title: "Task 2 - Depth First Search",
+		id: "DepthFirstSearch",
+		title: "Depth First Search",
 		userCode: `graph dfs = {
 	nodes: [n1, n2, n3, n4, n5, n6, n7, n8]
 	edges: [n1-n2, n1-n6, n1-n7, n2-n3, n3-n7, n3-n5, n4-n5, n4-n6, n4-n8]
@@ -321,8 +322,8 @@ dfs.setArrow(2, null)
 dfs.setArrow(4, "cur")`,
 	},
 	{
-		id: "task3NumbersOfIslands",
-		title: "Task 3 - Numbers of Islands",
+		id: "NumbersOfIslands",
+		title: "Numbers of Islands",
 		userCode: `matrix mr1 = {
 	value: [[0, 0, 1, 0], [0, 1, 1, 0], [1, 0, 0, 0], [0, 0, 1, 1]]
 	color: [[null, null, "red", null]]
@@ -332,8 +333,8 @@ page
 show mr1`,
 	},
 	{
-		id: "task4ValidBrackets",
-		title: "Task 4 - Valid Brackets",
+		id: "ValidBrackets",
+		title: "Valid Brackets",
 		userCode: `array arr = {
 	value: ["{", "{", "{", "}", "{", "}", "}", "{"]
 	color: ["", "", "", "", "", "", "", ""]
