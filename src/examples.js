@@ -1,5 +1,10 @@
 const examples = [
 	{
+		id: "emptyTemplate",
+		title: "Empty Template",
+		userCode: `page`
+	},
+	{
 		id: "arrayExample",
 		title: "Example - Array",
 		userCode: `// Array - Sorting visualization
