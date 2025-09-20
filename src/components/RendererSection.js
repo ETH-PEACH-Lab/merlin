@@ -182,7 +182,7 @@ const RendererSection = ({
       }}>
         <Box display="flex">
           <Box display="flex" flex={"1 1 0px"} alignItems={'center'}>
-            <Typography variant="overline" sx={{ pl: 2 }}>Page Controls</Typography>
+            <Typography variant="overline" sx={{ pl: 2 }}>Page</Typography>
           </Box>
           <Box sx={{ display: "flex", borderRight: "1px solid #444" }}>
             <Tooltip title="Add a Page">
@@ -263,7 +263,7 @@ const RendererSection = ({
         </Box>
         <Box display="flex">
           <Box display="flex" flex={"1 1 0px"} alignItems={'center'} borderLeft={"1px solid #444"} >
-            <Typography variant="overline" sx={{ pl: 2 }}>Export Controls</Typography>
+            <Typography variant="overline" sx={{ pl: 2 }}>Export</Typography>
           </Box>
           <Box sx={{ display: "flex" }}>
             <Tooltip title={pages.length === 0 ? "No pages to export" : "Export"}>
@@ -373,7 +373,7 @@ const RendererSection = ({
         borderBottom: "1px solid #444"
       }}>
         <Box display="flex" flex={"1 1 0px"} alignItems={'center'}>
-          <Typography variant="overline" sx={{ pl: 2 }}>Component Controls</Typography>
+          <Typography variant="overline" sx={{ pl: 2 }}>Component</Typography>
         </Box>
         <Box sx={{ display: "flex" }}>
           <Tooltip title="Create a Component">
