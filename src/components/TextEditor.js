@@ -8,9 +8,9 @@ import FormatColorFillIcon from '@mui/icons-material/FormatColorFill';
 import FormatItalicIcon from '@mui/icons-material/FormatItalic';
 import Grid3x3Icon from '@mui/icons-material/Grid3x3';
 import RectangleOutlinedIcon from '@mui/icons-material/RectangleOutlined';
-import { CirclePicker } from "react-color";
+import Circle from "@uiw/react-color-circle";
 import { useParseCompile } from "../context/ParseCompileContext";
-import { parseInspectorIndex, createUnitData, getFieldDropdownOptions } from "../compiler/dslUtils.mjs";
+import { parseInspectorIndex, createUnitData, getFieldDropdownOptions, getColors } from "../compiler/dslUtils.mjs";
 
 
 export const TextEditor = ({ inspectorIndex, currentPage, textAnchorEl, setTextAnchorEl }) => {
@@ -297,8 +297,9 @@ export const TextEditor = ({ inspectorIndex, currentPage, textAnchorEl, setTextA
         }}
         slotProps={{ paper: { sx: { pointerEvents: "auto" } } }}
         sx={{ pointerEvents: "none" }}>
-            <CirclePicker color={currentTextData?.color} onChange={(selectedColor) => {handleColorChange(selectedColor)}}
-            />
+          <div style={{ width: 256, padding: "5px" }}>
+            <Circle colors={getColors()} color={currentTextData?.color} onChange={(selectedColor) => {handleColorChange(selectedColor)}} />
+          </div>
       </Popover>
       <Dialog open={openDialog} onClose={handleCloseDialog} fullWidth> 
         <DialogContent sx={{ paddingBottom: 0 }}>

@@ -182,7 +182,7 @@ const RendererSection = ({
       }}>
         <Box display="flex">
           <Box display="flex" flex={"1 1 0px"} alignItems={'center'}>
-            <Typography variant="overline" sx={{ pl: 2 }}>Page Controls</Typography>
+            <Typography variant="overline" sx={{ pl: 2 }}>Page</Typography>
           </Box>
           <Box sx={{ display: "flex", borderRight: "1px solid #444" }}>
             <Tooltip title="Add a Page">
@@ -263,7 +263,7 @@ const RendererSection = ({
         </Box>
         <Box display="flex">
           <Box display="flex" flex={"1 1 0px"} alignItems={'center'} borderLeft={"1px solid #444"} >
-            <Typography variant="overline" sx={{ pl: 2 }}>Export Controls</Typography>
+            <Typography variant="overline" sx={{ pl: 2 }}>Export</Typography>
           </Box>
           <Box sx={{ display: "flex" }}>
             <Tooltip title={pages.length === 0 ? "No pages to export" : "Export"}>
@@ -273,7 +273,7 @@ const RendererSection = ({
                   onClick={handleExpand1}
                   sx={{ mr: 1 }}
                   size="small"
-                  disabled={pages.length === 0}
+                  disabled={pages.length === 0 || (pages.length !== 0 && error !== null)}
                 >
                   <DownloadIcon sx={{ fontSize: 20 }}></DownloadIcon>
                 </IconButton>
@@ -345,7 +345,7 @@ const RendererSection = ({
                   onClick={handleShare}
                   sx={{ mr: 1 }}
                   size="small"
-                  disabled={pages.length === 0}
+                  disabled={pages.length === 0 || (pages.length !== 0 && error !== null)}
                 >
                   <ShareIcon sx={{ fontSize: 20 }}></ShareIcon>
                 </IconButton>
@@ -356,7 +356,7 @@ const RendererSection = ({
                 <IconButton 
                   onClick={handleSave}
                   size="small"
-                  disabled={pages.length === 0}
+                  disabled={pages.length === 0 || (pages.length !== 0 && error !== null)}
                 >
                   <SaveIcon sx={{ fontSize: 20 }}></SaveIcon>
                 </IconButton>
@@ -373,7 +373,7 @@ const RendererSection = ({
         borderBottom: "1px solid #444"
       }}>
         <Box display="flex" flex={"1 1 0px"} alignItems={'center'}>
-          <Typography variant="overline" sx={{ pl: 2 }}>Component Controls</Typography>
+          <Typography variant="overline" sx={{ pl: 2 }}>Component</Typography>
         </Box>
         <Box sx={{ display: "flex" }}>
           <Tooltip title="Create a Component">
