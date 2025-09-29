@@ -149,7 +149,18 @@ export const typeMethodsMap = {
   text: {
     single: ['setValue', 'setFontSize', 'setColor', 'setFontWeight', 'setFontFamily', 'setAlign'],
     multiple: ['setValues', 'setFontSizes', 'setColors', 'setFontWeights', 'setFontFamilies', 'setAligns'],
-    textSpecific: ['setLineSpacing', 'setWidth', 'setHeight']
+    textSpecific: ['setLineSpacing', 'setWidth', 'setHeight'],
+    chained: {
+      fontSize: 'setFontSize',
+      color: 'setColor',
+      fontWeight: 'setFontWeight',
+      fontFamily: 'setFontFamily',
+      align: 'setAlign',
+      value: 'setValue',
+      lineSpacing: 'setLineSpacing',
+      width: 'setWidth',
+      height: 'setHeight'
+    }
   }
 };
 
@@ -160,7 +171,11 @@ export function getSupportedMethods(componentType) {
   
   const allMethods = [];
   Object.values(methodsMap).forEach(methods => {
-    allMethods.push(...methods);
+    if (Array.isArray(methods)) {
+      allMethods.push(...methods);
+    } else if (methods && typeof methods === 'object') {
+      allMethods.push(...Object.values(methods));
+    }
   });
   return [...new Set(allMethods)]; // Remove duplicates
 }

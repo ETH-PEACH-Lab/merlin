@@ -1,7 +1,7 @@
 // myCompiler to convert myDSL into mermaid code
 
 import { expandPositionWithLayout, inferLayoutFromKeywords } from './positionUtils.mjs';
-import { isMethodSupported } from '../components/languageConfig.js';
+import { isMethodSupported, typeMethodsMap } from '../components/languageConfig.js';
 import { getMethodNameFromCommand } from '../parser/reconstructor.mjs';
 
 import { generateArray } from "./types/generateArray.mjs"
@@ -557,24 +557,27 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
         ].includes(command.type)) {
             const targetObject = pages.length > 0 ? pages[pages.length - 1]?.find(comp => comp.name === command.name) : null;
             if (targetObject) {
-                const methodName = getMethodNameFromCommand(command);
-                if (methodName) {
-                    // For chained commands, validate against text object methods instead
-                    if (command.type === 'set_chained') {
-                        if (!isMethodSupported('text', methodName)) {
-                            causeCompileError(`Method not supported on linked text object\n\nMethod: ${methodName}\nComponent type: text\nParent component: ${command.name}`, command);
-                        }
-                    } else if (!isMethodSupported(targetObject.type, methodName)) {
-                        causeCompileError(`Method not supported\n\nMethod: ${methodName}\nComponent type: ${targetObject.type}\nComponent: ${command.name}`, command);
-                    } else if (targetObject.type === 'text' && command.type === 'set_multiple') {
-                        // Special check for multi-line methods on single-line text objects
-                        const body = targetObject.body;
-                        const isMultiLineMethod = methodName && (methodName.endsWith('s') || methodName.includes('Multiple'));
-                        const hasArrayValue = Array.isArray(body.value);
-                        
-                        if (isMultiLineMethod && !hasArrayValue) {
-                            causeCompileError(`Cannot use multi-line method on single-line text\n\nMethod: ${methodName}\nText type: Single-line\nSuggestion: Use ${methodName.replace(/s$/, '')} instead, or convert to multi-line text with setValue([...])`, command);
-                        }
+                let methodName = getMethodNameFromCommand(command);
+                console.log("Validating method: ", methodName, " on type: ", targetObject.type);
+                // For set_chained, the method name is the property mapped to the text method
+                if (command.type === 'set_chained') {
+                    console.log("Command target: ", command.target);
+                    // Map target property to method name for text using centralized configuration
+                    methodName = typeMethodsMap.text?.chained?.[command.target] || methodName;
+                    if (!isMethodSupported('text', methodName)) {
+                        causeCompileError(`Method not supported on linked text object\n\nMethod: ${methodName}\nComponent type: text\nParent component: ${command.name}`, command);
+                    }
+                } else if (methodName && !isMethodSupported(targetObject.type, methodName)) {
+                    console.log("Method not supported: ", methodName, " on type: ", targetObject.type);
+                    causeCompileError(`Method not supported\n\nMethod: ${methodName}\nComponent type: ${targetObject.type}\nComponent: ${command.name}`, command);
+                } else if (targetObject.type === 'text' && command.type === 'set_multiple') {
+                    console.log("Special check for multi-line methods on single-line text");
+                    // Special check for multi-line methods on single-line text objects
+                    const body = targetObject.body;
+                    const isMultiLineMethod = methodName && (methodName.endsWith('s') || methodName.includes('Multiple'));
+                    const hasArrayValue = Array.isArray(body.value);
+                    if (isMultiLineMethod && !hasArrayValue) {
+                        causeCompileError(`Cannot use multi-line method on single-line text\n\nMethod: ${methodName}\nText type: Single-line\nSuggestion: Use ${methodName.replace(/s$/, '')} instead, or convert to multi-line text with setValue([...])`, command);
                     }
                 }
             }
@@ -723,9 +726,22 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
             case "set": {
                 const name = command.name;
                 const property = command.target;
-                const indexOrNodeName = command.args.index;
-                const newValue = command.args.value;
                 const targetObject = pages[pages.length - 1].find(comp => comp.name === name);
+                const rawArgs = command.args;
+                let indexOrNodeName;
+                let newValue;
+
+
+                if (rawArgs && typeof rawArgs === 'object' && !Array.isArray(rawArgs) && (Object.prototype.hasOwnProperty.call(rawArgs, 'index') || Object.prototype.hasOwnProperty.call(rawArgs, 'value'))) {
+                    indexOrNodeName = rawArgs.index;
+                    newValue = rawArgs.value;
+                } else if (targetObject?.type === 'text') {
+                    indexOrNodeName = undefined;
+                    newValue = rawArgs;
+                } else {
+                    indexOrNodeName = rawArgs?.index;
+                    newValue = rawArgs?.value;
+                }
 
                 // Check if in bounds
                 if (targetObject) {
@@ -1248,9 +1264,10 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
 
                         // Special handling for graph edges which are objects with start and end properties
                         if (target === "edges" && targetObject.type === "graph" && typeof value === 'object' && value.start && value.end) {
-                            // Find the edge with matching start and end nodes
+                            // Find the edge with matching start and end nodes (bidirectional for undirected graphs)
                             const edgeIndex = body[target].findIndex(edge => 
-                                edge.start === value.start && edge.end === value.end
+                                (edge.start === value.start && edge.end === value.end) ||
+                                (edge.start === value.end && edge.end === value.start)
                             );
                             
                             if (edgeIndex > -1) {
