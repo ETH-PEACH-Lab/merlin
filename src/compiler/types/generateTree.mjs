@@ -28,45 +28,55 @@ export function generateTree(treeComponent, layout = [3, 3]) {
 }
 
 function convertArrayToBinaryTree(nodes, value, color, arrow) {
-    if (!nodes || nodes.length === 0) return '';
-  
-    let queue = [{ node: nodes[0], index: 0 }];
-    
+    const isValidNode = (node) => node && node !== 'none';
+
+    if (!nodes || nodes.length === 0 || !nodes.some(isValidNode)) {
+        return `\nnode:${formatNodeName('__empty_tree__')} {value:"", color:"", arrow:"", hidden:"true"}`;
+    }
+
     let result = "";
-  
-    while (queue.length > 0) {
-        let current = queue.shift();
-        let node = current.node;
-        let index = current.index;
-  
-        if (node === 'none' || !node) {
-            result += `\nNone:[None,None]`;
-        } else {
-            let leftIndex = 2 * index + 1;
-            let rightIndex = 2 * index + 2;
-            
-            let leftChild = (leftIndex < nodes.length && nodes[leftIndex] && nodes[leftIndex] !== 'none') ? 
-                            formatNodeName(nodes[leftIndex].name || nodes[leftIndex]) : 'None';
-            let rightChild = (rightIndex < nodes.length && nodes[rightIndex] && nodes[rightIndex] !== 'none') ? 
-                             formatNodeName(nodes[rightIndex].name || nodes[rightIndex]) : 'None';
-            
-            const nodeName = formatNodeName(node);
-            result += `\n${nodeName}:[${leftChild},${rightChild}]`;
-            result += `{value:"${formatNullValue(value[index]) ?? nodeName}"`;
-            result += `, color:"${formatNullValue(color[index])}"`;
-            result += `, arrow:"${ arrow[index] === 'empty' ? "" : formatNullValue(arrow[index])}"`;
-            result += `}`;
-  
-            if (leftChild !== 'None') {
-                queue.push({ node: nodes[leftIndex], index: leftIndex });
-            }
-  
-            if (rightChild !== 'None') {
-                queue.push({ node: nodes[rightIndex], index: rightIndex });
-            }
+
+    const getNodeName = (node) => formatNodeName(node?.name || node);
+
+    for (let index = 0; index < nodes.length; index++) {
+        const node = nodes[index];
+        if (!isValidNode(node)) {
+            continue;
+        }
+
+        const nodeName = getNodeName(node);
+        const nodeValue = index < value.length ? value[index] : null;
+        const nodeColor = index < color.length ? color[index] : null;
+        const nodeArrow = index < arrow.length ? arrow[index] : null;
+
+        result += `\nnode:${nodeName} {value:"${formatNullValue(nodeValue) ?? nodeName}"`;
+        result += `, color:"${formatNullValue(nodeColor)}"`;
+        result += `, arrow:"${nodeArrow === 'empty' ? "" : formatNullValue(nodeArrow)}"`;
+        result += `, hidden:"false"}`;
+    }
+
+    for (let index = 0; index < nodes.length; index++) {
+        const node = nodes[index];
+        if (!isValidNode(node)) {
+            continue;
+        }
+
+        const parentName = getNodeName(node);
+        const leftIndex = 2 * index + 1;
+        const rightIndex = 2 * index + 2;
+
+        if (leftIndex < nodes.length && isValidNode(nodes[leftIndex])) {
+            const leftChildName = getNodeName(nodes[leftIndex]);
+            result += `\nchild:(${parentName},${leftChildName})`;
+        }
+
+        if (rightIndex < nodes.length && isValidNode(nodes[rightIndex])) {
+            const rightChildName = getNodeName(nodes[rightIndex]);
+            result += `\nchild:(${parentName},${rightChildName})`;
         }
     }
-    return result;
+
+    return result || `\nnode:${formatNodeName('__empty_tree__')} {value:"", color:"", arrow:"", hidden:"true"}`;
 }
 
 function convertToNewTreeFormat(nodes, value, color, arrow, children) {
