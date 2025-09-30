@@ -60,12 +60,14 @@ comma_sep[X, Y] -> $X _ comma _ $Y {% ([x, , , , y]) => ({ index: id(x), value: 
 tuple[X, Y] -> lparen _ $X _ comma _ $Y _ rparen {% ([, , x, , , , y, ]) => [x[0], y[0]] %}
 
 # Lists, e.g. [1, 2, 3]
-list[X] -> lbrac list_content[$X] rbrac {% ([, content]) => content.flat() %}
+list[X] -> lbrac nlow:? rbrac {% () => [] %}
+    | lbrac list_content[$X] rbrac {% ([, content]) => content.flat() %}
 list_content[X] -> trim[$X] next_list_item[$X]:* {% (([first, rest]) => [...first, ...rest.flat()]) %}
 next_list_item[X] -> comma trim[$X] {% ([, value]) => id(value) %}
 
 # 2D Lists for matrices, e.g. [[1, 2], [3, 4]] - do not flatten
-matrix_2d_list[X] -> lbrac nlow:? matrix_row[$X] (nlow:? comma nlow:? matrix_row[$X]):* nlow:? rbrac {% ([, , first, rest]) => {
+matrix_2d_list[X] -> lbrac nlow:? rbrac {% () => [] %}
+    | lbrac nlow:? matrix_row[$X] (nlow:? comma nlow:? matrix_row[$X]):* nlow:? rbrac {% ([, , first, rest]) => {
     const rows = [first];
     if (rest) {
         rest.forEach(([, , , row]) => rows.push(row));

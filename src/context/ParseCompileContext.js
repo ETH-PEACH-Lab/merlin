@@ -27,6 +27,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
 
     // Set a delay, will wait specified milliseconds before showing an error on current line
     const DELAY = 1000; 
+    const DELAY_CURRENT_LINE = 3000;
 
     // Parse and compile with smart error handling
     const parseAndCompile = useCallback((code, skipCurrentLine = false, currentLine = 1) => {
@@ -154,6 +155,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             
             // Apply same logic for compile errors
             if (!skipCurrentLine && errorLine === validCurrentLine) {
+                let testCompiled = null;
                 try {
                     // Test without current line
                     const testCode = code.split('\n').map((line, index) => 
@@ -161,28 +163,24 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
                     ).join('\n');
                     
                     const testParsed = parseText(testCode);
-                    const testCompiled = compiler(testParsed);
-                    
-                    // If it compiles successfully without the current line, delay the error
-                    const timeoutId = setTimeout(() => {
-                        setError(errorMessage);
-                        if (window.errorStateManager) {
-                            window.errorStateManager.setError(errorObj);
-                        }
-                        setErrorTimeoutId(null);
-                    }, 3000);
-                    setErrorTimeoutId(timeoutId);
+                    testCompiled = compiler(testParsed);
                     
                     // Use the working version for now
                     setCompiledMerlin(testCompiled.mermaidString);
                     setPages(testCompiled.compiled_pages);
                 } catch (secondError) {
-                    // If it still fails, show error immediately
+                    // Do nothing here, we handle the error below
+                }
+
+                // Always delay the error if it's on current line
+                const timeoutId = setTimeout(() => {
                     setError(errorMessage);
                     if (window.errorStateManager) {
                         window.errorStateManager.setError(errorObj);
                     }
-                }
+                    setErrorTimeoutId(null);
+                }, DELAY_CURRENT_LINE);
+                setErrorTimeoutId(timeoutId);
             } else {
                 // Error is not on current line, show immediately
                 setError(errorMessage);
