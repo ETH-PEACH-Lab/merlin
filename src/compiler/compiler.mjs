@@ -13,60 +13,6 @@ import { generateGraph } from "./types/generateGraph.mjs";
 import { generateText } from "./types/generateText.mjs";
 import { getMermaidContainerSize } from "./cssUtils.mjs";
 
-// Helper function to generate a new node name for component types that use nodes
-function generateNodeName(body, componentType) {
-    if (!body.nodes || body.nodes.length === 0) {
-        // If no nodes exist, start with the first one based on component type
-        switch (componentType) {
-            case "linkedlist":
-            case "graph":
-                return "n0";
-            case "tree":
-                return "A";
-            default:
-                return "n0";
-        }
-    }
-    
-    // Find the highest numbered node and increment
-    let maxNum = -1;
-    let prefix = "";
-    
-    // Determine the naming pattern from existing nodes
-    for (const node of body.nodes) {
-        if (typeof node === 'string') {
-            if (node.match(/^n\d+$/)) {
-                // Pattern: n0, n1, n2, etc.
-                prefix = "n";
-                const num = parseInt(node.substring(1));
-                if (!isNaN(num)) {
-                    maxNum = Math.max(maxNum, num);
-                }
-            } else if (node.match(/^[A-Z]$/)) {
-                // Pattern: A, B, C, etc.
-                prefix = "letter";
-                const charCode = node.charCodeAt(0);
-                const num = charCode - 65; // A=0, B=1, C=2, etc.
-                maxNum = Math.max(maxNum, num);
-            }
-        }
-    }
-    
-    // Generate the next node name
-    if (prefix === "letter") {
-        const nextCharCode = 65 + maxNum + 1; // Next letter
-        if (nextCharCode <= 90) { // Z is 90
-            return String.fromCharCode(nextCharCode);
-        } else {
-            // Fall back to n pattern if we run out of letters
-            return "n" + (maxNum + 1);
-        }
-    } else {
-        // Default to n pattern
-        return "n" + (maxNum + 1);
-    }
-}
-
 // Helper function to maintain consistency across array properties when modifying arrays
 function maintainArrayPropertyConsistency(body, modifiedProperty, index, operation, componentType = null) {
     maintainArrayPropertyConsistencyExcept(body, modifiedProperty, index, operation, componentType, null);
@@ -79,86 +25,65 @@ function maintainArrayPropertyConsistencyExcept(body, modifiedProperty, index, o
 
 // Helper function to maintain consistency across array properties when modifying arrays, with exceptions for multiple properties
 function maintainArrayPropertyConsistencyExceptMultiple(body, modifiedProperty, index, operation, componentType = null, exceptProperties = []) {
-    // Define the properties that should be kept in sync for different component types
-    let arrayProperties = ["arrow", "color", "value", "hidden"];
-    
-    // Include "nodes" for component types that use nodes
-    if (componentType === "linkedlist" || componentType === "tree" || componentType === "graph") {
-        arrayProperties.push("nodes");
+    const baseProperties = ["arrow", "color", "value", "hidden"];
+    const usesNodes = componentType === "linkedlist" || componentType === "tree" || componentType === "graph";
+
+    let propertiesToSync = [];
+
+    if (modifiedProperty === "nodes") {
+        propertiesToSync = [...baseProperties];
+    } else if (baseProperties.includes(modifiedProperty)) {
+        propertiesToSync = baseProperties.filter(prop => prop !== modifiedProperty);
+    } else {
+        // Only keep properties in sync for node-aligned arrays
+        return;
     }
-    
-    // Note: "children" property is NOT included because it contains relationship objects,
-    // not values indexed by node position, so it should be handled separately
-    
-    // First, find the target length based on the modified property
-    const targetLength = body[modifiedProperty] ? body[modifiedProperty].length : 0;
-    
-    arrayProperties.forEach(property => {
-        // Skip the exception properties if specified
-        if (exceptProperties.includes(property)) {
+
+    if (!usesNodes) {
+        // Non node-based components don't support the hidden property
+        propertiesToSync = propertiesToSync.filter(prop => prop !== "hidden");
+    }
+
+    propertiesToSync = propertiesToSync.filter(prop => !exceptProperties.includes(prop));
+
+    if (propertiesToSync.length === 0) {
+        return;
+    }
+
+    const targetArray = Array.isArray(body[modifiedProperty]) ? body[modifiedProperty] : [];
+    const targetLength = targetArray.length;
+
+    propertiesToSync.forEach(property => {
+        if (property === "hidden" && componentType !== "graph" && !Array.isArray(body[property])) {
+            // Skip creating hidden arrays for components that don't use them
             return;
         }
-        
-        if (property !== modifiedProperty && body[property]) {
-            const currentLength = body[property].length;
-            
-            switch (operation) {
-                case "insert":
-                    // Ensure the array is long enough before inserting
-                    while (body[property].length < index) {
-                        body[property].push(null);
-                    }
-                    // Insert appropriate value at the same index to maintain alignment
-                    if (property === "nodes" && (componentType === "linkedlist" || componentType === "tree" || componentType === "graph")) {
-                        // For nodes, generate a new node name instead of inserting null
-                        const newNodeName = generateNodeName(body, componentType);
-                        body[property].splice(index, 0, newNodeName);
-                    } else {
-                        // For other properties, insert null
-                        body[property].splice(index, 0, null);
-                    }
-                    break;
-                case "add":
-                    // Ensure the array has the same length as the target (minus 1 since we just added)
-                    while (body[property].length < targetLength - 1) {
-                        body[property].push(null);
-                    }
-                    // Add appropriate value to maintain alignment
-                    if (property === "nodes" && (componentType === "linkedlist" || componentType === "tree" || componentType === "graph")) {
-                        // For nodes, generate a new node name instead of adding null
-                        const newNodeName = generateNodeName(body, componentType);
-                        body[property].push(newNodeName);
-                    } else {
-                        // For other properties, add null
-                        body[property].push(null);
-                    }
-                    break;
-                case "remove":
-                    // Remove element at the same index to maintain alignment
-                    if (index < body[property].length) {
-                        body[property].splice(index, 1);
-                    }
-                    break;
+
+        if (!Array.isArray(body[property])) {
+            if (operation === "remove") {
+                return;
             }
-        } else if (property !== modifiedProperty && !body[property] && !exceptProperties.includes(property)) {
-            // If the property doesn't exist, create it with the appropriate length
-            switch (operation) {
-                case "insert":
-                case "add":
-                    if (property === "nodes" && (componentType === "linkedlist" || componentType === "tree" || componentType === "graph")) {
-                        // For nodes, generate appropriate node names
-                        body[property] = [];
-                        for (let i = 0; i < targetLength; i++) {
-                            const newNodeName = generateNodeName(body, componentType);
-                            body[property].push(newNodeName);
-                        }
-                    } else {
-                        // For other properties, fill with nulls
-                        body[property] = Array(targetLength).fill(null);
-                    }
-                    break;
-                // For remove, we don't need to create new arrays
-            }
+            body[property] = [];
+        }
+
+        switch (operation) {
+            case "insert":
+                while (body[property].length < index) {
+                    body[property].push(null);
+                }
+                body[property].splice(index, 0, null);
+                break;
+            case "add":
+                while (body[property].length < targetLength - 1) {
+                    body[property].push(null);
+                }
+                body[property].push(null);
+                break;
+            case "remove":
+                if (index < body[property].length) {
+                    body[property].splice(index, 1);
+                }
+                break;
         }
     });
 }
