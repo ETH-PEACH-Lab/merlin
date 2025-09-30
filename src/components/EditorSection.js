@@ -127,6 +127,9 @@ const EditorSection = ({
               value={unparsedCode}
               onChange={updateUnparsedCode}
               readOnly={!dslEditorEditable}
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+              pages={pages}
             />
           </div>
         </ResizableBox>
