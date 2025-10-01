@@ -6,7 +6,14 @@ import { loader } from "@monaco-editor/react";
 import { useParseCompile } from "../context/ParseCompileContext";
 
 
-const DslEditor = ({ value = "", onChange = () => {}, readOnly = false, currentPage, setCurrentPage, pages}) => {
+const DslEditor = ({
+  value = "",
+  onChange = () => {},
+  readOnly = false,
+  currentPage = 0,
+  setCurrentPage = () => {},
+  pages = []
+}) => {
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
   const previousPageCountRef = useRef(0);

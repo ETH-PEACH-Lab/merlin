@@ -31,7 +31,7 @@ function convertArrayToBinaryTree(nodes, value, color, arrow) {
     const isValidNode = (node) => node && node !== 'none';
 
     if (!nodes || nodes.length === 0 || !nodes.some(isValidNode)) {
-        return `\nnode:${formatNodeName('__empty_tree__')} {value:"", color:"", arrow:"", hidden:"true"}`;
+        return "";
     }
 
     let result = "";
@@ -76,7 +76,7 @@ function convertArrayToBinaryTree(nodes, value, color, arrow) {
         }
     }
 
-    return result || `\nnode:${formatNodeName('__empty_tree__')} {value:"", color:"", arrow:"", hidden:"true"}`;
+    return result;
 }
 
 function convertToNewTreeFormat(nodes, value, color, arrow, children) {

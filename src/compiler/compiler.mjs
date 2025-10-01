@@ -23,70 +23,150 @@ function maintainArrayPropertyConsistencyExcept(body, modifiedProperty, index, o
     maintainArrayPropertyConsistencyExceptMultiple(body, modifiedProperty, index, operation, componentType, exceptProperty ? [exceptProperty] : []);
 }
 
+// Helper function to generate a new node name for component types that use nodes
+function generateNodeName(body, componentType) {
+    if (!body.nodes || body.nodes.length === 0) {
+        // If no nodes exist, start with the first one based on component type
+        switch (componentType) {
+            case "linkedlist":
+            case "graph":
+                return "n0";
+            case "tree":
+                return "A";
+            default:
+                return "n0";
+        }
+    }
+
+    // Find the highest numbered node and increment
+    let maxNum = -1;
+    let prefix = "";
+
+    // Determine the naming pattern from existing nodes
+    for (const node of body.nodes) {
+        if (typeof node === 'string') {
+            if (node.match(/^n\d+$/)) {
+                // Pattern: n0, n1, n2, etc.
+                prefix = "n";
+                const num = parseInt(node.substring(1));
+                if (!isNaN(num)) {
+                    maxNum = Math.max(maxNum, num);
+                }
+            } else if (node.match(/^[A-Z]$/)) {
+                // Pattern: A, B, C, etc.
+                prefix = "letter";
+                const charCode = node.charCodeAt(0);
+                const num = charCode - 65; // A=0, B=1, C=2, etc.
+                maxNum = Math.max(maxNum, num);
+            }
+        }
+    }
+
+    // Generate the next node name
+    if (prefix === "letter") {
+        const nextCharCode = 65 + maxNum + 1; // Next letter
+        if (nextCharCode <= 90) { // Z is 90
+            return String.fromCharCode(nextCharCode);
+        } else {
+            // Fall back to n pattern if we run out of letters
+            return "n" + (maxNum + 1);
+        }
+    } else {
+        // Default to n pattern
+        return "n" + (maxNum + 1);
+    }
+}
+
 // Helper function to maintain consistency across array properties when modifying arrays, with exceptions for multiple properties
 function maintainArrayPropertyConsistencyExceptMultiple(body, modifiedProperty, index, operation, componentType = null, exceptProperties = []) {
-    const baseProperties = ["arrow", "color", "value", "hidden"];
-    const usesNodes = componentType === "linkedlist" || componentType === "tree" || componentType === "graph";
-
-    let propertiesToSync = [];
-
-    if (modifiedProperty === "nodes") {
-        propertiesToSync = [...baseProperties];
-    } else if (baseProperties.includes(modifiedProperty)) {
-        propertiesToSync = baseProperties.filter(prop => prop !== modifiedProperty);
-    } else {
-        // Only keep properties in sync for node-aligned arrays
+    if (componentType === "graph" && modifiedProperty === "edges") {
         return;
     }
 
-    if (!usesNodes) {
-        // Non node-based components don't support the hidden property
-        propertiesToSync = propertiesToSync.filter(prop => prop !== "hidden");
+    // Define the properties that should be kept in sync for different component types
+    let arrayProperties = ["arrow", "color", "value", "hidden"];
+    
+    // Include "nodes" for component types that use nodes
+    if (componentType === "linkedlist" || componentType === "tree" || componentType === "graph") {
+        arrayProperties.push("nodes");
     }
-
-    propertiesToSync = propertiesToSync.filter(prop => !exceptProperties.includes(prop));
-
-    if (propertiesToSync.length === 0) {
-        return;
-    }
-
-    const targetArray = Array.isArray(body[modifiedProperty]) ? body[modifiedProperty] : [];
-    const targetLength = targetArray.length;
-
-    propertiesToSync.forEach(property => {
-        if (property === "hidden" && componentType !== "graph" && !Array.isArray(body[property])) {
-            // Skip creating hidden arrays for components that don't use them
+    
+    // Note: "children" property is NOT included because it contains relationship objects,
+    // not values indexed by node position, so it should be handled separately
+    
+    // First, find the target length based on the modified property
+    const targetLength = body[modifiedProperty] ? body[modifiedProperty].length : 0;
+    
+    arrayProperties.forEach(property => {
+        // Skip the exception properties if specified
+        if (exceptProperties.includes(property)) {
             return;
         }
-
-        if (!Array.isArray(body[property])) {
-            if (operation === "remove") {
-                return;
+        
+        if (property !== modifiedProperty && body[property]) {
+            const currentLength = body[property].length;
+            
+            switch (operation) {
+                case "insert":
+                    // Ensure the array is long enough before inserting
+                    while (body[property].length < index) {
+                        body[property].push(null);
+                    }
+                    // Insert appropriate value at the same index to maintain alignment
+                    if (property === "nodes" && (componentType === "linkedlist" || componentType === "tree" || componentType === "graph")) {
+                        // For nodes, generate a new node name instead of inserting null
+                        const newNodeName = generateNodeName(body, componentType);
+                        body[property].splice(index, 0, newNodeName);
+                    } else {
+                        // For other properties, insert null
+                        body[property].splice(index, 0, null);
+                    }
+                    break;
+                case "add":
+                    // Ensure the array has the same length as the target (minus 1 since we just added)
+                    while (body[property].length < targetLength - 1) {
+                        body[property].push(null);
+                    }
+                    // Add appropriate value to maintain alignment
+                    if (property === "nodes" && (componentType === "linkedlist" || componentType === "tree" || componentType === "graph")) {
+                        // For nodes, generate a new node name instead of adding null
+                        const newNodeName = generateNodeName(body, componentType);
+                        body[property].push(newNodeName);
+                    } else {
+                        // For other properties, add null
+                        body[property].push(null);
+                    }
+                    break;
+                case "remove":
+                    // Remove element at the same index to maintain alignment
+                    if (index < body[property].length) {
+                        body[property].splice(index, 1);
+                    }
+                    break;
             }
-            body[property] = [];
-        }
-
-        switch (operation) {
-            case "insert":
-                while (body[property].length < index) {
-                    body[property].push(null);
-                }
-                body[property].splice(index, 0, null);
-                break;
-            case "add":
-                while (body[property].length < targetLength - 1) {
-                    body[property].push(null);
-                }
-                body[property].push(null);
-                break;
-            case "remove":
-                if (index < body[property].length) {
-                    body[property].splice(index, 1);
-                }
-                break;
+        } else if (property !== modifiedProperty && !body[property] && !exceptProperties.includes(property)) {
+            // If the property doesn't exist, create it with the appropriate length
+            switch (operation) {
+                case "insert":
+                case "add":
+                    if (property === "nodes" && (componentType === "linkedlist" || componentType === "tree" || componentType === "graph")) {
+                        // For nodes, generate appropriate node names
+                        body[property] = [];
+                        for (let i = 0; i < targetLength; i++) {
+                            const newNodeName = generateNodeName(body, componentType);
+                            body[property].push(newNodeName);
+                        }
+                    } else {
+                        // For other properties, fill with nulls
+                        body[property] = Array(targetLength).fill(null);
+                    }
+                    break;
+                // For remove, we don't need to create new arrays
+            }
         }
     });
 }
+
 
 // Helper function to expand ranged positions into shape dimensions
 function expandRangedPosition(position) {
@@ -354,10 +434,28 @@ function hasTreeCycle(nodes, children) {
     if (!Array.isArray(nodes) || !Array.isArray(children)) return false;
     // Build adjacency list
     const adj = {};
-    nodes.forEach(n => { adj[n] = []; });
+    const knownNodes = new Set();
+
+    if (Array.isArray(nodes)) {
+        nodes.forEach(n => {
+            if (n != null) {
+                adj[n] = [];
+                knownNodes.add(n);
+            }
+        });
+    }
+
     children.forEach(edge => {
         if (edge && edge.start && edge.end) {
+            if (!adj[edge.start]) {
+                adj[edge.start] = [];
+            }
+            if (!adj[edge.end]) {
+                adj[edge.end] = [];
+            }
             adj[edge.start].push(edge.end);
+            knownNodes.add(edge.start);
+            knownNodes.add(edge.end);
         }
     });
     // DFS to detect cycle
@@ -377,9 +475,10 @@ function hasTreeCycle(nodes, children) {
     }
     // Check all roots (nodes not listed as any child)
     const allChildren = new Set(children.map(e => e && e.end).filter(Boolean));
-    const roots = nodes.filter(n => !allChildren.has(n));
+    const nodeList = knownNodes.size ? Array.from(knownNodes) : nodes;
+    const roots = nodeList.filter(n => !allChildren.has(n));
     // If no root, just check all nodes
-    const startNodes = roots.length ? roots : nodes;
+    const startNodes = roots.length ? roots : nodeList;
     for (const node of startNodes) {
         if (dfs(node)) return true;
     }
@@ -483,20 +582,16 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
             const targetObject = pages.length > 0 ? pages[pages.length - 1]?.find(comp => comp.name === command.name) : null;
             if (targetObject) {
                 let methodName = getMethodNameFromCommand(command);
-                console.log("Validating method: ", methodName, " on type: ", targetObject.type);
                 // For set_chained, the method name is the property mapped to the text method
                 if (command.type === 'set_chained') {
-                    console.log("Command target: ", command.target);
                     // Map target property to method name for text using centralized configuration
                     methodName = typeMethodsMap.text?.chained?.[command.target] || methodName;
                     if (!isMethodSupported('text', methodName)) {
                         causeCompileError(`Method not supported on linked text object\n\nMethod: ${methodName}\nComponent type: text\nParent component: ${command.name}`, command);
                     }
                 } else if (methodName && !isMethodSupported(targetObject.type, methodName)) {
-                    console.log("Method not supported: ", methodName, " on type: ", targetObject.type);
                     causeCompileError(`Method not supported\n\nMethod: ${methodName}\nComponent type: ${targetObject.type}\nComponent: ${command.name}`, command);
                 } else if (targetObject.type === 'text' && command.type === 'set_multiple') {
-                    console.log("Special check for multi-line methods on single-line text");
                     // Special check for multi-line methods on single-line text objects
                     const body = targetObject.body;
                     const isMultiLineMethod = methodName && (methodName.endsWith('s') || methodName.includes('Multiple'));
