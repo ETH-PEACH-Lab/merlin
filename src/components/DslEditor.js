@@ -42,6 +42,7 @@ const DslEditor = ({
 
   const handleEditorDidMount = useCallback((editor, monaco) => {
     editorRef.current = editor;
+    const study = (function(){ try { return require('../study/StudyContext'); } catch { return null; } })();
     
     // Handle clicks on "page" commands specifically to change current page
     editor.onMouseDown((e) => {
@@ -68,6 +69,119 @@ const DslEditor = ({
     if (window.errorStateManager) {
       window.errorStateManager.init(monaco, editor);
     }
+
+    // Detect application of quick fixes by comparing model changes with pending quick fix edits
+    editor.onDidChangeModelContent((e) => {
+      try {
+        const logEvent = getLogEvent && getLogEvent();
+        if (!logEvent || !window.__pendingQuickFixes) return;
+        const model = editor.getModel();
+        if (!model) return;
+        const uriKey = model.uri.toString();
+        const pending = window.__pendingQuickFixes[uriKey];
+        if (!pending || !pending.actions || !pending.actions.length) return;
+        // Build a simplified change signature
+        const changes = e.changes.map(c => ({
+          range: {
+            startLineNumber: c.range.startLineNumber,
+            startColumn: c.range.startColumn,
+            endLineNumber: c.range.endLineNumber,
+            endColumn: c.range.endColumn,
+          },
+          text: c.text
+        }));
+        const matchIdx = pending.actions.findIndex(act => {
+          if (!act.edits || act.edits.length !== changes.length) return false;
+          // Every edit must match a change 1:1 ignoring order (usually length 1)
+          return act.edits.every(ed => changes.some(ch =>
+            ch.text === ed.text &&
+            ch.range.startLineNumber === ed.range.startLineNumber &&
+            ch.range.startColumn === ed.range.startColumn &&
+            ch.range.endLineNumber === ed.range.endLineNumber &&
+            ch.range.endColumn === ed.range.endColumn
+          ));
+        });
+        if (matchIdx >= 0) {
+          const applied = pending.actions[matchIdx];
+          logEvent('quickfix_applied', {
+            editor: 'merlin',
+            title: applied.title,
+            fixKind: applied.kind,
+            editCount: applied.edits.length,
+          });
+          // Remove matched action to avoid duplicate logs
+          pending.actions.splice(matchIdx, 1);
+        }
+      } catch {}
+    });
+
+    // Copy & paste logging and suggestion/hover/quick-fix usage (study only)
+    const isInStudy = () => {
+      try {
+        const ctx = require('../study/StudyContext');
+        return true;
+      } catch { return false; }
+    };
+    const getLogEvent = () => window.__studyLogEvent;
+
+    editor.onKeyDown((e) => {
+      const logEvent = getLogEvent();
+      if (!logEvent) return;
+      const isMac = navigator.platform.toUpperCase().includes('MAC');
+      const mod = isMac ? e.metaKey : e.ctrlKey;
+      if (mod && e.keyCode === monaco.KeyCode.KeyC) {
+        const selLen = editor.getModel()?.getValueInRange(editor.getSelection()).length || 0;
+        logEvent('editor_copy', { editor: 'merlin', selectionLen: selLen });
+      }
+      if (mod && e.keyCode === monaco.KeyCode.KeyV) {
+        logEvent('editor_paste', { editor: 'merlin' });
+      }
+    });
+
+    // Suggest acceptance logging without intercepting default behavior
+    const logSuggestIfVisible = (method) => {
+      const logEvent = getLogEvent();
+      if (!logEvent) return;
+      
+      // Check if suggest widget is visible
+      const suggestWidget = editor.getContribution('editor.contrib.suggestController');
+      if (suggestWidget && suggestWidget.model && suggestWidget.model.state === 2) {
+        logEvent('suggest_accept', { editor: 'merlin', method });
+
+      }
+    };
+    // Quick fix execution
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.F8, () => {
+      const logEvent = getLogEvent();
+      if (!logEvent) return;
+      logEvent('quickfix_invoked', { editor: 'merlin' });
+      
+    });
+
+    // Hover link clicks
+    editor.onMouseDown((e) => {
+      if (!e.target || !e.target.element) return;
+      const a = e.target.element.querySelector('a');
+      if (!a || !a.href) return;
+      const logEvent = getLogEvent();
+      if (!logEvent) return;
+      logEvent('hover_link_open', { editor: 'merlin', href: a.href });
+      
+    });
+    // Hover link click logging via DOM capture (monaco renders markdown links)
+    const hoverListener = (ev) => {
+      const logEvent = getLogEvent();
+      if (!logEvent) return;
+      const target = ev.target;
+      if (target && target.closest && target.closest('.monaco-hover')) {
+        const a = target.closest('a');
+        if (a && a.href) {
+          logEvent('hover_link_open', { editor: 'merlin', href: a.href });
+        }
+      }
+    };
+    window.addEventListener('click', hoverListener, true);
+    editor.onDidDispose(() => window.removeEventListener('click', hoverListener, true));
     
     // Track cursor position changes
     editor.onDidChangeCursorPosition((e) => {
@@ -116,6 +230,32 @@ const DslEditor = ({
       
       if (isContentKey) {
         isTypingRef.current = true;
+        // Update global typing timestamp for error logging
+        window.__lastKeyPress = Date.now();
+      }
+
+      // Log suggestion acceptance without intercepting default behavior
+      if (e.keyCode === monaco.KeyCode.Enter) {
+        logSuggestIfVisible('Enter');
+      } else if (e.keyCode === monaco.KeyCode.Tab) {
+        logSuggestIfVisible('Tab');
+      }
+      
+      // Detect copy/paste
+      if (e.ctrlKey || e.metaKey) {
+        if (e.keyCode === 67) { // Ctrl+C
+          const logEvent = getLogEvent();
+          if (logEvent) {
+            logEvent('copy_code', { editor: 'merlin' });
+            
+          }
+        } else if (e.keyCode === 86) { // Ctrl+V
+          const logEvent = getLogEvent();
+          if (logEvent) {
+            logEvent('paste_code', { editor: 'merlin' });
+            
+          }
+        }
       }
 
       // Handle autocomplete triggers

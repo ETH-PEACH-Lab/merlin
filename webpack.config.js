@@ -1,10 +1,13 @@
+// Load environment variables for the build (runtime injection happens via DefinePlugin below)
+require('./config/env');
+
 const HtmlWebPackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const ProgressBarPlugin = require('progress-bar-webpack-plugin');
 const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const webpack = require('webpack');
-
+const fs = require('fs');
 
 const path = require('path');
 const argvs = require('yargs').argv;
@@ -23,6 +26,9 @@ let webpackConfig = {
   output: {
     path: path.resolve(__dirname, 'www'),
     filename: '[name].js',
+    // Use relative paths in production so assets resolve under any base path
+    publicPath: devMode ? '/' : './',
+    clean: true
   },
 
   optimization: {
@@ -115,7 +121,25 @@ let webpackConfig = {
         {
           from: 'node_modules/gif.js/dist/gif.worker.js',
           to: 'gif.worker.js'
-        }
+        },
+        // Copy study assets - ensure they're accessible
+        {
+          from: 'study',
+          to: 'study',
+          noErrorOnMissing: true
+        },
+        // Vendor tikzjax dist into study so GH Pages ships it reliably
+        {
+          from: path.resolve(__dirname, 'tikzjax-live-main/dist'),
+          to: 'study/tikzjax',
+          noErrorOnMissing: true
+        },
+        // Ensure GitHub Pages serves assets unchanged
+        {
+          from: path.resolve(__dirname, '.nojekyll'),
+          to: path.resolve(__dirname, 'www/.nojekyll')
+        },
+        // Remove direct www/tikzjax copies; we serve from study/tikzjax now
       ]
     }),
     new webpack.NormalModuleReplacementPlugin(
@@ -123,7 +147,13 @@ let webpackConfig = {
       (resource) => {
         resource.request = resource.request.replace(/^node:/, "");
       }
-    )
+    ),
+    // Define environment variables for the client
+    new webpack.DefinePlugin({
+      'process.env.REACT_APP_POSTHOG_KEY': JSON.stringify(process.env.REACT_APP_POSTHOG_KEY || null),
+      'process.env.REACT_APP_POSTHOG_HOST': JSON.stringify(process.env.REACT_APP_POSTHOG_HOST || 'https://app.posthog.com'),
+      'process.env.NODE_ENV': JSON.stringify(devMode ? 'development' : 'production')
+    })
   ],
 
   resolveLoader: {

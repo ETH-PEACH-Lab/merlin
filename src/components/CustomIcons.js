@@ -123,3 +123,8 @@ export const removeColumnIcon = () => (
     </g>
     </svg>  
 )
+
+// Placeholder icon for remove subtree action
+export const removeSubtreeIcon = () => (
+  <removeEdgeIcon/>
+)

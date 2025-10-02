@@ -4,7 +4,11 @@ import React, {
     useState,
     useCallback,
     useMemo,
+    useRef,
+    useEffect,
 } from "react";
+import { usePostHog } from "posthog-js/react";
+import { useStudy } from "../study/StudyContext";
 import parseText from "../parser/parseText.mjs";
 import reconstructor from "../parser/reconstructor.mjs";
 import compiler from "../compiler/compiler.mjs";
@@ -13,6 +17,8 @@ import { createOptimizedCommand, findRelevantCommands } from "../parser/commandU
 const ParseCompileContext = createContext();
 
 export function ParseCompileProvider({ children, initialCode = "" }) {
+    const posthog = usePostHog();
+    const study = useStudy();
     const [unparsedCode, setUnparsedCode] = useState(initialCode);
     const [parsedCode, setParsedCode] = useState(null);
     const [pastActions, setPastActions] = useState([]);
@@ -22,12 +28,37 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
     const [componentCount, setcomponentCount] = useState(1);
     const [nodeCount, setNodeCount] = useState(1);
     const [error, setError] = useState(null);
+    // Error logging cooldown (avoid noisy logs while typing)
+    const lastErrorLogRef = React.useRef({ ts: 0, hash: "" });
     const [currentCursorLine, setCurrentCursorLine] = useState(1);
     const [errorTimeoutId, setErrorTimeoutId] = useState(null);
+    // Persist desired visual size (set by layout resize) so recompiles keep it
+    const [desiredSize, setDesiredSize] = useState(null); // { width, height }
+    const [lastCompileTime, setLastCompileTime] = useState(0);
+    // Track last size that we actually patched into compiled text to add hysteresis
+    const lastPatchedSizeRef = React.useRef(null); // { width, height }
+    const lastSizeUpdateTsRef = React.useRef(0);
+    const pendingSizeRef = React.useRef(null); // { width, height }
+    const pendingTimerRef = React.useRef(null);
+    
+    // Add debounce for error logging to avoid immediate logging while typing
+    const errorLogDebounceRef = React.useRef(null);
+    const pendingErrorsRef = React.useRef([]);
 
     // Set a delay, will wait specified milliseconds before showing an error on current line
-    const DELAY = 1000; 
+    const DELAY = 1000;
     const DELAY_CURRENT_LINE = 3000;
+
+    // Debounced error logging - only log after user stops typing
+    const debouncedLogError = (type, errorObj, code, isImmediate = false) => {
+        // Coordinate immediately with centralized study error handler
+        const payload = {
+            error: { line: errorObj?.line, col: errorObj?.col, message: errorObj?.message },
+            codeContext: (code || '').split('\n').slice(Math.max(0, (errorObj?.line || 1) - 3), (errorObj?.line || 1) + 2).join('\n'),
+            codeLen: (code || '').length,
+        };
+        study?.rememberError && study.rememberError('merlin', type, payload);
+    };
 
     // Parse and compile with smart error handling
     const parseAndCompile = useCallback((code, skipCurrentLine = false, currentLine = 1) => {
@@ -35,6 +66,15 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         if (errorTimeoutId) {
             clearTimeout(errorTimeoutId);
             setErrorTimeoutId(null);
+        }
+
+        // Skip processing if code is only empty lines or whitespace
+        if (!code || code.trim() === '') {
+            setError(null);
+            setParsedCode(null);
+            setCompiledMerlin(null);
+            setPages([]);
+            return;
         }
 
         let codeToProcess = code;
@@ -54,6 +94,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             return;
         }
 
+        
         // If skipCurrentLine is true, remove the current line from processing
         if (skipCurrentLine && validCurrentLine <= totalLines) {
             codeLines[validCurrentLine - 1] = ''; // Replace current line with empty string
@@ -71,6 +112,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         try {
             parsed = parseText(codeToProcess);
             setParsedCode(parsed);
+            study?.notifySuccess && study.notifySuccess('merlin');
         } catch (e) {
             // Current workaround for parse errors
             // Due to lexer moo not correctly outputting line numbers
@@ -95,6 +137,8 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
                 col: errorCol,
                 message: errorMessage
             };
+
+            debouncedLogError('merlin_parse_error', errorObj, codeToProcess, false);
             
             // If this is the first attempt and error is on current line, try without current line
             if (!skipCurrentLine && errorLine === validCurrentLine) {
@@ -138,8 +182,27 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
 
         try {
             const { mermaidString, compiled_pages } = compiler(parsed);
-            setCompiledMerlin(mermaidString);
+            // Derive previous size if we don't have a desired size (carry forward)
+            let patched;
+            if (desiredSize) {
+                patched = patchSizeLine(mermaidString, desiredSize.width, desiredSize.height);
+            } else {
+                const prevSize = extractSizeFromCompiled(compiledMerlin);
+                patched = prevSize ? patchSizeLine(mermaidString, prevSize.width, prevSize.height) : mermaidString;
+            }
+            // Avoid no-op updates that cause redundant re-render/flicker
+            if (compiledMerlin !== null && compiledMerlin === patched) {
+                // Still update pages if they changed
+                setPages(compiled_pages);
+
+                return;
+            }
+            setCompiledMerlin(patched);
             setPages(compiled_pages);
+            setLastCompileTime(Date.now());
+            // Update last patched size from the compiled text
+            const s = extractSizeFromCompiled(patched);
+            if (s) lastPatchedSizeRef.current = s;
         } catch (e) {
             const errorMessage = e.line && e.col ? 
                 `Compile error on line ${e.line}, col ${e.col}:\n${e.message || e}` :
@@ -153,6 +216,8 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
                 message: errorMessage
             };
             
+            debouncedLogError('merlin_compile_error', errorObj, code, false);
+            
             // Apply same logic for compile errors
             if (!skipCurrentLine && errorLine === validCurrentLine) {
                 let testCompiled = null;
@@ -163,10 +228,32 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
                     ).join('\n');
                     
                     const testParsed = parseText(testCode);
-                    testCompiled = compiler(testParsed);
+                    const testCompiled = compiler(testParsed);
+                    
+                    // If it compiles successfully without the current line, delay the error
+                    const timeoutId = setTimeout(() => {
+                        setError(errorMessage);
+                        if (window.errorStateManager) {
+                            window.errorStateManager.setError(errorObj);
+                        }
+                        setErrorTimeoutId(null);
+                    }, 3000);
+                    setErrorTimeoutId(timeoutId);
                     
                     // Use the working version for now
-                    setCompiledMerlin(testCompiled.mermaidString);
+                    let patched;
+            if (desiredSize) {
+                        patched = patchSizeLine(testCompiled.mermaidString, desiredSize.width, desiredSize.height);
+                    } else {
+                        const prevSize = extractSizeFromCompiled(compiledMerlin);
+                        patched = prevSize ? patchSizeLine(testCompiled.mermaidString, prevSize.width, prevSize.height) : testCompiled.mermaidString;
+                    }
+                    if (!(compiledMerlin !== null && compiledMerlin === patched)) {
+                        setCompiledMerlin(patched);
+                        setLastCompileTime(Date.now());
+                const s = extractSizeFromCompiled(patched);
+                if (s) lastPatchedSizeRef.current = s;
+                    }
                     setPages(testCompiled.compiled_pages);
                 } catch (secondError) {
                     // Do nothing here, we handle the error below
@@ -195,6 +282,8 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
     const updateUnparsedCode = useCallback(
         (newCode) => {
             setUnparsedCode(newCode);
+            // notify study env of editor activity
+            study?.notifyEditorChange && study.notifyEditorChange('merlin');
             parseAndCompile(newCode, false, currentCursorLine);
         },
         [parseAndCompile, currentCursorLine]
@@ -245,7 +334,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         return [pageStartIndex, pageEndIndex];
     };
 
-    
+
     // Add a new unit
     const addUnit = useCallback((page, componentName, componentType, val, coordinates=null, parent=null, nodeName=null, addCommand="") => {
         pastActions.push(structuredClone(unparsedCode));
@@ -358,84 +447,84 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         if (fieldKey === "position") {
             // No need to check current value for position fields - they're simple replacements
         } else {
-            // Check if the value is already set to the same value for array/matrix fields
-            const currentComponent = pages[page]?.find(comp => comp.name === componentName);
-            if (currentComponent) {
-                let currentValue;
-                if (coordinates?.isMatrix) {
-                    const { row, col } = coordinates;
-                    currentValue = currentComponent.body[fieldKey]?.[row]?.[col];
-                } else if (coordinates?.index !== undefined) {
-                    const { index } = coordinates;
-                    currentValue = currentComponent.body[fieldKey]?.[index];
-                }
-                
-                if (currentValue === value && value !== "_") {
-                    return;
-                }
-            }
-        }
-
-        const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
-        
-        
-        // Use unified command optimization for both arrays and matrices
-        const { relevantCommands, commandsToRemove } = findRelevantCommands(
-            parsedCode.cmds, 
-            pageStartIndex, 
-            pageEndIndex, 
-            componentName, 
-            fieldKey,
-            coordinates?.isMatrix || false,
-            coordinates  // Pass coordinates to distinguish global vs per-element properties
-        );
-
-        const currentComponent = pages[page]?.find(comp => comp.name === componentName);
-        
-        const newCommand = createOptimizedCommand(
-            relevantCommands, 
-            componentName, 
-            fieldKey, 
-            coordinates, 
-            value,
-            currentComponent
-        );
-            
-        // Remove old commands (in reverse order to maintain indices)
-        commandsToRemove.reverse().forEach(index => {
-            parsedCode.cmds.splice(index, 1);
-        });
-        
-        // Add the new command at appropriate position
-        if (newCommand) {
-            let insertIndex;
-            
-            // For show commands, insert before any other commands 
-            // that reference the same component to avoid "Component not on page" errors
-            if (newCommand.type === "show") {
-                // Find the earliest command in the page that references this component
-                let earliestCommandIndex = pageEndIndex - commandsToRemove.length;
-                
-                for (let i = pageStartIndex; i < pageEndIndex - commandsToRemove.length; i++) {
-                    const cmd = parsedCode.cmds[i];
-                    if (cmd && cmd.name === componentName && cmd.type !== "show") {
-                        earliestCommandIndex = i;
-                        break;
+                // Check if the value is already set to the same value for array/matrix fields
+                const currentComponent = pages[page]?.find(comp => comp.name === componentName);
+                if (currentComponent) {
+                    let currentValue;
+                    if (coordinates?.isMatrix) {
+                        const { row, col } = coordinates;
+                        currentValue = currentComponent.body[fieldKey]?.[row]?.[col];
+                    } else if (coordinates?.index !== undefined) {
+                        const { index } = coordinates;
+                        currentValue = currentComponent.body[fieldKey]?.[index];
+                    }
+                    
+                    if (currentValue === value && value !== "_") {
+                        return;
                     }
                 }
-                
-                insertIndex = earliestCommandIndex;
-            } else {
-                // For other commands, insert at the end of the page
-                insertIndex = pageEndIndex - commandsToRemove.length;
             }
+
+            const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
+            
+            
+            // Use unified command optimization for both arrays and matrices
+            const { relevantCommands, commandsToRemove } = findRelevantCommands(
+                parsedCode.cmds, 
+                pageStartIndex, 
+                pageEndIndex, 
+                componentName, 
+                fieldKey,
+                coordinates?.isMatrix || false,
+                coordinates  // Pass coordinates to distinguish global vs per-element properties
+            );
+
+            const currentComponent = pages[page]?.find(comp => comp.name === componentName);
+            
+            const newCommand = createOptimizedCommand(
+                relevantCommands, 
+                componentName, 
+                fieldKey, 
+                coordinates, 
+                value,
+                currentComponent
+            );
+            
+            // Remove old commands (in reverse order to maintain indices)
+            commandsToRemove.reverse().forEach(index => {
+                parsedCode.cmds.splice(index, 1);
+            });
+            
+            // Add the new command at appropriate position
+            if (newCommand) {
+                let insertIndex;
                 
-            parsedCode.cmds.splice(insertIndex, 0, newCommand);
-        }
-        
-        // Trigger reconstruction and recompilation
-        reconstructMerlinLite();
-    },
+                // For show commands, insert before any other commands 
+                // that reference the same component to avoid "Component not on page" errors
+                if (newCommand.type === "show") {
+                    // Find the earliest command in the page that references this component
+                    let earliestCommandIndex = pageEndIndex - commandsToRemove.length;
+                    
+                    for (let i = pageStartIndex; i < pageEndIndex - commandsToRemove.length; i++) {
+                        const cmd = parsedCode.cmds[i];
+                        if (cmd && cmd.name === componentName && cmd.type !== "show") {
+                            earliestCommandIndex = i;
+                            break;
+                        }
+                    }
+                    
+                    insertIndex = earliestCommandIndex;
+                } else {
+                    // For other commands, insert at the end of the page
+                    insertIndex = pageEndIndex - commandsToRemove.length;
+                }
+                
+                parsedCode.cmds.splice(insertIndex, 0, newCommand);
+            }
+            
+            // Trigger reconstruction and recompilation
+            reconstructMerlinLite();
+        },
     [parsedCode, pages, reconstructMerlinLite]);
 
     const updateValues = useCallback((page, componentName, componentType, fieldKey, prevValues, newValues, prevEdges, newEdges) => {
@@ -628,7 +717,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         pastActions.push(prevState);
         updateUnparsedCode(prevState);
 
-    }, [parsedCode]); 
+    }, [parsedCode]);
 
     // Add a page after the current page
     const addPage = useCallback((currentPage) => {
@@ -689,7 +778,92 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             updatePosition,
             removeComponent,
             undo,
-            redo
+            redo,
+            // Update compiled diagram size with rounding, hysteresis, and optional force
+            updateCompiledSize: (width, height, force = false) => {
+                if (!width || !height) return;
+                const wNum = typeof width === 'number' ? width : parseFloat(width);
+                const hNum = typeof height === 'number' ? height : parseFloat(height);
+                if (Number.isNaN(wNum) || Number.isNaN(hNum)) return;
+                // Quantize to a small grid to avoid ping-pong around single px thresholds
+                const quantize = (v) => Math.max(1, Math.round(v / 2) * 2); // nearest 2 px
+                const roundedWidth = quantize(wNum);
+                const roundedHeight = quantize(hNum);
+                // Also publish CSS custom properties so compiler's getMermaidContainerSize uses the same values immediately
+                try {
+                    if (typeof document !== 'undefined' && document.documentElement && document.documentElement.style) {
+                        document.documentElement.style.setProperty('--mermaid-container-width', `${roundedWidth}px`);
+                        document.documentElement.style.setProperty('--mermaid-container-height', `${roundedHeight}px`);
+                    }
+                } catch {}
+                // If forced, clear any pending and patch immediately
+                if (force) {
+                    if (pendingTimerRef.current) { clearTimeout(pendingTimerRef.current); pendingTimerRef.current = null; }
+                    pendingSizeRef.current = null;
+                    setDesiredSize({ width: roundedWidth, height: roundedHeight });
+                    if (compiledMerlin) {
+                        setCompiledMerlin(prev => {
+                            if (!prev) return prev;
+                            const next = patchSizeLine(prev, roundedWidth, roundedHeight);
+                            if (next !== prev) {
+                                lastPatchedSizeRef.current = { width: roundedWidth, height: roundedHeight };
+                                lastSizeUpdateTsRef.current = Date.now();
+                            }
+                            return next;
+                        });
+                    }
+                    return;
+                }
+                // Read current size line to avoid unnecessary re-renders (flicker)
+                if (compiledMerlin) {
+                    const current = lastPatchedSizeRef.current || extractSizeFromCompiled(compiledMerlin);
+                    const tolerance = 4; // base px threshold
+                    const recentCompile = Date.now() - lastCompileTime < 150;
+                    const dynamicTolerance = recentCompile ? tolerance * 2 : tolerance;
+                    if (current) {
+                        const dw = Math.abs(current.width - roundedWidth);
+                        const dh = Math.abs(current.height - roundedHeight);
+                        // If both deltas are at or below tolerance, do not patch text; just remember desired
+                        if (dw <= dynamicTolerance && dh <= dynamicTolerance) {
+                            setDesiredSize({ width: roundedWidth, height: roundedHeight });
+                            return;
+                        }
+                        // Debounce: require stability window before patching
+                        setDesiredSize({ width: roundedWidth, height: roundedHeight });
+                        const candidate = { width: roundedWidth, height: roundedHeight };
+                        pendingSizeRef.current = candidate;
+                        if (pendingTimerRef.current) clearTimeout(pendingTimerRef.current);
+                        pendingTimerRef.current = setTimeout(() => {
+                            // Only patch if candidate did not change during debounce window
+                            if (!pendingSizeRef.current) return;
+                            const { width: cw, height: ch } = pendingSizeRef.current;
+                            pendingTimerRef.current = null;
+                            setCompiledMerlin(prev => {
+                                if (!prev) return prev;
+                                const next = patchSizeLine(prev, cw, ch);
+                                if (next !== prev) {
+                                    lastPatchedSizeRef.current = { width: cw, height: ch };
+                                    lastSizeUpdateTsRef.current = Date.now();
+                                }
+                                return next;
+                            });
+                        }, 160); // patch only if stable for 160ms
+                        return;
+                    }
+                }
+                setDesiredSize({ width: roundedWidth, height: roundedHeight });
+                if (compiledMerlin) {
+                    setCompiledMerlin(prev => {
+                        if (!prev) return prev;
+                        const next = patchSizeLine(prev, roundedWidth, roundedHeight);
+                        if (next !== prev) {
+                            lastPatchedSizeRef.current = { width: roundedWidth, height: roundedHeight };
+                            lastSizeUpdateTsRef.current = Date.now();
+                        }
+                        return next;
+                    });
+                }
+            }
         }),
         [
             unparsedCode,
@@ -720,12 +894,68 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
             removeComponent,
             undo,
             redo,
+            desiredSize,
+            lastCompileTime,
         ]
     );
+
+    // Helper to patch size line (defined after useMemo so referenced above)
+    function patchSizeLine(mermaidString, width, height) {
+        if (!mermaidString) return mermaidString;
+        const w = typeof width === 'number' ? width.toFixed(1) : width;
+        const h = typeof height === 'number' ? height.toFixed(1) : height;
+        const lines = mermaidString.split('\n');
+        const visualIdx = lines.findIndex(l => l.trim() === 'visual');
+        if (visualIdx === -1) return mermaidString; // nothing to do
+        let sizeIdx = -1;
+        for (let i = visualIdx + 1; i < Math.min(lines.length, visualIdx + 6); i++) {
+            const t = lines[i]?.trim();
+            if (!t) break;
+            if (t.startsWith('size:')) { sizeIdx = i; break; }
+            if (t === 'page') break;
+        }
+        const sizeLine = `size: (${w},${h})`;
+        if (sizeIdx !== -1) lines[sizeIdx] = sizeLine; else lines.splice(visualIdx + 1, 0, sizeLine);
+        return lines.join('\n');
+    }
+
+    function extractSizeFromCompiled(merlinString) {
+        if (!merlinString) return null;
+        const lines = merlinString.split('\n');
+        const visualIdx = lines.findIndex(l => l.trim() === 'visual');
+        if (visualIdx === -1) return null;
+        for (let i = visualIdx + 1; i < Math.min(lines.length, visualIdx + 6); i++) {
+            const t = lines[i]?.trim();
+            if (!t) break;
+            if (t.startsWith('size:')) {
+                const m = t.match(/size:\s*\(([^,]+),([^\)]+)\)/);
+                if (m) {
+                    const w = parseFloat(m[1]);
+                    const h = parseFloat(m[2]);
+                    if (!Number.isNaN(w) && !Number.isNaN(h)) return { width: w, height: h };
+                }
+                break;
+            }
+            if (t === 'page') break;
+        }
+        return null;
+    }
 
     // Initial parse/compile on mount
     React.useEffect(() => {
         parseAndCompile(unparsedCode, false, 1);
+        
+        // Track user typing activity for error logging debouncing
+        const handleKeyPress = () => {
+            if (!window.__lastErrorLog) window.__lastErrorLog = {};
+            window.__lastErrorLog.lastKeyPress = Date.now();
+        };
+        
+        document.addEventListener('keydown', handleKeyPress);
+        
+        return () => {
+            document.removeEventListener('keydown', handleKeyPress);
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -734,6 +964,20 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         return () => {
             if (errorTimeoutId) {
                 clearTimeout(errorTimeoutId);
+            }
+            
+            // Clean up error logging debounce timer
+            if (errorLogDebounceRef.current) {
+                clearTimeout(errorLogDebounceRef.current);
+                errorLogDebounceRef.current = null;
+            }
+            
+            // Log any pending errors before unmounting
+            if (pendingErrorsRef.current.length > 0) {
+                pendingErrorsRef.current.forEach(({ type, errorObj, code }) => {
+                    safeLogError(type, errorObj, code, false);
+                });
+                pendingErrorsRef.current = [];
             }
         };
     }, [errorTimeoutId]);
@@ -752,4 +996,57 @@ export function useParseCompile() {
             "useParseCompile must be used within a ParseCompileProvider"
         );
     return ctx;
+}
+
+// Helper: structured error logging with debounce/cooldown and payload trimming
+function computeHash(s) {
+    try {
+        let h = 0;
+        for (let i = 0; i < s.length; i++) {
+            h = ((h << 5) - h) + s.charCodeAt(i);
+            h |= 0;
+        }
+        return String(h);
+    } catch { return "0"; }
+}
+
+function safeLogError(type, errorObj, code, isImmediate = false) {
+    try {
+        const study = require('../study/StudyContext');
+    } catch {}
+    try {
+        // Access global logEvent via window from StudyProvider (in React tree)
+        const logEvent = window.__studyLogEvent;
+        if (!logEvent) return;
+        const now = Date.now();
+        const signature = `${type}:${errorObj?.line || 0}:${errorObj?.col || 0}:${(errorObj?.message || '').split('\n')[0]}`;
+        const sigHash = computeHash(signature);
+        if (!window.__lastErrorLog) window.__lastErrorLog = { ts: 0, hash: '' };
+        const { ts, hash } = window.__lastErrorLog;
+        
+        // For non-immediate errors, use a longer debounce period
+        if (!isImmediate) {
+            // Check if user is actively typing by looking at last key press
+            if (!window.__lastErrorLog.lastKeyPress) window.__lastErrorLog.lastKeyPress = 0;
+            const timeSinceLastKey = now - window.__lastErrorLog.lastKeyPress;
+            // If user typed in last 3s, don't log non-immediate errors (increased from 1.5s)
+            if (timeSinceLastKey < 3000) return;
+        }
+        
+        // 3s cooldown per identical signature for all errors (increased from 2s)
+        if (hash === sigHash && now - ts < 3000) return;
+        window.__lastErrorLog = { ts: now, hash: sigHash };
+        const snippet = (code || '').split('\n').slice(Math.max(0, (errorObj?.line || 1) - 3), (errorObj?.line || 1) + 2).join('\n');
+        
+        // Also log via study context
+        logEvent(type, {
+            error: {
+                line: errorObj?.line,
+                col: errorObj?.col,
+                message: errorObj?.message,
+            },
+            codeContext: snippet,
+            codeLen: (code || '').length,
+        });
+    } catch {}
 }

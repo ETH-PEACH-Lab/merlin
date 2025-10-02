@@ -18,6 +18,7 @@
     "@mui/material": "^5.16.6",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.5.15",
     "@uiw/react-color-circle": "^2.8.0",
+    "dotenv": "^17.2.1",
     "downloadjs": "^1.4.7",
     "gif.js": "^0.2.0",
     "html-to-image": "^1.11.11",
@@ -30,6 +31,7 @@
     "monaco-editor": "^0.50.0",
     "moo": "^0.5.2",
     "nearley": "^2.20.1",
+    "posthog-js": "^1.259.0",
     "pptxgenjs": "^4.0.1",
     "prop-types": "^15.8.1",
     "react": "^18.3.1",
@@ -48,10 +50,10 @@
     "monaca:debug": "npm run watch",
     "dev": "webpack serve --open",
     "build": "webpack --mode production",
+    "build:gh-pages": "GITHUB_PAGES=true GITHUB_ACTIONS=true webpack --mode production",
     "watch": "webpack serve --mode development",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d www",
-    "postinstall": "node scripts/install-mermaid-merlin.js"
+    "postinstall": "node scripts/install-mermaid-merlin.js",
+    "check-env": "node scripts/check-env.js"
   },
   "cordova": {
     "plugins": {

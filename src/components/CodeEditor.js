@@ -5,7 +5,7 @@ import { registerCustomLanguage } from './customLang';
 import { loader } from "@monaco-editor/react"
 
 
-const CodeEditor = ({value = '', onChange= ()=>{}}) => {
+const CodeEditor = ({value = '', onChange= ()=>{}, fontSize = 18}) => {
   loader.init().then((monaco) => {
     registerCustomLanguage(monaco)
   })
@@ -20,7 +20,7 @@ const CodeEditor = ({value = '', onChange= ()=>{}}) => {
       options={{
         automaticLayout: true,
         fontFamily: 'Consolas',
-        fontSize: 18, 
+        fontSize: fontSize,
         lineNumbers: "on",
         minimap: { enabled: false },
       }}

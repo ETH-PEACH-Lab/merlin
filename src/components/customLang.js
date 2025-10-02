@@ -2004,25 +2004,91 @@ export function registerCustomLanguage(monaco) {
       
       // For other fixes, we need a word
       if (!word) return { actions, dispose: () => {} };
-      // Aggregate quick fixes
-      actions.push(...getAttributeQuickFixes(line, word, range, model));
-      actions.push(...getMethodQuickFixes(line, word, range, model));
-      actions.push(...getComponentQuickFixes(line, word, range, model));
-      actions.push(...getSyntaxQuickFixes(line, word, range, model));
-      actions.push(...getArrayMethodQuickFixes(line, word, range, model));
 
-      return { actions, dispose: () => {} };
+      // Quick fix for misspelled attributes
+      const attributeFixes = getAttributeQuickFixes(line, word, range, model);
+      actions.push(...attributeFixes);
 
-      // Leverage helper functions defined below
+      // Quick fix for misspelled methods
+      const methodFixes = getMethodQuickFixes(line, word, range, model);
+      actions.push(...methodFixes);
+
+      // Quick fix for misspelled components
+      const componentFixes = getComponentQuickFixes(line, word, range, model);
+      actions.push(...componentFixes);
+
+      // Quick fix for common syntax errors
+      const syntaxFixes = getSyntaxQuickFixes(line, word, range, model);
+      actions.push(...syntaxFixes);
+
+      // Quick fix for array method misuse
+      const arrayMethodFixes = getArrayMethodQuickFixes(line, word, range, model);
+      actions.push(...arrayMethodFixes);
+
+      // Collect candidate quick fix edits for logging (instrumentation)
+      try {
+        if (!window.__pendingQuickFixes) window.__pendingQuickFixes = {};
+        const uriKey = model.uri.toString();
+        const candidates = [];
+        const normalizeEdits = (action) => {
+          const editsArr = action?.edit?.edits || [];
+          const textEdits = [];
+          editsArr.forEach(e => {
+            // Monaco sometimes nests edit under textEdit or edit
+            if (e.textEdit) {
+              textEdits.push(e.textEdit);
+            } else if (e.edit && e.edit.range) {
+              textEdits.push(e.edit);
+            } else if (e.textEdits) { // fallback
+              textEdits.push(...e.textEdits);
+            }
+          });
+          return textEdits.map(te => ({
+            range: {
+              startLineNumber: te.range.startLineNumber,
+              startColumn: te.range.startColumn,
+              endLineNumber: te.range.endLineNumber,
+              endColumn: te.range.endColumn,
+            },
+            text: te.text
+          }));
+        };
+        actions.forEach(a => {
+          if (a.edit) {
+            candidates.push({
+              title: a.title,
+              kind: a.kind || 'quickfix',
+              edits: normalizeEdits(a)
+            });
+          }
+        });
+        window.__pendingQuickFixes[uriKey] = {
+          ts: Date.now(),
+            actions: candidates.slice(0, 100) // cap to avoid memory growth
+        };
+      } catch {}
+
+      return {
+        actions: actions,
+        dispose: () => {}
+      };
     }
   });
 
-  // Levenshtein distance helper
+  // Helper function to calculate Levenshtein distance
   function levenshteinDistance(a, b) {
-    const matrix = Array.from({ length: b.length + 1 }, () => new Array(a.length + 1).fill(0));
-    for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+    if (a.length === 0) return b.length;
+    if (b.length === 0) return a.length;
+
+    const matrix = [];
+    for (let i = 0; i <= b.length; i++) {
+      matrix[i] = [i];
+    }
+    for (let j = 0; j <= a.length; j++) {
+      matrix[0][j] = j;
+    }
+
     for (let i = 1; i <= b.length; i++) {
-      matrix[i][0] = i;
       for (let j = 1; j <= a.length; j++) {
         if (b.charAt(i - 1) === a.charAt(j - 1)) {
           matrix[i][j] = matrix[i - 1][j - 1];
@@ -2054,12 +2120,12 @@ export function registerCustomLanguage(monaco) {
   // Quick fixes for misspelled attributes
   function getAttributeQuickFixes(line, word, range, model) {
     const actions = [];
-    const currentWord = word?.word;
-    if (!currentWord) return actions;
-
+    const currentWord = word.word;
+    
     // Check if this looks like an attribute (followed by colon)
     if (line.includes(`${currentWord}:`)) {
       const suggestions = findClosestMatches(currentWord, languageConfig.attributes);
+      
       suggestions.forEach(suggestion => {
         actions.push({
           title: `Change "${currentWord}" to "${suggestion}"`,
@@ -2068,223 +2134,20 @@ export function registerCustomLanguage(monaco) {
           edit: {
             edits: [{
               resource: model.uri,
-              edit: {
+              versionId: model.getVersionId(),
+              textEdits: [{
                 range: new monaco.Range(
                   range.startLineNumber, word.startColumn,
                   range.startLineNumber, word.endColumn
                 ),
                 text: suggestion
-              }
-            }]
-          }
-        });
-      });
-    }
-
-    return actions;
-  }
-
-  // Quick fixes for misspelled methods
-  function getMethodQuickFixes(line, word, range, model) {
-    const actions = [];
-    const currentWord = word.word;
-    // Check if this looks like a method call (preceded by dot)
-    const beforeWord = line.substring(0, word.startColumn - 1);
-    const methodCallMatch = beforeWord.match(/(\w+)\.$/);
-    if (methodCallMatch) {
-      const variableName = methodCallMatch[1];
-      const { variableTypes } = parseCache.getCachedData(model, { 
-        lineNumber: range.startLineNumber, 
-        column: word.startColumn 
-      });
-      const varType = variableTypes[variableName];
-      if (varType) {
-        const availableMethods = getMethodsForType(varType);
-        const suggestions = findClosestMatches(currentWord, availableMethods);
-        suggestions.forEach(suggestion => {
-          actions.push({
-            title: `Change "${currentWord}" to "${suggestion}"`,
-            kind: 'quickfix',
-            diagnostics: [],
-            edit: {
-              edits: [{
-                resource: model.uri,
-                textEdit: {
-                  range: new monaco.Range(
-                    range.startLineNumber, word.startColumn,
-                    range.startLineNumber, word.endColumn
-                  ),
-                  text: suggestion
-                }
               }]
-            }
-          });
-        });
-      }
-    }
-    return actions;
-  }
-
-  // Quick fixes for misspelled components
-  function getComponentQuickFixes(line, word, range, model) {
-    const actions = [];
-    const currentWord = word.word;
-    // Check if this looks like a component declaration or an unknown type token
-    const looksLikeDeclaration = line.match(/^\s*\w+\s+\w+\s*=\s*\{/);
-    const unknownTypeToken = line.includes(`${currentWord} `) && !languageConfig.components.includes(currentWord);
-    if (looksLikeDeclaration || unknownTypeToken) {
-      const suggestions = findClosestMatches(currentWord, languageConfig.components);
-      suggestions.forEach(suggestion => {
-        actions.push({
-          title: `Change "${currentWord}" to "${suggestion}"`,
-          kind: 'quickfix',
-          diagnostics: [],
-          edit: {
-            edits: [{
-              resource: model.uri,
-              edit: {
-                range: new monaco.Range(
-                  range.startLineNumber, word.startColumn,
-                  range.startLineNumber, word.endColumn
-                ),
-                text: suggestion
-              }
             }]
           }
         });
       });
     }
-    return actions;
-  }
-
-  // Quick fixes for common syntax errors
-  function getSyntaxQuickFixes(line, word, range, model) {
-    const actions = [];
-    const trimmedLine = line.trim();
-    // Fix missing colon after attribute
-    if (trimmedLine.match(/^\s*\w+\s+[^:=]/) && languageConfig.attributes.includes(word.word)) {
-      actions.push({
-        title: `Add colon after "${word.word}"`,
-        kind: 'quickfix',
-        diagnostics: [],
-        edit: {
-          edits: [{
-            resource: model.uri,
-            edit: {
-              range: new monaco.Range(
-                range.startLineNumber, word.endColumn,
-                range.startLineNumber, word.endColumn
-              ),
-              text: ':'
-            }
-          }]
-        }
-      });
-    }
-
-    // Fix missing equals sign in component declaration
-    if (trimmedLine.match(/^\s*\w+\s+\w+\s*\{/) && languageConfig.components.includes(word.word)) {
-      const braceIndex = line.indexOf('{');
-      if (braceIndex > 0) {
-        actions.push({
-          title: `Add "= " before "{"`,
-          kind: 'quickfix',
-          diagnostics: [],
-          edit: {
-            edits: [{
-              resource: model.uri,
-              edit: {
-                range: new monaco.Range(
-                  range.startLineNumber, braceIndex,
-                  range.startLineNumber, braceIndex
-                ),
-                text: '= '
-              }
-            }]
-          }
-        });
-      }
-    }
-
-    // Fix missing parentheses in method calls
-    if (line.includes(`${word.word}.`) || line.includes(`.${word.word}`)) {
-      const all = staticCache.getAllMethods();
-      if (all.includes(word.word) && !line.includes(`${word.word}(`)) {
-        actions.push({
-          title: `Add parentheses to "${word.word}" method call`,
-          kind: 'quickfix',
-          diagnostics: [],
-          edit: {
-            edits: [{
-              resource: model.uri,
-              edit: {
-                range: new monaco.Range(
-                  range.startLineNumber, word.endColumn,
-                  range.startLineNumber, word.endColumn
-                ),
-                text: '()'
-              }
-            }]
-          }
-        });
-      }
-    }
-
-    // Fix common typos in keywords
-    const keywordSuggestions = findClosestMatches(word.word, languageConfig.keywords);
-    if (keywordSuggestions.length > 0 && !languageConfig.keywords.includes(word.word)) {
-      keywordSuggestions.forEach(suggestion => {
-        actions.push({
-          title: `Change "${word.word}" to "${suggestion}"`,
-          kind: 'quickfix',
-          diagnostics: [],
-          edit: {
-            edits: [{
-              resource: model.uri,
-              edit: {
-                range: new monaco.Range(
-                  range.startLineNumber, word.startColumn,
-                  range.startLineNumber, word.endColumn
-                ),
-                text: suggestion
-              }
-            }]
-          }
-        });
-      });
-    }
-    return actions;
-  }
-
-  // NEW: Quick fixes for array method misuse
-  function getArrayMethodQuickFixes(line, word, range, model) {
-    const actions = [];
-    const currentWord = word.word;
-    // Check if this is a method call with parameters
-    const methodCallMatch = line.match(new RegExp(`(\\w+)\\.(${currentWord})\\s*\\(([^)]*)\\)`));
-    if (methodCallMatch) {
-      const [, , methodName, params] = methodCallMatch;
-      const suggestions = getArrayMethodSuggestions(methodName, params);
-      suggestions.forEach(suggestion => {
-        actions.push({
-          title: suggestion.title,
-          kind: 'quickfix',
-          diagnostics: [],
-          edit: {
-            edits: [{
-              resource: model.uri,
-              edit: {
-                range: new monaco.Range(
-                  range.startLineNumber, word.startColumn,
-                  range.startLineNumber, word.endColumn
-                ),
-                text: suggestion.replacement
-              }
-            }]
-          }
-        });
-      });
-    }
+    
     return actions;
   }
 

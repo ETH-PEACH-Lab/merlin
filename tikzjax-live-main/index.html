@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>TikZJax-live</title>
+    <script src="./dist/tikzjax.js"></script>
+    <script src="./dist/script.js" defer></script>
+    <link rel="stylesheet" href="./dist/fonts.css">
+    <link rel="stylesheet" href="./dist/style.css">
+</head>
+
+<body>
+    <h2>TikZJax-live demo</h2>
+    <section id="editor">
+        <textarea id="code">
+\usepackage{tikz}
+\usetikzlibrary{decorations.pathmorphing}
+
+\begin{document}
+\begin{tikzpicture}
+\node (I)    at ( 4,0)   {I};
+\node (II)   at (-4,0)   {II};
+\node (III)  at (0, 2.5) {III};
+\node (IV)   at (0,-2.5) {IV};
+
+\path  % Four corners of left diamond
+  (II) +(90:4)  coordinate[label=90:$i^+$]  (IItop)
+       +(-90:4) coordinate[label=-90:$i^-$] (IIbot)
+       +(0:4)   coordinate                  (IIright)
+       +(180:4) coordinate[label=180:$i^0$] (IIleft)
+       ;
+\draw (IIleft) -- 
+          node[midway, above left]    {$\cal{J}^+$}
+          node[midway, below, sloped] {$\bar{u}=\infty$}
+      (IItop) --
+          node[midway, below, sloped] {$\bar{u}=0$}
+      (IIright) -- 
+          node[midway, below, sloped] {$\bar{u}=0$}
+      (IIbot) --
+          node[midway, above, sloped] {$\bar{v}=-\infty$}
+          node[midway, below left]    {$\cal{J}^-$}    
+      (IIleft) -- cycle;
+
+\path % Four conners of the right diamond (no labels this time)
+   (I) +(90:4)  coordinate (Itop)
+       +(-90:4) coordinate (Ibot)
+       +(180:4) coordinate (Ileft)
+       +(0:4)   coordinate (Iright)
+       ;
+% No text this time in the next diagram
+\draw  (Ileft) -- (Itop) -- (Iright) -- (Ibot) -- (Ileft) -- cycle;
+
+% Squiggly lines
+\draw[decorate,decoration=zigzag] (IItop) -- (Itop)
+      node[midway, above, inner sep=2mm] {$r=0$};
+
+\draw[decorate,decoration=zigzag] (IIbot) -- (Ibot)
+      node[midway, below, inner sep=2mm] {$r=0$};
+
+\end{tikzpicture}
+\end{document}
+        </textarea>
+        <div id="output"></div>
+    </section>
+
+    <ul>
+        <li>This site can convert TikZ code to SVG. And the converting process happens entirely in browser! </li>
+        <li>This site is based on <a href="https://github.com/benrbray/tikzjax" target="_blank">benrbray/tikzjax</a>, which is based on <a href="https://github.com/artisticat1/tikzjax/tree/ba892f23a2d280d018681a4f88b39f5a8648c7c7" target="_blank">artisticat1/tikzjax</a>,
+            which is a fork of <a href="https://github.com/drgrice1/tikzjax/tree/ww-modifications" target="_blank">drgrice1/tikzjax</a>, which is a fork of <a href="https://github.com/kisonecat/tikzjax" target="_blank">Jim Fowler's TikZJax</a>. In addition,
+            <a href="https://tikzjax-demo.glitch.me/" target="_blank">christianp's live demo</a> provides a useful implementation for this site to make the converting process dynamic. </li>
+        <li>No need to add <code>\documentclass{*}</code> and <code>\usepackage{tikz}</code>. It works with <code>\documentclass{standalone}</code> and <code>\usepackage{tikz}</code> by default. </li>
+    </ul>
+
+    <h2>Other similar sites</h2>
+    <ul>
+        <li><a href="https://tikzjax-demo.glitch.me/" target="_blank">TikZJax</a> - Another TikZJax live demo, by <a href="https://github.com/christianp" target="_blank">christianp</a>, running in brower. But <code>\usepackage{*}</code> and <code>\usetikzlibrary{*}</code>            can't be used in it.</li>
+        <li><a href="https://tex.rossprogram.org/d655dd14-c100-41fc-bc09-eabf18dd62ad" target="_blank">tex.rossprogram.org</a> - Based on <a href="https://github.com/kisonecat/web2js" target="_blank">web2js</a>, by <a href="https://github.com/kisonecat" target="_blank">Jim Fowler</a>.
+            You can use it to compile LaTeX code to PDF entirely in browser.</li>
+        <li><a href="https://i.upmath.me/g/" target="_blank">LaTeX equations for web</a> - Running on server. With it, you can insert LaTeX equations and TikZ pictures into any website in the form of links.
+    </ul>
+
+    <h2>TikZ examples</h2>
+    <ul>
+        <li><a href="https://texample.net/tikz/examples/" target="_blank">TikZ and PGF examples</a> - An official website providing a wealth of TikZ examples. </li>
+    </ul>
+</body>
+
+</html>

@@ -3,15 +3,18 @@ import './NavigationBar.css';
 import { Drawer, List, ListItemText, ListItemButton, Tab, Typography, Box } from '@mui/material';
 
 import { TabContext, TabList, TabPanel } from '@mui/lab';
+import { useStudy } from "../study/StudyContext";
 
 const NavigationBar = ({ items, savedItems, onSelect, activeTab, onTabChange }) => {
   const [selectedIndex, setSelectedIndex] = React.useState(-1);
   const [value, setValue] = React.useState('1');
+  const { phase, currentKind } = useStudy();
 
   const handleChange = (event, newValue) => {
     setValue(newValue);
   };
 
+  if (phase === 'task' && currentKind === 'merlin') return null;
   return (
     <Drawer
       id="component-nav-drawer"
@@ -34,11 +37,6 @@ const NavigationBar = ({ items, savedItems, onSelect, activeTab, onTabChange }) 
               p: "5px 5px",
               height: "20px"
             }} />
-            <Tab label="Saved" value="2" sx={{
-              fontSize: "0.75rem",
-              p: "5px 5px",
-              height: "20px"
-            }} />
           </TabList>
         </Box>
         <TabPanel value="1" sx={{ p: 0 }}>
@@ -55,21 +53,6 @@ const NavigationBar = ({ items, savedItems, onSelect, activeTab, onTabChange }) 
             }
           </List>
         </TabPanel>
-        <TabPanel value="2" sx={{p:0}}><List dense>
-          {savedItems.length > 0 ? 
-          (
-            savedItems.map((item, index) => (
-              <ListItemButton
-                key={item.timestamp}
-                selected={selectedIndex === index}
-                onClick={() => { onSelect(item); setSelectedIndex(index) }}
-              >
-                <ListItemText sx={{ pl: 2 }}>{new Date(item.timestamp).toLocaleString()}</ListItemText>
-              </ListItemButton>
-            ))
-          ) : (
-            <ListItemText sx={{ pl: 2 }}>No saved diagrams</ListItemText>)}
-        </List></TabPanel>
       </TabContext>
     </Drawer>
   )
