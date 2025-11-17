@@ -31,8 +31,8 @@ const Header = () => {
                         >
                             <GitHubIcon />
                         </IconButton>
-                        <Button sx={{ textTransform: 'capitalize' }} variant="text" color="inherit" href="https://eth-peach-lab.github.io/merlin-docs/docs/getting-started" target="_blank">Documentation</Button>
-                        <Button sx={{ textTransform: 'capitalize' }} variant="text" color="inherit" href="https://eth-peach-lab.github.io/merlin-docs/development" target="_blank">Development</Button>
+                        <Button sx={{ textTransform: 'none' }} variant="text" color="inherit" href="https://eth-peach-lab.github.io/merlin-docs/docs/getting-started" target="_blank">Documentation</Button>
+                        <Button sx={{ textTransform: 'none' }} variant="text" color="inherit" href="https://eth-peach-lab.github.io/merlin-docs/development" target="_blank">Development</Button>
                     </Grid>
                 </Toolbar>
             </Box>
