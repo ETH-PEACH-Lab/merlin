@@ -1,12 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
-import "./components/NavigationBar.css";
 import NavigationBar from "./components/NavigationBar";
 import EditorSection from "./components/EditorSection";
 import RendererSection from "./components/RendererSection";
 import "./index.css";
 import download from "downloadjs";
 import { examples } from "./examples"; // Import the generated examples file
-import "./App.css"; // Import the new CSS file for the top bar
 import { Box } from "@mui/material";
 
 import Header from "./components/Header";

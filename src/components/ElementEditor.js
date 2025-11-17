@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { Snackbar, Alert } from "@mui/material";
-import "./ElementEditor.css";
 import { UnitEditor } from "./UnitEditor";
 import { ComponentEditor } from "./ComponentEditor"
 import { TextEditor } from "./TextEditor"

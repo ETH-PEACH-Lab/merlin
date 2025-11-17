@@ -1,5 +1,4 @@
 import React from 'react';
-import './NavigationBar.css';
 import { Drawer, List, ListItemText, ListItemButton, Tab, Typography, Box } from '@mui/material';
 
 import { TabContext, TabList, TabPanel } from '@mui/lab';
