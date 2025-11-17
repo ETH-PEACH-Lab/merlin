@@ -23,6 +23,7 @@ import RedoIcon from '@mui/icons-material/Redo';
 import { useParseCompile } from "../context/ParseCompileContext";
 import { createShareableUrl, copyToClipboard } from "../utils/urlSharing";
 import { arrayIcon, stackIcon, matrixIcon, linkedListIcon, treeIcon, graphIcon, textIcon } from "./CustomIcons";
+import { useTheme } from '@mui/material/styles';
 
 const RendererSection = ({
   mermaidCode,
@@ -160,6 +161,7 @@ const RendererSection = ({
   const dropdownOpen = Boolean(dropdownAnchor);
   const dropdown = dropdownOpen ? 'dropdown' : undefined;
 
+  const theme = useTheme();
 
   return (
     <div
@@ -178,13 +180,14 @@ const RendererSection = ({
         gridAutoFlow: "column",
         gridAutoColumns: "1fr",
         alignItems: "center",
-        borderBottom: "1px solid #444"
+        borderBottom: theme.palette.border,
+        backgroundColor: theme.palette.sectionHeaderColor,
       }}>
         <Box display="flex">
           <Box display="flex" flex={"1 1 0px"} alignItems={'center'}>
             <Typography variant="overline" sx={{ pl: 2 }}>Page</Typography>
           </Box>
-          <Box sx={{ display: "flex", borderRight: "1px solid #444" }}>
+          <Box sx={{ display: "flex", borderRight: theme.palette.border }}>
             <Tooltip title="Add a Page">
             <span>
               <IconButton
@@ -262,7 +265,7 @@ const RendererSection = ({
           </Box>
         </Box>
         <Box display="flex">
-          <Box display="flex" flex={"1 1 0px"} alignItems={'center'} borderLeft={"1px solid #444"} >
+          <Box display="flex" flex={"1 1 0px"} alignItems={'center'} borderLeft={theme.palette.border} >
             <Typography variant="overline" sx={{ pl: 2 }}>Export</Typography>
           </Box>
           <Box sx={{ display: "flex" }}>
@@ -370,7 +373,8 @@ const RendererSection = ({
         display: "flex",
         flexGrow: "space-between",
         alignItems: "center",
-        borderBottom: "1px solid #444"
+        borderBottom: theme.palette.border,
+        backgroundColor: theme.palette.sectionHeaderColor,
       }}>
         <Box display="flex" flex={"1 1 0px"} alignItems={'center'}>
           <Typography variant="overline" sx={{ pl: 2 }}>Component</Typography>

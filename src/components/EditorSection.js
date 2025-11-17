@@ -1,17 +1,16 @@
 import React, { useState } from "react";
-import CodeEditor from "./CodeEditor";
 import DslEditor from "./DslEditor";
 import MermaidEditor from "./MermaidEditor";
 import { ResizableBox } from "react-resizable";
 import "react-resizable/css/styles.css";
 import { Box, Typography, Tooltip, IconButton } from "@mui/material";
 import LockIcon from "@mui/icons-material/Lock";
-import LockOpenIcon from "@mui/icons-material/LockOpen";
 import EditIcon from "@mui/icons-material/Edit";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ErrorIcon from "@mui/icons-material/Error";
 import { useParseCompile } from "../context/ParseCompileContext";
+import { useTheme } from '@mui/material/styles';
 
 const EditorSection = ({
   editor1Height,
@@ -41,6 +40,8 @@ const EditorSection = ({
 
   // Check if there's an actual error (not just "nothing to show")
   const hasError = error && !error.startsWith("Compile error:\nNothing to show\n");
+  
+  const theme = useTheme();
 
   return (
     <div
@@ -51,7 +52,7 @@ const EditorSection = ({
         flexDirection: "column",
         overflow: "shown",
         position: "relative",
-        backgroundColor: "#1e1e1e",
+        border: "none"
       }}
     >
       {/* Code Editor Section */}
@@ -60,8 +61,9 @@ const EditorSection = ({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          backgroundColor: "#121212",
+          backgroundColor: theme.palette.sectionHeaderColor,
           px: 2,
+          border: "none"
         }}
       >
         <Typography variant="overline">Merlin-Lite Editor</Typography>
@@ -112,7 +114,6 @@ const EditorSection = ({
               style={{
                 width: "100%",
                 height: "4px",
-                borderTop: "1px solid #444",
                 cursor: "row-resize",
                 position: "absolute",
                 bottom: 0,
@@ -147,7 +148,7 @@ const EditorSection = ({
           zIndex: 2,
           background: isCollapsed ? 'rgba(30,30,30,0.98)' : undefined,
           boxShadow: isCollapsed ? '0 -2px 8px rgba(0,0,0,0.12)' : undefined,
-          borderTop: '1px solid #444',
+          borderTop: theme.palette.border,
           display: 'flex',
           flexDirection: 'column',
         }}
@@ -166,7 +167,7 @@ const EditorSection = ({
             minHeight: '40px',
             maxHeight: '40px',
             boxSizing: "border-box",
-            backgroundColor: "#121212",
+            backgroundColor: theme.palette.sectionHeaderColor,
           }}
           onClick={() => {
             if (isCollapsed) {
@@ -177,7 +178,7 @@ const EditorSection = ({
             }
           }}
         >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1  }}>
             <Typography variant="overline">Compiled Merlin</Typography>
             {hasError && (
               <Tooltip title="Error in code">

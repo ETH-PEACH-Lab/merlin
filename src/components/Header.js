@@ -9,8 +9,7 @@ const Header = () => {
             justifyContent: "space-between",
             flexDirection: "row",
             padding: "2px 15px",
-            borderBottom: "1px solid #444",
-            backgroundColor: "#000"
+            borderBottom: "1px solid #606770",
         }}>
 
             <Box display="flex" flexGrow={1} alignItems={"center"}>

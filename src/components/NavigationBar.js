@@ -1,7 +1,7 @@
 import React from 'react';
 import { Drawer, List, ListItemText, ListItemButton, Tab, Typography, Box } from '@mui/material';
-
 import { TabContext, TabList, TabPanel } from '@mui/lab';
+import { useTheme } from '@mui/material/styles';
 
 const NavigationBar = ({ items, savedItems, onSelect, activeTab, onTabChange }) => {
   const [selectedIndex, setSelectedIndex] = React.useState(-1);
@@ -11,22 +11,24 @@ const NavigationBar = ({ items, savedItems, onSelect, activeTab, onTabChange }) 
     setValue(newValue);
   };
 
+  const theme = useTheme();
+
   return (
     <Drawer
       id="component-nav-drawer"
       sx={{
         width: 180,
         '& .MuiDrawer-paper': {
-          width: 180
+          width: 180,
+          borderRight: theme.palette.border,
         },
-        borderRight: "1px solid #444"
       }}
       variant="permanent"
       open={true}
       anchor="left"
     >
-      <TabContext value={value}>
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', width: "100%" }}>
+      <TabContext value={value} sx={{ backgroundColor: "#ff00ff"}}>
+        <Box sx={{ borderBottom: theme.palette.border, width: "100%" }}>
           <TabList onChange={handleChange} aria-label="lab API tabs example">
             <Tab label="Examples" value="1" sx={{
               fontSize: "0.75rem",

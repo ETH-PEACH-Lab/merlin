@@ -13,6 +13,7 @@ import { extractCodeFromUrl, hasSharedExample } from "./utils/urlSharing";
 import { handleExport } from "./utils/exportUtils";
 import ExportProgressDialog from "./components/ExportProgressDialog";
 import CustomExportDialog from "./components/CustomExportDialog";
+import { useTheme } from '@mui/material/styles';
 
 const App = () => {
   // Use context for code and parsing
@@ -240,6 +241,8 @@ ${timestamp}
     else setInspectorIndex(null);
   };
 
+  const theme = useTheme();
+
   return (
     <div ref={containerRef} className="container">
       <Box
@@ -324,7 +327,7 @@ ${timestamp}
                     style={{
                       width: "5px",
                       cursor: "col-resize",
-                      borderLeft: "solid 1px #666",
+                      borderLeft: theme.palette.border,
                       position: "relative",
                       zIndex: 1,
                     }}
