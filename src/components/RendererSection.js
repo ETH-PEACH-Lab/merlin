@@ -185,7 +185,7 @@ const RendererSection = ({
       }}>
         <Box display="flex">
           <Box display="flex" flex={"1 1 0px"} alignItems={'center'}>
-            <Typography variant="overline" sx={{ pl: 2 }}>Page</Typography>
+            <Typography variant="body2" sx={{ pl: 2 }}>Page</Typography>
           </Box>
           <Box sx={{ display: "flex", borderRight: theme.palette.border }}>
             <Tooltip title="Add a Page">
@@ -266,7 +266,7 @@ const RendererSection = ({
         </Box>
         <Box display="flex">
           <Box display="flex" flex={"1 1 0px"} alignItems={'center'} borderLeft={theme.palette.border} >
-            <Typography variant="overline" sx={{ pl: 2 }}>Export</Typography>
+            <Typography variant="body2" sx={{ pl: 2 }}>Export</Typography>
           </Box>
           <Box sx={{ display: "flex" }}>
             <Tooltip title={pages.length === 0 ? "No pages to export" : "Export"}>
@@ -377,7 +377,7 @@ const RendererSection = ({
         backgroundColor: theme.palette.sectionHeaderColor,
       }}>
         <Box display="flex" flex={"1 1 0px"} alignItems={'center'}>
-          <Typography variant="overline" sx={{ pl: 2 }}>Component</Typography>
+          <Typography variant="body2" sx={{ pl: 2 }}>Component</Typography>
         </Box>
         <Box sx={{ display: "flex" }}>
           <Tooltip title="Create a Component">
@@ -389,7 +389,7 @@ const RendererSection = ({
                 sx={{ mr: 1 }}
                 size="small"
               >
-                <Typography aria-describedby={dropdown} variant="overline" >New</Typography>
+                <Typography aria-describedby={dropdown} variant="body2" >New</Typography>
                 <AddIcon sx={{ fontSize: 20 }}></AddIcon>
               </IconButton>
             </span>

@@ -7,7 +7,8 @@ const colorTheme = createTheme({
     sidebarColor: "#1b1b1d",
     navbarColor: "#1b1b1d",
     highlight: "#a94fd8",
-    borderHighlight: "2px solid #a94fd8"
+    borderHighlight: "2px solid #a94fd8",
+    border: "1px solid #606770",
   }
 });
 
@@ -15,7 +16,7 @@ export const themeConfig = {
   palette: {
     mode: "dark",
     sectionHeaderColor: "#1c1e21",
-    border: "1px solid #606770",
+    border: colorTheme.palette.border,
     primary: {
       main: "#a94fd8",
     },
@@ -28,8 +29,16 @@ export const themeConfig = {
       styleOverrides: {
         root: {
           backgroundColor: colorTheme.palette.navbarColor,
-          backgroundImage: "none"
+          backgroundImage: "none",
+          borderBottom: colorTheme.palette.border
         }
+      },
+    },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          textTransform: "none",
+        },
       },
     },
     MuiDrawer: {
@@ -63,8 +72,9 @@ export const themeConfig = {
     }
   },
   typography: {
-    fontSize: 16,
-    fontFamily: "Arial"
+    fontSize: 15,
+    fontFamily: "sans-serif",
+    textTransform: 'none'
   },
 }
 

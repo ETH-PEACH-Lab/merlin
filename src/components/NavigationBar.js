@@ -27,18 +27,18 @@ const NavigationBar = ({ items, savedItems, onSelect, activeTab, onTabChange }) 
       open={true}
       anchor="left"
     >
-      <TabContext value={value} sx={{ backgroundColor: "#ff00ff"}}>
+      <TabContext value={value}>
         <Box sx={{ borderBottom: theme.palette.border, width: "100%" }}>
           <TabList onChange={handleChange} aria-label="lab API tabs example">
             <Tab label="Examples" value="1" sx={{
-              fontSize: "0.75rem",
+              textTransform: "none",
               p: "5px 5px",
-              height: "20px"
+              height: "40px"
             }} />
             <Tab label="Saved" value="2" sx={{
-              fontSize: "0.75rem",
+              textTransform: "none",
               p: "5px 5px",
-              height: "20px"
+              height: "40px"
             }} />
           </TabList>
         </Box>
@@ -56,20 +56,20 @@ const NavigationBar = ({ items, savedItems, onSelect, activeTab, onTabChange }) 
             }
           </List>
         </TabPanel>
-        <TabPanel value="2" sx={{p:0}}><List dense>
-          {savedItems.length > 0 ? 
-          (
-            savedItems.map((item, index) => (
-              <ListItemButton
-                key={item.timestamp}
-                selected={selectedIndex === index}
-                onClick={() => { onSelect(item); setSelectedIndex(index) }}
-              >
-                <ListItemText sx={{ pl: 2 }}>{new Date(item.timestamp).toLocaleString()}</ListItemText>
-              </ListItemButton>
-            ))
-          ) : (
-            <ListItemText sx={{ pl: 2 }}>No saved diagrams</ListItemText>)}
+        <TabPanel value="2" sx={{ p: 0 }}><List dense>
+          {savedItems.length > 0 ?
+            (
+              savedItems.map((item, index) => (
+                <ListItemButton
+                  key={item.timestamp}
+                  selected={selectedIndex === index}
+                  onClick={() => { onSelect(item); setSelectedIndex(index) }}
+                >
+                  <ListItemText sx={{ pl: 2 }}>{new Date(item.timestamp).toLocaleString()}</ListItemText>
+                </ListItemButton>
+              ))
+            ) : (
+              <ListItemText sx={{ pl: 2 }}>No saved diagrams</ListItemText>)}
         </List></TabPanel>
       </TabContext>
     </Drawer>

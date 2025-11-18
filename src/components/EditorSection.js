@@ -63,10 +63,12 @@ const EditorSection = ({
           justifyContent: "space-between",
           backgroundColor: theme.palette.sectionHeaderColor,
           px: 2,
-          border: "none"
+          height: '40px',
+          minHeight: '40px',
+          maxHeight: '40px',
         }}
       >
-        <Typography variant="overline">Merlin-Lite Editor</Typography>
+        <Typography variant="body2">Merlin-Lite Editor</Typography>
         <Tooltip title={dslEditorEditable ? "Edit Mode" : "Read Mode"}>
           <IconButton onClick={handleClickLock} size="small">
             {dslEditorEditable ? (
@@ -179,7 +181,7 @@ const EditorSection = ({
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 1  }}>
-            <Typography variant="overline">Compiled Merlin</Typography>
+            <Typography variant="body2">Compiled Merlin</Typography>
             {hasError && (
               <Tooltip title="Error in code">
                 <ErrorIcon sx={{ fontSize: 16, color: "#f44336", marginBottom: "2px" }} />
