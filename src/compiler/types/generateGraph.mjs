@@ -24,7 +24,7 @@ export function generateGraph(graphComponent, layout = [3, 3]) {
         const nodeArrow = idx < arrow.length ? arrow[idx] : null;
         const nodeHidden = idx < hidden.length ? hidden[idx] : null;
         
-        result += `\nnode:${formatNodeName(node)} {value:"${formatNullValue(nodeValue) || node}", color:"${formatNullValue(nodeColor)}", arrow:"${nodeArrow === `empty` ? "" : formatNullValue(nodeArrow)}", hidden:"${formatNullValue(nodeHidden)}"}`;
+        result += `\nnode:${formatNodeName(node)} {value:"${formatNullValue(nodeValue) ?? node}", color:"${formatNullValue(nodeColor)}", arrow:"${nodeArrow === `empty` ? "" : formatNullValue(nodeArrow)}", hidden:"${formatNullValue(nodeHidden)}"}`;
     }
 
     for (const edge of edges) {
