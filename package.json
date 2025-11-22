@@ -17,6 +17,7 @@
     "@mui/lab": "5.0.0-alpha.177",
     "@mui/material": "^5.18.0",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.5.17",
+    "@svgr/plugin-svgo": "6.1.0",
     "@uiw/react-color-circle": "^2.9.2",
     "cordova": "^12.0.0",
     "downloadjs": "^1.4.7",
@@ -39,6 +40,7 @@
     "react-refresh": "^0.14.2",
     "react-resizable": "^3.0.5",
     "react-scripts": "^5.0.1",
+    "resolve-url-loader": "^5.0.0",
     "styled-components": "^6.1.19",
     "webpack-dev-server": "^5.2.2"
   },
@@ -80,9 +82,15 @@
     "yargs": "^17.7.2"
   },
   "overrides": {
-    "insight": "0.12.0"
+    "insight": "0.12.0",
+    "resolve-url-loader": "5.0.0",
+    "@svgr/plugin-svgo": "6.1.0",
+    "webpack-dev-server": "5.2.2"
   },
   "resolutions": {
-    "insight": "0.12.0"
+    "insight": "0.12.0",
+    "resolve-url-loader": "5.0.0",
+    "@svgr/plugin-svgo": "6.1.0",
+    "webpack-dev-server": "5.2.2"
   }
 }
