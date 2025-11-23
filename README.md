@@ -6,7 +6,7 @@ To check it out, visit the [Merlin Editor editor here](https://eth-peach-lab.git
 ## Getting Started
 
 ### Prerequisites
-- Node.js (v14 or higher)
+- Node.js (v18 or higher)
 - npm or pnpm package manager
 
 ### Installation
