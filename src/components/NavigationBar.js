@@ -1,9 +1,9 @@
 import React from 'react';
-import { Drawer, List, ListItemText, ListItemButton, Tab, Typography, Box } from '@mui/material';
+import { Drawer, List, ListItemText, ListItemButton, Tab, Box } from '@mui/material';
 import { TabContext, TabList, TabPanel } from '@mui/lab';
 import { useTheme } from '@mui/material/styles';
 
-const NavigationBar = ({ items, savedItems, onSelect, activeTab, onTabChange }) => {
+const NavigationBar = ({ items, savedItems, onSelect }) => {
   const [selectedIndex, setSelectedIndex] = React.useState(-1);
   const [value, setValue] = React.useState('1');
 

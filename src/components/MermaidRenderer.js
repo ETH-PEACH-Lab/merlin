@@ -1,12 +1,9 @@
 import React, { useEffect, useRef } from "react";
 import mermaid from '@eth-peach-lab/mermaid-merlin/packages/mermaid/dist/mermaid.esm.mjs'
-import { ElementEditor } from "./ElementEditor";
-
 const MermaidRenderer = ({
   text,
   update,
   exampleSvg,
-  setSvgContent,
   currentPage,
 }) => {
   const ref = useRef(null);

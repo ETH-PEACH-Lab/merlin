@@ -3,8 +3,7 @@ import NavigationBar from "./components/NavigationBar";
 import EditorSection from "./components/EditorSection";
 import RendererSection from "./components/RendererSection";
 import "./index.css";
-import download from "downloadjs";
-import { examples } from "./examples"; // Import the generated examples file
+import { examples } from "./examples";
 import { Box } from "@mui/material";
 
 import Header from "./components/Header";
@@ -19,7 +18,6 @@ const App = () => {
   // Use context for code and parsing
   const {
     unparsedCode,
-    parsedCode,
     compiledMerlin,
     updateUnparsedCode,
     pages,
@@ -281,8 +279,6 @@ ${timestamp}
                   ? handleSelectExample
                   : handleSelectSavedItem
               }
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
             />
             <Box
               component="main"

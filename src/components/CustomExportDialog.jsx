@@ -46,9 +46,7 @@ const CustomExportDialog = ({
   open, 
   onClose, 
   onExport,
-  compiledMerlin,
   pages,
-  mermaidRef,
   currentPage = 1
 }) => {
   const [format, setFormat] = useState('png');

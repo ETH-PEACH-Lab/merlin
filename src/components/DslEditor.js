@@ -1,4 +1,3 @@
-// DslEditor.js
 import React, { useRef, useEffect, useCallback } from "react";
 import MonacoEditor from "@monaco-editor/react";
 import { registerCustomLanguage } from "./customLang";
