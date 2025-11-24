@@ -216,18 +216,6 @@ export function getComponentFields(componentType) {
       height: "Height",
       position: "Position",
     },
-    // text: {
-    //   value: ["Value", "string"],
-    //   fontSize: ["Font Size", "number"],
-    //   color: "Color",
-    //   fontWeight: ["Font Weight", "string"],
-    //   fontFamily: ["Font Family", "string"],
-    //   align: ["Alignment", "string"],
-    //   lineSpacing: ["Line Spacing", "number"],
-    //   width: ["Width", "number"],
-    //   height: ["Height", "number"],
-    //   position: ["Position", "position"],
-    // },
   };
 
   return fieldDefinitions[componentType] || {};
@@ -333,58 +321,4 @@ export function createUnitData(parsedInfo) {
     unitData[fieldKey] = value ?? "null";
   });
   return unitData;
-}
-
-/**
- * Finds the visible unit index for array components (for backward compatibility)
- */
-export function findVisibleUnitIndex(component, unitIdx) {
-  // Find i'th visible unit index in the component
-  if (!component.body || !component.body.value) return 0;
-  
-  const hidden = component.body.hidden || [];
-
-  let visibleCount = 0;
-  for (let i = 0; i < component.body.value.length; i++) {
-    if (!hidden[i]) {
-      if (visibleCount === unitIdx) {
-        return i;
-      }
-      visibleCount++;
-    }
-  }
-  return 0;
-}
-
-/**
- * Converts field value to appropriate type
- */
-export function convertValueToType(value, type) {
-  if (value === "" || value === null || value === undefined) {
-    return null;
-  }
-  
-  switch (type) {
-    case "number":
-      const num = Number(value);
-      return isNaN(num) ? null : num;
-    case "number_or_string":
-      // Try to convert to number first, but keep as string if not a valid number
-      const numValue = Number(value);
-      return isNaN(numValue) ? String(value) : numValue;
-    case "boolean":
-      if (typeof value === "boolean") return value;
-      if (typeof value === "string") {
-        const lowerValue = value.toLowerCase().trim();
-        return lowerValue === "true" || lowerValue === "1";
-      }
-      return Boolean(value);
-    case "position":
-      // Position can be a string representation like "(1,2)" or "center" or "1..3,2"
-      return String(value);
-    case "color":
-    case "string":
-    default:
-      return String(value);
-  }
 }
