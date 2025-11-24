@@ -1,5 +1,4 @@
 import download from "downloadjs";
-import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
 import JSZip from "jszip";
 import PptxGenJS from "pptxgenjs";
