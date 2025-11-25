@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Button, Dialog, DialogActions, DialogContent, DialogContentText, 
-         ListItem, ListItemText,TextField, SvgIcon } from "@mui/material";
+         ListItem, ListItemText, SvgIcon } from "@mui/material";
 
 export const CreateComponentItem = ({name, icon, text, formFields, createFunction}) => {
   const [openPopup, setOpenPopup] = React.useState(false);

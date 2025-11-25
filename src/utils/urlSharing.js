@@ -1,3 +1,5 @@
+// This file contains helper functions for sharing diagrams
+
 import LZString from 'lz-string';
 
 /**
@@ -93,51 +95,5 @@ export async function copyToClipboard(text) {
     } catch (error) {
         console.error('Error copying to clipboard:', error);
         return false;
-    }
-}
-
-/**
- * Validates if a compressed string can be decompressed
- * @param {string} compressed - The compressed string to validate
- * @returns {boolean} - True if valid
- */
-export function validateCompressedCode(compressed) {
-    try {
-        const decompressed = LZString.decompressFromBase64(compressed);
-        return decompressed !== null && decompressed !== '';
-    } catch (error) {
-        return false;
-    }
-}
-
-/**
- * Updates the current URL with compressed code (useful for preserving state)
- * @param {string} code - The DSL code to compress and set in URL
- * @param {boolean} replaceState - Whether to replace current history state (default: true)
- */
-export function updateUrlWithCode(code, replaceState = true) {
-    try {
-        const compressed = LZString.compressToBase64(code);
-        const newHash = `#/url/merlin/${compressed}`;
-        
-        if (replaceState) {
-            window.history.replaceState(null, '', newHash);
-        } else {
-            window.history.pushState(null, '', newHash);
-        }
-        
-        return true;
-    } catch (error) {
-        console.error('Error updating URL with code:', error);
-        return false;
-    }
-}
-
-/**
- * Clears the shareable URL from the current location
- */
-export function clearShareableUrl() {
-    if (hasSharedExample()) {
-        window.history.replaceState(null, '', window.location.pathname);
     }
 }

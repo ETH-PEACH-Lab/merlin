@@ -8,7 +8,8 @@ import React, {
 import parseText from "../parser/parseText.mjs";
 import reconstructor from "../parser/reconstructor.mjs";
 import compiler from "../compiler/compiler.mjs";
-import { createOptimizedCommand, findRelevantCommands } from "../parser/commandUtils.mjs";
+import { createOptimizedCommand, findRelevantCommands } from "../utils/commandUtils.mjs";
+import { generateNodeName } from "../utils/dslUtils.mjs"; 
 
 const ParseCompileContext = createContext();
 
@@ -20,7 +21,6 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
     const [compiledMerlin, setCompiledMerlin] = useState(null);
     const [pages, setPages] = useState([]);
     const [componentCount, setcomponentCount] = useState(1);
-    const [nodeCount, setNodeCount] = useState(1);
     const [error, setError] = useState(null);
     const [currentCursorLine, setCurrentCursorLine] = useState(1);
     const [errorTimeoutId, setErrorTimeoutId] = useState(null);
@@ -252,8 +252,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
         // In case node name is needed and not defined or not valid, change node name
         if (["tree", "graph", "linkedlist"].includes(componentType) && (nodeName === null || nodeName.toUpperCase() === nodeName.toLowerCase())){
-            nodeName = "n" + `${ nodeCount }`;
-            setNodeCount(nodeCount + 1);
+            nodeName = generateNodeName();
         }
         // For new tree nodes, we can directly add them as a child
         if (componentType === "tree" && addCommand === "addChild"){
@@ -575,10 +574,6 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
     const createComponent = useCallback((componentType, componentBody, page) => {
         if (!parsedCode) return;
         pastActions.push(structuredClone(unparsedCode));
-
-        if ("nodes" in componentBody){
-            setNodeCount(nodeCount + componentBody.nodes.length);
-        }
 
         const componentName = componentType + `${ componentCount }`;
         setcomponentCount(componentCount + 1);
