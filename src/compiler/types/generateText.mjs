@@ -1,6 +1,6 @@
 // generateText.mjs - Generate text output for visual diagrams
 
-import { formatPositionForOutput } from '../positionUtils.mjs';
+import { formatPositionForOutput } from '../../utils/positionUtils.mjs';
 
 export function generateText(component, layout = [3, 3]) {
     const { name, body } = component;

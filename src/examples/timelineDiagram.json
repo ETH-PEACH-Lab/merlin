@@ -1,9 +1,0 @@
-{
-    "id": "timelineDiagram",
-    "title": "Timeline Diagram",
-    "tags": ["timeline", "history"],
-    "figure": "timeline.svg", 
-    "userCode": "timeline",
-    "renderCode": "timeline\ntitle History of Social Media Platform\n2002 : LinkedIn\n2004 : Facebook\n     : Google\n2005 : Youtube\n2006 : Twitter"
-  }
-  

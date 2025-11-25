@@ -216,18 +216,6 @@ export function getComponentFields(componentType) {
       height: "Height",
       position: "Position",
     },
-    // text: {
-    //   value: ["Value", "string"],
-    //   fontSize: ["Font Size", "number"],
-    //   color: "Color",
-    //   fontWeight: ["Font Weight", "string"],
-    //   fontFamily: ["Font Family", "string"],
-    //   align: ["Alignment", "string"],
-    //   lineSpacing: ["Line Spacing", "number"],
-    //   width: ["Width", "number"],
-    //   height: ["Height", "number"],
-    //   position: ["Position", "position"],
-    // },
   };
 
   return fieldDefinitions[componentType] || {};
@@ -335,56 +323,59 @@ export function createUnitData(parsedInfo) {
   return unitData;
 }
 
-/**
- * Finds the visible unit index for array components (for backward compatibility)
- */
-export function findVisibleUnitIndex(component, unitIdx) {
-  // Find i'th visible unit index in the component
-  if (!component.body || !component.body.value) return 0;
-  
-  const hidden = component.body.hidden || [];
 
-  let visibleCount = 0;
-  for (let i = 0; i < component.body.value.length; i++) {
-    if (!hidden[i]) {
-      if (visibleCount === unitIdx) {
-        return i;
-      }
-      visibleCount++;
+/**
+ * Generate a new unique node name
+ */
+export function generateNodeName(nodes, componentType) {
+    if (!nodes || nodes.length === 0) {
+        // If no nodes exist, start with the first one based on component type
+        switch (componentType) {
+            case "linkedlist":
+            case "graph":
+                return "n0";
+            case "tree":
+                return "A";
+            default:
+                return "n0";
+        }
     }
-  }
-  return 0;
-}
 
-/**
- * Converts field value to appropriate type
- */
-export function convertValueToType(value, type) {
-  if (value === "" || value === null || value === undefined) {
-    return null;
-  }
-  
-  switch (type) {
-    case "number":
-      const num = Number(value);
-      return isNaN(num) ? null : num;
-    case "number_or_string":
-      // Try to convert to number first, but keep as string if not a valid number
-      const numValue = Number(value);
-      return isNaN(numValue) ? String(value) : numValue;
-    case "boolean":
-      if (typeof value === "boolean") return value;
-      if (typeof value === "string") {
-        const lowerValue = value.toLowerCase().trim();
-        return lowerValue === "true" || lowerValue === "1";
-      }
-      return Boolean(value);
-    case "position":
-      // Position can be a string representation like "(1,2)" or "center" or "1..3,2"
-      return String(value);
-    case "color":
-    case "string":
-    default:
-      return String(value);
-  }
+    // Find the highest numbered node and increment
+    let maxNum = -1;
+    let prefix = "";
+
+    // Determine the naming pattern from existing nodes
+    for (const node of nodes) {
+        if (typeof node === 'string') {
+            if (node.match(/^n\d+$/)) {
+                // Pattern: n0, n1, n2, etc.
+                prefix = "n";
+                const num = parseInt(node.substring(1));
+                if (!isNaN(num)) {
+                    maxNum = Math.max(maxNum, num);
+                }
+            } else if (node.match(/^[A-Z]$/)) {
+                // Pattern: A, B, C, etc.
+                prefix = "letter";
+                const charCode = node.charCodeAt(0);
+                const num = charCode - 65; // A=0, B=1, C=2, etc.
+                maxNum = Math.max(maxNum, num);
+            }
+        }
+    }
+
+    // Generate the next node name
+    if (prefix === "letter") {
+        const nextCharCode = 65 + maxNum + 1; // Next letter
+        if (nextCharCode <= 90) { // Z is 90
+            return String.fromCharCode(nextCharCode);
+        } else {
+            // Fall back to n pattern if we run out of letters
+            return "n" + (maxNum + 1);
+        }
+    } else {
+        // Default to n pattern
+        return "n" + (maxNum + 1);
+    }
 }

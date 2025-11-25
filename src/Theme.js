@@ -2,68 +2,44 @@ import { createTheme } from '@mui/material/styles';
 
 export const defaultTheme = createTheme()
 
+const colorTheme = createTheme({
+  palette: {
+    sidebarColor: "#1b1b1d",
+    navbarColor: "#1b1b1d",
+    highlight: "#a94fd8",
+    borderHighlight: "2px solid #a94fd8",
+    border: "1px solid #606770",
+  }
+});
+
 export const themeConfig = {
   palette: {
     mode: "dark",
+    sectionHeaderColor: "#1c1e21",
+    border: colorTheme.palette.border,
     primary: {
-      main: "#90caf9",
+      main: "#a94fd8",
     },
     secondary: {
-      main: "#f48fb1",
+      main: "#ffffff",
     },
   },
   components: {
-    MuiAccordion: {
-      defaultProps: {
-        square: true,
-        TransitionProps: {
-          unmountOnExit: true,
+    MuiAppBar: {
+      styleOverrides: {
+        root: {
+          backgroundColor: colorTheme.palette.navbarColor,
+          backgroundImage: "none",
+          borderBottom: colorTheme.palette.border
+        }
+      },
+    },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          textTransform: "none",
         },
       },
-      styleOverrides: {
-        root: {
-          border: "1px solid rgba(255, 255, 255, .125)",
-          boxShadow: "none",
-          transition: defaultTheme.transitions.create("margin-left"),
-          "&:not(:last-child)": {
-            borderBottom: 0,
-          },
-          "&:before": {
-            display: "none",
-          },
-          "&.Mui-expanded": {
-            margin: "auto",
-          },
-          "&.Mui-disabled": {
-            marginLeft: 32
-          }
-        },
-      }
-    },
-    MuiAccordionSummary: {
-      styleOverrides: {
-        root: {
-          borderBottom: "1px solid rgba(255, 255, 255, .125)",
-          minHeight: 56,
-          "&.Mui-expanded": {
-            minHeight: 56
-          }
-        },
-        content: {
-          alignItems: "center",
-          justifyContent: "space-between",
-          "&.Mui-expanded": {
-            margin: "12px 0",
-          },
-        },
-      }
-    },
-    MuiAccordionDetails: {
-      styleOverrides: {
-        root: {
-          backgroundColor: "#212121",
-        }
-      }
     },
     MuiDrawer: {
       styleOverrides: {
@@ -72,7 +48,9 @@ export const themeConfig = {
             position: "static",
           },
         },
-        paper: {},
+        paper: {
+          backgroundColor: colorTheme.palette.sidebarColor,
+        },
       }
     },
     MuiPopover: {
@@ -86,18 +64,17 @@ export const themeConfig = {
       styleOverrides: {
         root: {
           '&.Mui-selected': {
-            borderLeft: '2px solid #3399ff',
-            color: '#66b3ff',
-            // Optionally, you can add other styles here, like background color
-            backgroundColor: '#1d2126'
+            borderLeft: colorTheme.palette.borderHighlight,
+            color: colorTheme.palette.highlight,
           },
+        }
       }
-    }}
+    }
   },
   typography: {
-    // In Chinese and Japanese the characters are usually larger,
-    // so a smaller fontsize may be appropriate.
-    fontSize: 14,
+    fontSize: 15,
+    fontFamily: "sans-serif",
+    textTransform: 'none'
   },
 }
 

@@ -1,5 +1,5 @@
 import { formatNodeName, formatNullValue } from '../compiler.mjs';
-import { formatPositionForOutput } from '../positionUtils.mjs';
+import { formatPositionForOutput } from '../../utils/positionUtils.mjs';
 
 export function generateGraph(graphComponent, layout = [3, 3]) {
     let result = "graph\n";

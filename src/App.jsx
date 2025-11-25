@@ -1,12 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
-import "./components/NavigationBar.css";
 import NavigationBar from "./components/NavigationBar";
 import EditorSection from "./components/EditorSection";
 import RendererSection from "./components/RendererSection";
 import "./index.css";
-import download from "downloadjs";
-import { examples } from "./examples"; // Import the generated examples file
-import "./App.css"; // Import the new CSS file for the top bar
+import { examples } from "./examples";
 import { Box } from "@mui/material";
 
 import Header from "./components/Header";
@@ -15,12 +12,12 @@ import { extractCodeFromUrl, hasSharedExample } from "./utils/urlSharing";
 import { handleExport } from "./utils/exportUtils";
 import ExportProgressDialog from "./components/ExportProgressDialog";
 import CustomExportDialog from "./components/CustomExportDialog";
+import { useTheme } from '@mui/material/styles';
 
 const App = () => {
   // Use context for code and parsing
   const {
     unparsedCode,
-    parsedCode,
     compiledMerlin,
     updateUnparsedCode,
     pages,
@@ -242,6 +239,8 @@ ${timestamp}
     else setInspectorIndex(null);
   };
 
+  const theme = useTheme();
+
   return (
     <div ref={containerRef} className="container">
       <Box
@@ -280,8 +279,6 @@ ${timestamp}
                   ? handleSelectExample
                   : handleSelectSavedItem
               }
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
             />
             <Box
               component="main"
@@ -326,7 +323,7 @@ ${timestamp}
                     style={{
                       width: "5px",
                       cursor: "col-resize",
-                      borderLeft: "solid 1px #666",
+                      borderLeft: theme.palette.border,
                       position: "relative",
                       zIndex: 1,
                     }}

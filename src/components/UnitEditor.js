@@ -8,7 +8,7 @@ import RectangleOutlinedIcon from '@mui/icons-material/RectangleOutlined';
 import TextRotateVerticalIcon from '@mui/icons-material/TextRotateVertical';
 import Circle from "@uiw/react-color-circle";
 import { useParseCompile } from "../context/ParseCompileContext";
-import { parseInspectorIndex, createUnitData, getComponentFields, getColors } from "../compiler/dslUtils.mjs";
+import { parseInspectorIndex, createUnitData, getComponentFields, getColors } from "../utils/dslUtils.mjs";
 import { addEdgeIcon, removeEdgeIcon, addColumnIcon, addRowIcon, removeColumnIcon, removeRowIcon } from "./CustomIcons";
 
 
