@@ -322,3 +322,60 @@ export function createUnitData(parsedInfo) {
   });
   return unitData;
 }
+
+
+/**
+ * Generate a new unique node name
+ */
+export function generateNodeName(nodes, componentType) {
+    if (!nodes || nodes.length === 0) {
+        // If no nodes exist, start with the first one based on component type
+        switch (componentType) {
+            case "linkedlist":
+            case "graph":
+                return "n0";
+            case "tree":
+                return "A";
+            default:
+                return "n0";
+        }
+    }
+
+    // Find the highest numbered node and increment
+    let maxNum = -1;
+    let prefix = "";
+
+    // Determine the naming pattern from existing nodes
+    for (const node of nodes) {
+        if (typeof node === 'string') {
+            if (node.match(/^n\d+$/)) {
+                // Pattern: n0, n1, n2, etc.
+                prefix = "n";
+                const num = parseInt(node.substring(1));
+                if (!isNaN(num)) {
+                    maxNum = Math.max(maxNum, num);
+                }
+            } else if (node.match(/^[A-Z]$/)) {
+                // Pattern: A, B, C, etc.
+                prefix = "letter";
+                const charCode = node.charCodeAt(0);
+                const num = charCode - 65; // A=0, B=1, C=2, etc.
+                maxNum = Math.max(maxNum, num);
+            }
+        }
+    }
+
+    // Generate the next node name
+    if (prefix === "letter") {
+        const nextCharCode = 65 + maxNum + 1; // Next letter
+        if (nextCharCode <= 90) { // Z is 90
+            return String.fromCharCode(nextCharCode);
+        } else {
+            // Fall back to n pattern if we run out of letters
+            return "n" + (maxNum + 1);
+        }
+    } else {
+        // Default to n pattern
+        return "n" + (maxNum + 1);
+    }
+}

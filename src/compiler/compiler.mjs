@@ -10,60 +10,7 @@ import { generateMatrix } from "./types/generateMatrix.mjs";
 import { generateGraph } from "./types/generateGraph.mjs";
 import { generateText } from "./types/generateText.mjs";
 import { getMermaidContainerSize } from "../utils/positionUtils.mjs";
-
-// Helper function to generate a new node name for component types that use nodes
-function generateNodeName(body, componentType) {
-    if (!body.nodes || body.nodes.length === 0) {
-        // If no nodes exist, start with the first one based on component type
-        switch (componentType) {
-            case "linkedlist":
-            case "graph":
-                return "n0";
-            case "tree":
-                return "A";
-            default:
-                return "n0";
-        }
-    }
-    
-    // Find the highest numbered node and increment
-    let maxNum = -1;
-    let prefix = "";
-    
-    // Determine the naming pattern from existing nodes
-    for (const node of body.nodes) {
-        if (typeof node === 'string') {
-            if (node.match(/^n\d+$/)) {
-                // Pattern: n0, n1, n2, etc.
-                prefix = "n";
-                const num = parseInt(node.substring(1));
-                if (!isNaN(num)) {
-                    maxNum = Math.max(maxNum, num);
-                }
-            } else if (node.match(/^[A-Z]$/)) {
-                // Pattern: A, B, C, etc.
-                prefix = "letter";
-                const charCode = node.charCodeAt(0);
-                const num = charCode - 65; // A=0, B=1, C=2, etc.
-                maxNum = Math.max(maxNum, num);
-            }
-        }
-    }
-    
-    // Generate the next node name
-    if (prefix === "letter") {
-        const nextCharCode = 65 + maxNum + 1; // Next letter
-        if (nextCharCode <= 90) { // Z is 90
-            return String.fromCharCode(nextCharCode);
-        } else {
-            // Fall back to n pattern if we run out of letters
-            return "n" + (maxNum + 1);
-        }
-    } else {
-        // Default to n pattern
-        return "n" + (maxNum + 1);
-    }
-}
+import { generateNodeName } from '../utils/dslUtils.mjs';
 
 // Helper function to maintain consistency across array properties when modifying arrays
 function maintainArrayPropertyConsistency(body, modifiedProperty, index, operation, componentType = null) {
@@ -109,7 +56,7 @@ function maintainArrayPropertyConsistencyExceptMultiple(body, modifiedProperty, 
                     // Insert appropriate value at the same index to maintain alignment
                     if (property === "nodes" && (componentType === "linkedlist" || componentType === "tree" || componentType === "graph")) {
                         // For nodes, generate a new node name instead of inserting null
-                        const newNodeName = generateNodeName(body, componentType);
+                        const newNodeName = generateNodeName(body.nodes, componentType);
                         body[property].splice(index, 0, newNodeName);
                     } else {
                         // For other properties, insert null
@@ -124,7 +71,7 @@ function maintainArrayPropertyConsistencyExceptMultiple(body, modifiedProperty, 
                     // Add appropriate value to maintain alignment
                     if (property === "nodes" && (componentType === "linkedlist" || componentType === "tree" || componentType === "graph")) {
                         // For nodes, generate a new node name instead of adding null
-                        const newNodeName = generateNodeName(body, componentType);
+                        const newNodeName = generateNodeName(body.nodes, componentType);
                         body[property].push(newNodeName);
                     } else {
                         // For other properties, add null
@@ -147,7 +94,7 @@ function maintainArrayPropertyConsistencyExceptMultiple(body, modifiedProperty, 
                         // For nodes, generate appropriate node names
                         body[property] = [];
                         for (let i = 0; i < targetLength; i++) {
-                            const newNodeName = generateNodeName(body, componentType);
+                            const newNodeName = generateNodeName(body.nodes, componentType);
                             body[property].push(newNodeName);
                         }
                     } else {
