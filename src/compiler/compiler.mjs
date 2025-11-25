@@ -12,6 +12,17 @@ import { generateText } from "./types/generateText.mjs";
 import { getMermaidContainerSize } from "../utils/positionUtils.mjs";
 import { generateNodeName } from '../utils/dslUtils.mjs';
 
+
+// Helper function to maintain consistency across array properties when modifying arrays
+function maintainArrayPropertyConsistency(body, modifiedProperty, index, operation, componentType = null) {
+    maintainArrayPropertyConsistencyExcept(body, modifiedProperty, index, operation, componentType, null);
+}
+
+// Helper function to maintain consistency across array properties when modifying arrays, with exception for specific properties
+function maintainArrayPropertyConsistencyExcept(body, modifiedProperty, index, operation, componentType = null, exceptProperty = null) {
+    maintainArrayPropertyConsistencyExceptMultiple(body, modifiedProperty, index, operation, componentType, exceptProperty ? [exceptProperty] : []);
+}
+
 // Helper function to maintain consistency across array properties when modifying arrays, with exceptions for multiple properties
 function maintainArrayPropertyConsistencyExceptMultiple(body, modifiedProperty, index, operation, componentType = null, exceptProperties = []) {
     if (componentType === "graph" && modifiedProperty === "edges") {
