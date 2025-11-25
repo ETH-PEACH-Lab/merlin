@@ -1,5 +1,3 @@
-// myCompiler to convert myDSL into mermaid code
-
 import { expandPositionWithLayout, inferLayoutFromKeywords } from './positionUtils.mjs';
 import { isMethodSupported } from '../components/languageConfig.js';
 import { getMethodNameFromCommand } from '../parser/reconstructor.mjs';
@@ -11,7 +9,7 @@ import { generateTree } from "./types/generateTree.mjs";
 import { generateMatrix } from "./types/generateMatrix.mjs";
 import { generateGraph } from "./types/generateGraph.mjs";
 import { generateText } from "./types/generateText.mjs";
-import { getMermaidContainerSize } from "./cssUtils.mjs";
+import { getMermaidContainerSize } from "./positionUtils.mjs";
 
 // Helper function to generate a new node name for component types that use nodes
 function generateNodeName(body, componentType) {
