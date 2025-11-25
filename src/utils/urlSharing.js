@@ -1,3 +1,5 @@
+// This file contains helper functions for sharing diagrams
+
 import LZString from 'lz-string';
 
 /**

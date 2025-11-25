@@ -1,3 +1,5 @@
+// This file contains helper functions for exporting diagrams
+
 import download from "downloadjs";
 import jsPDF from "jspdf";
 import JSZip from "jszip";

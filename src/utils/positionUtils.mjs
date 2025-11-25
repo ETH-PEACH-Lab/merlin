@@ -1,10 +1,11 @@
+// This file contains helper functions for determining the position of diagram elements
+
 /**
  * Infers the current size of the mermaid container
  * NOTE: Might me removed later if we decide to use fixed sizes for diagram output
  * @returns {Array} - Container size [width, height]
  */
 export function getMermaidContainerSize() {
-    console.log("here");
     // Default fallback size based on CSS values we found
     const defaultSize = { width: 800, height: 400 };
     

@@ -8,7 +8,7 @@ import React, {
 import parseText from "../parser/parseText.mjs";
 import reconstructor from "../parser/reconstructor.mjs";
 import compiler from "../compiler/compiler.mjs";
-import { createOptimizedCommand, findRelevantCommands } from "../parser/commandUtils.mjs";
+import { createOptimizedCommand, findRelevantCommands } from "../utils/commandUtils.mjs";
 
 const ParseCompileContext = createContext();
 

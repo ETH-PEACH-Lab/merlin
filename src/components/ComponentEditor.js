@@ -6,7 +6,7 @@ import Grid3x3Icon from '@mui/icons-material/Grid3x3';
 import RectangleOutlinedIcon from '@mui/icons-material/RectangleOutlined';
 import TitleIcon from '@mui/icons-material/Title';
 import { useParseCompile } from "../context/ParseCompileContext";
-import { parseInspectorIndex, createComponentData } from "../compiler/dslUtils.mjs";
+import { parseInspectorIndex, createComponentData } from "../utils/dslUtils.mjs";
 
 
 export const ComponentEditor = ({ inspectorIndex, currentPage, componentAnchorEl, setComponentAnchorEl }) => {

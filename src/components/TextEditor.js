@@ -10,7 +10,7 @@ import Grid3x3Icon from '@mui/icons-material/Grid3x3';
 import RectangleOutlinedIcon from '@mui/icons-material/RectangleOutlined';
 import Circle from "@uiw/react-color-circle";
 import { useParseCompile } from "../context/ParseCompileContext";
-import { parseInspectorIndex, createUnitData, getFieldDropdownOptions, getColors } from "../compiler/dslUtils.mjs";
+import { parseInspectorIndex, createUnitData, getFieldDropdownOptions, getColors } from "../utils/dslUtils.mjs";
 
 
 export const TextEditor = ({ inspectorIndex, currentPage, textAnchorEl, setTextAnchorEl }) => {
