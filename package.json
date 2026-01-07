@@ -92,5 +92,10 @@
     "resolve-url-loader": "5.0.0",
     "@svgr/plugin-svgo": "6.1.0",
     "webpack-dev-server": "5.2.2"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "mermaid-monorepo"
+    ]
   }
 }
