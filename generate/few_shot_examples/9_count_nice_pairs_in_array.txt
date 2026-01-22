@@ -1,0 +1,113 @@
+Problem Statement:
+You are given an array nums that consists of non-negative integers. Let us define rev(x) as the reverse of the non-negative integer x. For example, rev(123) = 321, and rev(120) = 21. A pair of indices (i, j) is nice if it satisfies all of the following conditions:
+
+0 <= i < j < nums.length
+nums[i] + rev(nums[j]) == nums[j] + rev(nums[i])
+Return the number of nice pairs of indices. 
+
+Reference Implementation (Python3):
+class Solution:
+    def countNicePairs(self, nums: List[int]) -> int:
+        def rev(num):
+            result = 0
+            while num:
+                result = result * 10 + num % 10
+                num //= 10
+            
+            return result
+
+        arr = []
+        for i in range(len(nums)):
+            arr.append(nums[i] - rev(nums[i]))
+        
+        dic = defaultdict(int)
+        ans = 0
+        MOD = 10 ** 9 + 7
+        for num in arr:
+            ans = (ans + dic[num]) % MOD
+            dic[num] += 1
+        
+        return ans
+
+Instance: nums = [13, 10, 35, 24, 76]
+
+Output (Merlin):
+array nums = {
+	value: [13, 10, 35, 24, 76]
+	color: [null, null, null, null, null]
+    above: "nums"
+}
+
+array arr = {
+	value: [-18, 9, -18, -18, 9]
+	color: [null, null, null, null, null]
+    above: "arr"
+}
+
+text formula = {
+    value: "arr[i] = nums[i] - rev(nums[i])"
+}
+
+text desc = {
+  value: ["-18 not seen before, add it to dictionary"]
+}
+
+text dic = {
+    value: ["-18:1"]
+}
+
+text answer = {
+    value: "answer = 0"
+}
+
+page 1x3
+show nums
+show formula
+show arr
+
+page 1x4
+hide nums
+hide formula
+arr.setColor(0, "green")
+show desc
+show dic
+show answer
+
+page 1x4
+arr.setColor(0, null)
+arr.setColor(1, "green")
+desc.setValue(0, "9 not seen before, add it to dictionary")
+dic.setValue(1, "9:1")
+
+page 1x4
+arr.setColor(0, "blue")
+arr.setColor(1, null)
+arr.setColor(2, "green")
+desc.setValue(0, "We saw one -18 before, we can form a pair!")
+desc.setColor(0, "blue")
+desc.setValue(1, "Add 1 to the answer and increment -18 in dictionary")
+dic.setValue(0, "-18:2")
+answer.setValue("answer = 1")
+
+page 1x4
+arr.setColor(2, "blue")
+arr.setColor(3, "green")
+desc.setValue(0, "We saw two -18 before, we can form two pairs!")
+desc.setValue(1, "Add 2 to the answer and increment -18 in dictionary")
+dic.setValue(0, "-18:3")
+answer.setValue("answer = 3")
+
+page 1x4
+arr.setColor(0, null)
+arr.setColor(2, null)
+arr.setColor(3, null)
+arr.setColor(1, "blue")
+arr.setColor(4, "green")
+desc.setValue(0, "We saw one 9 before, we can form one pair!")
+desc.setValue(1, "Add 1 to the answer and increment 9 in dictionary")
+dic.setValue(1, "9:2")
+answer.setValue("answer = 4")
+answer.setColor(0, "red")
+answer.setFontSize(24)
+answer.setFontFamily("Courier")
+answer.setFontWeight("bold")

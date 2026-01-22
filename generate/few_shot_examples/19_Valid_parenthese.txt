@@ -1,0 +1,113 @@
+Problem Statement:Given a string s containing just the characters '(', ')', '{', '}', '[' and ']', determine if the input string is valid.
+An input string is valid if:
+1.Open brackets must be closed by the same type of brackets.
+2.Open brackets must be closed in the correct order.
+3.Every close bracket has a corresponding open bracket of the same type.
+
+Reference Implementation (Python3):
+class Solution(object):
+    def isValid(self, s: str) -> bool:
+
+        # The stack to keep track of opening brackets.
+        stack = []
+
+        # Hash map for keeping track of mappings. This keeps the code very clean.
+        # Also makes adding more types of parenthesis easier
+        mapping = {")": "(", "}": "{", "]": "["}
+
+        # For every bracket in the expression.
+        for char in s:
+
+            # If the character is an closing bracket
+            if char in mapping:
+
+                # Pop the topmost element from the stack, if it is non empty
+                # Otherwise assign a dummy value of '#' to the top_element variable
+                top_element = stack.pop() if stack else "#"
+
+                # The mapping for the opening bracket in our hash and the top
+                # element of the stack don't match, return False
+                if mapping[char] != top_element:
+                    return False
+            else:
+                # We have an opening bracket, simply push it onto the stack.
+                stack.append(char)
+
+        # In the end, if the stack is empty, then we have a valid expression.
+        # The stack won't be empty for cases like ((()
+        return not stack
+
+Instance: s = "{ [ [ ] { } ] }"
+
+Output (Merlin):
+array arr = {
+	value: ["{", "[", "[", "]", "{", "}", "]", "}"]
+	color: ["green", "", "", "", "", "", "", ""]
+    arrow: [" "]
+}
+stack stk = {
+	value: ["{"]
+	color: [""]
+}
+
+page
+show arr
+show stk
+
+page
+arr.setColor(0, null)
+arr.setColor(1, "green")
+arr.setArrow(0, "")
+arr.setArrow(1, " ")
+stk.insertValue(0, "[")
+
+page
+arr.setColor(1, null)
+arr.setColor(2, "green")
+arr.setArrow(1, "")
+arr.setArrow(2, " ")
+stk.insertValue(0, "[")
+
+page
+arr.setColor(2, null)
+arr.setColor(3, "green")
+arr.setArrow(2, "")
+arr.setArrow(3, " ")
+stk.setColor(0, "green")
+stk.setArrow(0, "Pop")
+
+page
+arr.setColor(3, null)
+arr.setColor(4, "green")
+arr.setArrow(3, "")
+arr.setArrow(4, " ")
+stk.setColor(0, null)
+stk.setArrow(0, null)
+stk.removeAt(0)
+stk.insertValue(0, "{")
+
+page
+arr.setColor(4, null)
+arr.setColor(5, "green")
+arr.setArrow(4, "")
+arr.setArrow(5, " ")
+stk.setColor(0, "green")
+stk.setArrow(0, "Pop")
+
+page
+arr.setColor(5, null)
+arr.setColor(6, "green")
+arr.setArrow(5, "")
+arr.setArrow(6, " ")
+stk.removeAt(0)
+stk.setColor(0, "green")
+stk.setArrow(0, "Pop")
+
+page
+arr.setColor(6, null)
+arr.setColor(7, "green")
+arr.setArrow(6, "")
+arr.setArrow(7, " ")
+stk.removeAt(0)
+stk.setColor(0, "green")
+stk.setArrow(0, "Pop")

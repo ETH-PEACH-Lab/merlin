@@ -1,0 +1,387 @@
+**Merlin Language Reference**
+
+Merlin is a domain-specific language for visualizing data structures and algorithms interactively. It is designed to be simple, readable, and powerful for both teaching and learning.
+
+1- Core Concepts
+
+-	Data Structures: Define arrays, matrices, graphs, stacks, trees, and text blocks with rich attributes.
+-	Pages: Use page to create steps or slides in your visualization.
+-	Show: Use show to display a data structure on a page.
+-	Methods: Manipulate data structures with intuitive methods (e.g., setColor, addNode).
+
+2- Data Structures
+
+**Array**
+Arrays are linear sequences of elements that can be accessed by index. They are perfect for visualizing sorting algorithms, searching, and other sequential operations.
+
+Properties:
+-	value: The array elements. Type = (number | string | null)[]
+-	color: Colors for each element. Type = (color | null)[]
+-	arrow: Arrows or labels for each element. Type = (number | string | null)[]
+-	above: Label positioned above the array. Type = string | text_object
+-	below: Label positioned below the array. Type = string | text_object
+-	left: Label positioned left the array. Type = string | text_object
+-	right: Label positioned right the array. Type = string | text_object
+
+Methods:
+Arrays support these methods for manipulation:
+
+Text Positioning Methods
+setText(text, position) - Set or remove text at specific positions ("above", "below", "left", "right")
+
+Single Element Methods
+setValue(index, value) - Set value at specific index
+setColor(index, color) - Set color at specific index
+setArrow(index, arrow) - Set arrow at specific index
+
+Multiple Element Methods
+setValues([...]) - Set multiple values (use _ to keep existing)
+setColors([...]) - Set multiple colors
+setArrows([...]) - Set multiple arrows
+
+Add/Insert Methods
+addValue(value) - Add value to end of array
+insertValue(index, value) - Insert value at specific index
+
+Remove Methods
+removeValue(value) - Remove first occurrence of value
+removeAt(index) - Remove element at specific index
+
+**Matrix**
+Matrices are two-dimensional grids of elements organized in rows and columns. They are perfect for visualizing 2D algorithms, image processing, and grid-based operations.
+
+Properties:
+-	value: 2D array of matrix elements. Type = (number | string | null)[][]
+-	color: Colors for each element. Type = (color | null)[][]
+-	arrow: Arrows or labels for each element. Type = (number | string | null)[][]
+-	above: Label positioned above the array. Type = string | text_object
+-	below: Label positioned below the array. Type = string | text_object
+-	left: Label positioned left the array. Type = string | text_object
+-	right: Label positioned right the array. Type = string | text_object
+
+Methods
+Matrices support these methods for manipulation:
+
+Text Positioning Methods
+setText(text, position) - Set or remove text at specific positions ("above", "below", "left", "right")
+
+Single Element Methods
+setValue(row, col, value) - Set value at specific position
+setColor(row, col, color) - Set color at specific position
+setArrow(row, col, arrow) - Set arrow at specific position
+
+Multiple Element Methods
+setValues([[...], ...]) - Set multiple values (use _ to keep existing)
+setColors([[...], ...]) - Set multiple colors
+setArrows([[...], ...]) - Set multiple arrows
+
+Structural Methods
+addRow([values]?) - Add new row (optionally with values)
+addColumn([values]?) - Add new column (optionally with values)
+insertRow(index, [values]?) - Insert row at specific index with optional values
+insertColumn(index, [values]?) - Insert column at specific index with optional values
+removeRow(index) - Remove row at index
+removeColumn(index) - Remove column at index
+addBorder(value, color?) - Add border around matrix
+
+**Graph**
+Graphs are collections of nodes connected by edges, perfect for visualizing networks, relationships, and graph algorithms like shortest path and traversal.
+
+Properties:
+-	nodes: List of node identifiers. Type = id[]
+-	value: Values for each node. Type = (number | string | null)[]
+-	edge: List of connection between nodes. Type = edge[]
+-	color: Colors of each node. Type = (color | null)[]
+-	arrow: Arrows or labels for each node. Type = (number | string | null)[]
+-	hidden: Visibility of each node. Type = Boolean[]
+-	above: Label positioned above the array. Type = string | text_object
+-	below: Label positioned below the array. Type = string | text_object
+-	left: Label positioned left the array. Type = string | text_object
+-	right: Label positioned right the array. Type = string | text_object
+
+Methods
+Graphs support these methods for manipulation:
+
+Text Positioning Methods
+setText(text, position) - Set or remove text at specific positions ("above", "below", "left", "right")
+
+Node Methods
+addNode(name, value?) - Add new node with optional value
+removeNode(name) - Remove node and its edges
+setValue(index | id, value) - Set value for node at index or node id
+setColor(index | id, color) - Set color for node at index or node id
+setArrow(index | id, arrow) - Set arrow for node at index or node id
+setHidden(index | id, hidden) - Set visibility for node at index or node id
+
+Edge Methods
+addEdge(edge) - Add new edge (e.g., A-B)
+removeEdge(edge) - Remove specific edge
+
+Multiple Element Methods
+setValues([...]) - Set multiple node values
+setColors([...]) - Set multiple node colors
+setArrows([...]) - Set multiple node arrows
+setEdges([...]) - Set multiple edges
+setHidden([...]) - Set visibility for multiple nodes
+
+**Tree**
+Trees are hierarchical data structures with parent-child relationships. They are perfect for visualizing tree algorithms, organizational structures, and hierarchical data.
+
+Properties:
+-	node: List of node identifiers. Type = id[]
+- 	children: Parent-child relationships (e.g., parent-child). Type = child[]
+-	value: Values for each node. Type = (number | string | null)[]
+-	color: Colors of each node. Type = (color | null)[]
+-	arrow: Arrows or labels for each node. Type = (number | string | null)[]
+-	above: Label positioned above the array. Type = string | text_object
+-	below: Label positioned below the array. Type = string | text_object
+-	left: Label positioned left the array. Type = string | text_object
+-	right: Label positioned right the array. Type = string | text_object
+
+Methods
+Trees support these methods for manipulation:
+
+Text Positioning Methods
+setText(text, position) - Set or remove text at specific positions ("above", "below", "left", "right")
+
+Node Methods
+addNode(name, value?) - Add new node with optional value
+removeNode(name) - Remove node and its subtree
+setValue(index | id, value) - Set value for node at index or node id
+setColor(index | id, color) - Set color for node at index or node id
+setArrow(index | id, arrow) - Set arrow for node at index or node id
+
+Tree Structure Methods
+addChild(parent-child, value?) - Add child to parent with optional value
+setChild(parent-child) - Change parent-child relationship
+removeSubtree(node) - Remove node and entire subtree
+
+Multiple Element Methods
+setValues([...]) - Set multiple node values
+setColors([...]) - Set multiple node colors
+setArrows([...]) - Set multiple node arrows
+
+**Stack**
+Stacks are Last-In-First-Out (LIFO) data structures where elements are added and removed from the top. They are perfect for visualizing function calls, expression evaluation, and backtracking algorithms.
+
+Properties:
+-	value: The array elements. Type = (number | string | null)[]
+-	color: Colors for each element. Type = (color | null)[]
+-	arrow: Arrows or labels for each element. Type = (number | string | null)[]
+-	above: Label positioned above the array. Type = string | text_object
+-	below: Label positioned below the array. Type = string | text_object
+-	left: Label positioned left the array. Type = string | text_object
+-	right: Label positioned right the array. Type = string | text_object
+Methods
+Stacks support these methods for manipulation:
+
+Text Positioning Methods
+setText(text, position) - Set or remove text at specific positions ("above", "below", "left", "right")
+
+Single Element Methods
+setValue(index, value) - Set value at specific position
+setColor(index, color) - Set color at specific position
+setArrow(index, arrow) - Set arrow at specific position
+
+Multiple Element Methods
+setValues([...]) - Set multiple values (use _ to keep existing)
+setColors([...]) - Set multiple colors
+setArrows([...]) - Set multiple arrows
+
+Stack Operations
+addValue(value) - Push value onto top of stack
+insertValue(index, value) - Insert value at specific position
+removeValue(value) - Remove first occurrence of value
+removeAt(index) - Remove element at specific position
+
+**LinkedList**
+LinkedLists are sequences of nodes where each node contains data and connects to the next node. They are perfect for visualizing dynamic data structures and pointer-based algorithms.
+
+Properties:
+-	node: List of node identifiers. Type = id[]
+-	value: Values for each node. Type = (number | string | null)[]
+-	color: Colors of each node. Type = (color | null)[]
+-	arrow: Arrows or labels for each node. Type = (number | string | null)[]
+-	above: Label positioned above the array. Type = string | text_object
+-	below: Label positioned below the array. Type = string | text_object
+-	left: Label positioned left the array. Type = string | text_object
+-	right: Label positioned right the array. Type = string | text_object
+
+Methods
+LinkedLists support these methods for manipulation:
+
+Text Positioning Methods
+setText(text, position) - Set or remove text at specific positions ("above", "below", "left", "right")
+
+Node Methods
+addNode(name, value?) - Add new node with optional value
+insertNode(index | id, name, value?) - Insert node at specific position or after node ID with optional value
+removeNode(name) - Remove specific node
+setValue(index | id, value) - Set value for node at index or node id
+setColor(index | id, color) - Set color for node at index or node id
+setArrow(index | id, arrow) - Set arrow for node at index or node id
+
+Value Methods
+addValue(value) - Add value to end of list
+removeValue(value) - Remove first occurrence of value
+removeAt(index) - Remove node at specific position
+
+Multiple Element Methods
+setValues([...]) - Set multiple node values
+setColors([...]) - Set multiple node colors
+setArrows([...]) - Set multiple node arrows
+
+**Text**
+Text elements allow you to add formatted labels, descriptions, and annotations to your visualizations. They support rich styling options for typography and layout.
+
+Properties:
+-	value: Text content (single line or array of lines). Type = string | strings[]
+- 	fontSize: Font size(s) for each line. Type = number | number[]
+-	color: Text color(s) for each line. Type = color | (color | null)[]
+-	fontWeight: Font weight (normal, bold, etc.). Type = fontWeight | (fontWeight | null)[]
+-	fontFamily: Font family for each line. Type = fontFamily | (fontFamily | null)[]
+-	align: Text alignment (left, center, right). Type = align | (align | null)[]
+- 	lineSpacing: Spacing between lines. Type = number
+- 	width: Text box width. Type = number
+-	height: Text box height. Type = number
+
+Methods
+Text elements support these methods for manipulation:
+
+info
+Text objects do not support the setText() method since they are text themselves. Use setValue(), setFontSize(), and other text-specific methods instead.
+
+Single Property Methods
+setValue(value) - Set text content for all lines
+setValue(line, value) - Set text content for specific line
+setFontSize(value) - Set font size for all text
+setFontSize(line, size) - Set font size for specific line
+setColor(line, color) - Set color for specific line
+setFontWeight(weight) - Set font weight for all text
+setFontWeight(line, weight) - Set font weight for specific line
+setFontFamily(family) - Set font family for all text
+setFontFamily(line, family) - Set font family for specific line
+setAlign(alignment) - Set alignment for all text
+setAlign(line, alignment) - Set alignment for specific line
+setLineSpacing(spacing) - Set line spacing
+setWidth(width) - Set text box width
+setHeight(height) - Set text box height
+
+Multiple Element Methods
+setValues([...]) - Set text content for multiple lines
+setFontSizes([...]) - Set font sizes for multiple lines
+setColors([...]) - Set colors for multiple lines
+setFontWeights([...]) - Set font weights for multiple lines
+setFontFamilies([...]) - Set font families for multiple lines
+setAligns([...]) - Set alignments for multiple lines
+
+3 - Positioning
+
+Positioning in Merlin allows you to arrange multiple data structures and text elements in a grid layout. You can specify the grid size and position elements using coordinates or named positions.
+
+Grid Layout
+Use the page AxB command to create a grid layout with A columns and B rows:
+array numbers = {
+    value: [1, 2, 3]
+    color: ["blue", "green", "red"]
+    below: "belowNumbers"
+    above: "Prime Number Sequence"
+}
+
+text belowNumbers = {
+    value: "These are the first three prime numbers."
+}
+
+page 2x1
+show numbers (0, 0)
+show belowNumbers (1, 0)
+
+Position Methods
+Named Positioning
+Use descriptive position names for easier layout:
+
+Quarters: top-left, top-right, bottom-left, bottom-right (or tl, tr, bl, br)
+Halves: top, bottom, left, right
+Single: center (occupies one cell in center)
+array numbers = {
+    value: [1, 2, 3]
+    color: ["blue", "green", "red"]
+}
+graph myGraph = {
+    nodes: [n1,n2,n3]
+    edges: [n1-n2,n2-n3,n3-n1]
+}
+text randomText = {
+    value: ["This graph forms a triangle,", "each node connected to the others.", "It's a simple cyclic graph."]
+    color: ["#222222", "#0055aa", "#007700"]
+}
+text randomTextToo = {
+    value: "Prime numbers and graphs—fundamental math concepts!"
+    color: "#cc0000"
+}
+
+
+page 2x2
+show numbers top-right
+show randomText bottom-right
+show myGraph left
+
+Coordinate Positioning
+Use (col, row) coordinates where (0, 0) is the top-left cell:
+graph myGraph = {
+    nodes: [n1, n2, n3]
+    edges: [n1-n2, n2-n3, n3-n1]
+    below: "Triangle Graph"
+}
+
+text description = {
+    value: ["This graph forms a triangle,", "each node connected to the others.", "It's a simple cyclic graph."]
+    color: ["#222222", "#0055aa", "#007700"]
+}
+
+text bottomLeft = {
+    value: "Bottom Left"
+}
+
+page 2x2
+show myGraph (0, 0)
+show description (1, 1)
+show bottomLeft (0, 1)
+
+Range Positioning
+You can also specify ranges, e.g. (a..b, c..d) and span columns a to b and rows c to d:
+array numbers = {
+	value: [2, 3, 5, 7, 11]
+	color: ["blue", "green", "red", "orange", "purple"]
+	above: "Prime Numbers"
+}
+
+text mainText = {
+	value: "Prime numbers and graphs—fundamental math concepts!"
+	fontSize: 15
+	color: "#cc0000"
+}
+
+graph triangle = {
+	nodes: [A, B, C]
+	edges: [A-B, B-C, C-A]
+	below: "Triangle Graph"
+}
+
+page 4x4
+show numbers (0..3, 0)
+show triangle (0, 1..2)
+show mainText bottom-right
+
+Auto Layout
+If no grid size is specified, Merlin automatically determines the optimal layout.
+
+Best Practices
+Grid Planning
+Plan your grid size based on the number of elements
+Use 2x2, 3x2, or 4x3 for common layouts
+Consider element relationships when positioning
+Position Strategy
+Use named positions (top-left, center) for simple layouts
+Use coordinates (x, y) for precise control
+Use ranges (0..2, 1) for spanning multiple cells

@@ -1,0 +1,176 @@
+Problem Statement:Given a list of accounts where each element accounts[i] is a list of strings, where the first element accounts[i][0] is a name, and the rest of the elements are emails representing emails of the account.
+
+Now, we would like to merge these accounts. Two accounts definitely belong to the same person if there is some common email to both accounts. Note that even if two accounts have the same name, they may belong to different people as people could have the same name. A person can have any number of accounts initially, but all of their accounts definitely have the same name.
+
+After merging the accounts, return the accounts in the following format: the first element of each account is the name, and the rest of the elements are emails in sorted order. The accounts themselves can be returned in any order.
+
+Reference Implementation (Java):
+class Solution {
+    HashSet<String> visited = new HashSet<>();
+    Map<String, List<String>> adjacent = new HashMap<String, List<String>>();
+    
+    private void DFS(List<String> mergedAccount, String email) {
+        visited.add(email);
+        // Add the email vector that contains the current component's emails
+        mergedAccount.add(email);
+        
+        if (!adjacent.containsKey(email)) {
+            return;
+        }
+        
+        for (String neighbor : adjacent.get(email)) {
+            if (!visited.contains(neighbor)) {
+                DFS(mergedAccount, neighbor);
+            }
+        }
+    }
+    
+    public List<List<String>> accountsMerge(List<List<String>> accountList) {
+        int accountListSize = accountList.size();
+        
+        for (List<String> account : accountList) {
+            int accountSize = account.size();
+            
+            // Building adjacency list
+            // Adding edge between first email to all other emails in the account
+            String accountFirstEmail = account.get(1);
+            for (int j = 2; j < accountSize; j++) {
+                String accountEmail = account.get(j);
+                
+                if (!adjacent.containsKey(accountFirstEmail)) {
+                    adjacent.put(accountFirstEmail, new ArrayList<String>());
+                }
+                adjacent.get(accountFirstEmail).add(accountEmail);
+                
+                if (!adjacent.containsKey(accountEmail)) {
+                    adjacent.put(accountEmail, new ArrayList<String>());
+                }
+                adjacent.get(accountEmail).add(accountFirstEmail);
+            }
+        }
+        
+        // Traverse over all th accounts to store components
+        List<List<String>> mergedAccounts = new ArrayList<>();
+        for (List<String> account : accountList) {
+            String accountName = account.get(0);
+            String accountFirstEmail = account.get(1);
+            
+            // If email is visited, then it's a part of different component
+            // Hence perform DFS only if email is not visited yet
+            if (!visited.contains(accountFirstEmail)) {
+                List<String> mergedAccount = new ArrayList<>();
+                // Adding account name at the 0th index
+                mergedAccount.add(accountName);
+                
+                DFS(mergedAccount, accountFirstEmail);
+                Collections.sort(mergedAccount.subList(1, mergedAccount.size())); 
+                mergedAccounts.add(mergedAccount);
+            }
+        }
+        
+        return mergedAccounts;
+    }
+}
+
+Instance: accounts = [["John","e1","e2"],["John","e1","e3"],["Mary","e4"],["John","e5"]]
+
+Output: 
+matrix adj = {
+  value: [
+    ["John", "e1", "e2", "e3"],
+    ["John", "e2", "e4"],
+    ["Mary", "e5", "e6"],
+    ["Mary", "e6", "e7", "e8"]
+  ]
+  above: "Adjacency List"
+}
+
+graph g = {
+  nodes: [e1, e2, e3, e4, e5, e6, e7, e8]
+  value: ["e1", "e2", "e3", "e4", "e5", "e6", "e7", "e8"]
+  edges: []
+  below: "Build the graph"
+}
+
+matrix res = {
+  value: [
+    ["John", "e1", "e2", "e3", "e4"],
+    ["Mary", "e5", "e6", "e7", "e8"]
+  ]
+  below: "Merged Results"
+}
+
+page
+show adj
+show g
+
+page
+adj.setColor(0, 1, "blue")
+g.setColor(e1, "Blue")
+
+page
+adj.setColor(0, 2, "Green")
+g.setColor(e2, "green")
+g.addEdge(e1-e2)
+
+page
+adj.setColor(0, 2, null)
+adj.setColor(0, 3, "green")
+g.setColor(e2, null)
+g.setColor(e3, "green")
+g.addEdge(e1-e3)
+
+page
+adj.setColor(0, 1, null)
+adj.setColor(0, 3, null)
+adj.setColor(1, 1, "blue")
+adj.setColor(1, 2, "green")
+g.setColor(e1, null)
+g.setColor(e3, null)
+g.setColor(e2, "blue")
+g.setColor(e4, "green")
+g.addEdge(e2-e4)
+
+page
+adj.setColor(1, 1, null)
+adj.setColor(1, 2, null)
+g.setColor(e2, null)
+g.setColor(e4, null)
+g.addEdge(e5-e6)
+g.addEdge(e6-e7)
+g.addEdge(e6-e8)
+
+page 
+g.setText("Perform DFS\n Green = Visited", "below")
+adj.setColor(0, 1, "green")
+g.setColor(e1, "green")
+
+page 
+g.setColors(["green", "green", "green"])
+
+page
+g.setColor(e4, "green")
+
+page
+adj.setColor(0, 1, null)
+adj.setColor(1, 1, "green")
+
+page
+adj.setColor(1, 1, null)
+adj.setColor(2, 1, "lightgreen")
+g.setColor(e5, "lightgreen")
+
+page
+g.setColor(e6, "lightgreen")
+
+page
+g.setColor(e7, "lightgreen")
+g.setColor(e8, "lightgreen")
+
+page
+adj.setColor(2, 1, null)
+adj.setColor(3, 1, "lightgreen")
+
+page 
+show res left
+hide adj

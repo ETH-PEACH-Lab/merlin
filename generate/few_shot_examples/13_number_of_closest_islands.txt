@@ -1,0 +1,60 @@
+Problem Statement: Given a 2D grid consists of 0s (land) and 1s (water).  An island is a maximal 4-directionally connected group of 0s and a closed island is an island totally (all left, top, right, bottom) surrounded by 1s. Return the number of closed islands.
+
+Reference Implementation (Python3):
+    class Solution:
+        def closedIsland(self, grid: List[List[int]]) -> int:
+            m = len(grid)
+            n = len(grid[0])
+            visit = [[False] * n for _ in range(m)]
+            count = 0
+            
+            for i in range(m):
+                for j in range(n):
+                    if grid[i][j] == 0 and not visit[i][j] and self.bfs(i, j, m, n, grid, visit):
+                        count += 1
+                        
+            return count
+
+        def bfs(self, x: int, y: int, m: int, n: int, grid: List[List[int]], visit: List[List[bool]]) -> bool:
+            q = deque([(x, y)])
+            visit[x][y] = True
+            is_closed = True
+
+            dirx = [0, 1, 0, -1]
+            diry = [-1, 0, 1, 0]
+
+            while q:
+                x, y = q.popleft()
+
+                for i in range(4):
+                    r, c = x + dirx[i], y + diry[i]
+                    if r < 0 or r >= m or c < 0 or c >= n:
+                        # (x, y) is a boundary cell.
+                        is_closed = False
+                    elif grid[r][c] == 0 and not visit[r][c]:
+                        q.append((r, c))
+                        visit[r][c] = True
+
+            return is_closed
+
+Instance: grid = [[1,1,1,1,0], [1,0,0,1,0], [1,0,0,1,0], [1,1,1,1,0]]
+
+Output (Merlin):
+matrix mr1 = {
+    value: [[1,1,1,1,0],[1,0,0,1,0],[1,0,0,1,0],[1,1,1,1,0]]
+}
+
+page
+show mr1
+
+page
+mr1.setArrows([[null,null,null,null,"start"],[null,null,null,null,null],[null,null,null,null,null],[null,null,null,null,null]])
+
+page
+mr1.setColors([[null,null,null,null,"pink"],[null,null,null,null,"pink"],[null,null,null,null,"pink"],[null,null,null,null,"pink"]])
+
+page
+mr1.setArrows([[null,null,null,null,null],[null,"start",null,null,null],[null,null,null,null,null],[null,null,null,null,null]])
+
+page
+mr1.setColors([[null,null,null,null,"pink"],[null,"purple","purple",null,"pink"],[null,"purple","purple",null,"pink"],[null,null,null,null,"pink"]])

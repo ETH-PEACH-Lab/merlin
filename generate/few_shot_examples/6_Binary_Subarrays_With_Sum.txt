@@ -1,0 +1,60 @@
+Problem Statement: Given a binary array nums and an integer goal, return the number of non-empty subarrays with a sum goal. A subarray is a contiguous part of the array.
+
+Reference Implementation (Python3):
+    class Solution:
+        def numSubarraysWithSum(self, nums: List[int], goal: int) -> int:
+            total_count = 0
+            current_sum = 0
+            # {prefix: number of occurrence}
+            freq = {}  # To store the frequency of prefix sums
+
+            for num in nums:
+                current_sum += num
+                if current_sum == goal:
+                    total_count += 1
+
+                # Check if there is any prefix sum that can be subtracted from the current sum to get the desired goal
+                if current_sum - goal in freq:
+                    total_count += freq[current_sum - goal]
+
+                freq[current_sum] = freq.get(current_sum, 0) + 1
+
+            return total_count
+
+Instance: nums = [1, 0, 1, 0, 1], goal = 2
+
+Output (Merlin):
+array arr1 = {
+    value: [1, 0, 1, 0, 1]
+    color: ["blue", null, null, null, null]
+}
+stack stk = {
+    value: [1]
+}
+
+page
+show arr1
+show stk
+
+page
+arr1.setColor(1, "blue")
+arr1.setArrow(1, "cur")
+stk.setValue(0, 2)
+
+page
+arr1.setColor(2, "blue")
+arr1.setArrow(1, null)
+arr1.setArrow(2, "cur")
+stk.setValues([1, 2])
+
+page
+arr1.setColor(3, "blue")
+arr1.setArrow(2, null)
+arr1.setArrow(3, "cur")
+stk.setValues([2, 2])
+
+page
+arr1.setColor(4, "blue")
+arr1.setArrow(3, null)
+arr1.setArrow(4, "cur")
+stk.setValues([1, 2, 2])

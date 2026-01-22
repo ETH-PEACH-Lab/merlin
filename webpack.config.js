@@ -148,6 +148,95 @@ let webpackConfig = {
     devMiddleware:{
       publicPath: '/',
       stats: true
+    },
+    setupMiddlewares: (middlewares, devServer) => {
+      if (!devServer) {
+        throw new Error('webpack-dev-server is not defined');
+      }
+
+      devServer.app.post('/api/save-input', (req, res) => {
+        const fs = require('fs');
+        const path = require('path');
+        const { spawn } = require('child_process');
+        
+        let body = '';
+        req.on('data', chunk => {
+          body += chunk.toString();
+        });
+        
+        req.on('end', () => {
+          try {
+            const data = JSON.parse(body);
+            const content = `Problem statement: ${data.problemDescription}\nReference implementation: ${data.referenceImplementation}\nInstance: ${data.instance}`;
+            const filePath = path.join(__dirname, 'generate', 'input.txt');
+            
+            // Save the input file
+            fs.writeFileSync(filePath, content, 'utf8');
+            console.log('Input file saved to generate/input.txt');
+            
+            // Execute prompt.py
+            const pythonProcess = spawn('python3', ['prompt.py'], {
+              cwd: path.join(__dirname, 'generate')
+            });
+
+            let stdout = '';
+            let stderr = '';
+
+            pythonProcess.stdout.on('data', (data) => {
+              stdout += data.toString();
+              console.log(`Python output: ${data.toString()}`);
+            });
+
+            pythonProcess.stderr.on('data', (data) => {
+              stderr += data.toString();
+              console.error(`Python error: ${data.toString()}`);
+            });
+
+            pythonProcess.on('close', (code) => {
+              if (code === 0) {
+                console.log('Python script executed successfully');
+                
+                // Read the generated response.txt
+                const responsePath = path.join(__dirname, 'generate', 'outputs', 'response.txt');
+                try {
+                  const generatedCode = fs.readFileSync(responsePath, 'utf8');
+                  res.json({ 
+                    success: true, 
+                    message: 'File saved and generation completed',
+                    generatedCode: generatedCode,
+                    output: stdout
+                  });
+                } catch (readError) {
+                  res.status(500).json({ 
+                    success: false, 
+                    error: 'Failed to read generated output: ' + readError.message
+                  });
+                }
+              } else {
+                console.error(`Python script exited with code ${code}`);
+                res.status(500).json({ 
+                  success: false, 
+                  error: `Python script failed with code ${code}`,
+                  stderr: stderr
+                });
+              }
+            });
+
+            pythonProcess.on('error', (error) => {
+              console.error('Failed to start Python process:', error);
+              res.status(500).json({ 
+                success: false, 
+                error: 'Failed to start Python process: ' + error.message
+              });
+            });
+
+          } catch (error) {
+            res.status(500).json({ success: false, error: error.message });
+          }
+        });
+      });
+
+      return middlewares;
     }
   }
 };

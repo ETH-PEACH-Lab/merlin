@@ -1,0 +1,61 @@
+Problem Statement:
+Given the root of a binary tree, determine if it is a valid binary search tree (BST).
+
+A valid BST is defined as follows:
+
+The left subtree of a node contains only nodes with keys strictly less than the node's key.
+The right subtree of a node contains only nodes with keys strictly greater than the node's key.
+Both the left and right subtrees must also be binary search trees.
+
+Reference Implementation (Python3):
+class Solution:
+    def isValidBST(self, root: TreeNode) -> bool:
+
+        def validate(node, low=-math.inf, high=math.inf):
+            # Empty trees are valid BSTs.
+            if not node:
+                return True
+
+            # The current node's value must be between low and high.
+            if node.val <= low or node.val >= high:
+                return False
+
+            # The left and right subtree must also be valid.
+            return validate(node.right, node.val, high) and validate(
+                node.left, low, node.val
+            )
+
+        return validate(root)
+
+Instance: root = [5, 1, 4, null, null, 3, 6]
+
+Output (Merlin):
+tree tr1 = {
+	nodes: [A, B, C, D, E]
+	value: [5, 1, 4, 3, 6]
+	children: [A-B, A-C, C-D, C-E]
+}
+
+text label = {
+  value: "Is BST?\nlower_limit = NONE, upper_limit = NONE\nLimits are not available. Check right and left subtrees."
+}
+
+page 2x1
+show tr1
+show label
+tr1.setColors(["blue", "blue", "blue", "blue", "blue"])
+
+page 2x1
+tr1.setColors(["blue", "green", "red", "red", "red"])
+label.setValue(0, "Is the left subtree BST?\nlower_limit = NONE, upper_limit = 5\n1 < 5 and no child nodes. Yes it's a BST")
+label.setColor(0, "green")
+
+page 2x1
+tr1.setArrow(1, "BST")
+label.setValue(0, "Is the right subtree BST?\nlower_limit = 5, upper_limit = NONE\n4 < 5 It's not BST")
+label.setColor(0, "red")
+
+page 2x1
+tr1.setArrow(2, "NOT BST")
+label.setValue(0, "Return False")
+label.setColor(0, "black")

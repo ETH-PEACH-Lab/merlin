@@ -1,0 +1,114 @@
+Problem Statement:
+You are given two non-empty linked lists representing two non-negative integers. The most significant digit comes first and each of their nodes contains a single digit. Add the two numbers and return the sum as a linked list.
+
+You may assume the two numbers do not contain any leading zero, except the number 0 itself.
+
+Reference Implementation (Python3):
+class Solution:
+    def reverseList(self, head: Optional[ListNode]) -> Optional[ListNode]:
+        prev = None
+        temp = None
+        while head:
+            # Keep the next node
+            temp = head.next
+            # Reverse the link
+            head.next = prev
+            # Update the previous node and the current node.
+            prev = head
+            head = temp
+        return prev
+
+    def addTwoNumbers(self, l1: Optional[ListNode], l2: Optional[ListNode]) -> Optional[ListNode]:
+        r1 = self.reverseList(l1)
+        r2 = self.reverseList(l2)
+
+        total_sum = 0
+        carry = 0
+        ans = ListNode()
+        while r1 or r2:
+            if r1:
+                total_sum += r1.val
+                r1 = r1.next
+            if r2:
+                total_sum += r2.val
+                r2 = r2.next
+
+            ans.val = total_sum % 10
+            carry = total_sum // 10
+            head = ListNode(carry)
+            head.next = ans
+            ans = head
+            total_sum = carry
+
+        return ans.next if carry == 0 else ans
+
+Instance: l1 = [7,2,4,3], l2 = [5,6,4]
+
+Output (Merlin):
+linkedlist r1 = {
+	nodes: [n1,n2,n3,n4]
+	value: [3,4,2,7]
+    left: "R1"
+}
+
+linkedlist r2 = {
+	nodes: [n1,n2,n3]
+	value: [4,6,5]
+    left: " R2"
+}
+
+linkedlist l1 = {
+	nodes: [n1,n2,n3,n4]
+	value: [7, 2, 4, 3]
+    left: "L1"
+}
+
+linkedlist l2 = {
+	nodes: [n1,n2,n3]
+	value: [5, 6, 4]
+    left: " L2"
+}
+
+linkedlist ans = {
+	nodes: [n1,n2]
+	value: [0, 7]
+    left: "ans"
+}
+
+page 1x2
+show l1
+show l2
+
+page 1x3
+hide l1
+hide l2
+show r1
+show r2
+show ans
+r1.setColor(0, "red")
+r2.setColor(0, "red")
+ans.setColor(0, "green")
+ans.setColor(1, "green")
+
+page 1x3
+r1.setColor(0, null)
+r2.setColor(0, null)
+r1.setColor(1, "red")
+r2.setColor(1, "red")
+ans.insertNode(0, n3, 1)
+ans.setColor(0, "green")
+
+page 1x3
+r1.setColor(1, null)
+r2.setColor(1, null)
+r1.setColor(2, "red")
+r2.setColor(2, "red")
+ans.setValue(0, 8)
+
+page 1x3
+r1.setColor(2, null)
+r2.setColor(2, null)
+r1.setColor(3, "red")
+ans.insertNode(0, n3, 7)
+ans.setColor(0, "green")
+ans.setArrow(0, "Return this node")

@@ -1,0 +1,25 @@
+Problem statement: Given a binary tree root and an integer target, delete all the leaf nodes with value target.
+
+Note that once you delete a leaf node with value target, if its parent node becomes a leaf node and has the value target, it should also be deleted (you need to continue doing that until you cannot).
+Reference implementation: class Solution:
+    def removeLeafNodes(
+        self, root: Optional[TreeNode], target: int
+    ) -> Optional[TreeNode]:
+        # Base case
+        if root is None:
+            return None
+
+        # 1. Visit the left children
+        root.left = self.removeLeafNodes(root.left, target)
+
+        # 2. Visit the right children
+        root.right = self.removeLeafNodes(root.right, target)
+
+        # 3. Check if the current node is a leaf node and its value equals target
+        if root.left is None and root.right is None and root.val == target:
+            # Delete the node by returning None to the parent, effectively disconnecting it
+            return None
+
+        # Keep it untouched otherwise
+        return root
+Instance: root = [1,2,3,2,null,2,4], target = 2

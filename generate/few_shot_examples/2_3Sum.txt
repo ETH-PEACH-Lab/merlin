@@ -1,0 +1,73 @@
+Problem Statement: Given an integer array nums, return all the triplets [nums[i], nums[j], nums[k]] such that i != j, i != k, and j != k, and nums[i] + nums[j] + nums[k] == 0. Notice that the solution set must not contain duplicate triplets.
+
+Reference Implementation (Python3):
+    class Solution:
+        def threeSum(self, nums: List[int]) -> List[List[int]]:
+            res = []
+            nums.sort()
+            for i in range(len(nums)):
+                if nums[i] > 0:
+                    break
+                if i == 0 or nums[i - 1] != nums[i]:
+                    self.twoSumII(nums, i, res)
+            return res
+
+        def twoSumII(self, nums: List[int], i: int, res: List[List[int]]):
+            lo, hi = i + 1, len(nums) - 1
+            while lo < hi:
+                sum = nums[i] + nums[lo] + nums[hi]
+                if sum < 0:
+                    lo += 1
+                elif sum > 0:
+                    hi -= 1
+                else:
+                    res.append([nums[i], nums[lo], nums[hi]])
+                    lo += 1
+                    hi -= 1
+                    while lo < hi and nums[lo] == nums[lo - 1]:
+                        lo += 1
+
+Instance: nums = [4, 1, 1, 0, 1, 2]
+
+Output (Merlin):
+array arr = {
+    value: [4, 1, 1, 0, 1, 2]
+    arrow: ["i", null, null, null, null, null]
+}
+
+page
+show arr
+
+page
+arr.setArrow(1, "lo")
+arr.setArrow(5, "hi")
+
+page
+arr.setArrow(1, null)
+arr.setArrow(2, "lo")
+
+page
+arr.setArrow(2, null)
+arr.setArrow(3, "lo")
+
+page
+arr.setArrow(3, null)
+arr.setArrow(4, "lo")
+
+page
+arr.setArrow(0, null)
+arr.setArrow(1, "i")
+arr.setArrow(4, null)
+arr.setArrow(5, null)
+
+page
+arr.setArrow(2, "lo")
+arr.setArrow(5, "hi")
+
+page
+arr.setColor(1, "green")
+arr.setColor(2, "green")
+arr.setColor(5, "green")
+arr.setArrow(1, "i")
+arr.setArrow(2, "lo")
+arr.setArrow(5, "hi")

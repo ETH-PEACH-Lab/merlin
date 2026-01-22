@@ -1,0 +1,100 @@
+Problem Statement:Given an array of n integers nums, a 132 pattern is a subsequence of three integers nums[i], nums[j] and nums[k] such that i < j < k and nums[i] < nums[k] < nums[j].
+Return true if there is a 132 pattern in nums, otherwise, return false.
+
+Reference Implementation (Python3):
+class Solution:
+    def find132pattern(self, nums: List[int]) -> bool:
+        if len(nums) < 3:
+            return False
+        stack = []
+        min_array = [-1] * len(nums)
+        min_array[0] = nums[0]
+        for i in range(1, len(nums)):
+            min_array[i] = min(min_array[i - 1], nums[i])
+
+        for j in range(len(nums) - 1, -1, -1):
+            if nums[j] <= min_array[j]:
+                continue
+            while stack and stack[-1] <= min_array[j]:
+                stack.pop()
+            if stack and stack[-1] < nums[j]:
+                return True
+            stack.append(nums[j])
+        return False
+
+Instance: nums = [6, 12, 3, 4, 6, 11, 20]
+
+Output (Merlin):
+array arr1 = {
+	value: [6, 12, 3, 4, 6, 11, 20]
+	color: ["orange", "orange", "orange", "orange", "orange", "orange", "orange"]
+    above: "nums"
+}
+array arr2 = {
+	value: [6, 6, 3, 3, 3, 3, 3]
+	color: ["green", "green", "green", "green", "green", "green", "green"]
+    above: "min"
+}
+stack stk = {
+	value: []
+    above: "Stack"
+}
+
+page 2x2
+show arr1
+
+page 2x2
+show arr2
+show stk bottom
+
+page
+arr1.setColor(6, "yellow")
+arr2.setColor(6, "yellow")
+stk.setText("nums[j] > min[j]\nStack is empty\n Push nums[j] on stack", "above")
+
+page
+arr1.setColor(6, "orange")
+arr2.setColor(6, "green")
+arr1.setColor(5, "yellow")
+arr2.setColor(5, "yellow")
+stk.insertValue(0, 20)
+stk.setText("nums[j] > min[j]\nstack.peek() > nums[j]\n Push nums[j] on stack", "above")
+
+page
+arr1.setColor(5, "orange")
+arr2.setColor(5, "green")
+arr1.setColor(4, "yellow")
+arr2.setColor(4, "yellow")
+stk.insertValue(0, 11)
+stk.setText("nums[j] > min[j]\nstack.peek() > nums[j]\n Push nums[j] on stack", "above")
+
+page
+arr1.setColor(4, "orange")
+arr2.setColor(4, "green")
+arr1.setColor(3, "yellow")
+arr2.setColor(3, "yellow")
+stk.insertValue(0, 6)
+stk.setText("nums[j] > min[j]\nstack.peek() > nums[j]\n Push nums[j] on stack", "above")
+
+page
+arr1.setColor(3, "orange")
+arr2.setColor(3, "green")
+arr1.setColor(2, "yellow")
+arr2.setColor(2, "yellow")
+stk.insertValue(0, 4)
+stk.setText("nums[j] = min[j]\nContinue with next element", "above")
+
+page
+arr1.setColor(2, "orange")
+arr2.setColor(2, "green")
+arr1.setColor(1, "yellow")
+arr2.setColor(1, "yellow")
+stk.setText("nums[j] > min[j]\nstack.peek() < min[j]\nPop 4 from stack", "above")
+
+page
+stk.removeAt(0)
+stk.setText("nums[j] > min[j]\nstack.peek() = min[j]\nPop 6 from stack", "above")
+
+page
+stk.removeAt(0)
+stk.setText("nums[j] > min[j]\nstack.peek() > min[j]\nstack.peek() < nums[j]\n123 PATTERN FOUND", "above")

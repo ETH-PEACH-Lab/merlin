@@ -1,0 +1,144 @@
+Problem Statement: Given an array of integers preorder, which represents the preorder traversal of a BST (i.e., binary search tree), construct the tree and return its root.
+It is guaranteed that there is always possible to find a binary search tree with the given requirements for the given test cases.
+A binary search tree is a binary tree where for every node, any descendant of Node.left has a value strictly less than Node.val, and any descendant of Node.right has a value strictly greater than Node.val.
+A preorder traversal of a binary tree displays the value of the node first, then traverses Node.left, then traverses Node.right.
+
+Reference Implementation (Python3):
+class Solution:
+    def bstFromPreorder(self, preorder: List[int]) -> TreeNode:
+        n = len(preorder)
+        if not n:
+            return None
+        
+        root = TreeNode(preorder[0])         
+        stack = [root, ] 
+        
+        for i in range(1, n):
+            # take the last element of the stack as a parent
+            # and create a child from the next preorder element
+            node, child = stack[-1], TreeNode(preorder[i])
+            # adjust the parent 
+            while stack and stack[-1].val < child.val: 
+                node = stack.pop()
+             
+            # follow BST logic to create a parent-child link
+            if node.val < child.val:
+                node.right = child 
+            else:
+                node.left = child 
+            # add the child into stack
+            stack.append(child)
+  
+        return root
+
+Instance: preorder = [8, 5, 1, 7, 10]
+
+Output (Merlin):
+tree t = {
+	nodes: [A, B, C, D, E]
+	value: [8, 5, 10, 1, 7]
+	color: ["blue", null, null, null, null]
+	arrow: ["node", null, null, null, null]
+	children: [A-B, A-C, B-D, B-E]
+}
+
+stack s = {
+  value: []
+  color: []
+}
+
+array a = {
+  value: [8, 5, 1, 7, 10]
+  color: ["green", null, null, null, null]
+  arrow: ["root", null, null, null, null]
+  below: "Preorder"
+}
+
+page
+show t
+show s
+show a
+
+page
+s.addValue(8)
+
+page
+a.setColor(0, null)
+a.setColor(1, "green")
+a.setArrow(0, null)
+a.setArrow(1, "child")
+
+t.setColor(1, "green")
+
+s.insertValue(0, 5)
+
+page
+a.setColor(1, null)
+a.setColor(2, "green")
+a.setArrow(1, null)
+a.setArrow(2, "child")
+
+t.setColor(1, "blue")
+t.setColor(0, "gray")
+t.setArrow(0, "")
+t.setArrow(1, "node")
+
+page
+s.insertValue(0, 1)
+
+t.setColor(3, "green")
+
+page
+t.setColor(3, "blue")
+t.setColor(1, "gray")
+t.setArrow(1, "")
+t.setArrow(3, "node")
+
+a.setColor(2, null)
+a.setColor(3, "green")
+a.setArrow(2, null)
+a.setArrow(3, "child")
+
+page
+t.setArrow(3, "")
+t.setArrow(1, "node")
+t.setColor(1, "blue")
+t.setColor(3, "gray")
+
+s.removeAt(0)
+s.removeAt(0)
+
+page
+t.setColor(4, "green")
+s.insertValue(0, 7)
+
+page
+t.setColor(1, "gray")
+t.setColor(4, "blue")
+t.setArrow(1, "")
+t.setArrow(4, "node")
+
+a.setColor(3, null)
+a.setColor(4, "green")
+a.setArrow(3, null)
+a.setArrow(4, "child")
+
+page
+t.setColor(0, "blue")
+t.setColor(4, "gray")
+t.setArrow(0, "node")
+t.setArrow(4, "")
+
+s.removeAt(0)
+s.removeAt(0)
+
+page
+t.setColor(2, "green")
+s.insertValue(0, 10)
+
+page
+t.setColors(["red", "red" ,"red", "red", "red"])
+t.setArrow(0, "")
+
+a.setArrow(4, "")
+a.setColor(4, null)

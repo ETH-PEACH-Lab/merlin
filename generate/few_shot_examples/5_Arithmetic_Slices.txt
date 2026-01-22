@@ -1,0 +1,64 @@
+Problem Statement: An integer array is called arithmetic if it consists of at least three elements and if the difference between any two consecutive elements is the same. For example, [1,3,5,7,9], [7,7,7,7], and [3,-1,-5,-9] are arithmetic sequences. Given an integer array nums, return the number of arithmetic subarrays of nums. A subarray is a contiguous subsequence of the array.
+
+Reference Implementation (Python3):
+    public class Solution {
+        public int numberOfArithmeticSlices(int[] A) {
+            int[] dp = new int[A.length];
+            int sum = 0;
+            for (int i = 2; i < dp.length; i++) {
+                if (A[i] - A[i - 1] == A[i - 1] - A[i - 2]) {
+                    dp[i] = 1 + dp[i - 1];
+                    sum += dp[i];
+                }
+            }
+            return sum;
+        }
+    }
+
+Instance: [1, 3, 5, 6, 10, 15, 20, 25, 28, 29]
+
+Output (Merlin):
+array arr1 = {
+    value: [1,3,5,6,10,15,20,25,28,29]
+    color: [null,null,null,null,null,null,null,null,null,null]
+}
+array arr2 = {
+    value: [0,0,0,0,0,0,0,0,0,0]
+    color: [null,null,null,null,null,null,null,null,null,null]
+}
+
+page
+show arr1
+show arr2
+page
+arr1.setColors(["green","green","green",null,null,null,null,null,null,null])
+arr2.setValue(2, 1)
+arr2.setColor(2, "yellow")
+page
+arr1.setColors([null,"green","green","green",null,null,null,null,null,null])
+arr2.setValue(3, 2)
+arr2.setColor(2, null)
+arr2.setColor(3, "yellow")
+page
+arr1.setColors([null,null,"green","green","green",null,null,null,null,null])
+arr2.setValue(4, 3)
+arr2.setColor(3, null)
+arr2.setColor(4, "yellow")
+page
+arr1.setColors([null,null,null,null,"green","green","green",null,null,null])
+arr2.setColor(4, null)
+arr2.setColor(6, "yellow")
+page
+arr1.setColors([null,null,null,null,null,"green","green","green",null,null])
+arr2.setValue(7, 1)
+arr2.setColor(6, null)
+arr2.setColor(7, "yellow")
+page
+arr1.setColors([null,null,null,null,null,null,"green","green","green",null])
+arr2.setColor(7, null)
+arr2.setColor(8, "yellow")
+arr2.setValue(7, 0)
+page
+arr1.setColors([null,null,null,null,null,null,null,"green","green","green"])
+arr2.setColor(8, null)
+arr2.setColor(9, "yellow")

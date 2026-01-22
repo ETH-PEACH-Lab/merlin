@@ -1,0 +1,13 @@
+- Do **not** include code comments or natural-language explanations inside the Merlin code.
+
+- When updating arrows, colors or other elements, 1: **set previous ones to null** then 2: set the new ones.
+
+- Don't mix positionning number (ex: (1, 1)) and potionning names (ex: bottom-right). Keep positionning strategy consistent. 
+
+- Don't put two elements at the same position. 
+
+- Don't forget to remove elements from the stack when they are no longer needed.
+
+- To remove elements from an array, set them to the null value
+
+- The text data structure does not have the property above

@@ -1,0 +1,112 @@
+Problem Statement: Given two binary strings a and b, return their sum as a binary string.
+
+Reference Implementation (Python3):
+class Solution:
+    def addBinary(self, a, b) -> str:
+        n = max(len(a), len(b))
+        a, b = a.zfill(n), b.zfill(n)
+
+        carry = 0
+        answer = []
+        for i in range(n - 1, -1, -1):
+            if a[i] == "1":
+                carry += 1
+            if b[i] == "1":
+                carry += 1
+
+            if carry % 2 == 1:
+                answer.append("1")
+            else:
+                answer.append("0")
+
+            carry //= 2
+
+        if carry == 1:
+            answer.append("1")
+        answer.reverse()
+
+        return "".join(answer)
+
+Instance: a = "1111", b = "10"
+
+Output: 
+array a = {
+    value: [1, 1, 1, 1]
+    above: "a"
+}
+
+array b = {
+    value: [1, 0]
+    above: "b"
+}
+
+array carry = {
+    value: [0, 0, 0, 0, 1]
+    color: [null, null, null, "red", "red"]
+    above: "carry"
+}
+
+text t_ans = {
+    value: "append carry % 2"
+    color: "red"
+}
+
+array ans = {
+    value: [1]
+    color: ["blue"]
+    above: "ans"
+    below: t_ans
+}
+
+page 1x4
+show a 
+show b 
+
+page 1x4
+b.insertValue(0, 0)
+b.insertValue(0, 0)
+b.setText("b (padded)", "above")
+
+page 1x4
+a.setColor(3, "red")
+b.setColor(3, "red")
+show carry
+show ans
+
+page 1x4
+a.setColors([null, null, "red", null])
+b.setColors([null, null, "red", null])
+carry.setColors([null, null, "red", "red", null])
+carry.setValue(2, 1)
+ans.insertValue(0, 0)
+ans.setColors(["blue", null])
+
+page 1x4
+a.setColors([null, "red", null, null])
+b.setColors([null, "red", null, null])
+carry.setColors([null, "red", "red", null, null])
+carry.setValue(1, 1)
+carry.setValue(2, 0)
+ans.insertValue(0, 0)
+ans.setColors(["blue", null])
+
+page 1x4
+a.setColors(["red", null, null, null])
+b.setColors(["red", null, null, null])
+carry.setColors(["red", "red", null, null, null])
+carry.setValue(0, 1)
+carry.setValue(1, 0)
+ans.insertValue(0, 0)
+ans.setColors(["blue", null])
+
+page 1x4
+a.setColor(0, null)
+b.setColor(0, null)
+carry.setColor(1, null)
+ans.insertValue(0, 1)
+ans.setColors(["blue", null])
+
+page 1x4
+carry.setColor(0, null)
+ans.setColors(["blue", "blue", "blue", "blue", "blue"])
+t_ans.setValue(0, null)

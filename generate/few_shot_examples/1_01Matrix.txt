@@ -1,0 +1,192 @@
+Problem Statement:Given an m x n binary matrix mat, return the distance of the nearest 0 for each cell.
+The distance between two cells sharing a common edge is 1.
+
+Reference Implementation (Python3):
+from collections import deque
+class Solution:
+    def updateMatrix(self, mat: List[List[int]]) -> List[List[int]]:
+        def valid(row, col):
+            return 0 <= row < m and 0 <= col < n
+        
+        matrix = [row[:] for row in mat]
+        m = len(matrix)
+        n = len(matrix[0])
+        queue = deque()
+        seen = set()
+        
+        for row in range(m):
+            for col in range(n):
+                if matrix[row][col] == 0:
+                    queue.append((row, col, 0))
+                    seen.add((row, col))
+        
+        directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+
+        while queue:
+            row, col, steps = queue.popleft()
+            
+            for dx, dy in directions:
+                next_row, next_col = row + dy, col + dx
+                if (next_row, next_col) not in seen and valid(next_row, next_col):
+                    seen.add((next_row, next_col))
+                    queue.append((next_row, next_col, steps + 1))
+                    matrix[next_row][next_col] = steps + 1
+        
+        return matrix
+
+Instance: mat = [
+    [" ", " ", " ", " ", " ", " ", " ", " "],
+    [" ", " ", " ", " ", " ", " ", " ", " "],
+    [" ", " ", " ", 0, " ", " ", " ", " "],
+    [" ", " ", " ", " ", " ", " ", " ", " "],
+    [" ", " ", " ", " ", " ", 0, " ", " "],
+    [" ", 0, " ", " ", " ", " ", " ", " "],
+    [" ", " ", " ", " ", " ", " ", " ", 0]
+]
+
+Output (Merlin):
+matrix mr1 = {
+	value: [
+    [" ", " ", " ", " ", " ", " ", " ", " "],
+    [" ", " ", " ", " ", " ", " ", " ", " "],
+    [" ", " ", " ", 0, " ", " ", " ", " "],
+    [" ", " ", " ", " ", " ", " ", " ", " "],
+    [" ", " ", " ", " ", " ", 0, " ", " "],
+    [" ", 0, " ", " ", " ", " ", " ", " "],
+    [" ", " ", " ", " ", " ", " ", " ", 0]
+]
+	color: [
+    ["null", "null", "null", "null", "null", "null", "null", "null"],
+    ["null", "null", "null", "null", "null", "null", "null", "null"],
+    ["null", "null", "null", "green", "null", "null", "null", "null"],
+    ["null", "null", "null", "null", "null", "null", "null", "null"],
+    ["null", "null", "null", "null", "null", "green", "null", "null"],
+    ["null", "green", "null", "null", "null", "null", "null", "null"],
+    ["null", "null", "null", "null", "null", "null", "null", "green"]
+]
+below: "Green = current level"
+}
+
+page
+show mr1
+
+page
+mr1.setValues([
+    [" ", " ", " ", " ", " ", " ", " ", " "],
+    [" ", " ", " ", 1, " ", " ", " ", " "],
+    [" ", " ", 1, 0, 1, " ", " ", " "],
+    [" ", " ", " ", 1, " ", 1, " ", " "],
+    [" ", 1, " ", " ", 1, 0, 1, " "],
+    [1, 0, 1, " ", " ", 1, " ", 1],
+    [" ", 1, " ", " ", " ", " ", 1, 0]
+])
+mr1.setColors([
+    ["null", "null", "null", "null", "null", "null", "null", "null"],
+    ["null", "null", "null", "green", "null", "null", "null", "null"],
+    ["null", "null", "green", "blue", "green", "null", "null", "null"],
+    ["null", "null", "null", "green", "null", "green", "null", "null"],
+    ["null", "green", "null", "null", "green", "blue", "green", "null"],
+    ["green", "blue", "green", "null", "null", "green", "null", "green"],
+    ["null", "green", "null", "null", "null", "null", "green", "blue"]
+])
+mr1.setText("Green = current level\nBlue = previous level", "below")
+
+page
+mr1.setValues([
+    [" ", " ", " ", 2, " ", " ", " ", " "],
+    [" ", " ", 2, 1, 2, " ", " ", " "],
+    [" ", 2, 1, 0, 1, 2, " ", " "],
+    [" ", 2, 2, 1, 2, 1, 2, " "],
+    [2, 1, 2, 2, 1, 0, 1, 2],
+    [1, 0, 1, 2, 2, 1, 2, 1],
+    [2, 1, 2, " ", " ", 2, 1, 0]
+])
+mr1.setColors([
+    ["null", "null", "null", "green", "null", "null", "null", "null"],
+    ["null", "null", "green", "blue", "green", "null", "null", "null"],
+    ["null", "green", "blue", "null", "blue", "green", "null", "null"],
+    ["null", "green", "green", "blue", "green", "blue", "green", "null"],
+    ["green", "blue", "green", "green", "blue", "null", "blue", "green"],
+    ["blue", "null", "blue", "green", "green", "blue", "green", "blue"],
+    ["green", "blue", "green", "null", "null", "green", "blue", "null"]
+])
+
+page
+mr1.setValues([
+    [" ", " ", 3, 2, 3, " ", " ", " "],
+    [" ", 3, 2, 1, 2, 3, " ", " "],
+    [3, 2, 1, 0, 1, 2, 3, " "],
+    [3, 2, 2, 1, 2, 1, 2, 3],
+    [2, 1, 2, 2, 1, 0, 1, 2],
+    [1, 0, 1, 2, 2, 1, 2, 1],
+    [2, 1, 2, 3, 3, 2, 1, 0]
+])
+mr1.setColors([
+    ["null", "null", "green", "blue", "green", "null", "null", "null"],
+    ["null", "green", "blue", "null", "blue", "green", "null", "null"],
+    ["green", "blue", "null", "null", "null", "blue", "green", "null"],
+    ["green", "blue", "blue", "null", "blue", "null", "blue", "green"],
+    ["blue", "null", "blue", "blue", "null", "null", "null", "blue"],
+    ["null", "null", "null", "blue", "blue", "null", "blue", "null"],
+    ["blue", "null", "blue", "green", "green", "blue", "null", "null"]
+])
+
+page
+mr1.setValues([
+    [" ", 4, 3, 2, 3, 4, " ", " "],
+    [4, 3, 2, 1, 2, 3, 4, " "],
+    [3, 2, 1, 0, 1, 2, 3, 4],
+    [3, 2, 2, 1, 2, 1, 2, 3],
+    [2, 1, 2, 2, 1, 0, 1, 2],
+    [1, 0, 1, 2, 2, 1, 2, 1],
+    [2, 1, 2, 3, 3, 2, 1, 0]
+])
+mr1.setColors([
+    ["null", "green", "blue", "null", "blue", "green", "null", "null"],
+    ["green", "blue", "null", "null", "null", "blue", "green", "null"],
+    ["blue", "null", "null", "null", "null", "null", "blue", "green"],
+    ["blue", "null", "null", "null", "null", "null", "null", "blue"],
+    ["null", "null", "null", "null", "null", "null", "null", "null"],
+    ["null", "null", "null", "null", "null", "null", "null", "null"],
+    ["null", "null", "null", "blue", "blue", "null", "null", "null"]
+])
+
+page
+mr1.setValues([
+    [5, 4, 3, 2, 3, 4, 5, " "],
+    [4, 3, 2, 1, 2, 3, 4, 5],
+    [3, 2, 1, 0, 1, 2, 3, 4],
+    [3, 2, 2, 1, 2, 1, 2, 3],
+    [2, 1, 2, 2, 1, 0, 1, 2],
+    [1, 0, 1, 2, 2, 1, 2, 1],
+    [2, 1, 2, 3, 3, 2, 1, 0]
+])
+mr1.setColors([
+    ["green", "blue", "null", "null", "null", "blue", "green", "null"],
+    ["blue", "null", "null", "null", "null", "null", "blue", "null"],
+    ["null", "null", "null", "null", "null", "null", "null", "blue"],
+    ["null", "null", "null", "null", "null", "null", "null", "null"],
+    ["null", "null", "null", "null", "null", "null", "null", "null"],
+    ["null", "null", "null", "null", "null", "null", "null", "null"],
+    ["null", "null", "null", "null", "null", "null", "null", "null"]
+])
+
+page
+mr1.setValues([
+    [5, 4, 3, 2, 3, 4, 5, 6],
+    [4, 3, 2, 1, 2, 3, 4, 5],
+    [3, 2, 1, 0, 1, 2, 3, 4],
+    [3, 2, 2, 1, 2, 1, 2, 3],
+    [2, 1, 2, 2, 1, 0, 1, 2],
+    [1, 0, 1, 2, 2, 1, 2, 1],
+    [2, 1, 2, 3, 3, 2, 1, 0]
+])
+mr1.setColors([
+    ["blue", "null", "null", "null", "null", "null", "blue", "green"],
+    ["null", "null", "null", "null", "null", "null", "null", "blue"],
+    ["null", "null", "null", "null", "null", "null", "null", "null"],
+    ["null", "null", "null", "null", "null", "null", "null", "null"],
+    ["null", "null", "null", "null", "null", "null", "null", "null"],
+    ["null", "null", "null", "null", "null", "null", "null", "null"],
+    ["null", "null", "null", "null", "null", "null", "null", "null"]
+])

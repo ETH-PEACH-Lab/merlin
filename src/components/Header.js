@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button, Box, Toolbar, Typography, AppBar, SvgIcon } from "@mui/material";
 import { merlinIcon } from './CustomIcons';
+import GenerateDialog from './GenerateDialog';
 
-const Header = () => {
+const Header = ({ onCodeGenerated }) => {
+    const [openGenerate, setOpenGenerate] = useState(false);
     return (
         <AppBar position="static" sx={{
             flexDirection: "row",
@@ -20,12 +22,18 @@ const Header = () => {
                 </Box>
                 <Button sx={{ fontSize: "16px", marginRight: "10px" }} color="inherit" href="https://eth-peach-lab.github.io/merlin-docs/docs/getting-started" target="_blank">Documentation</Button>
                 <Button sx={{ fontSize: "16px", marginRight: "10px" }} color="inherit" href="https://eth-peach-lab.github.io/merlin-docs/development" target="_blank">Development</Button>
+                <Button sx={{ fontSize: "16px", marginRight: "10px" }} color="inherit" onClick={() => setOpenGenerate(true)}>Generate Visualization</Button>
             </Box>
             <Box display="flex" alignItems={"right"}>
                 <Toolbar disableGutters>
                     <Button sx={{ textTransform: 'none', fontSize: "16px" }} color="inherit" href="https://github.com/ETH-PEACH-Lab/merlin" target="_blank">GitHub</Button>
                 </Toolbar>
             </Box>
+            <GenerateDialog 
+                open={openGenerate} 
+                onClose={() => setOpenGenerate(false)}
+                onCodeGenerated={onCodeGenerated}
+            />
         </AppBar>
     )
 }

@@ -1,0 +1,63 @@
+tree tr = {
+  nodes: [A, B, C, D, E, F]
+  value: [1, 2, 3, 2, 2, 4]
+  children: [A-B, A-C, B-D, C-E, C-F]
+  below: "target = 2\nPostorder: left, right, delete if leaf == target"
+}
+
+page
+show tr
+
+page
+tr.setColor(A, "blue")
+tr.setText("At A: go left", "below")
+
+page
+tr.setColor(A, null)
+tr.setColor(B, "blue")
+tr.setText("At B: go left", "below")
+
+page
+tr.setColor(B, null)
+tr.setColor(D, "blue")
+tr.setText("At leaf D (value = 2): delete", "below")
+
+page
+tr.setColor(D, "red")
+tr.removeNode(D)
+tr.setText("Deleted D", "below")
+
+page
+tr.setColor(B, "red")
+tr.removeNode(B)
+tr.setText("B became leaf with value 2 -> deleted", "below")
+
+page
+tr.setColor(C, "blue")
+tr.setText("At C: go left", "below")
+
+page
+tr.setColor(C, null)
+tr.setColor(E, "blue")
+tr.setText("At leaf E (value = 2): delete", "below")
+
+page
+tr.setColor(E, "red")
+tr.removeNode(E)
+tr.setText("Deleted E", "below")
+
+page
+tr.setColor(F, "blue")
+tr.setText("At leaf F (value = 4): keep", "below")
+
+page
+tr.setColor(F, null)
+tr.setColor(A, "blue")
+tr.setText("Traversal done: final tree", "below")
+
+page
+tr.setColor(A, null)
+tr.setColor(C, "green")
+tr.setColor(A, "green")
+tr.setColor(F, "green")
+tr.setText("Final tree (kept nodes highlighted): A(1) - C(3) - F(4)", "below")

@@ -1,0 +1,98 @@
+Problem Statement:
+You are given the root of a binary tree where each node has a value in the range [0, 25] representing the letters 'a' to 'z'.
+
+Return the lexicographically smallest string that starts at a leaf of this tree and ends at the root.
+
+As a reminder, any shorter prefix of a string is lexicographically smaller.
+
+For example, "ab" is lexicographically smaller than "aba".
+A leaf of a node is a node that has no children.
+
+Reference Implementation (Python3): 
+class Solution:
+    def smallestFromLeaf(self, root: Optional[TreeNode]) -> str:
+        self.smallest_string = ""
+        self.dfs(root, "")
+        return self.smallest_string
+
+    # Helper function to find the lexicographically smallest string
+    def dfs(self, root, current_string):
+        # If the current node is NULL, return
+        if not root:
+            return
+
+        # Construct the current string by appending 
+        # the character corresponding to the node's value
+        current_string = chr(root.val + ord('a')) + current_string
+
+        # If the current node is a leaf node
+        if not root.left and not root.right:
+            # If the current string is smaller than the result 
+            # or if the result is empty
+            if not self.smallest_string or self.smallest_string > current_string:
+                self.smallest_string = current_string
+
+        # Recursively traverse the left subtree
+        if root.left:
+            self.dfs(root.left, current_string)
+        
+        # Recursively traverse the right subtree
+        if root.right:
+            self.dfs(root.right, current_string)
+
+Instance: root = [25, 1, 3, 1, 3, 0, 2]
+
+Output (Merlin):
+tree tr1 = {
+	nodes: [A, B, C, D, E, F, G]
+	value: ["z","b","d","b","d","a","c"]
+	color: [null,null,null,null,null,null,null]
+	children: [A-B, A-C, B-D, B-E, C-F, C-G]
+    below: "CurrentString\nSmallestString"
+}
+
+page
+show tr1
+
+page
+tr1.setColor(0, "blue")
+tr1.setText("CurrentString = z\nSmallestString", "below")
+
+page
+tr1.setColor(1, "blue")
+tr1.setText("CurrentString = bz\nSmallestString", "below")
+
+
+page
+tr1.setColors(["blue","blue",null,"blue",null,null,null])
+tr1.setText("CurrentString = bbz\nSmallestString", "below")
+
+
+page
+tr1.setColors(["blue","blue",null,null,null,null,null])
+tr1.setText("CurrentString = bz\nSmallestString = bbz", "below")
+
+
+page
+tr1.setColors(["blue","blue",null,null,"blue",null,null])
+tr1.setText("CurrentString = dbz\nSmallestString = bbz", "below")
+
+
+page
+tr1.setColors(["blue",null,"blue",null,null,null,null])
+tr1.setText("CurrentString = dz\nSmallestString = bbz", "below")
+
+
+page
+tr1.setColors(["blue",null,"blue",null,null,"blue",null])
+tr1.setText("CurrentString = adz\nSmallestString = adz", "below")
+
+
+page
+tr1.setColors(["blue",null,"blue",null,null,null,null])
+tr1.setText("CurrentString = dz\nSmallestString = adz", "below")
+
+
+page
+tr1.setColors(["blue",null,"blue",null,null,null,"blue"])
+tr1.setText("CurrentString = cdz\nSmallestString = adz", "below")

@@ -1,0 +1,87 @@
+Problem Statement:There are n buildings in a line. You are given an integer array heights of size n that represents the heights of the buildings in the line. The ocean is to the right of the buildings. A building has an ocean view if the building can see the ocean without obstructions. Formally, a building has an ocean view if all the buildings to its right have a smaller height. Return a list of indices (0-indexed) of buildings that have an ocean view, sorted in increasing order.
+
+Reference Implementation (Python3):
+    class Solution:
+        def findBuildings(self, heights: List[int]) -> List[int]:
+            n = len(heights)
+            answer = []
+
+            for current in range(n):
+                # If the current building is taller, 
+                # it will block the shorter building's ocean view to its left.
+                # So we pop all the shorter buildings that have been added before.
+                while answer and heights[answer[-1]] <= heights[current]:
+                    answer.pop()
+                answer.append(current)
+                
+            return answer
+
+Instance: heights = [5, 3, 2, 4, 1, 1]
+
+Output (Merlin):
+array arr1 = {
+    value: [5, 3, 2, 4, 1, 1]
+    color: ["green", "blue", "blue", "blue", "blue", "blue"]
+    arrow: ["cur", null, null, null, null, null]
+}
+array arr2 = {
+    value: [0]
+    color: ["orange"]
+}
+
+page
+show arr1
+show arr2
+
+page
+arr1.setColor(0, "green")
+arr1.setColor(1, "green")
+arr1.setArrow(0, null)
+arr1.setArrow(1, "cur")
+arr2.addValue(1)
+arr2.setColor(1, "orange")
+
+page
+arr1.setColor(1, "green")
+arr1.setColor(2, "green")
+arr1.setArrow(1, null)
+arr1.setArrow(2, "cur")
+arr2.addValue(2)
+arr2.setColor(2, "orange")
+
+page
+arr1.setArrow(2, null)
+arr1.setArrow(3, "cur")
+
+page
+arr1.setColor(2, "blue")
+arr2.removeAt(2)
+
+page
+arr1.setColor(1, "blue")
+arr2.removeAt(1)
+
+page
+arr1.setColor(3, "green")
+arr2.addValue(3)
+arr2.setColor(1, "orange")
+
+page
+arr1.setArrow(3, null)
+arr1.setArrow(4, "cur")
+arr1.setColor(4, "green")
+arr2.addValue(4)
+arr2.setColor(2, "orange")
+
+page
+arr1.setArrow(4, null)
+arr1.setArrow(5, "cur")
+
+page
+arr1.setColor(4, "blue")
+arr2.removeAt(2)
+
+page 
+arr1.setColor(5, "green")
+arr2.addValue(5)
+arr2.setColor(2, "orange")

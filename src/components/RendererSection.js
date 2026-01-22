@@ -125,13 +125,19 @@ const RendererSection = ({
   };
 
   const handleClickPrev = () => {
-    const newCurrentPage = currentPage - 1 >= 1? currentPage - 1 : 1 ;
-    setCurrentPage(newCurrentPage);
+    if (currentPage === 1) {
+      setCurrentPage(pages.length);
+    } else {
+      setCurrentPage(currentPage - 1);
+    }
   };
 
   const handleClickNext = () => {
-    const newCurrentPage = currentPage + 1 <= pages.length ? currentPage + 1 : pages.length;
-    setCurrentPage(newCurrentPage);
+    if (currentPage === pages.length) {
+      setCurrentPage(1);
+    } else {
+      setCurrentPage(currentPage + 1);
+    }
   };
 
   const handleShare = async () => {

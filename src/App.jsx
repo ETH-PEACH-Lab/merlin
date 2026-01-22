@@ -263,6 +263,7 @@ ${timestamp}
                 md: "static",
               },
             }}
+            onCodeGenerated={updateUnparsedCode}
           />
           <Box
             sx={{
