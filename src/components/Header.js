@@ -22,6 +22,7 @@ const Header = () => {
                 </Box>
                 <Button sx={{ fontSize: "16px", marginRight: "10px" }} color="inherit" href="https://eth-peach-lab.github.io/merlin-docs/docs/getting-started" target="_blank">Documentation</Button>
                 <Button sx={{ fontSize: "16px", marginRight: "10px" }} color="inherit" href="https://eth-peach-lab.github.io/merlin-docs/development" target="_blank">Development</Button>
+                <Button sx={{ fontSize: "16px", marginRight: "10px" }} color="inherit" href="https://eth-peach-lab.github.io/merlin" target="_blank">Merlin Editor</Button>
             </Box>
             <Box display="flex" alignItems={"right"}>
                 <Toolbar disableGutters>
