@@ -14,8 +14,10 @@ const Header = () => {
                 <Box display="flex">
                     <SvgIcon component={merlinIcon}></SvgIcon>
                     <Typography sx={{ fontWeight: "bold", marginRight: "10px", paddingRight: "8px", fontSize: "16px" }}>
-                        &nbsp;
-                        Merlin
+                        <a href="https://eth-peach-lab.github.io/merlin-docs/" style={{ textDecoration: 'none', color: 'inherit' }}>
+                            &nbsp;
+                            Merlin
+                        </a>
                     </Typography>
                 </Box>
                 <Button sx={{ fontSize: "16px", marginRight: "10px" }} color="inherit" href="https://eth-peach-lab.github.io/merlin-docs/docs/getting-started" target="_blank">Documentation</Button>
