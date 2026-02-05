@@ -1,4 +1,4 @@
-import { createTheme } from '@mui/material/styles';
+import { createTheme } from "@mui/material/styles";
 
 export const defaultTheme = createTheme()
 
@@ -9,6 +9,7 @@ const colorTheme = createTheme({
     highlight: "#a94fd8",
     borderHighlight: "2px solid #a94fd8",
     border: "1px solid #606770",
+    secondaryColor: "#ffffff"
   }
 });
 
@@ -18,10 +19,10 @@ export const themeConfig = {
     sectionHeaderColor: "#1c1e21",
     border: colorTheme.palette.border,
     primary: {
-      main: "#a94fd8",
+      main: colorTheme.palette.highlight,
     },
     secondary: {
-      main: "#ffffff",
+      main: colorTheme.palette.secondaryColor,
     },
   },
   components: {
@@ -38,6 +39,13 @@ export const themeConfig = {
       styleOverrides: {
         root: {
           textTransform: "none",
+          fontSize: "16px",
+          marginRight: "10px",
+          color: colorTheme.palette.secondaryColor,
+          "&:hover": {
+            color: colorTheme.palette.highlight, 
+            backgroundColor: 'transparent',
+          },
         },
       },
     },
@@ -63,7 +71,7 @@ export const themeConfig = {
     MuiListItemButton: {
       styleOverrides: {
         root: {
-          '&.Mui-selected': {
+          "&.Mui-selected": {
             borderLeft: colorTheme.palette.borderHighlight,
             color: colorTheme.palette.highlight,
           },
@@ -74,7 +82,7 @@ export const themeConfig = {
   typography: {
     fontSize: 15,
     fontFamily: "sans-serif",
-    textTransform: 'none'
+    textTransform: "none"
   },
 }
 

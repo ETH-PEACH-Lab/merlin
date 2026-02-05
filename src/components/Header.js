@@ -20,13 +20,13 @@ const Header = () => {
                         </a>
                     </Typography>
                 </Box>
-                <Button sx={{ fontSize: "16px", marginRight: "10px" }} color="inherit" href="https://eth-peach-lab.github.io/merlin-docs/docs/getting-started" target="_blank">Documentation</Button>
-                <Button sx={{ fontSize: "16px", marginRight: "10px" }} color="inherit" href="https://eth-peach-lab.github.io/merlin-docs/development" target="_blank">Development</Button>
-                <Button sx={{ fontSize: "16px", marginRight: "10px" }} color="inherit" href="https://eth-peach-lab.github.io/merlin" target="_blank">Merlin Editor</Button>
+                <Button href="https://eth-peach-lab.github.io/merlin-docs/docs/getting-started" target="_blank">Documentation</Button>
+                <Button href="https://eth-peach-lab.github.io/merlin-docs/development" target="_blank">Development</Button>
+                <Button sx={{ color: "#a94fd8" }} href="https://eth-peach-lab.github.io/merlin" target="_blank">Merlin Editor</Button>
             </Box>
             <Box display="flex" alignItems={"right"}>
                 <Toolbar disableGutters>
-                    <Button sx={{ textTransform: 'none', fontSize: "16px" }} color="inherit" href="https://github.com/ETH-PEACH-Lab/merlin" target="_blank">GitHub</Button>
+                    <Button href="https://github.com/ETH-PEACH-Lab/merlin" target="_blank">GitHub</Button>
                 </Toolbar>
             </Box>
         </AppBar>
