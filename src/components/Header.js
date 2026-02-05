@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button, Box, Toolbar, Typography, AppBar, SvgIcon } from "@mui/material";
 import { merlinIcon } from './CustomIcons';
+import "../index.css"
 
 const Header = () => {
     return (
@@ -14,7 +15,7 @@ const Header = () => {
                 <Box display="flex">
                     <SvgIcon component={merlinIcon}></SvgIcon>
                     <Typography sx={{ fontWeight: "bold", marginRight: "10px", paddingRight: "8px", fontSize: "16px" }}>
-                        <a href="https://eth-peach-lab.github.io/merlin-docs/" style={{ textDecoration: 'none', color: 'inherit' }}>
+                        <a id="title" href="https://eth-peach-lab.github.io/merlin-docs/" style={{ textDecoration: 'none', color: 'inherit' }}>
                             &nbsp;
                             Merlin
                         </a>

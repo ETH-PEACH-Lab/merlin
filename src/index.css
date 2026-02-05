@@ -231,3 +231,7 @@ code::-webkit-scrollbar-thumb {
 .MuiTouchRipple-root {
   display: none;
 }
+
+#title:hover {
+  color: #a94fd8 !important
+}
