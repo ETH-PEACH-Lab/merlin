@@ -272,7 +272,7 @@ ${timestamp}
             }}
           >
             <NavigationBar
-              items={examples}
+              examples={examples}
               savedItems={savedItems}
               onSelect={
                 activeTab === "examples"

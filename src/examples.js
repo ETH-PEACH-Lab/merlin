@@ -1,13 +1,22 @@
 const examples = [
 	{
-		id: "emptyTemplate",
-		title: "Empty Template",
-		userCode: `page`
+		groupName: 'Template',
+		items: [
+			{
+				id: "emptyTemplate",
+				title: "Empty Template",
+				userCode: `page`
+			},
+		]
 	},
 	{
-		id: "arrayExample",
-		title: "Example - Array",
-		userCode: `// Array - Sorting visualization
+		groupName: "Basic Examples",
+		items: [
+
+			{
+				id: "arrayExample",
+				title: "Example - Array",
+				userCode: `// Array - Sorting visualization
 array numbers = {
 	value: [64,34,25,12,22,11,90]
 	color: [null,"blue",null,null,null,null,null]
@@ -40,11 +49,11 @@ numbers.removeAt(2)
 // Clear arrow and color
 numbers.setColor(1, null)
 numbers.setArrow(1, null)`,
-	},
-	{
-		id: "graphExample", 
-		title: "Example - Graph",
-		userCode: `// Graph - Network connectivity
+			},
+			{
+				id: "graphExample",
+				title: "Example - Graph",
+				userCode: `// Graph - Network connectivity
 graph network = {
 	nodes: [server1,server2,server3,router]
 	value: [100,50,75,200]
@@ -73,11 +82,11 @@ page
 network.setColor(2, "orange")
 network.setValue(2, 90)
 network.setArrow(2, "high load")`,
-	},
-	{
-		id: "matrixExample",
-		title: "Example - Matrix",
-		userCode: `// Matrix - 2D grid operations
+			},
+			{
+				id: "matrixExample",
+				title: "Example - Matrix",
+				userCode: `// Matrix - 2D grid operations
 matrix grid = {
 	value: [[1, 2], [3, 4]]
 	color: [[null, null], [null, "red"]]
@@ -128,11 +137,11 @@ page
 // Add border around the matrix with specified value and color
 // This will add a border of zeros with gray color around the matrix
 grid.addBorder(0, "gray")`,
-	},
-	{
-		id: "stackExample",
-		title: "Example - Stack",
-		userCode: `// Stack - Function call stack
+			},
+			{
+				id: "stackExample",
+				title: "Example - Stack",
+				userCode: `// Stack - Function call stack
 stack callStack = {
 	value: ["main", "process", "calculate"]
 	color: [null, "blue", null]
@@ -147,11 +156,11 @@ callStack.setColor(0, "green")
 page
 callStack.setArrow(2, "peak")
 callStack.setValues([_,_,"validate","execute"])`,
-	},
-	{
-		id: "treeExample", 
-		title: "Example - Tree",
-		userCode: `// Tree - Organizational hierarchy with dynamic restructuring
+			},
+			{
+				id: "treeExample",
+				title: "Example - Tree",
+				userCode: `// Tree - Organizational hierarchy with dynamic restructuring
 tree orgChart = {
 	nodes: [CEO, CTO, CFO, LeadDev, Intern]
 	value: ["Alice", "Bob", "Carol", "Dave", "Eve"]
@@ -172,11 +181,11 @@ orgChart.setArrow(CEO, "CEO")
 page
 orgChart.setChild(CEO-TechLead)
 orgChart.removeSubtree(Intern)`,
-	},
-	{
-		id:"linkedlist",
-		title:"Example - Linked List",
-		userCode: `linkedlist traverse = {
+			},
+			{
+				id: "linkedlist",
+				title: "Example - Linked List",
+				userCode: `linkedlist traverse = {
   nodes: [start, mid1, mid2, end]
   value: ["first", "second", "third", "last"]
   color: [null, null, null, null]
@@ -200,11 +209,11 @@ traverse.setColor(1, "gray")
 traverse.setColor(2, "blue")
 traverse.setArrow(1, "visited")
 traverse.setArrow(2, "visiting")`,
-	},
-	{
-		id: "textAndFormattingExample",
-		title: "Example - Text and Formatting",
-		userCode: `array numbers = {
+			},
+			{
+				id: "textAndFormattingExample",
+				title: "Example - Text and Formatting",
+				userCode: `array numbers = {
 	value: [1, 2, 3]
 	color: ["blue", "green", "red"]
 	below: "belowNumbers"
@@ -258,11 +267,17 @@ show randomTextToo
 
 page
 `,
+			}
+		]
 	},
+
 	{
-		id: "Fibonacci",
-		title: "Fibonacci",
-		userCode: `// Fibonacci sequence
+		groupName: "Old Examples",
+		items: [
+			{
+				id: "Fibonacci",
+				title: "Fibonacci",
+				userCode: `// Fibonacci sequence
 array arr1 = {
 	value: [1]
 }
@@ -276,11 +291,11 @@ arr1.addValue(1)
 
 page
 arr1.addValue(2)`,
-	},
-	{
-		id: "LCAofTree",
-		title: "LCA in a tree",
-		userCode: `tree tr1 = {
+			},
+			{
+				id: "LCAofTree",
+				title: "LCA in a tree",
+				userCode: `tree tr1 = {
 	nodes: [A, B, C, D, E, F, G]
 	value: [1, 2, 3, 4, 5, 6, 7]
 	color: [null, null, "blue", null, "blue", null, null]
@@ -289,11 +304,11 @@ arr1.addValue(2)`,
 
 page
 show tr1`,
-	},
-	{
-		id: "DepthFirstSearch",
-		title: "Depth First Search",
-		userCode: `graph dfs = {
+			},
+			{
+				id: "DepthFirstSearch",
+				title: "Depth First Search",
+				userCode: `graph dfs = {
 	nodes: [n1, n2, n3, n4, n5, n6, n7, n8]
 	edges: [n1-n2, n1-n6, n1-n7, n2-n3, n3-n7, n3-n5, n4-n5, n4-n6, n4-n8]
 	color: ["red", null, null, null, null, null, null, null]
@@ -320,22 +335,22 @@ dfs.setColor(2, "blue")
 dfs.setColor(4, "red")
 dfs.setArrow(2, null)
 dfs.setArrow(4, "cur")`,
-	},
-	{
-		id: "NumbersOfIslands",
-		title: "Numbers of Islands",
-		userCode: `matrix mr1 = {
+			},
+			{
+				id: "NumbersOfIslands",
+				title: "Numbers of Islands",
+				userCode: `matrix mr1 = {
 	value: [[0, 0, 1, 0], [0, 1, 1, 0], [1, 0, 0, 0], [0, 0, 1, 1]]
 	color: [[null, null, "red", null]]
 }
 
 page
 show mr1`,
-	},
-	{
-		id: "ValidBrackets",
-		title: "Valid Brackets",
-		userCode: `array arr = {
+			},
+			{
+				id: "ValidBrackets",
+				title: "Valid Brackets",
+				userCode: `array arr = {
 	value: ["{", "{", "{", "}", "{", "}", "}", "{"]
 	color: ["", "", "", "", "", "", "", ""]
 }
@@ -347,11 +362,11 @@ stack stk = {
 page
 show arr
 show stk`,
-	},
-	{
-		id: "01Matrix",
-		title: "01 - Matrix",
-		userCode: `matrix mr1 = {
+			},
+			{
+				id: "01Matrix",
+				title: "01 - Matrix",
+				userCode: `matrix mr1 = {
 	value: [[0, 0, 1, 0, 0], [0, 0, 1, 0, 0], [1, 0, 0, 0, 0], [0, 0, 0, 0, 1], [0, 0, 0, 0, 1]]
 	color: [[null, null, "red", null, null], [null, null, "red", null, null], ["red", null, null, null, null], [null, null, null, null, "red"], [null, null, null, null, "red"]]
 }
@@ -364,11 +379,11 @@ mr1.setColors([[null, "blue", "red", "blue", null], ["blue", "blue", "red", "blu
 
 page
 mr1.setColors([["green", "blue", "red", "blue", "green"], ["blue", "blue", "red", "blue", "green"], ["red", "blue", "blue", "green", "blue"], ["blue", "green", "green", "blue", "red"], ["green", "green", "green", "blue", "red"]])`,
-	},
-	{
-		id: "132Pattern",
-		title: "132 - Pattern",
-		userCode: `array arr1 = {
+			},
+			{
+				id: "132Pattern",
+				title: "132 - Pattern",
+				userCode: `array arr1 = {
 	value: [6, 12, 3, 4, 6, 11, 20]
 	color: ["orange", "orange", "orange", "orange", "orange", "orange", "orange"]
 }
@@ -410,11 +425,11 @@ arr1.setColor(2, "orange")
 arr2.setColor(1, "yellow")
 arr2.setColor(2, "green")
 stk.removeValue(4)`,
-	},
-	{
-		id: "3sum",
-		title: "3 Sum",
-		userCode: `array arr = {
+			},
+			{
+				id: "3sum",
+				title: "3 Sum",
+				userCode: `array arr = {
 	value: [4, 1, 1, 0, 1, 2]
 	arrow: ["i", null, null, null, null, null]
 }
@@ -455,11 +470,11 @@ arr.setColor(5, "green")
 arr.setArrow(1, "i")
 arr.setArrow(2, "lo")
 arr.setArrow(5, "hi")`,
-	},
-	{
-		id: "04",
-		title: "Arithmetic Slices",
-		userCode: `array arr1 = {
+			},
+			{
+				id: "04",
+				title: "Arithmetic Slices",
+				userCode: `array arr1 = {
 	value: [1,3,5,6,10,15,20,25,28,29]
 	color: [null,null,null,null,null,null,null,null,null,null]
 }
@@ -503,11 +518,11 @@ page
 arr1.setColors([null,null,null,null,null,null,null,"green","green","green"])
 arr2.setColor(8, null)
 arr2.setColor(9, "yellow")`,
-	},
-	{
-		id: "05",
-		title: "Binary Subarrays With Sum",
-		userCode: `array arr1 = {
+			},
+			{
+				id: "05",
+				title: "Binary Subarrays With Sum",
+				userCode: `array arr1 = {
 	value: [1, 0, 1, 0, 1]
 	color: ["blue", null, null, null, null]
 }
@@ -541,11 +556,11 @@ arr1.setColor(4, "blue")
 arr1.setArrow(3, null)
 arr1.setArrow(4, "cur")
 stk.setValues([1, 2, 2])`,
-	},
-	{
-		id: "06",
-		title: "Building With an Ocean View",
-		userCode: `array arr1 = {
+			},
+			{
+				id: "06",
+				title: "Building With an Ocean View",
+				userCode: `array arr1 = {
 	value: [5, 3, 2, 4, 1, 1]
 	color: ["green", "blue", "blue", "blue", "blue", "blue"]
 	arrow: ["cur", null, null, null, null, null]
@@ -578,11 +593,11 @@ arr2.setColor(2, "orange")
 page
 arr1.setArrow(2, null)
 arr1.setArrow(3, "cur")`,
-	},
-	{
-		id: "07",
-		title: "Checking Existence of Edge Length Limited Paths",
-		userCode: `graph dfs = {
+			},
+			{
+				id: "07",
+				title: "Checking Existence of Edge Length Limited Paths",
+				userCode: `graph dfs = {
 	nodes: [n1, n2, n3, n4, n5, n6]
 	edges: [n1-n5, n1-n4, n2-n4, n2-n3]
 	hidden: [false, false, false, false, false, false]
@@ -608,11 +623,11 @@ dfs.removeEdge(n1-n5)
 page
 dfs.addEdge(n1-n5)
 dfs.addEdge(n2-n5)`,
-	},
-	{
-		id: "08",
-		title: "Construct Binary Search Tree From Preorder Traversal",
-		userCode: `tree tr1 = {
+			},
+			{
+				id: "08",
+				title: "Construct Binary Search Tree From Preorder Traversal",
+				userCode: `tree tr1 = {
 	nodes: [A, B, C, D, E]
 	value: [8, 5, 10, 1, 7]
 	color: [null, null, null, null, "blue"]
@@ -644,11 +659,11 @@ tr1.setArrow(4, null)
 page
 tr1.setColor(2, "green")
 tr1.setArrow(0, "nd")`,
-	},
-	{
-		id: "10",
-		title: "Construct Binary Tree From Inorder and Postorder Traversal",
-		userCode: `tree tr1 = {
+			},
+			{
+				id: "10",
+				title: "Construct Binary Tree From Inorder and Postorder Traversal",
+				userCode: `tree tr1 = {
 	nodes: [A, B, C, D, E]
 	value: [3, 9, 20, 15, 7]
 	color: [null, null, null, null, null]
@@ -672,11 +687,11 @@ tr1.setColor(3, "blue")
 
 page
 tr1.setColor(1, "blue")`,
-	},
-	{
-		id: "11",
-		title: "Count Nice Pairs in an Array",
-		userCode: `array arr1 = {
+			},
+			{
+				id: "11",
+				title: "Count Nice Pairs in an Array",
+				userCode: `array arr1 = {
 	value: [7, 3, 4, 4, 2, 4, 3, 3]
 	color: [null, null, null, null, null, null, null, null]
 }
@@ -712,11 +727,11 @@ arr1.setColors([null, "blue", null, null, null, null, "green", null])
 page
 arr1.setColor(6, "blue")
 arr1.setColor(7, "green")`,
-	},
-	{
-		id: "12",
-		title: "Count Pairs in Two Arrays",
-		userCode: `array arr1 = {
+			},
+			{
+				id: "12",
+				title: "Count Pairs in Two Arrays",
+				userCode: `array arr1 = {
 	value: [2, 1, 0, 1, 2, 4]
 	color: [null, "yellow", null, "green", null, "yellow"]
 	arrow: ["i", "left", null, "mid", null, "right"]
@@ -744,11 +759,11 @@ arr1.setColor(4, "yellow")
 arr1.setColor(5, "green")
 arr1.setArrow(4, "right")
 arr1.setArrow(5, "leftMid")`,
-	},
-	{
-		id: "13",
-		title: "Count Strictly Increasing Subarrays",
-		userCode: `array arr1 = {
+			},
+			{
+				id: "13",
+				title: "Count Strictly Increasing Subarrays",
+				userCode: `array arr1 = {
 	value: [1, 3, 5, 4, 4, 6]
 	color: ["orange", null, null, null, null, null]
 }
@@ -790,11 +805,11 @@ arr1.setColor(4, null)
 arr1.setColor(5, "orange")
 arr2.setColor(4, null)
 arr2.setColor(5, "orange")`,
-	},
-	{
-		id: "14",
-		title: "Binary Tree Preorder Traversal",
-		userCode: `tree tr1 = {
+			},
+			{
+				id: "14",
+				title: "Binary Tree Preorder Traversal",
+				userCode: `tree tr1 = {
 	nodes: [A, B, C, D, E, F, G]
 	value: [1, 2, 3, 4, 5, 6, 7]
 	children: [A-B, A-C, B-D, B-E, C-F, C-G]
@@ -823,11 +838,11 @@ tr1.setColor(5, "blue")
 
 page
 tr1.setColor(6, "blue")`,
-	},
-	{
-		id: "15",
-		title: "Binary Tree Inorder Traversal",
-		userCode: `tree tr1 = {
+			},
+			{
+				id: "15",
+				title: "Binary Tree Inorder Traversal",
+				userCode: `tree tr1 = {
 	nodes: [A, B, C, D, E, F, G]
 	value: [1, 2, 3, 4, 5, 6, 7]
 	children: [A-B, A-C, B-D, B-E, C-F, C-G]
@@ -856,11 +871,11 @@ tr1.setColor(2, "red")
 
 page
 tr1.setColor(6, "red")`,
-	},
-	{
-		id: "16",
-		title: "Binary Tree Postorder Traversal",
-		userCode: `tree tr1 = {
+			},
+			{
+				id: "16",
+				title: "Binary Tree Postorder Traversal",
+				userCode: `tree tr1 = {
 	nodes: [A, B, C, D, E, F, G]
 	value: [1, 2, 3, 4, 5, 6, 7]
 	children: [A-B, A-C, B-D, B-E, C-F, C-G]
@@ -887,11 +902,11 @@ tr1.setColor(2, "purple")
 
 page
 tr1.setColor(0, "purple")`,
-	},
-	{
-		id: "17",
-		title: "Binary Tree Level-Order Traversal",
-		userCode: `tree tr1 = {
+			},
+			{
+				id: "17",
+				title: "Binary Tree Level-Order Traversal",
+				userCode: `tree tr1 = {
 	nodes: [A, B, C, D, E, F, G]
 	value: [1, 2, 3, 4, 5, 6, 7]
 	children: [A-B, A-C, B-D, B-E, C-F, C-G]
@@ -922,11 +937,11 @@ tr1.setColors(["pink","pink","pink","pink","pink","pink","pink"])
 page
 tr1.setColors(["pink","pink","pink","pink","pink","pink","pink"])
 `,
-	},
-	{
-		id: "18",
-		title: "Find Smallest Common Element in All Rows",
-		userCode: `matrix mr1 = {
+			},
+			{
+				id: "18",
+				title: "Find Smallest Common Element in All Rows",
+				userCode: `matrix mr1 = {
 	value: [[1,2,3,4,5],[2,4,5,8,10],[3,5,7,9,11],[1,3,5,7,9]]
 }
 
@@ -954,11 +969,11 @@ page
 mr1.setColors([["green","green","green","green","yellow"],[null,null,"orange",null,null],[null,"orange",null,null,null],[null,null,"orange",null,null]])
 arr1.setValues(["T","T","T"])
 arr1.setColors(["green","green","green"])`,
-	},
-	{
-		id: "19",
-		title: "Find the Safest Path in a Grid",
-		userCode: `matrix mr1 = {
+			},
+			{
+				id: "19",
+				title: "Find the Safest Path in a Grid",
+				userCode: `matrix mr1 = {
 	value: [[1,1,1,0],[1,1,1,1],[1,1,1,1],[0,1,1,1]]
 }
 
@@ -976,11 +991,11 @@ mr1.setColors([[null,"blue","green","pink"],["blue",null,"blue","green"],["green
 page
 mr1.setValues([[3,2,1,0],[2,3,2,1],[1,2,3,2],[0,1,2,3]])
 mr1.setColors([["orange","blue","green","pink"],["blue","orange","blue","green"],["green","blue","orange","blue"],["pink","green","blue","orange"]])`,
-	},
-	{
-		id: "20",
-		title: "Number of Closed Islands",
-		userCode: `matrix mr1 = {
+			},
+			{
+				id: "20",
+				title: "Number of Closed Islands",
+				userCode: `matrix mr1 = {
 	value: [[1,1,1,1,0],[1,0,0,1,0],[1,0,0,1,0],[1,1,1,1,0]]
 }
 
@@ -998,11 +1013,11 @@ mr1.setArrows([[null,null,null,null,null],[null,"start",null,null,null],[null,nu
 
 page
 mr1.setColors([[null,null,null,null,"pink"],[null,"purple","purple",null,"pink"],[null,"purple","purple",null,"pink"],[null,null,null,null,"pink"]])`,
-	},
-	{
-		id: "21",
-		title: "Number of Enclaves",
-		userCode: `matrix mr1 = {
+			},
+			{
+				id: "21",
+				title: "Number of Enclaves",
+				userCode: `matrix mr1 = {
 	value: [[0,0,0,0,1],[0,0,1,0,1],[0,1,0,0,1],[0,1,0,1,0],[0,0,0,1,1]]
 }
 
@@ -1027,11 +1042,11 @@ mr1.setColors([[null,null,null,null,"red"],[null,null,null,null,"red"],[null,nul
 
 page
 mr1.setColors([[null,null,null,null,"red"],[null,null,"green",null,"red"],[null,"green",null,null,"red"],[null,"green",null,"red",null],[null,null,null,"red","red"]])`,
-	},
-	{
-		id: "22",
-		title: "Numbers of Islands",
-		userCode: `matrix mr1 = {
+			},
+			{
+				id: "22",
+				title: "Numbers of Islands",
+				userCode: `matrix mr1 = {
 	value: [[1,1,1],[0,1,0],[1,0,0],[1,0,1]]
 }
 
@@ -1065,11 +1080,11 @@ mr1.setArrows([[null,null,null],[null,null,null],[null,null,null],[null,null,"st
 
 page
 mr1.setColors([["blue","blue","blue"],[null,"blue",null],["pink",null,null],["pink",null,"green"]])`,
-	},
-	{
-		id: "24",
-		title: "Pacific Atlantic Water Flow",
-		userCode: `matrix mr1 = {
+			},
+			{
+				id: "24",
+				title: "Pacific Atlantic Water Flow",
+				userCode: `matrix mr1 = {
 	value: [[1,2,2,3,5,1,1,1,3],[3,2,3,4,4,2,2,2,3],[2,4,5,3,2,1,5,1,4],[6,7,1,4,5,1,6,4,2],[5,1,1,2,4,4,1,1,4]]
 }
 
@@ -1090,11 +1105,11 @@ mr1.setColors([["blue","blue","blue","blue","blue","blue","blue","blue","yellow"
 
 page
 mr1.setColors([["blue","blue","blue","blue","blue","blue","blue","blue","yellow"],["blue","blue","blue","blue","blue","blue","blue","blue","yellow"],["blue","blue","yellow",null,null,null,"blue",null,"yellow"],["yellow","yellow","green","green","green",null,"yellow","green","green"],["yellow","green","green","green","green","green","green","green","green"]])`,
-	},
-	{
-		id: "25",
-		title: "Score After Flipping Matrix",
-		userCode: `matrix mr1 = {
+			},
+			{
+				id: "25",
+				title: "Score After Flipping Matrix",
+				userCode: `matrix mr1 = {
 	value: [[0,0,1,1],[1,0,1,0],[1,1,0,0]]
 }
 
@@ -1123,11 +1138,11 @@ mr1.setValues([[1,1,1,0],[1,0,0,0],[1,1,1,0]])
 
 page
 mr1.setColors([["blue","green","pink","orange"],["green","pink","green","orange"],["green","green","pink","orange"]])`,
-	},
-	{
-		id: "26",
-		title: "Shift 2D Grid",
-		userCode: `matrix mr1 = {
+			},
+			{
+				id: "26",
+				title: "Shift 2D Grid",
+				userCode: `matrix mr1 = {
 	value: [[0,0,0,0],[0,0,0,0],[0,0,0,0]]
 }
 
@@ -1179,11 +1194,11 @@ mr1.setColors([["pink","pink","pink","pink"],[null,"pink","pink","pink"],["pink"
 page
 mr1.setValues([[8,9,10,11],[12,1,2,3],[4,5,6,7]])
 mr1.setColors([["pink","pink","pink","pink"],["pink","pink","pink","pink"],["pink","pink","pink","pink"]])`,
-	},
-	{
-		id: "27",
-		title: "Surrounded Regions",
-		userCode: `matrix mr1 = {
+			},
+			{
+				id: "27",
+				title: "Surrounded Regions",
+				userCode: `matrix mr1 = {
 	value: [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]
 }
 
@@ -1211,11 +1226,11 @@ mr1.setColors([["red","red","red","red"],["red","red","red","red"],["blue","blue
 
 page
 mr1.setColors([["red","red","red","red"],["red","red","red","red"],["blue","blue","blue","blue"],["red","blue","blue","blue"]])`,
-	},
-	{
-		id: "28",
-		title: "Unique Path II",
-		userCode: `matrix mr1 = {
+			},
+			{
+				id: "28",
+				title: "Unique Path II",
+				userCode: `matrix mr1 = {
 	value: [[1,0,0,0],[0,0,0,2],[0,0,0,0],[0,0,0,0]]
 }
 
@@ -1243,11 +1258,11 @@ mr1.setColors([["red","red","red","red"],[null,null,null,null],[null,null,null,n
 page
 mr1.setValues([[0,0,0,0],[0,0,0,2],[0,0,0,0],[0,0,0,0]])
 mr1.setColors([["red","red","red","red"],[null,null,null,"green"],[null,null,null,null],[null,null,null,null]])`,
-	},
-	{
-		id: "30",
-		title: "Word Search",
-		userCode: `matrix mr1 = {
+			},
+			{
+				id: "30",
+				title: "Word Search",
+				userCode: `matrix mr1 = {
 	value: [[1,2,2,1]]
 }
 
@@ -1280,11 +1295,11 @@ mr2.setColors([[null,null,null,null],[null,"green","green","red"],[null,null,"gr
 page
 mr1.setColors([["green","green","green","green"]])
 mr2.setColors([[null,null,null,null],[null,"green","green","red"],[null,null,"green","green"],[null,null,null,null]])`,
-	},
-	{
-		id: "31",
-		title: "Kth Largest Element in a Stream",
-		userCode: `array arr1 = {
+			},
+			{
+				id: "31",
+				title: "Kth Largest Element in a Stream",
+				userCode: `array arr1 = {
 	value: [2,4,8,5]
 	color: [null,null,null,null]
 }
@@ -1316,11 +1331,11 @@ arr2.setColors([null,null,null,"green",null,null])
 page
 arr2.setValues([2,3,4,5,5,8,10])
 arr2.setColors([null,null,null,null,"green",null,null])`,
-	},
-	{
-		id: "32",
-		title: "Validate Binary Search Tree",
-		userCode: `tree tr1 = {
+			},
+			{
+				id: "32",
+				title: "Validate Binary Search Tree",
+				userCode: `tree tr1 = {
 	nodes: [A, B, C, D, E, F, G]
 	value: [5, 1, 4, 0, 2, 3, 6]
 	children: [A-B, A-C, B-D, B-E, C-F, C-G]
@@ -1338,11 +1353,11 @@ tr1.setColors(["blue","red","green","red","red","green","green"])
 
 page
 tr1.setArrows([null,null,"notBST",null,null,null,null])`,
-	},
-	{
-		id: "33",
-		title: "Add Two Numbers II",
-		userCode: `linkedlist li1 = {
+			},
+			{
+				id: "33",
+				title: "Add Two Numbers II",
+				userCode: `linkedlist li1 = {
 	nodes: [n1,n2,n3,n4]
 	value: [3,4,2,7]
 }
@@ -1391,11 +1406,11 @@ li3.addNode(n5, 0)
 li3.setValues([7,0,8,7,0])
 li3.setColors(["green","green","green","green","green"])
 li3.setArrows([null,null,null,null,"return"])`,
-	},
-	{
-		id: "34",
-		title: "Print Immutable Linked List in Reverse",
-		userCode: `linkedlist li = {
+			},
+			{
+				id: "34",
+				title: "Print Immutable Linked List in Reverse",
+				userCode: `linkedlist li = {
 	nodes: [n1,n2,n3]
 	value: [1,2,3]
 }
@@ -1429,11 +1444,11 @@ page
 li.setColors([null,"red",null])
 stk.removeAt(0)
 stk.setColors([null])`,
-	},
-	{
-		id: "36",
-		title: "Count Substrings With Only One Distinct Letter",
-		userCode: `array arr1 = {
+			},
+			{
+				id: "36",
+				title: "Count Substrings With Only One Distinct Letter",
+				userCode: `array arr1 = {
 	value: ["a","a","a","a","b","b","a","c","c","c"]
 }
 array arr2 = {
@@ -1491,11 +1506,11 @@ page
 arr2.setValues([1,2,3,4,1,2,1,1,2,3])
 arr1.setColors([null,null,null,null,null,null,null,null,null,"pink"])
 arr2.setColors([null,null,null,null,null,null,null,null,null,"pink"])`,
-	},
-	{
-		id: "37",
-		title: "Vote Game",
-		userCode: `array arr = {
+			},
+			{
+				id: "37",
+				title: "Vote Game",
+				userCode: `array arr = {
 	value: ["d","r","d","r","d","r"]
 }
 
@@ -1531,11 +1546,11 @@ arr.setColors([null,"red","red","red","red","red"])
 page
 arr.setArrow(0, "win")
 arr.setColors(["green",null,null,null,null,null])`,
-	},
-	{
-		id: "38",
-		title: "Longest Word in Dictionary Through Deleting",
-		userCode: `array arr1 = {
+			},
+			{
+				id: "38",
+				title: "Longest Word in Dictionary Through Deleting",
+				userCode: `array arr1 = {
 	value: ["a","l","e"]
 }
 array arr2 = {
@@ -1566,11 +1581,11 @@ arr2.setColors(["blue","pink","pink","blue","blue",null])
 page
 arr1.setColors(["red","red","red"])
 arr2.setColors(["blue","pink","pink","blue","blue","red"])`,
-	},
-	{
-		id: "39",
-		title: "Minimum Length of String After Deleting Similar Ends",
-		userCode: `array arr = {
+			},
+			{
+				id: "39",
+				title: "Minimum Length of String After Deleting Similar Ends",
+				userCode: `array arr = {
 	value: ["a","a","b","c","c","a","b","b","a"]
 }
 
@@ -1596,11 +1611,11 @@ arr.setColors(["blue","blue","blue","blue","blue","blue",null,"red","red"])
 
 page
 arr.setColors(["blue","blue","blue","blue","blue","blue","red","red","red"])`,
-	},
-	{
-		id: "40",
-		title: "Number of Ways to Form a Target String Given a Dictionary",
-		userCode: `matrix mr1 = {
+			},
+			{
+				id: "40",
+				title: "Number of Ways to Form a Target String Given a Dictionary",
+				userCode: `matrix mr1 = {
 	value: [["a","c","c","a"],["b","b","b","b"],["c","a","c","a"]]
 }
 
@@ -1636,11 +1651,11 @@ mr1.setColor(2,3,"yellow")
 
 page
 mr1.setColor(2,3,"green")`,
-	},
-	{
-		id: "41",
-		title: "Smallest String Starting From Leaf",
-		userCode: `tree tr1 = {
+			},
+			{
+				id: "41",
+				title: "Smallest String Starting From Leaf",
+				userCode: `tree tr1 = {
 	nodes: [A, B, C, D, E, F, G]
 	value: ["z","b","d","b","d","a","c"]
 	color: [null,null,null,null,null,null,null]
@@ -1676,11 +1691,11 @@ tr1.setColors(["blue",null,"blue",null,null,null,null])
 
 page
 tr1.setColors(["blue",null,"blue",null,null,null,"blue"])`,
-	},
-	{
-		id: "42",
-		title: "Work Ladder",
-		userCode: `matrix mr1 = {
+			},
+			{
+				id: "42",
+				title: "Work Ladder",
+				userCode: `matrix mr1 = {
 	value: [[1,2,2,1]]
 	color: [["green",null,null,null]]
 }
@@ -1712,11 +1727,11 @@ mr2.setColor(2,2,"green")
 page
 mr1.setColor(0,3,"green")
 mr2.setColor(2,3,"green")`,
-	},
-	{
-		id: "43",
-		title: "Cheapest Flights Within K Stops",
-		userCode: `graph gh = {
+			},
+			{
+				id: "43",
+				title: "Cheapest Flights Within K Stops",
+				userCode: `graph gh = {
 	nodes: [n1,n2,n3,n4,n5]
 	value: [1,2,3,4,5]
 	edges: [n1-n2, n1-n3, n2-n3, n2-n4, n4-n5, n3-n4, n3-n5]
@@ -1740,11 +1755,11 @@ gh.setColors(["red","red","green","green",null])
 
 page
 gh.setColors(["red","red","green","yellow","green"])`,
-	},
-	{
-		id: "44",
-		title: "Design Graph With Shortest Path Calculator",
-		userCode: `graph gh = {
+			},
+			{
+				id: "44",
+				title: "Design Graph With Shortest Path Calculator",
+				userCode: `graph gh = {
 	nodes: [n1,n2,n3,n4,n5,n6]
 	value: ["a","b","c","d","e","f"]
 	edges: [n1-n2, n1-n3, n2-n4, n2-n5, n3-n5, n4-n6, n4-n5]
@@ -1769,11 +1784,11 @@ gh.setColors(["grey","grey","grey","grey","blue",null])
 
 page
 gh.setColors(["grey","grey","grey","grey","grey","blue"])`,
-	},
-	{
-		id: "46",
-		title: "Find Circle",
-		userCode: `graph gh = {
+			},
+			{
+				id: "46",
+				title: "Find Circle",
+				userCode: `graph gh = {
 	nodes: [n1,n2,n3,n4,n5,n6,n7,n8]
 	value: [1,2,3,4,5,6,7,8]
 	edges: [n1-n2, n2-n3, n3-n4, n4-n5, n5-n6, n6-n7, n7-n8, n8-n4]
@@ -1811,11 +1826,11 @@ gh.setColors([null,null,null,null,null,null,"red","green"])
 page
 gh.setColors([null,null,null,"red",null,null,null,null])
 gh.setArrow(3, "catch")`,
-	},
-	{
-		id: "47",
-		title: "BFS in a Graph",
-		userCode: `graph gh = {
+			},
+			{
+				id: "47",
+				title: "BFS in a Graph",
+				userCode: `graph gh = {
 	nodes: [n1,n2,n3,n4,n5,n6,n7,n8]
 	value: [1,2,3,4,5,6,7,8]
 	edges: [n1-n2, n1-n3, n1-n4, n1-n6, n1-n7, n3-n4, n3-n6, n4-n5, n6-n8]
@@ -1866,11 +1881,11 @@ page
 gh.setColor(7, "red")
 gh.setArrow(4, null)
 gh.setArrow(7, "finish")`,
-	},
-	{
-		id: "48",
-		title: "DFS in a Graph",
-		userCode: `graph gh = {
+			},
+			{
+				id: "48",
+				title: "DFS in a Graph",
+				userCode: `graph gh = {
 	nodes: [n1,n2,n3,n4,n5,n6,n7,n8]
 	value: [1,2,3,4,5,6,7,8]
 	edges: [n1-n2, n1-n3, n1-n4, n1-n6, n1-n7, n3-n4, n3-n6, n4-n5, n6-n8]
@@ -1929,11 +1944,11 @@ page
 gh.setColor(6, "blue")
 gh.setArrow(0, null)
 gh.setArrow(6, "cur")`,
-	},
-	{
-		id: "50",
-		title: "Reconstruct Itinerary",
-		userCode: `graph gh = {
+			},
+			{
+				id: "50",
+				title: "Reconstruct Itinerary",
+				userCode: `graph gh = {
 	nodes: [n1,n2,n3,n4]
 	value: ["aaa","bbb","ccc","jfk"]
 	edges: [n1-n4, n2-n3, n3-n4, n2-n4]
@@ -1960,11 +1975,11 @@ gh.setColors([null,"green","green","green"])
 
 page
 gh.setColors(["green","green","green","green"])`,
-	},
-	{
-		"id":"51",
-		"title":"find path in a maze i",
-		"userCode" : `matrix mr1 = {
+			},
+			{
+				"id": "51",
+				"title": "find path in a maze i",
+				"userCode": `matrix mr1 = {
 	value: [[1,0,"x",0],[0,0,"x",2],[0,0,0,0],["x","x",0,0]]
 	color: [[null,null,"red",null],[null,null,"red","green"],[null,null,null,null],["red","red",null,null]]
 	arrow: [["start",null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]]
@@ -2014,11 +2029,11 @@ mr1.setArrow(2,3,"c")
 page
 mr1.setArrow(2,3,null)
 mr1.setArrow(1,3,"finish")`,
-	},
-	{
-		"id":"52",
-		"title":"find path in a maze ii",
-		"userCode" : `matrix mr1 = {
+			},
+			{
+				"id": "52",
+				"title": "find path in a maze ii",
+				"userCode": `matrix mr1 = {
 	value: [[1,0,"x",0],[0,0,"x",2],[0,"x",0,0],[0,0,0,0]]
 	color: [[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]]
 	arrow: [["start",null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]]
@@ -2078,9 +2093,11 @@ page
 mr1.setValue(1,3,8)
 mr1.setColor(1,3,"green")
 mr1.setArrow(1,3,"finish")`,
-	},
-];
-module.exports = { examples };
+			},
+		]
+	}
+		];
+		module.exports = { examples };
 
 /*
 Example template for new entries in the examples array:

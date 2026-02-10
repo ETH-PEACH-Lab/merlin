@@ -1,14 +1,23 @@
-import React from 'react';
-import { Drawer, List, ListItemText, ListItemButton, Tab, Box } from '@mui/material';
+import React, { useState } from 'react';
+import { Collapse, Drawer, List, ListItemText, ListItemButton, Tab, Box } from '@mui/material';
 import { TabContext, TabList, TabPanel } from '@mui/lab';
 import { useTheme } from '@mui/material/styles';
 
-const NavigationBar = ({ items, savedItems, onSelect }) => {
+const NavigationBar = ({ examples, savedItems, onSelect }) => {
   const [selectedIndex, setSelectedIndex] = React.useState(-1);
   const [value, setValue] = React.useState('1');
+  const [openGroups, setOpenGroups] = useState({});
 
   const handleChange = (event, newValue) => {
     setValue(newValue);
+  };
+
+
+  const handleGroupClick = (groupName) => {
+    setOpenGroups((prev) => ({
+      ...prev,
+      [groupName]: !prev[groupName],
+    }));
   };
 
   const theme = useTheme();
@@ -43,17 +52,28 @@ const NavigationBar = ({ items, savedItems, onSelect }) => {
           </TabList>
         </Box>
         <TabPanel value="1" sx={{ p: 0 }}>
-          <List dense>
-            {items.map((item, index) => (
-              <ListItemButton
-                key={item.id}
-                selected={selectedIndex === index}
-                onClick={() => { onSelect(item); setSelectedIndex(index) }}
-              >
-                <ListItemText sx={{ pl: 2 }}>{item.title}</ListItemText>
-              </ListItemButton>
-            ))
-            }
+          <List>
+            {examples.map((group, index) => (
+              <React.Fragment key={index}>
+                <ListItemButton onClick={() => handleGroupClick(group.groupName)}>
+                  <ListItemText primary={group.groupName} />
+                </ListItemButton>
+                <Collapse in={!!openGroups[group.groupName]} timeout="auto" unmountOnExit>
+                  <List dense sx={{ p: 0 }}>
+                    {group.items.map((item, index) => (
+                      <ListItemButton
+                        key={item.id}
+                        selected={selectedIndex === index}
+                        onClick={() => { onSelect(item); setSelectedIndex(index) }}
+                      >
+                        <ListItemText sx={{ pl: 2 }}>{item.title}</ListItemText>
+                      </ListItemButton>
+                    ))
+                    }
+                  </List>
+                </Collapse>
+              </React.Fragment>
+            ))}
           </List>
         </TabPanel>
         <TabPanel value="2" sx={{ p: 0 }}><List dense>
