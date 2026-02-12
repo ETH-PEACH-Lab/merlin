@@ -59,7 +59,13 @@ const NavigationBar = ({ examples, savedItems, onSelect }) => {
                   onClick={() => handleGroupClick(group.groupName)}
                   sx={{ display: 'flex', flexDirection: 'column', alignItems: "flex-start", padding: "0px 0px 0px 20px" }}
                 >
-                  <ListItemText primary={group.groupName} />
+                  <ListItemText primary={group.groupName}
+                    sx={{
+                      "& .MuiTypography-root": {
+                        fontSize: '15px',
+                      }
+                    }}
+                  />
                 </ListItemButton>
                 <Collapse in={!!openGroups[group.groupName]} timeout="auto" unmountOnExit>
                   <List component="div" disablePadding>
@@ -76,7 +82,13 @@ const NavigationBar = ({ examples, savedItems, onSelect }) => {
                           padding: "0px 0px 0px 40px"
                         }}
                       >
-                        <ListItemText primary={item.title} />
+                        <ListItemText primary={item.title}
+                          sx={{
+                            "& .MuiTypography-root": {
+                              fontSize: '15px',
+                            }
+                          }}
+                        />
                       </ListItemButton>
 
                     ))}

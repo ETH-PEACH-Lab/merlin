@@ -43,7 +43,7 @@ export const themeConfig = {
           marginRight: "10px",
           color: colorTheme.palette.secondaryColor,
           "&:hover": {
-            color: colorTheme.palette.highlight, 
+            color: colorTheme.palette.highlight,
             backgroundColor: 'transparent',
           },
         },
@@ -77,8 +77,16 @@ export const themeConfig = {
           },
         }
       }
-    }
+    },
+    MuiListItemText: {
+      styleOverrides: {
+        root: {
+          fontSize: '5px',
+        }
+      }
+    },
   },
+
   typography: {
     fontSize: 15,
     fontFamily: "sans-serif",
