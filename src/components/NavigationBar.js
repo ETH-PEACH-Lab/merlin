@@ -52,45 +52,40 @@ const NavigationBar = ({ examples, savedItems, onSelect }) => {
           </TabList>
         </Box>
         <TabPanel value="1" sx={{ p: 0 }}>
-          <List>
+          <List sx={{ display: 'flex', flexDirection: 'column' }}>
             {examples.map((group, index) => (
               <React.Fragment key={index}>
-                <ListItemButton onClick={() => handleGroupClick(group.groupName)}>
+                <ListItemButton
+                  onClick={() => handleGroupClick(group.groupName)}
+                  sx={{ display: 'flex', flexDirection: 'column', alignItems: "flex-start", padding: "0px 0px 0px 20px" }}
+                >
                   <ListItemText primary={group.groupName} />
                 </ListItemButton>
                 <Collapse in={!!openGroups[group.groupName]} timeout="auto" unmountOnExit>
-                  <List dense sx={{ p: 0 }}>
+                  <List component="div" disablePadding>
                     {group.items.map((item, index) => (
+
                       <ListItemButton
                         key={item.id}
                         selected={selectedIndex === index}
                         onClick={() => { onSelect(item); setSelectedIndex(index) }}
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'flex-start',
+                          padding: "0px 0px 0px 40px"
+                        }}
                       >
-                        <ListItemText sx={{ pl: 2 }}>{item.title}</ListItemText>
+                        <ListItemText primary={item.title} />
                       </ListItemButton>
-                    ))
-                    }
+
+                    ))}
                   </List>
                 </Collapse>
               </React.Fragment>
             ))}
           </List>
         </TabPanel>
-        <TabPanel value="2" sx={{ p: 0 }}><List dense>
-          {savedItems.length > 0 ?
-            (
-              savedItems.map((item, index) => (
-                <ListItemButton
-                  key={item.timestamp}
-                  selected={selectedIndex === index}
-                  onClick={() => { onSelect(item); setSelectedIndex(index) }}
-                >
-                  <ListItemText sx={{ pl: 2 }}>{new Date(item.timestamp).toLocaleString()}</ListItemText>
-                </ListItemButton>
-              ))
-            ) : (
-              <ListItemText sx={{ pl: 2 }}>No saved diagrams</ListItemText>)}
-        </List></TabPanel>
       </TabContext>
     </Drawer>
   )
