@@ -10,7 +10,7 @@ const examples = [
 		]
 	},
 	{
-		groupName: "Basic Examples",
+		groupName: "Single-Page Examples",
 		items: [
 
 			{
@@ -272,7 +272,7 @@ page
 	},
 
 	{
-		groupName: "Old Examples",
+		groupName: "Old LeetCode Problems",
 		items: [
 			{
 				id: "Fibonacci",
