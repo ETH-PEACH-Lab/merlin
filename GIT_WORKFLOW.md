@@ -6,6 +6,7 @@ All students **collaboratively maintain the `main` branch**. This is the only lo
 
 - ✅ **Main branch** = Shared development branch with latest code
 - ✅ **Feature branches** = Short-lived branches, merge back to main when done
+- ✅ **Long-term branches** = Independent directions (e.g. `nn-visualization`, `python-tutor`) that develop separately without affecting `main`
 - ✅ **Frequent integration** = Merge as soon as a feature is complete, avoid large divergence  
 - ✅ **Pull latest** = Always `git pull` before starting work to get others' code
 - ✅ **Code review** = Yang reviews and approves all PRs to main
