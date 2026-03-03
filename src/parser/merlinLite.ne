@@ -122,7 +122,7 @@ const lexer = moo.compile({
   pass: "_",
   x: "x",
   word: { match: /[a-zA-Z_][a-zA-Z0-9_]*/, type: moo.keywords({
-    def: ["array", "matrix", "graph", "linkedlist", "tree", "stack", "text"],
+    def: ["array", "matrix", "graph", "linkedlist", "tree", "stack", "text", "neuralnetwork"],
   })},
   comment: { match: /\/\/.*?$/, lineBreaks: true, value: s => s.slice(2).trim() },
   string: { match: /"(?:\\.|[^"\\])*"/, value: s => s.slice(1, -1) },
@@ -179,6 +179,7 @@ root -> nlw:* one_per_line[definition_or_command]:? nlw:* {% ([, items]) => {
 # - DEFINITIONS - #
 # List of all definitions
 definition -> (array_def
+            | neuralNetwork_def
             | matrix_def
             | linkedlist_def
             | tree_def
@@ -196,6 +197,24 @@ array_pair -> (
               pair["color", ns_list] 
             | pair["value", nns_list]
             | pair["arrow", nns_list]
+            | pair["above", (string | word) {% id %}]
+            | pair["below", (string | word) {% id %}]
+            | pair["left", (string | word) {% id %}]
+            | pair["right", (string | word) {% id %}]
+) {% iid %}
+
+# NeuralNetwork Definition
+neuralNetwork_def -> definition["neuralnetwork", neuralNetwork_pair] {% id %}
+neuralNetwork_pair -> (
+              pair["layers", nns_list]
+            | pair["neurons", nns_mlist] 
+            | pair["layerColors", ns_list]
+            | pair["neuronColors", nns_mlist]
+            | pair["showBias", boolean]
+            | pair["showLabels", boolean]
+            | pair["labelPosition", positionLabelsLiteral]
+            | pair["showWeights", boolean]
+            | pair["showArrowheads", boolean]
             | pair["above", (string | word) {% id %}]
             | pair["below", (string | word) {% id %}]
             | pair["left", (string | word) {% id %}]
@@ -293,6 +312,18 @@ commands -> (comment
           | set_arrow
           | set_hidden
           | set_edges
+          | set_neuralnetwork_neuron
+          | set_neuralnetwork_neuron_color
+          | set_neuralnetwork_layer
+          | set_neuralnetwork_layer_color
+          | set_neuralnetwork_neurons
+          | set_neuralnetwork_neurons_color
+          | set_neuralnetwork_layers
+          | set_neuralnetwork_layers_color
+          | add_neuron_at_layer
+          | add_layer_with_neurons
+          | remove_neurons_at_layer
+          | remove_layer
           | set_matrix_value
           | set_matrix_color
           | set_matrix_values
@@ -366,6 +397,12 @@ set_color -> cmd["setColor", comma_sep[(number | word) {% id %}, (string | nullT
 set_arrow -> cmd["setArrow", comma_sep[(number | word) {% id %}, (number | string | nullT) {% id %}]] {% (details) => ({ type: "set", target: "arrow", ...id(details) }) %}
 set_hidden -> cmd["setHidden", comma_sep[(number | word) {% id %}, boolean]] {% (details) => ({ type: "set", target: "hidden", ...id(details) }) %}
 
+# Set a value in neural network
+set_neuralnetwork_neuron -> triple_cmd["setNeuron", (number | string | nullT) {% id %}] {% (details) => ({ type: "set_neuralnetwork_neuron", target: "neurons", ...id(details) }) %}
+set_neuralnetwork_neuron_color -> triple_cmd["setNeuronColor", (string | nullT) {% id %}] {% (details) => ({ type: "set_neuralnetwork_neuron", target: "neuronColors", ...id(details) }) %}
+set_neuralnetwork_layer -> cmd["setLayer", comma_sep[(number | word ) {% id %}, (number | string | nullT) {% id %}]] {% (details) => ({ type: "set_neuralnetwork_layer", target: "layers", ...id(details) }) %}
+set_neuralnetwork_layer_color -> cmd["setLayerColor", comma_sep[(number | word) {% id %}, (string | nullT) {% id %}]] {% (details) => ({ type: "set_neuralnetwork_layer", target: "layerColors", ...id(details) }) %}
+
 # Set a value in a matrix
 set_matrix_value -> triple_cmd["setValue", (number | string | nullT) {% id %}] {% (details) => ({ type: "set_matrix", target: "value", ...id(details) }) %}
 set_matrix_color -> triple_cmd["setColor", (string | nullT) {% id %}] {% (details) => ({ type: "set_matrix", target: "color", ...id(details) }) %}
@@ -389,6 +426,13 @@ set_values_multiple -> cmd["setValues", list[(number | string | nullT | pass) {%
 set_colors_multiple -> cmd["setColors", list[(string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "color", ...id(details) }) %}
 set_arrows_multiple -> cmd["setArrows", list[(number | string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "arrow", ...id(details) }) %}
 set_hidden_multiple -> cmd["setHidden", list[(boolean | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "hidden", ...id(details) }) %}
+
+# set multiple values in a neural network
+# Example: mat1.setValues([[1, 2], [3, 4]]) or mat1.setValues([[1, _], [_, 4]]), mat1.setValues([2,_,4,_,_,_,_])
+set_neuralnetwork_neurons -> cmd["setNeurons", nnsp_mlist] {% (details) => ({ type: "set_neuralnetwork_neurons_multiple", target: "neurons", ...id(details) }) %}
+set_neuralnetwork_layers -> cmd["setLayers", list[(number | string | nullT | pass ) {% id %}]] {% (details) => ({ type: "set_neuralnetwork_layer_multiple", target: "layers", ...id(details) }) %}
+set_neuralnetwork_neurons_color -> cmd["setNeuronColors", nnsp_mlist] {% (details) => ({ type: "set_neuralnetwork_neurons_multiple", target: "neuronColors", ...id(details) }) %}
+set_neuralnetwork_layers_color -> cmd["setLayerColors", list[(string | nullT | pass) {% id %}]] {% (details) => ({ type: "set_neuralnetwork_layer_multiple", target: "layerColors", ...id(details) }) %}
 
 # Set multiple values in a matrix
 # Example: mat1.setValues([[1, 2], [3, 4]]) or mat1.setValues([[1, _], [_, 4]])
@@ -454,6 +498,12 @@ remove_child -> cmd["removeChild", edge] {% (details) => ({ type: "remove", targ
 remove_subtree -> cmd["removeSubtree", word] {% (details) => ({ type: "remove_subtree", target: "nodes", ...id(details) }) %}
 remove_at -> cmd["removeAt", number] {% (details) => ({ type: "remove_at", target: "all", ...id(details) }) %}
 
+# Neural Network editing
+add_neuron_at_layer -> cmd["addNeurons", comma_sep[number , nns_list]] {% (details) => ({ type: "insert_neuralnetwork_addNeurons", target1: "layers", target2: "neurons", ...id(details) }) %}
+add_layer_with_neurons -> cmd["addLayer", comma_sep[(number | string), nns_list]] {% (details) => ({ type: "insert_neuralnetwork_addLayer", target1: "layers", target2: "neurons", target3: "layerColors", ...id(details) }) %}
+remove_neurons_at_layer -> cmd["removeNeuronsFromLayer", comma_sep[number, nns_list]] {% (details) => ({ type: "remove_neuralnetwork_removeNeuronsFromLayer",target1: "layers", target2: "neurons", target3: "neuronColors", target4: "layerColors", ...id(details) }) %}
+remove_layer -> cmd["removeLayerAt", number] {% (details) => ({ type: "remove_neuralnetwork_removeLayer", target1: "layers", target2: "neurons", target3: "layerColors", target4: "neuronColors", ...id(details) }) %}
+
 # Matrix structural editing
 add_matrix_row -> cmd["addRow", ((nullT | nns_list) {% iid %}):?] {% (details) => ({ type: "add_matrix_row", target: "value", ...id(details) }) %}
 add_matrix_column -> cmd["addColumn", ((nullT | nns_list) {% iid %}):?] {% (details) => ({ type: "add_matrix_column", target: "value", ...id(details) }) %}
@@ -483,6 +533,14 @@ wordL -> %word {% ([value]) => ({name: value.value, line: value.line, col: value
 nullT -> %nullT {% () => null %}
 pass -> %pass {% () => "_" %}
 layout -> number %x number {% ([a, , b]) => [a, b] %}
+positionLabelsLiteral -> %string {%
+  ([t]) => {
+    if (t.value === "top" || t.value === "bottom") {
+      return t.value;
+    }
+    throw new Error("labelPosition must be \"top\" or \"bottom\"");
+  }
+%}
 
 # Range values, e.g. 0..1
 range_value -> number dotdot number {% ([start, , end]) => ({ type: "range", start: start, end: end }) %}

@@ -1,5 +1,5 @@
 import { expandPositionWithLayout, inferLayoutFromKeywords } from '../utils/positionUtils.mjs';
-import { isMethodSupported } from '../components/languageConfig.js';
+import { isMethodSupported } from '../components/languageConfig.mjs';
 import { getMethodNameFromCommand } from '../parser/reconstructor.mjs';
 
 import { generateArray } from "./types/generateArray.mjs"
@@ -8,6 +8,7 @@ import { generateStack } from "./types/generateStack.mjs";
 import { generateTree } from "./types/generateTree.mjs";
 import { generateMatrix } from "./types/generateMatrix.mjs";
 import { generateGraph } from "./types/generateGraph.mjs";
+import { generateNeuralNetwork } from "./types/generateNeuralNetwork.mjs"
 import { generateText } from "./types/generateText.mjs";
 import { getMermaidContainerSize } from "../utils/positionUtils.mjs";
 import { generateNodeName } from '../utils/dslUtils.mjs';
@@ -523,7 +524,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
             'set', 'set_multiple', 'set_matrix', 'set_matrix_multiple',
             'add', 'insert', 'remove', 'remove_at', 'remove_subtree',
             'add_child', 'set_child', 'add_matrix_row', 'add_matrix_column',
-            'remove_matrix_row', 'remove_matrix_column', 'add_matrix_border', 'insert_matrix_row', 'insert_matrix_column', 'set_text', 'set_chained'
+            'remove_matrix_row', 'remove_matrix_column', 'add_matrix_border', 'insert_matrix_row', 'insert_matrix_column', 'set_text', 'set_chained', "set_neuralnetwork_neuron", "set_neuralnetwork_layer", "set_neuralnetwork_neurons_multiple", "set_neuralnetwork_layer_multiple", "insert_neuralnetwork_addNeurons", "insert_neuralnetwork_addLayer","remove_neuralnetwork_removeLayer", "remove_neuralnetwork_removeNeuronsFromLayer"
         ].includes(command.type)) {
             const targetObject = pages.length > 0 ? pages[pages.length - 1]?.find(comp => comp.name === command.name) : null;
             if (targetObject) {
@@ -921,6 +922,417 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                 }
                 break;
             }
+
+            case "remove_neuralnetwork_removeNeuronsFromLayer": {
+                console.log("THE COMMAND OF remove_neuralnetwork_removeNeuronsFromLayer ");
+                console.log(command);
+                const name = command.name;
+                const args = command.args;
+                const targetObject = pages[pages.length - 1].find(comp => comp.name === name);
+
+                if (targetObject) {
+                    console.log("THE TARGET OF remove_neuralnetwork_removeNeuronsFromLayer");
+                    console.log(targetObject);
+                    const body = targetObject.body;       
+                    const layers = command.target1;
+                    const neurons = command.target2;
+                    const neuronColors = command.target3;
+                    const layerColors = command.target4;
+
+                    if (!body[layers]) {
+                         causeCompileError(`layers does not exist\n\nName: ${name}`, command);
+
+                    }
+
+                    if (command.args.index < 0 || command.args.index > body[layers].length) {
+                        causeCompileError(`OutofIndex\n\nName: ${name}`, command);
+
+                    }
+
+                    if (!body[neurons]) {
+                          causeCompileError(`neurons does not exist\n\nName: ${name}`, command);
+                        
+                    }
+
+                    let array = body[neurons][command.args.index]
+                    const removeSet = new Set(command.args.value);
+                    const removedIndexes = []; 
+                    const result = array.filter((item, index) => {
+                        if (removeSet.has(item)) {
+                            removedIndexes.push(index);
+                            return false;
+
+                        }
+                        return true;
+
+                    });
+
+
+                    if (result.length === 0) {
+                       body[neurons].splice(command.args.index, 1)
+                       body[neuronColors].splice(command.args.index, 1)
+                       body[layers].splice(command.args.index, 1)
+                       body[layerColors].splice(command.args.index, 1)
+
+                    } else {
+                       body[neurons][command.args.index] = result; 
+                        if (body[neuronColors]) {
+                        let array2 = body[neuronColors][command.args.index]
+                        const result2 = array2.filter((item, index) => {
+                        if (removedIndexes.includes(index)) {
+                            return false
+                        }
+                        return true
+                            
+                    });
+
+                        body[neuronColors][command.args.index] = result2;
+
+                    }
+
+                   
+
+                    }
+                
+                } else {
+                    causeCompileError(`Component "${name}" not found on the current page.`, command);
+                }
+                break;
+            }
+
+
+
+             case "remove_neuralnetwork_removeLayer": {
+                console.log("THE COMMAND ");
+                console.log(command);
+                const name = command.name;
+                const args = command.args;
+                const targetObject = pages[pages.length - 1].find(comp => comp.name === name);
+
+                if (targetObject) {
+                    console.log("THE TARGET ");
+                    console.log(targetObject);
+                    const body = targetObject.body;                 
+
+                    if (!body[command.target1]) {
+                        causeCompileError(`layers does not exist}\n\nName: ${name}`, command);
+                    }
+
+
+                    if (command.args < 0 || command.args > body.layers.length - 1) {
+                        causeCompileError(`OutofIndex\n\nName: ${name}`, command);
+
+                    }
+                    
+                    body[command.target1].splice(command.args, 1)
+
+                    if (body[command.target2]) {
+                        body[command.target2].splice(command.args, 1)
+
+                    }
+
+                    if (body[command.target3]) {
+                        body[command.target3].splice(command.args, 1)
+
+                    }
+
+                    if (body[command.target4]) {
+                        body[command.target4].splice(command.args, 1)
+
+                    }
+                  
+                
+                } else {
+                    causeCompileError(`Component "${name}" not found on the current page.`, command);
+                }
+                break;
+            }
+
+             case "insert_neuralnetwork_addLayer": {
+               // console.log("THE COMMAND ");
+                //console.log(command);
+                const name = command.name;
+                const args = command.args;
+                const targetObject = pages[pages.length - 1].find(comp => comp.name === name);
+
+                if (targetObject) {
+                   // console.log("THE TARGET ");
+                    //console.log(targetObject);
+                    const body = targetObject.body;
+                    const layers = command.target1;
+                    const neurons = command.target2;
+                    const layerColors = command.target3;
+
+                    if (!body[layers]) {
+                        body[layers] = []
+                        if (body[neurons]) {
+                        let i = 0; 
+                        while (i < body[neurons].length) {
+                            body[layers].push(null)
+                            i++
+                        }}
+
+                    }
+
+                    body[layers].push(command.args.index);
+
+                    if (!body[neurons]) {
+                        body[neurons] = []
+                        
+
+                    }
+
+                    if (!body[neurons]) {
+                        body[neurons] = []
+                        
+
+                    }
+
+                    if (body[layerColors]) {
+                        body[layerColors].push(null)
+                    }
+
+
+                    body[neurons].push(command.args.value)
+
+                
+                } else {
+                    causeCompileError(`Component "${name}" not found on the current page.`, command);
+                }
+                break;
+            }
+
+
+              case "insert_neuralnetwork_addNeurons": {
+                console.log("THE COMMAND ");
+                console.log(command);
+                const name = command.name;
+                const args = command.args;
+                const targetObject = pages[pages.length - 1].find(comp => comp.name === name);
+
+                if (targetObject) {
+                    console.log("THE TARGET ");
+                    console.log(targetObject);
+                    const body = targetObject.body;
+                    const target = "neurons";
+
+                    if (!body["layers"]) {
+                        causeCompileError(`layers not defined\n\nName: ${name}`, command);
+                    }
+
+                    if (args.index < 0 || args.index > body.layers.length - 1) {
+                        causeCompileError(`OutofIndex\n\nName: ${name}`, command);
+                    }
+
+                    if (!body[target]) {
+                        body[target] = [[]];
+
+                    }
+
+                    while (body[target].length <= args.index) {
+                            body[target].push([]);
+                    }
+
+                    body[target][args.index].push(...args.value)
+
+                
+                } else {
+                    causeCompileError(`Component "${name}" not found on the current page.`, command);
+                }
+                break;
+            }
+
+          
+             case "set_neuralnetwork_layer_multiple": {
+                const name = command.name;
+                const property = command.target;
+                const args = command.args;
+                const targetObject = pages[pages.length - 1].find(comp => comp.name === name);
+                // Check if in bounds
+
+                if (targetObject) {
+                    const body = targetObject.body;
+
+                    if (!body[property]) {
+                        causeCompileError(`${property} not defined\n\nName: ${name}`, command)
+                    }
+                    
+                    
+                    // Special handling for text components
+                    if (targetObject.type === "text") {
+                        // If property does not exist, create array of null of length args
+                    
+                        // Iterate over args and set the values
+                        for (let i = 0; i < args.length; i++) {
+                            const value = args[i];
+                            const isValidIndex = Number.isInteger(i) && i >= 0;
+                            if (value !== "_") {
+                                if (isValidIndex) {
+                                    // Ensure array is long enough
+                                    while (body[property].length <= i) {
+                                        body[property].push(null);
+                                    }
+                                    body[property][i] = value;
+                                } else {
+                                    causeCompileError(`Index out of bounds\n\nIndex: ${i}\nProperty: ${property}\nComponent: ${name}`, command);
+                                }
+                            }
+                        }
+                    } else {
+                        // Original handling for other components
+                        const currentArray = body[property];
+                        // If property does not exist, create array of null of length args
+                        if (!currentArray) {
+                            body[property] = Array(args.length).fill(null);
+                        }
+                        // Iterate over args and set the values
+                        for (let i = 0; i < args.length; i++) {
+                            const value = args[i];
+                            const isValidIndex = Number.isInteger(i) && i >= 0;
+                            if (value !== "_") {
+                                if (isValidIndex) {
+                                    body[property][i] = value;
+                                } else {
+                                    causeCompileError(`Index out of bounds\n\nIndex: ${i}\nProperty: ${property}\nComponent: ${name}`, command);
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    causeCompileError(`Component not on page\n\nName: ${name}`, command);
+                }
+                break;
+            }
+
+             case "set_neuralnetwork_neurons_multiple": {
+                const name = command.name;
+                const property = command.target;
+                const newMatrix = command.args;
+                const targetObject = pages[pages.length - 1].find(comp => comp.name === name);
+
+                if (targetObject) {
+                    const body = targetObject.body;
+                    const currentMatrix = body[property];
+                    
+                    if (!body[property]) {
+                        causeCompileError(`${property} not defined\n\nName: ${name}`, command)
+                    }
+                    
+                    // Calculate dimensions needed
+                    const numRows = newMatrix.length;
+                    const numCols = Math.max(...newMatrix.map(row => row ? row.length : 0));
+                    
+                    // Ensure the matrix has enough rows
+                    while (body[property].length < numRows) {
+                        body[property].push([]);
+                    }
+                    
+                    // Iterate over the matrix and set values, preserving "_" placeholders
+                    for (let row = 0; row < newMatrix.length; row++) {
+                        // Ensure the row has enough columns
+                        while (body[property][row].length < numCols) {
+                            body[property][row].push(null);
+                        }
+                        
+                        if (newMatrix[row]) {
+                            for (let col = 0; col < newMatrix[row].length; col++) {
+                                const value = newMatrix[row][col];
+                                if (value !== "_") {
+                                    body[property][row][col] = value;
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Ensure all rows have the same number of columns
+                    const maxColumns = Math.max(...body[property].map(row => row.length));
+                    for (let r = 0; r < body[property].length; r++) {
+                        while (body[property][r].length < maxColumns) {
+                            body[property][r].push(null);
+                        }
+                    }
+                } else {
+                    causeCompileError(`Component not on page\n\nName: ${name}`, command);
+                }
+                break;
+            }
+
+            case "set_neuralnetwork_neuron": {
+                console.log("THE COMMAND OF set_neuralnetwork_neuron");
+                console.log(command);
+                const name = command.name;
+                const target = command.target;
+                const row = command.args.row;
+                const col = command.args.col;
+                const newValue = command.args.value;
+                const targetObject = pages[pages.length - 1].find(comp => comp.name === name);
+
+                if (targetObject) {
+                    console.log("THE TARGET OF set_neuralnetwork_neuron");
+                    console.log(targetObject);
+                    const body = targetObject.body;
+
+                    if (!body[target]) {
+                        causeCompileError(`${target} not defined\n\nName: ${name}`, command)
+                    }
+
+                    console.log("HERERER_SET")
+                    console.log(body[target].length)
+
+                    if (body[target].length - 1 < row || row < 0) {
+                      causeCompileError(`OutofIndex\n\nName: ${name}`, command);
+                    }
+
+                    if (body[target][row].length - 1 < col || col < 0) {
+                      causeCompileError(`OutofIndex\n\nName: ${name}`, command);
+                    }
+                    // Set the value
+                    body[target][row][col] = newValue;
+                    
+                } else {
+                    causeCompileError(`Component not on page\n\nName: ${name}`, command);
+                }
+                break;
+            }
+            
+
+             case "set_neuralnetwork_layer": {
+               // console.log("THE COMMAND ");
+               // console.log(command);
+                const name = command.name;
+                const target = command.target;
+                const index = command.args.index;
+                const newValue = command.args.value;
+                const targetObject = pages[pages.length - 1].find(comp => comp.name === name);
+
+                if (targetObject) {
+                   // console.log("THE TARGET ");
+                    //console.log(targetObject);
+                    const body = targetObject.body;
+                    
+
+                    if (!body[target]) {
+                        causeCompileError(`${target} not defined\n\nName: ${name}`, command)
+
+                    }
+
+                    console.log("HEREEREREREERRE")
+                    console.log(body[target].length)
+
+                    if (body[target].length - 1 < index || index < 0) {
+                      causeCompileError(`OutofIndex\n\nName: ${name}`, command);
+                    }
+
+                    body[target][index] = newValue; 
+                
+                
+                } else {
+                    causeCompileError(`Component not on page\n\nName: ${name}`, command);
+                }
+                break;
+            }
+
+
             case "set_matrix_multiple": {
                 const name = command.name;
                 const property = command.target;
@@ -2014,9 +2426,15 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
             if (component.type) {
                 const currentLayout = page._layout || [3, 3]; // Default to 3x3
                 
+                console.log(`${component.type} Component:`, component);
+                console.log(`${component.type} Component:`, JSON.stringify(component));
+                
                 switch (component.type) {
                     case "array":
                         mermaidString += generateArray(component, currentLayout);
+                        break;
+                    case "neuralnetwork":
+                        mermaidString += generateNeuralNetwork(component, currentLayout);
                         break;
                     case "linkedlist":
                         mermaidString += generateLinkedlist(component, currentLayout);
@@ -2087,7 +2505,7 @@ function preCheck(parsedDSL) {
         if (![
             "page", "show", "hide", "set", "set_multiple", "set_matrix", "set_matrix_multiple",
             "add", "insert", "remove", "remove_subtree", "remove_at", "comment",
-            "add_matrix_row", "add_matrix_column", "remove_matrix_row", "remove_matrix_column", "insert_matrix_row", "insert_matrix_column", "add_matrix_border", "add_child", "set_child", "set_text", "set_chained"
+            "add_matrix_row", "add_matrix_column", "remove_matrix_row", "remove_matrix_column", "insert_matrix_row", "insert_matrix_column", "add_matrix_border", "add_child", "set_child", "set_text", "set_chained", "set_neuralnetwork_neuron", "set_neuralnetwork_layer", "set_neuralnetwork_neurons_multiple", "set_neuralnetwork_layer_multiple", "insert_neuralnetwork_addNeurons", "insert_neuralnetwork_addLayer", "remove_neuralnetwork_removeLayer", "remove_neuralnetwork_removeNeuronsFromLayer"
         ].includes(cmd.type)) {
             throw createPreCheckError(
                 `Unknown command\n\nType: ${cmd.type}`,

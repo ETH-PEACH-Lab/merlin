@@ -263,13 +263,66 @@ page 2x2
 show numbers (0, 0)
 show myGraph (0, 1)
 show randomText (1, 1)
-show randomTextToo
+show randomTextToo (1, 0)
+
+`,
+			},
+
+		{
+				id: "neuralNetworkExample",
+				title: "Example - MLP Neural-Network",
+				userCode: 
+	`neuralnetwork nn = {
+	layers: ["layer1", "hidden", "output"]
+	neurons: [["null", "x1"], ["x2", "x3"], ["x4", "x5"]]
+	layerColors: ["blue", null, "red"]
+	neuronColors: [["blue", "blue"],[null, "blue"], ["blue", "red"]]
+  	showBias: true
+  	showLabels: true
+  	labelPosition: "bottom"
+  	showWeights: true
+  	showArrowheads: true
+	}
 
 page
+show nn 
+page
+nn.setNeuronColor(0, 0, "blue")
+page
+nn.setNeuron(0, 0, "x")
+page
+nn.setLayer(0, "layerNEW")
+page
+nn.setLayerColor(0, "blue")
+page
+nn.setNeurons([["x1", "x2"], [_, "x3"], ["x4", "x3x"]])
+page
+nn.setNeuronColors([["blue", null], [null, null], [null, "red"]])
+page
+nn.setLayers([1, 2, 3])
+page
+nn.setLayerColors(["blue", "red", "red"])
+page
+nn.addNeurons(0, ["x", "y"])
+page
+nn.addLayer(1, ["x", "x", "y", "neuron"])
+page
+nn.removeLayerAt(1)
+page
+nn.removeNeuronsFromLayer(0, ["x1", "null"])
+
 `,
 			}
+
+			
+
+			
 		]
 	},
+
+	
+
+	
 
 	{
 		groupName: "Old LeetCode Problems",

@@ -10,7 +10,7 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
-    "@eth-peach-lab/mermaid-merlin": "github:ETH-PEACH-Lab/mermaid-merlin#develop",
+    "@eth-peach-lab/mermaid-merlin": "github:ETH-PEACH-Lab/mermaid-merlin#nn-develop",
     "@fontsource/roboto": "^5.2.9",
     "@monaco-editor/react": "^4.7.0",
     "@mui/icons-material": "^5.18.0",
