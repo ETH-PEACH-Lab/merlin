@@ -153,6 +153,11 @@ export function getColors() {
  */
 export function getComponentFields(componentType) {
   const fieldDefinitions = {
+     neuralnetwork: {
+      remove: "Remove Unit",
+      value: "Edit Value",
+      color: "Edit Color",
+    },
     array: {
       add: "Add Unit",
       remove: "Remove Unit",

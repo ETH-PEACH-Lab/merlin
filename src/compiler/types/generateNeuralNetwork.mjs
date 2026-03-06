@@ -19,16 +19,16 @@ export function generateNeuralNetwork(neuralNetworkComponent, layout = [3, 3]) {
   result += "@\n";
 
   // const structure = neuralNetworkComponent.body.structure || [];
-  const layer = neuralNetworkComponent.body.layers;
+  const layers = neuralNetworkComponent.body.layers;
   const neurons = neuralNetworkComponent.body.neurons;
   const colorLayer = neuralNetworkComponent.body.layerColors;
   const colorNeurons = neuralNetworkComponent.body.neuronColors;
 
-  if (layer && neurons) {
+  if (neurons) {
     for (let i = 0; i < neurons.length; i++) {
-      result += `"${layer[i]}"`;
+      result += `"${layers[i] ?? null}"`;
 
-      colorLayer ? (result += ` {color: "${colorLayer[i]}"}`) : "";
+      colorLayer ? (result += ` {color: "${colorLayer[i] ?? null}"}`) : "";
 
       for (let j = 0; j < neurons[i].length; j++) {
         result += ` "${neurons[i][j]}"`;
