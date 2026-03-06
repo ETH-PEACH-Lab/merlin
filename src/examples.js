@@ -341,7 +341,6 @@ nn.setNeuronColors([[null, null], [null, "blue"], ["red", "red"]])
 	layers: ["layer"]
 	neurons: [["x"]]
 	layerColors: ["red", "blue"]
-	showBias: true
 	showLabels: true
 	labelPosition: "bottom"
 	showWeights: true
@@ -354,14 +353,10 @@ show nn
 
 page
 nn.addLayer("colorsLayer", ["a", "b"])
-page
-nn.setNeurons([[_], ["5", "10"]])
-
-page
-nn.removeNeuronsFromLayer(0, ["x"])
-
-page
-
+nn.addLayer("colorsLayer", ["a", "b"])
+nn.removeNeuronsFromLayer(1, ["a"])
+nn.removeNeuronsFromLayer(1, ["b"])
+nn.setNeurons([[_], [_], ["5000", "5000"]])
 
 
 

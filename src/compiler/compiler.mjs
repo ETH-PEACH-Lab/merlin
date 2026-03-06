@@ -1137,8 +1137,8 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
       }
 
       case "remove_neuralnetwork_removeNeuronsFromLayer": {
-        console.log("COMMAND");
-        console.log(command);
+        //console.log("COMMAND");
+        // console.log(command);
         const name = command.name;
         const targetObject = pages[pages.length - 1].find(
           (comp) => comp.name === name,
@@ -1219,10 +1219,11 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
 
           body[neuronColors][command.args.index] = result2;
 
-          /*console.log(body[layers]);
-          console.log(body[neurons]);
-          console.log(body[layerColors]);
-          console.log(body[neuronColors]);*/
+          console.log("removeNeuronsFromLayer");
+          console.log(body["layers"]);
+          console.log(body["neurons"]);
+          console.log(body["neuronColors"]);
+          console.log(body["layerColors"]);
         } else {
           causeCompileError(
             `Component "${name}" not found on the current page.`,
@@ -1295,6 +1296,12 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
           }
 
           body[neuronColors].splice(command.args, 1);
+
+          console.log("remove_neuralnetwork_removeLayerAt");
+          console.log(body["layers"]);
+          console.log(body["neurons"]);
+          console.log(body["neuronColors"]);
+          console.log(body["layerColors"]);
         } else {
           causeCompileError(
             `Component "${name}" not found on the current page.`,
@@ -1303,53 +1310,6 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
         }
         break;
       }
-
-      // merlin lite: add_neuron_at_layer_at_index -> triple_cmd["insertNeurons", (nns_list) {% id %}] {% (details) => ({ type: "insert_neuralnetwork_insertNeurons", target1: "layers", target2: "neurons", target3: "neuronColors", ...id(details) }) %}
-
-      /* case "insert_neuralnetwork_insertNeurons": {
-        console.log("CMD");
-        console.log(command);
-        const name = command.name;
-        const targetObject = pages[pages.length - 1].find(
-          (comp) => comp.name === name,
-        );
-
-        if (targetObject) {
-          console.log("TARGET");
-          console.log(targetObject);
-          const body = targetObject.body;
-          const layers = command.target1;
-          const neurons = command.target2;
-          const neuronColors = command.target3;
-          const row = command.args.row;
-          const col = command.args.col;
-
-          if (!body[layers]) {
-            causeCompileError(`layers not defined\n\nName: ${name}`, command);
-          }
-
-          if (!body[neurons]) {
-            body[neurons] = [];
-          }
-
-          while (body[neurons].length <= row) {
-            body[neurons].push([]);
-          }
-
-          body[neurons][row].splice(col, 0, ...command.args.value);
-
-          if (body[neuronColors]) {
-            const arrOfNull = new Array(command.args.value.length).fill(null);
-            body[neuronColors][row].splice(col, 0, ...arrOfNull);
-          }
-        } else {
-          causeCompileError(
-            `Component "${name}" not found on the current page.`,
-            command,
-          );
-        }
-        break;
-      }*/
 
       case "insert_neuralnetwork_addLayer": {
         //console.log("CMD");
@@ -1404,17 +1364,21 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
             body[neurons].push([]);
           }
 
-          while (body[neuronColors].length < layerCount) {
+          while (body[neuronColors].length <= layerCount) {
             body[neuronColors].push([]);
           }
 
-          while (body[layerColors].length < layerCount) {
+          while (body[layerColors].length <= layerCount) {
             body[layerColors].push(null);
           }
 
           body[layers].push(layerName);
           body[neurons].push(command.args.value);
-          body[neuronColors].push(command.args.value.map(() => null));
+          console.log("insert_neuralnetwork_addLayer");
+          console.log(body["layers"]);
+          console.log(body["neurons"]);
+          console.log(body["neuronColors"]);
+          console.log(body["layerColors"]);
         } else {
           causeCompileError(
             `Component "${name}" not found on the current page.`,
@@ -1455,11 +1419,15 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
             body["layerColors"] = [];
           }
 
+          if (!body["neuronColors"]) {
+            body["neuronColors"] = [];
+          }
+
           while (body[target].length <= args.index) {
             body[target].push([]);
           }
 
-          while (body["layers"].length <= body[target].length) {
+          while (body["layers"].length <= args.index) {
             body["layers"].push(null);
           }
 
@@ -1469,15 +1437,15 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
 
           body[target][args.index].push(...args.value);
 
-          if (body["neuronColors"]) {
-            while (body["neuronColors"].length <= args.index) {
-              body["neuronColors"].push([]);
-            }
-
-            const arrOfNull = new Array(command.args.value.length).fill(null);
-            const length = body["neuronColors"][args.index].length;
-            body["neuronColors"][args.index].splice(length, 0, ...arrOfNull);
+          while (body["neuronColors"].length <= args.index) {
+            body["neuronColors"].push([]);
           }
+
+          console.log("insert_neuralnetwork_addNeurons");
+          console.log(body["layers"]);
+          console.log(body["neurons"]);
+          console.log(body["neuronColors"]);
+          console.log(body["layerColors"]);
         } else {
           causeCompileError(
             `Component "${name}" not found on the current page.`,
@@ -1575,48 +1543,67 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
           const body = targetObject.body;
 
           if (!body[property]) {
-            if (body["neurons"]) {
-              body[property] = body["neurons"].map(() => []);
-            } else {
-              causeCompileError(
-                `$neurons not defined\n\nName: ${name}`,
-                command,
-              );
+            const array = command.args.map((row) =>
+              row.map((v) => (v === "_" ? null : v)),
+            );
+
+            body[property] = array;
+
+            if (!body["layers"]) {
+              body["layers"] = [];
+            }
+
+            while (body["layers"].length < body[property].length) {
+              body["layers"].push(null);
             }
           }
 
-          // Ensure enough rows exist
           while (body[property].length < newMatrix.length) {
             body[property].push([]);
           }
 
-          // Set values without forcing all rows to same width
           for (let row = 0; row < newMatrix.length; row++) {
             if (!Array.isArray(body[property][row])) {
               body[property][row] = [];
             }
 
-            if (Array.isArray(newMatrix[row])) {
-              for (let col = 0; col < newMatrix[row].length; col++) {
-                const value = newMatrix[row][col];
+            if (!Array.isArray(newMatrix[row])) {
+              continue;
+            }
 
-                // Expand only this row as needed
-                while (body[property][row].length <= col) {
-                  if (property === "neuronColors") {
-                    if (body["layerColors"]) {
-                      body[property][row].push(body["layerColors"][row]);
-                    }
+            const rowData = newMatrix[row];
+
+            if (rowData.length === 1 && rowData[0] === "_") {
+              continue;
+            }
+
+            for (let col = 0; col < rowData.length; col++) {
+              const value = rowData[col];
+
+              if (value === "_") {
+                continue;
+              }
+
+              while (body[property][row].length <= col) {
+                if (property === "neuronColors") {
+                  if (body["layerColors"]) {
+                    body[property][row].push(body["layerColors"][row]);
                   } else {
                     body[property][row].push(null);
                   }
-                }
-
-                if (value !== "_") {
-                  body[property][row][col] = value;
+                } else {
+                  body[property][row].push(null);
                 }
               }
+
+              body[property][row][col] = value;
             }
           }
+          console.log("set_neuralnetwork_neurons_multiple");
+          console.log(body["layers"]);
+          console.log(body["neurons"]);
+          console.log(body["neuronColors"]);
+          console.log(body["layerColors"]);
         } else {
           causeCompileError(`Component not on page\n\nName: ${name}`, command);
         }
@@ -1673,32 +1660,28 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
           }
 
           if (!body[target]) {
-            const nullNeurons = body["neurons"].map((layer) =>
-              layer.map(() => null),
-            );
-
-            body[target] = nullNeurons;
-
-            if (body["layerColors"]) {
-              for (let i = 0; i < body.neuronColors.length; i++) {
-                for (let j = 0; j < body.neuronColors[i].length; j++) {
-                  if (body[target][i][j] === null) {
-                    body[target][i][j] = body.layerColors[i];
-                  }
-                }
-              }
-            }
+            body[target] = [];
           }
 
-          if (body[target].length - 1 < row || row < 0) {
+          while (body[target].length < body["neurons"].length) {
+            body[target].push([]);
+          }
+
+          if (body["neurons"].length - 1 < row || row < 0) {
             causeCompileError(`OutofIndex\n\nName: ${name}`, command);
           }
 
-          if (body[target][row].length - 1 < col || col < 0) {
+          if (body["neurons"][row].length - 1 < col || col < 0) {
             causeCompileError(`OutofIndex\n\nName: ${name}`, command);
           }
 
           body[target][row][col] = newValue;
+
+          console.log("setNeuronColor");
+          console.log(body["layers"]);
+          console.log(body["neurons"]);
+          console.log(body["neuronColors"]);
+          console.log(body["layerColors"]);
         } else {
           causeCompileError(`Component not on page\n\nName: ${name}`, command);
         }
@@ -1717,32 +1700,32 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
         if (targetObject) {
           const body = targetObject.body;
 
-          if (target === "layers" && !body[target]) {
-            causeCompileError(`layers not defined\n\nName: ${name}`, command);
-          }
-
-          if (target === "layerColors") {
-            if (!body[target]) {
-              body[target] = [];
+          if (!body[target]) {
+            body[target] = [];
+            body[target].push(newValue);
+            if (target === "layers") {
+              if (!body["neurons"]) {
+                body["neurons"] = [];
+                body["neurons"].push([]);
+              }
+              if (!body["neuronColors"]) {
+                body["neuronColors"] = [];
+                body["neuronColors"].push([]);
+              }
             }
-
-            while (body[target].length < body["layers"].length) {
-              body[target].push(null);
-            }
-
+          } else {
             if (body[target].length - 1 < index || index < 0) {
               causeCompileError(`OutofIndex\n\nName: ${name}`, command);
+            } else {
+              body[target][index] = newValue;
             }
-
-            body[target][index] = newValue;
           }
 
-          if (target === "layers") {
-            if (body[target].length - 1 < index || index < 0) {
-              causeCompileError(`OutofIndex\n\nName: ${name}`, command);
-            }
-            body[target][index] = newValue;
-          }
+          console.log("set_neuralnetwork_layer");
+          console.log(body["layers"]);
+          console.log(body["neurons"]);
+          console.log(body["neuronColors"]);
+          console.log(body["layerColors"]);
         } else {
           causeCompileError(`Component not on page\n\nName: ${name}`, command);
         }

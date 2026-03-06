@@ -26,7 +26,7 @@ export function generateNeuralNetwork(neuralNetworkComponent, layout = [3, 3]) {
 
   if (neurons) {
     for (let i = 0; i < neurons.length; i++) {
-      result += `"${layers[i] ?? null}"`;
+      result += `"${layers ? (layers[i] ?? null) : null}"`;
 
       colorLayer ? (result += ` {color: "${colorLayer[i] ?? null}"}`) : "";
 

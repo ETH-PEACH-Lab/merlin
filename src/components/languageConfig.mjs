@@ -473,7 +473,7 @@ export const methodSignatures = {
     "setNeuronColor(${1:layerIndex}, ${2:neuronIndex}, ${3:color})",
   setNeuron: () => "setNeuron(${1:layerIndex}, ${2:neuronIndex}, ${3:value})",
 
-  setLayer: () => "setNeuron(${1:layerIndex}, ${2:value})",
+  setLayer: () => "setLayer(${1:layerIndex}, ${2:value})",
   setLayerColor: () => "setLayerColor(${1:layerIndex}, ${2:color})",
 
   setNeurons: () =>
