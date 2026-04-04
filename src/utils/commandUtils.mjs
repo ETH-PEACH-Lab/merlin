@@ -20,29 +20,50 @@ export function createOptimizedCommand(
     );
   }
 
-  if (componentName === "nn") {
-    return createOptimizedNeuralNetworkCommand(
-      relevantCommands,
-      componentName,
-      fieldKey,
-      coordinates.row,
-      coordinates.col,
-      value,
-    );
-    /* if (coordinates?.isMatrix) {
-      const { row, col } = coordinates;
+  if (componentDefinition.type === "architecture") {
+    if (coordinates.isArchitectureMatrix) {
+      return createOptimizedArchitectureCommand2d(
+        relevantCommands,
+        componentName,
+        fieldKey,
+        coordinates.row,
+        coordinates.col,
+        value,
+        componentDefinition,
+      );
+    } else {
+      return createOptimizedArchitectureCommand1d(
+        relevantCommands,
+        componentName,
+        fieldKey,
+        coordinates.index,
+        value,
+        componentDefinition,
+      );
+    }
+  }
 
-      return {
-        type: "set_neuralnetwork_neuron",
-        name: componentName,
-        target: fieldKey === "value" ? "neurons" : "",
-        args: {
-          row,
-          col,
-          value,
-        },
-      };
-    }*/
+  if (componentDefinition.type === "neuralnetwork") {
+    if (coordinates.isNeuralMatrix) {
+      return createOptimizedNeuralNetworkCommandNeurons(
+        relevantCommands,
+        componentName,
+        fieldKey,
+        coordinates.row,
+        coordinates.col,
+        value,
+        componentDefinition,
+      );
+    } else {
+      return createOptimizedNeuralNetworkCommandLayers(
+        relevantCommands,
+        componentName,
+        fieldKey,
+        coordinates.index,
+        value,
+        componentDefinition,
+      );
+    }
   }
 
   // Handle global text properties (no coordinates)
@@ -88,7 +109,9 @@ export function findRelevantCommands(
   componentName,
   fieldKey,
   isMatrix = false,
+  isNeuralMatrix = false,
   coordinates = null,
+  currentComponent,
 ) {
   const relevantCommands = [];
   const commandsToRemove = [];
@@ -129,39 +152,33 @@ export function findRelevantCommands(
 
     return { relevantCommands, commandsToRemove };
   }
-  const normalizedFieldKey =
-    componentName === "nn"
-      ? fieldKey === "value"
-        ? "neurons"
-        : fieldKey === "color"
-          ? "neuronColors"
-          : fieldKey
-      : fieldKey;
 
-  const isNeuralMatrix =
-    isMatrix &&
-    componentName === "nn" &&
-    (normalizedFieldKey === "neurons" || normalizedFieldKey === "neuronColors");
+  /* console.log(`commands: ${JSON.stringify(commands)}}`);
+  console.log(`componentName: ${componentName}`);
+  console.log(`fieldKey: ${fieldKey}`);
+  console.log(`coordinates: ${JSON.stringify(coordinates)}`);
+  console.log(`currentComponent: ${JSON.stringify(currentComponent)}`);*/
 
-  const targetTypes = isNeuralMatrix
+  const targetTypesNeural = isNeuralMatrix
     ? [
         "set_neuralnetwork_neuron_setNeuron",
         "set_neuralnetwork_neuron_setNeuronColor",
         "set_neuralnetwork_neurons_multiple",
       ]
-    : isMatrix
-      ? ["set_matrix", "set_matrix_multiple"]
-      : ["set", "set_multiple"];
+    : ["set_neuralnetwork_layer_multiple", "set_neuralnetwork_layer"];
+
+  const targetTypesMatrix = isMatrix
+    ? ["set_matrix", "set_matrix_multiple"]
+    : ["set", "set_multiple"];
+
+  const targetType =
+    currentComponent.type === "neuralnetwork"
+      ? targetTypesNeural
+      : targetTypesMatrix;
 
   for (let i = pageStartIndex; i < pageEndIndex; i++) {
     const cmd = commands[i];
-    /*console.log("CMD:");
-    console.log(JSON.stringify(cmd));*/
-    if (
-      targetTypes.includes(cmd.type) &&
-      cmd.name === componentName &&
-      cmd.target === normalizedFieldKey
-    ) {
+    if (targetType.includes(cmd.type) && cmd.name === componentName) {
       relevantCommands.push(cmd);
       commandsToRemove.push(i);
     }
@@ -202,109 +219,527 @@ function createOptimizedGlobalCommand(
   };
 }
 
-function createOptimizedNeuralNetworkCommand(
+function createOptimizedArchitectureCommand1d(
+  relevantCommands,
+  componentName,
+  fieldKey,
+  index,
+  value,
+  componentDefinition,
+) {
+  /*console.log("createOptimizedArchitectureCommand");
+  console.log("relevantCommands");
+  console.log(relevantCommands);
+  console.log("componentName");
+  console.log(componentName);
+  console.log("fieldKey");
+  console.log(fieldKey);
+  console.log("index");
+  console.log(index);
+  console.log("value");
+  console.log(value);
+  console.log("componentDefinition");
+  console.log(componentDefinition);*/
+  const result = [];
+
+  if (
+    fieldKey === "value" ||
+    fieldKey === "color" ||
+    fieldKey === "styleEdge" ||
+    fieldKey === "layout" ||
+    fieldKey === "annotation" ||
+    "layout"
+  ) {
+    const blockLength = componentDefinition.body?.blocks.length ?? 0;
+
+    if (index < blockLength) {
+      const blockId = componentDefinition.body.blocks[index].id.name;
+      if (fieldKey === "color" || fieldKey === "layout") {
+        result.push({
+          type: fieldKey === "color" ? "set_block_color" : "set_block_layout",
+          args: {
+            index: blockId,
+            value,
+          },
+          name: componentName,
+          line: 0,
+          col: 0,
+        });
+      } else if (fieldKey === "annotation") {
+        if (
+          value.value !== undefined &&
+          value.side !== undefined &&
+          value.side !== null
+        ) {
+          result.push({
+            type: "set_block_annotation",
+            args: {
+              block: blockId,
+              second: value.side,
+              fourth: value.value,
+            },
+            name: componentName,
+            line: 0,
+            col: 0,
+          });
+        }
+      }
+    } else if (index >= blockLength) {
+      console.log("CALLED")
+      console.log(index);
+      console.log(blockLength);
+      let type;
+      if (fieldKey === "value") {
+        type = "set_edge_label";
+      } else if (fieldKey === "color") {
+        type = "set_edge_color";
+      } else if (fieldKey === "styleEdge") {
+        type = "set_edge_style";
+      }
+      result.push({
+        type,
+        args: {
+          block: "diagram",
+          second: index - blockLength,
+          third: value,
+        },
+        name: componentName,
+        line: 0,
+        col: 0,
+      });
+    }
+  }
+
+  return result;
+}
+
+function createOptimizedArchitectureCommand2d(
   relevantCommands,
   componentName,
   fieldKey,
   row,
   col,
   value,
+  componentDefinition,
 ) {
-  console.log(`value: ${value}`);
-  console.log(`componentName: ${componentName}`);
-  console.log(`fieldKey: ${fieldKey}`);
-  console.log(`relevantCommands: ${JSON.stringify(relevantCommands)}}`);
+  /* console.log("createOptimizedArchitectureCommandBlock");
+  console.log("relevantCommands");
+  console.log(relevantCommands);
+  console.log("componentName");
+  console.log(componentName);
+  console.log("fieldKey");
+  console.log(fieldKey);
+  console.log("row");
+  console.log(row);
+  console.log("col");
+  console.log(col);
+  console.log("value");
+  console.log(value);
+  console.log("componentDefinition");
+  console.log(componentDefinition);*/
+  const result = [];
 
-  const mergedModifications = new Map(); // "row,col" -> value
+  if (
+    fieldKey === "value" ||
+    fieldKey === "color" ||
+    fieldKey === "stroke" ||
+    fieldKey === "annotation" ||
+    fieldKey === "styleEdge" ||
+    fieldKey === "layout"
+  ) {
+    const blockId = componentDefinition.body.blocks[row].id.name;
+    const nodesLength =
+      componentDefinition.body?.blocks?.[row]?.nodes.length ?? 0;
+    const edgesLength =
+      componentDefinition.body?.blocks?.[row]?.edges.length ?? 0;
+    let id;
+    let type;
 
-  // Process existing commands in order
-  for (const cmd of relevantCommands) {
-    console.log("CMD");
-    console.log(cmd.type);
+    if (col < nodesLength) {
+      id = componentDefinition.body.blocks[row].nodes[col].id;
+      if (fieldKey === "value") {
+        type = "set_node_label";
+      } else if (fieldKey === "color") {
+        type = "set_node_color";
+      } else if (fieldKey === "stroke") {
+        type = "set_node_stroke";
+      } else if (fieldKey === "annotation") {
+        type = "set_node_annotation";
+      }
+    } else if (nodesLength <= col && col < edgesLength + nodesLength) {
+      id = componentDefinition.body.blocks[row].edges[col - nodesLength].id;
+      if (fieldKey === "value") {
+        type = "set_edge_label";
+      } else if (fieldKey === "color") {
+        type = "set_edge_color";
+      } else if (fieldKey === "styleEdge") {
+        type = "set_edge_style";
+      }
+    } else if (col >= nodesLength + edgesLength) {
+      id =
+        componentDefinition.body.blocks[row].groups[
+          col - nodesLength - edgesLength
+        ].id.name;
+      if (fieldKey === "layout") {
+        type = "set_group_layout";
+      } else if (fieldKey === "color") {
+        type = "set_group_color";
+      } else if (fieldKey === "annotation") {
+        type = "set_group_annotation";
+      }
+    }
 
-    if (
-      cmd.type === "set_neuralnetwork_neuron_setNeuron" ||
-      cmd.type === "set_neuralnetwork_neuron_setNeuronColor" ||
-      cmd.type === "set_neuralnetwork_neuron"
-    ) {
-      const key = `${cmd.args.row},${cmd.args.col}`;
-      mergedModifications.set(key, cmd.args.value);
-    } else if (cmd.type === "set_neuralnetwork_neurons_multiple") {
-      cmd.args.forEach((rowArray, rowIdx) => {
-        rowArray.forEach((val, colIdx) => {
-          if (val !== "_") {
-            const key = `${rowIdx},${colIdx}`;
-            mergedModifications.set(key, val);
-          }
+    if (fieldKey === "annotation") {
+      if (
+        value.value !== undefined &&
+        value.side !== undefined &&
+        value.side !== null
+      ) {
+        result.push({
+          type,
+          args: {
+            block: blockId,
+            second: id,
+            third: value.side,
+            fourth: value.value,
+          },
+          name: componentName,
+          line: 0,
+          col: 0,
         });
+      }
+    } else {
+      result.push({
+        type,
+        args: {
+          block: blockId,
+          second: id,
+          third: value,
+        },
+        name: componentName,
+        line: 0,
+        col: 0,
       });
     }
   }
 
-  const currentKey = `${row},${col}`;
-  if (value === "_" || value === undefined) {
-    mergedModifications.delete(currentKey);
-  } else {
-    mergedModifications.set(currentKey, value);
+  return result;
+}
+
+function createOptimizedNeuralNetworkCommandLayers(
+  relevantCommands,
+  componentName,
+  fieldKey,
+  index,
+  value,
+  componentDefinition,
+) {
+  /*console.log(`relevantCommands: ${JSON.stringify(relevantCommands)}}`);
+  console.log(`componentName: ${componentName}`);
+  console.log(`fieldKey: ${fieldKey}`);
+  console.log(`index: ${index}`);
+  console.log(`value: ${value}`);*/
+
+  const mergedModificationsColors = new Map();
+  const mergedModificationsLayers = new Map();
+  const result = [];
+
+  for (const cmd of relevantCommands) {
+    if (cmd.type === "set_neuralnetwork_layer") {
+      if (cmd.target === "layers") {
+        if (value !== "_" && value !== undefined) {
+          mergedModificationsLayers.set(cmd.args.index, cmd.args.value);
+        }
+      }
+
+      if (cmd.target === "layerColors") {
+        if (value !== "_" && value !== undefined) {
+          mergedModificationsColors.set(cmd.args.index, cmd.args.value);
+        }
+      }
+    }
+    if (cmd.type === "set_neuralnetwork_layer_multiple") {
+      if (cmd.target === "layers") {
+        cmd.args.forEach((val, index) => {
+          if (val !== "_" && val !== undefined) {
+            mergedModificationsLayers.set(index, val);
+          }
+        });
+      }
+
+      if (cmd.target === "layerColors") {
+        cmd.args.forEach((val, index) => {
+          if (val !== "_" && val !== undefined) {
+            mergedModificationsColors.set(index, val);
+          }
+        });
+      }
+    }
   }
 
-  if (mergedModifications.size === 0) {
-    return null;
-  } else if (
-    mergedModifications.size === 1 &&
-    mergedModifications.has(currentKey) &&
+  if (fieldKey === "value") {
+    mergedModificationsLayers.set(index, value);
+  }
+  if (fieldKey === "color") {
+    mergedModificationsColors.set(index, value);
+  }
+
+  if (
+    mergedModificationsColors.size === 0 &&
+    mergedModificationsLayers.size === 0
+  ) {
+    return [];
+  }
+
+  if (
+    mergedModificationsColors.size === 1 &&
     !(value === "_" || value === undefined)
   ) {
-    return {
-      type: "set_neuralnetwork_neuron",
-      target: fieldKey === "value" ? "neurons" : "neuronColor",
+    const [[key, valueMerged]] = mergedModificationsColors;
+
+    result.push({
+      type: "set_neuralnetwork_layer",
+      target: "layerColors",
       args: {
-        row,
-        col,
-        value,
+        index: key,
+        value: valueMerged,
       },
       name: componentName,
       line: 0,
       col: 0,
-    };
-  } else {
-    // Group modifications by row
-    const rowsMap = new Map();
+    });
+  }
+  if (
+    mergedModificationsColors.size > 1 &&
+    !(value === "_" || value === undefined)
+  ) {
+    const length = componentDefinition.body.neurons.length;
 
-    for (const [key, val] of mergedModifications) {
+    const arrayColor = Array(length).fill("_");
+
+    for (const [key, val] of mergedModificationsColors) {
+      arrayColor[key] = val;
+    }
+
+    result.push({
+      type: "set_neuralnetwork_layer_multiple",
+      target: "layerColors",
+      args: arrayColor,
+      name: componentName,
+      line: 0,
+      col: 0,
+    });
+  }
+
+  if (
+    mergedModificationsLayers.size === 1 &&
+    !(value === "_" || value === undefined)
+  ) {
+    const [[key, valueMerged]] = mergedModificationsLayers;
+
+    result.push({
+      type: "set_neuralnetwork_layer",
+      target: "layers",
+      args: {
+        index: key,
+        value: valueMerged,
+      },
+      name: componentName,
+      line: 0,
+      col: 0,
+    });
+  }
+  if (
+    mergedModificationsLayers.size > 1 &&
+    !(value === "_" || value === undefined)
+  ) {
+    const length = componentDefinition.body.neurons.length;
+
+    const arrayLayers = Array(length).fill("_");
+
+    for (const [key, val] of mergedModificationsLayers) {
+      arrayLayers[key] = val;
+    }
+
+    result.push({
+      type: "set_neuralnetwork_layer_multiple",
+      target: "layers",
+      args: arrayLayers,
+      name: componentName,
+      line: 0,
+      col: 0,
+    });
+  }
+
+  return result;
+}
+
+function createOptimizedNeuralNetworkCommandNeurons(
+  relevantCommands,
+  componentName,
+  fieldKey,
+  row,
+  col,
+  value,
+  componentDefinition,
+) {
+  const mergedModificationsColors = new Map();
+  const mergedModificationsNeurons = new Map();
+
+  const result = [];
+
+  // Process existing commands in order
+  for (const cmd of relevantCommands) {
+    if (cmd.type === "set_neuralnetwork_neuron_setNeuronColor") {
+      if (value !== "_" && value !== undefined) {
+        const key = `${cmd.args.row},${cmd.args.col}`;
+        mergedModificationsColors.set(key, cmd.args.value);
+      }
+    }
+
+    if (cmd.type === "set_neuralnetwork_neuron_setNeuron") {
+      if (value !== "_" && value !== undefined) {
+        const key = `${cmd.args.row},${cmd.args.col}`;
+        mergedModificationsNeurons.set(key, cmd.args.value);
+      }
+    }
+
+    if (cmd.type === "set_neuralnetwork_neurons_multiple") {
+      if (cmd.target === "neurons") {
+        cmd.args.forEach((rowArray, rowIdx) => {
+          rowArray.forEach((val, colIdx) => {
+            if (val !== "_" && val !== undefined) {
+              const key = `${rowIdx},${colIdx}`;
+              mergedModificationsNeurons.set(key, val);
+            }
+          });
+        });
+      }
+
+      if (cmd.target === "neuronColors") {
+        cmd.args.forEach((rowArray, rowIdx) => {
+          rowArray.forEach((val, colIdx) => {
+            if (val !== "_" && val != undefined) {
+              const key = `${rowIdx},${colIdx}`;
+              mergedModificationsColors.set(key, val);
+            }
+          });
+        });
+      }
+    }
+  }
+
+  const key = `${row},${col}`;
+  if (fieldKey === "value") {
+    mergedModificationsNeurons.set(key, value);
+  }
+  if (fieldKey === "color") {
+    mergedModificationsColors.set(key, value);
+  }
+
+  if (
+    mergedModificationsColors.size === 0 &&
+    mergedModificationsNeurons.size === 0
+  ) {
+    return [];
+  }
+
+  if (
+    mergedModificationsColors.size === 1 &&
+    !(value === "_" || value === undefined)
+  ) {
+    const [[key, valueMerged]] = mergedModificationsColors;
+    const [rowMerged, colMerged] = key.split(",").map(Number);
+
+    result.push({
+      type: "set_neuralnetwork_neuron_setNeuronColor",
+      target: "neuronColor",
+      args: {
+        row: rowMerged,
+        col: colMerged,
+        value: valueMerged,
+      },
+      name: componentName,
+      line: 0,
+      col: 0,
+    });
+  }
+  if (
+    mergedModificationsColors.size > 1 &&
+    !(value === "_" || value === undefined)
+  ) {
+    const args = [];
+
+    for (const element of componentDefinition.body.neurons) {
+      const column = Array(element.length).fill("_");
+      args.push(column);
+    }
+
+    for (const [key, val] of mergedModificationsColors) {
       const [r, c] = key.split(",").map(Number);
-
-      if (!rowsMap.has(r)) {
-        rowsMap.set(r, new Map());
-      }
-
-      rowsMap.get(r).set(c, val);
+      args[r][c] = val;
     }
 
-    // Build ragged 2D array, but use ["_"] for empty rows
-    const maxRow = Math.max(...rowsMap.keys());
-    const args = Array.from({ length: maxRow + 1 }, () => ["_"]);
-
-    for (const [r, colsMap] of rowsMap) {
-      const maxColInRow = Math.max(...colsMap.keys());
-      const rowArray = Array(maxColInRow + 1).fill("_");
-
-      for (const [c, val] of colsMap) {
-        rowArray[c] = val;
-      }
-
-      args[r] = rowArray;
-    }
-
-    return {
+    result.push({
       type: "set_neuralnetwork_neurons_multiple",
-      target: fieldKey === "value" ? "neurons" : "neuronColors",
+      target: "neuronColors",
       args,
       name: componentName,
       line: 0,
       col: 0,
-    };
+    });
   }
+
+  if (
+    mergedModificationsNeurons.size === 1 &&
+    !(value === "_" || value === undefined)
+  ) {
+    const [[key, valueMerged]] = mergedModificationsNeurons;
+    const [rowMerged, colMerged] = key.split(",").map(Number);
+
+    result.push({
+      type: "set_neuralnetwork_neuron_setNeuron",
+      target: "neurons",
+      args: {
+        row: rowMerged,
+        col: colMerged,
+        value: Number.isNaN(Number(valueMerged))
+          ? valueMerged
+          : Number(valueMerged),
+      },
+      name: componentName,
+      line: 0,
+      col: 0,
+    });
+  }
+
+  if (
+    mergedModificationsNeurons.size > 1 &&
+    !(value === "_" || value === undefined)
+  ) {
+    const args = [];
+
+    for (const element of componentDefinition.body.neurons) {
+      const column = Array(element.length).fill("_");
+      args.push(column);
+    }
+
+    for (const [key, val] of mergedModificationsNeurons) {
+      const [r, c] = key.split(",").map(Number);
+      args[r][c] = val;
+    }
+
+    result.push({
+      type: "set_neuralnetwork_neurons_multiple",
+      target: "neurons",
+      args,
+      name: componentName,
+      line: 0,
+      col: 0,
+    });
+  }
+
+  return result;
 }
 /**
  * Internal function for array command optimization
@@ -343,7 +778,6 @@ function createOptimizedArrayCommand(
       }
     }
   }
-
   // Handle the new modification
   if (value === "_" || value === undefined) {
     // Remove the modification (undo/clear)

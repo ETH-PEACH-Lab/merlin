@@ -5,40 +5,62 @@
 # --- MACROS --- #
 ##################
 
-# definition[X, Y] -> $X __ wordL _ equals _ bracketlist[$Y] _ {% ([type, , name, , , , body]) => ({ ...getDef(type), name, body: body }) %}
+#definition[X, Y] -> $X __ wordL _ equals _ bracketlist[$Y] _ {% ([type, , name, , , , body]) => ({ ...getDef(type), name, body: body }) %}
 definition[X, Y] -> $X __ wordL _ equals _ bracketlist[$Y] _ {% ([type, , wordL, , , , body]) => ({ ...getDef(type), body: body, ...wordL }) %}
 
 # bracketlist: One-per-line definition,
 # e.g. catch all, be lenient with whitespace
-# {
+# {
 #   value: [1, 2, 3]
 #   name: "something"
 # }
-bracketlist[X] -> lbracket nlow $X (comma_nlow $X):* nlow:? rbracket {% d => {
-    const firstXValue = d[2];
-    const repetitionGroups = d[3];
+bracketlist[X] -> lbracket wsn ($X (comma_nlow_new $X):*):? wsn rbracket {% d => {
+    const items = d[2];
     let result = {};
 
-    // Process the first $X item
-    // Expect firstXValue to be in the format: [[{key: value_obj}]]
-    if (Array.isArray(firstXValue) && firstXValue.length > 0 &&
+    const mergeEntry = (entry) => {
+        if (!entry || typeof entry !== "object") return;
+
+        if (Array.isArray(entry.blocks)) {
+            if (!result.blocks) result.blocks = [];
+            result.blocks.push(...entry.blocks);
+            const { blocks, ...rest } = entry;
+            Object.assign(result, rest);
+            return;
+        }
+
+        Object.assign(result, entry);
+    };
+
+    if (!items) return result;
+
+    const [firstXValue, repetitionGroups] = items;
+
+    if (
+        Array.isArray(firstXValue) && firstXValue.length > 0 &&
         Array.isArray(firstXValue[0]) && firstXValue[0].length > 0 &&
-        firstXValue[0][0] !== null && typeof firstXValue[0][0] === 'object' && !Array.isArray(firstXValue[0][0])) {
-        Object.assign(result, firstXValue[0][0]);
+        firstXValue[0][0] !== null &&
+        typeof firstXValue[0][0] === "object" &&
+        !Array.isArray(firstXValue[0][0])
+    ) {
+        mergeEntry(firstXValue[0][0]);
     }
 
-    // Process subsequent $X items
     if (repetitionGroups) {
         repetitionGroups.forEach(group => {
             const subsequentXValue = group[1];
-            // Expect subsequentXValue to be in the format: [[{key: value_obj}]]
-            if (Array.isArray(subsequentXValue) && subsequentXValue.length > 0 &&
+            if (
+                Array.isArray(subsequentXValue) && subsequentXValue.length > 0 &&
                 Array.isArray(subsequentXValue[0]) && subsequentXValue[0].length > 0 &&
-                subsequentXValue[0][0] !== null && typeof subsequentXValue[0][0] === 'object' && !Array.isArray(subsequentXValue[0][0])) {
-                Object.assign(result, subsequentXValue[0][0]);
+                subsequentXValue[0][0] !== null &&
+                typeof subsequentXValue[0][0] === "object" &&
+                !Array.isArray(subsequentXValue[0][0])
+            ) {
+                mergeEntry(subsequentXValue[0][0]);
             }
         });
     }
+
     return result;
 } %}
 
@@ -55,6 +77,22 @@ pair[X, Y] -> $X colon _ $Y {% ([key, , , value]) => ({ [key]: id(value) }) %}
 
 # Comma Separated, e.g. 1, 2
 comma_sep[X, Y] -> $X _ comma _ $Y {% ([x, , , , y]) => ({ index: id(x), value: id(y) }) %}
+
+# Comma Separated, e.g. 1, 2, 3
+comma_sep3[X, Y, Z] -> $X _ comma _ $Y _ comma _ $Z {% ([x, , , , y, , , , z]) => ({
+  block: id(x),
+  second: id(y),
+  third: id(z)
+}) %}
+
+# Comma Separated, e.g. 1, 2, 3, 4
+comma_sep4[A, B, C, D] -> $A _ comma _ $B _ comma _ $C _ comma _ $D {% ([a, , , , b, , , , c, , , , d]) => ({
+  block: id(a),
+  second: id(b),
+  third: id(c),
+  fourth: id(d)
+}) %}
+
 
 # Tuples, e.g. (1, 2)
 tuple[X, Y] -> lparen _ $X _ comma _ $Y _ rparen {% ([, , x, , , , y, ]) => [x[0], y[0]] %}
@@ -74,13 +112,14 @@ matrix_2d_list[X] -> lbrac nlow:? rbrac {% () => [] %}
     }
     return rows;
 } %}
-matrix_row[X] -> lbrac nlow:? $X (nlow:? comma nlow:? $X):* nlow:? rbrac {% ([, , first, rest]) => {
-    const row = [first[0]];
-    if (rest) {
-        rest.forEach(([, , , item]) => row.push(item[0]));
-    }
-    return row;
-} %}
+matrix_row[X] -> lbrac nlow:? rbrac {% () => [] %}
+    | lbrac nlow:? $X (nlow:? comma nlow:? $X):* nlow:? rbrac {% ([, , first, rest]) => {
+        const row = [first[0]];
+        if (rest) {
+            rest.forEach(([, , , item]) => row.push(item[0]));
+        }
+        return row;
+    } %}
 
 # Commands
 cmd[X, Y] -> wordL dot $X lparen _ $Y _ rparen {% ([wordL, dot, , , , args]) => ({ args: id(args), ...wordL }) %}
@@ -102,8 +141,9 @@ const moo = require("moo");
 
 const lexer = moo.compile({
   nlw: { match: /[ \t]*\r?\n[ \t]*/, lineBreaks: true },
-  ws:     /[ \t]+/,
+  ws: /[ \t]+/,
   nullT: { match: /null/, value: () => null },
+  layoutspec: /-?(?:[0-9]*\.[0-9]+|[0-9]+)x-?(?:[0-9]*\.[0-9]+|[0-9]+)/, 
   number: /-?(?:[0-9]*\.[0-9]+|[0-9]+)/,
   boolean: { match: /true|false/, value: s => s === "true" },
   times:  /\*/,
@@ -117,12 +157,14 @@ const lexer = moo.compile({
   comma: ",",
   dotdot: "..", // Add range operator before dot to avoid conflicts
   dot: ".",
+  arrow: "->",
   dash: "-",
   equals: "=",
   pass: "_",
-  x: "x",
-  word: { match: /[a-zA-Z_][a-zA-Z0-9_]*/, type: moo.keywords({
-    def: ["array", "matrix", "graph", "linkedlist", "tree", "stack", "text", "neuralnetwork"],
+  word: { match: /[a-zA-Z_][a-zA-Z0-9_]*/, 
+  type: moo.keywords({
+    def: ["array", "matrix", "graph", "linkedlist", "tree", "stack", "text", "neuralnetwork", "architecture"],
+    
   })},
   comment: { match: /\/\/.*?$/, lineBreaks: true, value: s => s.slice(2).trim() },
   string: { match: /"(?:\\.|[^"\\])*"/, value: s => s.slice(1, -1) },
@@ -179,6 +221,7 @@ root -> nlw:* one_per_line[definition_or_command]:? nlw:* {% ([, items]) => {
 # - DEFINITIONS - #
 # List of all definitions
 definition -> (array_def
+            | architecture_def
             | neuralNetwork_def
             | matrix_def
             | linkedlist_def
@@ -202,6 +245,453 @@ array_pair -> (
             | pair["left", (string | word) {% id %}]
             | pair["right", (string | word) {% id %}]
 ) {% iid %}
+
+
+# Block Definition
+architecture_def -> definition["architecture", architecture_pair] {% id %}
+
+architecture_pair -> (
+              pair["title", (string | word) {% id %}]
+            | architecture_block
+            | architecture_diagram
+            | pair["above", (string | word) {% id %}]
+            | pair["below", (string | word) {% id %}]
+            | pair["left", (string | word) {% id %}]
+            | pair["right", (string | word) {% id %}]
+) {% iid %}
+
+
+architecture_block -> "block" __ wordL _ colon _ block_body {% ([, , name , , , , body]) => ({
+    blocks: [{id: name, ...body}]
+}) %}
+
+architecture_diagram -> "diagram" _ colon _ diagram_body {% ([ , , , , body]) => ({
+    diagram: body
+
+})%}
+
+block_body -> lbrac wsn (block_entry (comma_nlow_new block_entry):*):? wsn rbrac {% ([ , ,items, , ]) => {
+    let result = {};
+
+    const mergeEntry = (entry) => {
+        if (!entry || typeof entry !== "object") return;
+
+        if (entry.annotation) {
+            if (!result.annotations) result.annotations = [];
+            result.annotations.push(entry.annotation);
+            return;
+        }
+
+        Object.assign(result, entry);
+    };
+
+    if (!items) return result
+
+    const [first, rest] = items
+
+    mergeEntry(first);
+
+    if (rest) {
+        rest.forEach(x => mergeEntry(x[1]));
+    }
+
+    return result;
+} %}
+
+
+block_entry -> (
+              pair["layout", layout_literal] 
+            | pair["gap", number] 
+            | pair["size", size_tuple]
+            | pair["color", (string | nullT)]
+            | pair["style", style_literal]
+            | block_annotation
+            | block_nodes
+            | block_edges
+            | block_groups
+) {% iid %}
+
+block_annotation -> annotation_key colon _ (string | nullT) {% ([key, , , value]) => ({
+  annotation: { side: key.side, value }
+}) %}
+
+block_nodes -> "nodes" colon _ node_list {% ([, , , list]) => ({ nodes: list }) %}
+block_edges -> "edges" colon _ edge_list {% ([, , , list]) => ({ edges: list }) %}
+block_groups -> "groups" colon _ group_list {% ([, , , list]) => ({ groups: list }) %}
+
+node_list -> lbrac wsn (node_entry (comma_nlow_new node_entry):*):? wsn rbrac {% ([, , items, ,]) => {
+    if (!items) return []
+    const [first, rest] = items
+    const result = [first];
+    if (rest) rest.forEach(x => result.push(x[1]));
+    return result;
+} %}
+
+node_entry -> word _ equals wsn node_body {% ([id, , , , body]) => ({
+  id,
+  ...body
+}) %}
+
+node_body -> node_field (nlow node_field):* {% ([first, rest]) => {
+    const fields = [first, ...rest.map(x => x[1])];
+
+    let result = {};
+    let annotations = [];
+
+    let seen = {
+        type: 0,
+        label: 0,
+        labelOrientation: 0,
+        subtext: 0,
+        size: 0,
+        style: 0,
+        color: 0,
+        stroke: 0,
+    };
+
+    for (const entry of fields) {
+        if (!entry || typeof entry !== "object") continue;
+
+        if (entry.annotation) {
+            annotations.push(entry.annotation);
+            continue;
+        }
+
+        for (const key of Object.keys(entry)) {
+            if (seen[key] !== undefined) {
+                seen[key] += 1;
+                if (seen[key] > 1) {
+                    throw new Error(`Duplicate node field: ${key}`);
+                }
+            }
+            result[key] = entry[key];
+        }
+    }
+
+    if (!result.type) {
+        throw new Error("Node must have a type");
+    }
+
+    if (annotations.length > 0) {
+        result.annotations = annotations;
+    }
+
+    const allowedByType = {
+        text: new Set(["type", "label", "labelOrientation", "color", "annotations"]),
+        rect: new Set(["type", "label", "labelOrientation", "subtext", "size", "style", "color", "stroke", "annotations"]),
+        circle: new Set(["type", "label", "labelOrientation", "subtext", "size", "style", "color", "stroke", "annotations"]),
+    };
+
+    const allowed = allowedByType[result.type];
+    if (!allowed) {
+        throw new Error(`Unsupported node type: ${result.type}`);
+    }
+
+    for (const key of Object.keys(result)) {
+        if (!allowed.has(key)) {
+            throw new Error(`Field "${key}" is not allowed for node type "${result.type}"`);
+        }
+    }
+
+    return result;
+} %}
+
+node_field -> (pair["type", node_type_literal] 
+            | pair["label", (string | nullT)] 
+            | label_orientation
+            | pair["subtext", string] 
+            | pair["size", size_tuple] 
+            | pair["style", style_literal] 
+            | pair["color", (string | nullT)] 
+            | pair["stroke", (string | nullT)] 
+            | node_annotation)
+{% iid %}
+
+label_orientation -> "label" dot "orientation" colon _ label_orientation_literal {% ([ , , , , , orientation]) => ({
+  labelOrientation: orientation
+}) %}
+
+node_annotation -> annotation_key colon _ (string | nullT) {% ([key, , , value]) => ({
+  annotation: { side: key.side, value }
+}) %}
+
+edge_list -> lbrac wsn (edge_entry (comma_nlow_new edge_entry):*):? wsn rbrac {% ([, , items, ,]) => {
+    if (!items) return []
+    const [first, rest] = items
+    const result = [first];
+    if (rest) rest.forEach(x => result.push(x[1]));
+    return result;
+} %}
+
+edge_entry -> word _ equals wsn endpoint _ %arrow _ endpoint (__ edge_field (nlow edge_field):*):? {% ([id, , , , from, , , , to, fields]) => {
+
+    let result = {
+        id,
+        from,
+        to
+    };
+
+    if (fields) {
+        const [ ,first, rest] = fields
+
+        if (first) Object.assign(result, first);
+
+        if (rest) {
+            rest.forEach(x => {
+                const field = x[1];
+                if (field) Object.assign(result, field);
+            });
+        }
+    }
+
+    return result;
+
+    
+} %}
+
+edge_field -> (pair["label", (string | nullT)]
+            | pair["style", edge_style_literal] 
+            | pair["color", (string | nullT)]
+            | pair["arrowheads", arrowheads_literal])
+{% iid %}
+
+endpoint -> wordL anchor_with_index {% ([name, s]) => {
+    if (s.edgeAnchor) {
+        return {
+            edge: name,
+            ...s
+        };
+    }
+    return {
+        node: name,
+        ...s
+    };
+} %}
+
+anchor_with_index -> dot node_edge_literals index_opt:? {% ([, anchor, index]) => {
+    if (anchor === "mid" || anchor === "start" || anchor === "end") {
+        return { edgeAnchor: anchor };
+    }
+
+    if (index !== undefined) {
+        return {nodeAnchor: anchor, portIndex: index}
+    } else {
+        return {nodeAnchor: anchor}
+    }
+
+} %}
+
+index_opt -> lbrac _ ports_literal _ rbrac {% ([, , n, ,]) => n %}
+
+
+group_list -> lbrac wsn (group_entry (comma_nlow_new group_entry):*):? wsn rbrac {% ([, , items, ,]) => {
+    if (!items) return []
+    const [first, rest] = items
+    const result = [first];
+    if (rest) rest.forEach(x => result.push(x[1]));
+    return result;
+} %}
+
+
+group_entry -> wordL _ equals wsn group_body {% ([id, , , , body]) => ({
+  id,
+  ...body
+}) %}
+
+
+group_body -> group_field (nlow group_field):* {% ([first, rest]) => {
+    let result = {};
+
+    const mergeField = (entry) => {
+        if (!entry || typeof entry !== "object") return;
+
+        if (entry.annotation) {
+            if (!result.annotations) result.annotations = [];
+            result.annotations.push(entry.annotation);
+            return;
+        }
+
+        Object.assign(result, entry);
+    };
+
+    mergeField(first);
+
+    if (rest) {
+        rest.forEach(([, field]) => mergeField(field));
+    }
+
+    return result;
+
+    
+} %}
+
+group_field -> (pair["members", member_list]
+          | pair["layout", layout_literal]
+          | pair["anchor", wordL]
+          | pair["gap", number]
+          | pair["color", (string | nullT)] 
+          | group_annotation)
+          {% iid %}
+
+group_annotation -> annotation_key colon _ (string | nullT) {% ([key, , , value]) => ({
+  annotation: { side: key.side, value }
+}) %}
+
+member_list -> lbrac wsn (wordL (comma_nlow_new wordL):*):? wsn rbrac {% ([, ,items, ,]) => {
+   if (!items) return []
+   const [first, rest] = items
+   let result = [first]
+   if (rest) rest.forEach(([, member]) => result.push(member));
+   return result
+} %}
+
+diagram_body -> lbrac wsn (diagram_entry (comma_nlow_new diagram_entry):*):? wsn rbrac {% ([, ,items, ,]) => {
+    if (!items) return {}
+    const [first, rest] = items
+    let result = {};
+
+    const mergeEntry = (entry) => {
+        if (!entry || typeof entry !== "object") return;
+        Object.assign(result, entry);
+    };
+
+    mergeEntry(first);
+
+    if (rest) {
+        rest.forEach(x => mergeEntry(x[1]));
+    }
+
+    return result;
+} %}
+
+diagram_entry -> (
+              pair["layout", layout_literal]
+            | pair["gap", number]
+            | pair["uses", use_list] 
+            | pair["connects", connect_list] 
+) {% iid %}
+
+
+connect_list -> lbrac wsn (connect_entry (comma_nlow_new connect_entry):*):? wsn rbrac {% ([, , items, ,]) => {
+    if (!items) return []
+    const [first, rest] = items
+    const result = [first];
+    if (rest) rest.forEach(x => result.push(x[1]));
+    return result;
+} %}
+
+connect_entry -> endpoint_connect _ %arrow _ endpoint_connect (__ connect_field (nlow connect_field):*):? {% ([from, , , , to, fields]) => {
+
+    let result = {
+        from,
+        to
+    };
+
+    if (fields) {
+        const [ ,first, rest] = fields
+
+        if (first) Object.assign(result, first);
+
+        if (rest) {
+            rest.forEach(x => {
+                const field = x[1];
+                if (field) Object.assign(result, field);
+            });
+        }
+    }
+
+    return result;
+
+    
+} %}
+
+endpoint_connect -> wordL dot wordL anchor_with_index {% ([blockName, ,node_or_edge, s]) => {
+    if (s.edgeAnchor) {
+        return {
+            block: blockName,
+            edge: node_or_edge,
+            ...s
+        };
+    }
+    return {
+        block: blockName,
+        node: node_or_edge,
+        ...s
+    };
+} %}
+
+connect_field -> (pair["label", string]
+            | pair["style", edge_style_literal] 
+            | pair["color", string]
+            | pair["arrowheads", arrowheads_literal])
+{% iid %}
+
+
+use_list -> lbrac wsn (use_entry (comma_nlow_new use_entry):*):? wsn rbrac {% ([, ,items, ,]) => {
+   if (!items) return []
+   const [first, rest] = items
+   let result = [first]
+   if (rest) rest.forEach(([, member]) => result.push(member));
+   return result
+} %}
+
+
+use_entry -> wordL _ equals _ wordL  {% ([alias, , , ,blockName]) => ({
+  id: alias,
+  block: blockName
+
+}) %}
+
+# Literals of blocks
+label_orientation_literal -> "horizontal" {% () => "horizontal" %}
+                   | "vertical" {% () => "vertical" %}
+
+node_edge_literals -> side_literal {% id %}
+                | "mid" {% () => "mid" %}
+                | "start" {% () => "start" %}
+                | "end" {% () => "end" %}
+
+
+ports_literal -> number {% ([n]) => {
+  if (![0,1,2,3,4].includes(n)) throw new Error("port index must be 0..4");
+  return n;
+} %}
+
+arrowheads_literal -> number {% ([n]) => {
+  if (![0,1,2,3].includes(n)) throw new Error("arrowheads must be 0..3");
+  return n;
+} %}
+
+edge_style_literal -> "straight" {% () => "straight" %}
+                   | "bow" {% () => "bow" %}    
+
+annotation_key -> "annotation" dot side_literal {% ([, , side]) => {
+  return { side };
+} %}
+
+layout_literal -> "horizontal" {% () => "horizontal" %}
+                   | "vertical" {% () => "vertical" %}
+                   | "grid" {% () => "grid" %}
+
+size_tuple -> tuple[number, number] {%id %}
+
+node_type_literal -> "text" {% () => "text" %}
+                   | "rect" {% () => "rect" %}
+                   | "circle" {% () => "circle" %}
+
+style_literal -> "rounded" {% () => "rounded" %}
+                   | "box" {% () => "box" %}                  
+
+
+node_orientation_literal -> "vertical" {% () => "vertical" %}
+                     | "horizontal" {% () => "horizontal" %}
+
+                     
+side_literal -> "top" {% () => "top" %}
+              | "bottom" {% () => "bottom" %}
+              | "left" {% () => "left" %}
+              | "right" {% () => "right" %}
+
 
 # NeuralNetwork Definition
 neuralNetwork_def -> definition["neuralnetwork", neuralNetwork_pair] {% id %}
@@ -312,6 +802,31 @@ commands -> (comment
           | set_arrow
           | set_hidden
           | set_edges
+          | block_remove_nodes
+          | block_remove_node
+          | block_remove_group
+          | block_remove_block
+          | block_remove_edges
+          | block_remove_edge
+          | set_node_label
+          | set_node_color
+          | set_node_stroke
+          | set_edge_label
+          | set_edge_color
+          | set_edge_style
+          | hide_node
+          | show_node
+          | hide_edge
+          | show_edge
+          | hide_block
+          | show_block
+          | set_block_color
+          | set_block_annotation
+          | set_block_layout
+          | set_group_color
+          | set_group_layout
+          | set_group_annotation
+          | set_node_annotation
           | set_neuralnetwork_neuron
           | set_neuralnetwork_neuron_color
           | set_neuralnetwork_layer
@@ -321,7 +836,7 @@ commands -> (comment
           | set_neuralnetwork_layers
           | set_neuralnetwork_layers_color
           | add_neuron_at_layer_at_end
-          | add_layer_with_neurons
+          | add_layer_with_neurons
           | remove_neurons_at_layer
           | remove_layer
           | set_matrix_value
@@ -390,6 +905,33 @@ show -> "show" _ wordL (_ (position_keyword | ranged_tuple)):? {% ([, , wordL, p
 }) %}
 
 hide -> "hide" _ wordL {% ([, , wordL]) => ({ type: "hide", value: wordL.name, line: wordL.line, col: wordL.col }) %}
+
+# architecture methods
+block_remove_nodes -> cmd["removeNodes", comma_sep[word, w_list]] {% (details) => ({ type: "block_remove_nodes", ...id(details) }) %}
+block_remove_node -> cmd["removeNode", comma_sep[word, word]] {% (details) => ({ type: "block_remove_node", ...id(details) }) %}
+block_remove_group -> cmd["removeGroup", comma_sep[word, word]] {% (details) => ({ type: "block_remove_group", ...id(details) }) %}
+block_remove_block -> cmd["removeBlock", word] {% (details) => ({ type: "block_remove_block", ...id(details) }) %}
+set_node_label -> cmd["setNodeLabel", comma_sep3[word, word, (string | nullT)]] {% (details) => ({ type: "set_node_label", ...id(details) }) %}
+set_node_color-> cmd["setNodeColor", comma_sep3[word, word, (string | nullT)]] {% (details) => ({ type: "set_node_color", ...id(details) }) %}
+block_remove_edges -> cmd["removeEdges", comma_sep[word, (w_list | number_only_list)]] {% (details) => ({ type: "block_remove_edges", ...id(details) }) %}
+block_remove_edge -> cmd["removeEdge", comma_sep[word, (word | number)]] {% (details) => ({ type: "block_remove_edge", ...id(details) }) %}
+set_edge_label -> cmd["setEdgeLabel", comma_sep3[word, (word | number), (string | nullT)]] {% (details) => ({ type: "set_edge_label", ...id(details) }) %}
+set_edge_color-> cmd["setEdgeColor", comma_sep3[word, (word | number), (string | nullT)]] {% (details) => ({ type: "set_edge_color", ...id(details) }) %}
+set_edge_style -> cmd["setEdgeStyle", comma_sep3[word, (word | number), edge_style_literal]] {% (details) => ({ type: "set_edge_style", ...id(details) }) %}
+set_node_stroke -> cmd["setNodeStroke", comma_sep3[word, word, (string | nullT)]] {% (details) => ({ type: "set_node_stroke", ...id(details) }) %}
+hide_node -> cmd["hideNode", comma_sep[word, word]] {% (details) => ({ type: "hide_node", ...id(details) }) %}
+show_node -> cmd["showNode", comma_sep[word, word]] {% (details) => ({ type: "show_node", ...id(details) }) %}
+hide_edge -> cmd["hideEdge", comma_sep[word, word]] {% (details) => ({ type: "hide_edge", ...id(details) }) %}
+show_edge -> cmd["showEdge", comma_sep[word, word]] {% (details) => ({ type: "show_edge", ...id(details) }) %}
+hide_block -> cmd["hideBlock", word] {% (details) => ({ type: "hide_block", ...id(details) }) %}
+show_block -> cmd["showBlock", word] {% (details) => ({ type: "show_block", ...id(details) }) %}
+set_block_color -> cmd["setBlockColor", comma_sep[word, (string | nullT)]] {% (details) => ({ type: "set_block_color", ...id(details) }) %}
+set_block_layout -> cmd["setBlockLayout", comma_sep[word, layout_literal]] {% (details) => ({ type: "set_block_layout", ...id(details) }) %}
+set_block_annotation -> cmd["setBlockAnnotation", comma_sep3[word, side_literal, (string | nullT)]] {% (details) => ({ type: "set_block_annotation", ...id(details) }) %}
+set_group_color -> cmd["setGroupColor", comma_sep3[word, word, (string | nullT)]] {% (details) => ({ type: "set_group_color", ...id(details) }) %}
+set_group_layout -> cmd["setGroupLayout", comma_sep3[word, word, layout_literal]] {% (details) => ({ type: "set_group_layout", ...id(details) }) %}
+set_group_annotation -> cmd["setGroupAnnotation", comma_sep4[word, word, side_literal, (string | nullT)]] {% (details) => ({ type: "set_group_annotation", ...id(details) }) %}
+set_node_annotation -> cmd["setNodeAnnotation", comma_sep4[word, word, side_literal, (string | nullT)]] {% (details) => ({ type: "set_node_annotation", ...id(details) }) %}
 
 # Set a value in an array (or by node name for graphs/trees)
 set_value -> cmd["setValue", comma_sep[(number | word) {% id %}, (number | string | nullT) {% id %}]] {% (details) => ({ type: "set", target: "value", ...id(details) }) %}
@@ -501,7 +1043,7 @@ remove_at -> cmd["removeAt", number] {% (details) => ({ type: "remove_at", targe
 # Neural Network editing
 add_neuron_at_layer_at_end -> cmd["addNeurons", comma_sep[number , nns_list]] {% (details) => ({ type: "insert_neuralnetwork_addNeurons", target1: "layers", target2: "neurons", ...id(details) }) %}
 
-add_layer_with_neurons -> cmd["addLayer", comma_sep[(number | string), nns_list]] {% (details) => ({ type: "insert_neuralnetwork_addLayer", target1: "layers", target2: "neurons", target3: "layerColors", ...id(details) }) %}
+add_layer_with_neurons -> cmd["addLayer", comma_sep[(number | string | nullT), nns_list]] {% (details) => ({ type: "insert_neuralnetwork_addLayer", target1: "layers", target2: "neurons", target3: "layerColors", ...id(details) }) %}
 remove_neurons_at_layer -> cmd["removeNeuronsFromLayer", comma_sep[number, nns_list]] {% (details) => ({ type: "remove_neuralnetwork_removeNeuronsFromLayer",target1: "layers", target2: "neurons", target3: "neuronColors", target4: "layerColors", ...id(details) }) %}
 remove_layer -> cmd["removeLayerAt", number] {% (details) => ({ type: "remove_neuralnetwork_removeLayerAt", target1: "layers", target2: "neurons", target3: "layerColors", target4: "neuronColors", ...id(details) }) %}
 
@@ -518,12 +1060,12 @@ nns_list -> list[(nullT | number | string) {% iid %}] {% id %} # Accepts null, n
 ns_list -> list[(nullT | string) {% iid %}] {% id %} # Accepts null or string
 n_list -> list[(nullT | number) {% iid %}] {% id %} # Accepts null or number
 s_list -> list[string {% id %}] {% id %} # Accepts only strings
+number_only_list -> list[number {% id %}] {% id %} # Accepts only number
 w_list -> list[word {% id %}] {% id %} # Accepts only words
 e_list -> list[edge {% id %}] {% id %} # Accepts only edges
 b_list -> list[boolean {% id %}] {% id %} # Accepts only booleans
 nns_mlist -> matrix_2d_list[(nullT | number | string) {% iid %}] {% id %} # 2D array for matrix values, accepts null, number, or string
 nnsp_mlist -> matrix_2d_list[(nullT | number | string | pass) {% iid %}] {% id %} # 2D array for matrix values, accepts null, number, string, or pass
-
 
 # - Literals - #
 number -> %number {% ([value]) => Number(value.value) %}
@@ -534,7 +1076,12 @@ word -> %word {% ([value]) => value.value %}
 wordL -> %word {% ([value]) => ({name: value.value, line: value.line, col: value.col}) %}
 nullT -> %nullT {% () => null %}
 pass -> %pass {% () => "_" %}
-layout -> number %x number {% ([a, , b]) => [a, b] %}
+
+layout -> %layoutspec {% ([t]) => {
+    const [a, b] = t.value.split("x");
+    return [Number(a), Number(b)];
+} %}
+
 positionLabelsLiteral -> %string {%
   ([t]) => {
     if (t.value === "top" || t.value === "bottom") {
@@ -583,6 +1130,9 @@ __ -> %ws {% () => null %}
 nlw -> %nlw {% () => null %}
 nlow -> (%nlw | %ws) {% () => null %}
 comma_nlow -> ((nlow:? comma nlow:?) | nlw) {% () => null %}
+wsn -> (%ws | %nlw):* {% () => null %}
+nlw1 -> %nlw:+ {% () => null %}
+comma_nlow_new -> (wsn comma wsn | nlw1) {% () => null %}
 
 # - Tokens - # 
 # Note: Return null to save memory

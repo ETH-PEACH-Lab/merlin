@@ -1,4 +1,3 @@
-import { type } from "os";
 import {
   languageConfig,
   typeDocumentation,
@@ -18,6 +17,252 @@ export function registerCustomLanguage(monaco) {
     const text = model.getValue();
     // Check per line to ensure we only match commands starting a line (ignoring leading spaces)
     return text.split("\n").some((line) => /^\s*(page|show)\b/.test(line));
+  }
+
+  function getArchitectureItemNameState(rawCurrentItemText) {
+    const text = rawCurrentItemText || "";
+
+    const nameOnlyMatch = text.match(/^\s*([a-zA-Z_][a-zA-Z0-9_]*)$/);
+    const nameThenSpaceMatch = text.match(/^\s*([a-zA-Z_][a-zA-Z0-9_]*)\s+$/);
+    const nameThenEqualsMatch = text.match(
+      /^\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.*)$/,
+    );
+
+    return {
+      isNameOnly: !!nameOnlyMatch,
+      isNameThenSpace: !!nameThenSpaceMatch,
+      isAfterEquals: !!nameThenEqualsMatch,
+      itemName:
+        nameThenEqualsMatch?.[1] ??
+        nameThenSpaceMatch?.[1] ??
+        nameOnlyMatch?.[1] ??
+        null,
+      afterEqualsText: nameThenEqualsMatch?.[2] ?? "",
+    };
+  }
+  function getAvailableBlocksForDiagramUses(arch, currentAlias = null) {
+    const allBlocks = arch?.blockOrder || [];
+    const uses = arch?.diagram?.uses || {};
+
+    const usedBlocks = new Set(
+      Object.entries(uses)
+        .filter(([alias]) => alias !== currentAlias)
+        .map(([, blockName]) => blockName),
+    );
+
+    return allBlocks.filter((blockName) => !usedBlocks.has(blockName));
+  }
+
+  function createPropertyOnlySuggestion(
+    monaco,
+    range,
+    {
+      label,
+      detail,
+      documentation,
+      sortText,
+      valuePrefix = "",
+      insertText = null,
+    },
+  ) {
+    return {
+      label,
+      kind: monaco.languages.CompletionItemKind.Property,
+      insertText: insertText ?? `${label}: ${valuePrefix}`,
+      detail,
+      documentation,
+      range,
+      sortText,
+    };
+  }
+  function getCurrentDiagramUsesText(model, position) {
+    const lines = [];
+
+    for (let i = 1; i <= position.lineNumber; i++) {
+      const line = model.getLineContent(i);
+      if (i === position.lineNumber) {
+        lines.push(line.substring(0, position.column - 1));
+      } else {
+        lines.push(line);
+      }
+    }
+
+    let insideArchitecture = false;
+    let insideBlock = false;
+    let insideDiagram = false;
+    let insideUses = false;
+    const collected = [];
+
+    for (const rawLine of lines) {
+      if (
+        !insideArchitecture &&
+        /^\s*architecture\s+\w+\s*=\s*\{/.test(rawLine)
+      ) {
+        insideArchitecture = true;
+        continue;
+      }
+
+      if (
+        insideArchitecture &&
+        !insideBlock &&
+        !insideDiagram &&
+        /^\s*}\s*$/.test(rawLine)
+      ) {
+        insideArchitecture = false;
+        continue;
+      }
+
+      if (!insideArchitecture) continue;
+
+      if (!insideDiagram && /^\s*block\s+\w+\s*:\s*\[\s*$/.test(rawLine)) {
+        insideBlock = true;
+        continue;
+      }
+
+      if (insideBlock && /^\s*]\s*,?\s*$/.test(rawLine)) {
+        insideBlock = false;
+        continue;
+      }
+
+      if (insideBlock) continue;
+
+      if (!insideDiagram && /^\s*diagram\s*:\s*\[\s*$/.test(rawLine)) {
+        insideDiagram = true;
+        continue;
+      }
+
+      if (!insideDiagram) continue;
+
+      const inlineUsesMatch = rawLine.match(/^\s*uses\s*:\s*\[(.*)$/);
+      if (!insideUses && inlineUsesMatch) {
+        insideUses = true;
+        collected.push(inlineUsesMatch[1]);
+        continue;
+      }
+
+      if (insideUses) {
+        if (/^\s*]\s*,?\s*$/.test(rawLine)) {
+          break;
+        }
+        collected.push(rawLine);
+      }
+    }
+
+    return collected.join("\n");
+  }
+
+  function isAfterCompletedTopLevelArchProperty(model, position) {
+    const linePrefix = model
+      .getLineContent(position.lineNumber)
+      .substring(0, position.column - 1);
+
+    if (/,\s*$/.test(linePrefix)) return false;
+    if (/\s$/.test(linePrefix)) return false;
+
+    const match = linePrefix.match(/^\s*([a-zA-Z_][a-zA-Z0-9_.]*)\s*:\s*(.*)$/);
+    if (!match) return false;
+
+    const valuePart = match[2];
+
+    // still starting / incomplete value
+    if (valuePart === "") return false;
+    if (/[\[\(\{]\s*$/.test(valuePart)) return false;
+
+    return true;
+  }
+
+  function splitTopLevelArgs(paramsText) {
+    const args = [];
+    let current = "";
+    let depth = 0;
+    let inQuotes = false;
+    let quoteChar = "";
+
+    for (let i = 0; i < paramsText.length; i++) {
+      const char = paramsText[i];
+
+      if (!inQuotes) {
+        if (char === '"' || char === "'") {
+          inQuotes = true;
+          quoteChar = char;
+          current += char;
+        } else if (char === "(" || char === "[" || char === "{") {
+          depth++;
+          current += char;
+        } else if (char === ")" || char === "]" || char === "}") {
+          depth--;
+          current += char;
+        } else if (char === "," && depth === 0) {
+          args.push(current.trim());
+          current = "";
+        } else {
+          current += char;
+        }
+      } else {
+        current += char;
+        if (char === quoteChar && paramsText[i - 1] !== "\\") {
+          inQuotes = false;
+        }
+      }
+    }
+
+    if (current.trim() !== "" || paramsText.endsWith(",")) {
+      args.push(current.trim());
+    }
+
+    return args;
+  }
+
+  function isImmediatelyAfterCompletedPropertyValue(model, position) {
+    const linePrefix = model
+      .getLineContent(position.lineNumber)
+      .substring(0, position.column - 1);
+
+    if (!/\S$/.test(linePrefix)) return false;
+    if (/,\s*$/.test(linePrefix)) return false;
+
+    const match = linePrefix.match(/^\s*[a-zA-Z_][a-zA-Z0-9_.]*\s*:\s*(.*)$/);
+    if (!match) return false;
+
+    const valuePart = match[1];
+    if (valuePart === "") return false;
+    if (/[\[\(\{]\s*$/.test(valuePart)) return false;
+
+    return true;
+  }
+
+  function shouldShowTopLevelPropertyStarters(model, position) {
+    const linePrefix = model
+      .getLineContent(position.lineNumber)
+      .substring(0, position.column - 1);
+
+    const prevLineContent =
+      position.lineNumber > 1
+        ? model.getLineContent(position.lineNumber - 1)
+        : "";
+
+    const isBlankCurrentLine = /^\s*$/.test(linePrefix);
+    const isTypingPropertyPrefix = /^\s*[a-zA-Z_][a-zA-Z0-9_.]*$/.test(
+      linePrefix,
+    );
+
+    // User explicitly typed a space after something
+    const hasTrailingWhitespace = /\s+$/.test(linePrefix);
+
+    // User pressed Enter after a comma on previous line
+    const isAfterCommaAndEnter =
+      isBlankCurrentLine && /,\s*$/.test(prevLineContent);
+
+    if (isImmediatelyAfterCompletedPropertyValue(model, position)) {
+      return false;
+    }
+
+    return (
+      isBlankCurrentLine ||
+      isTypingPropertyPrefix ||
+      hasTrailingWhitespace ||
+      isAfterCommaAndEnter
+    );
   }
 
   // Helper: build insert text with optional page/show trailer based on typeDocumentation.insertTextName
@@ -60,6 +305,8 @@ export function registerCustomLanguage(monaco) {
   const parseCache = {
     variableTypes: null,
     nodeData: null,
+    neuralNetworkData: null,
+    architectureData: null,
     gridLayout: null,
     lastLineNumber: -1,
     lastModelVersion: -1,
@@ -78,12 +325,16 @@ export function registerCustomLanguage(monaco) {
       modelVersion,
       variableTypes,
       nodeData,
+      neuralNetworkData,
+      architectureData,
       gridLayout,
     ) {
       this.lastLineNumber = lineNumber;
       this.lastModelVersion = modelVersion;
       this.variableTypes = variableTypes;
       this.nodeData = nodeData;
+      this.neuralNetworkData = neuralNetworkData;
+      this.architectureData = architectureData;
       this.gridLayout = gridLayout;
     },
 
@@ -94,12 +345,19 @@ export function registerCustomLanguage(monaco) {
       if (this.shouldRefresh(position.lineNumber, currentModelVersion)) {
         const variableTypes = parseContextForTypes(model, position);
         const nodeData = parseNodesFromContext(model, position);
+        const neuralNetworkData = parseNeuralNetworksFromContext(
+          model,
+          position,
+        );
+        const architectureData = parseArchitecturesFromContext(model, position);
         const gridLayout = detectGridLayout(model, position);
         this.updateCache(
           position.lineNumber,
           currentModelVersion,
           variableTypes,
           nodeData,
+          neuralNetworkData,
+          architectureData,
           gridLayout,
         );
       }
@@ -107,6 +365,8 @@ export function registerCustomLanguage(monaco) {
       return {
         variableTypes: this.variableTypes,
         nodeData: this.nodeData,
+        neuralNetworkData: this.neuralNetworkData,
+        architectureData: this.architectureData,
         gridLayout: this.gridLayout,
       };
     },
@@ -223,6 +483,870 @@ export function registerCustomLanguage(monaco) {
     return variableTypes;
   }
 
+  function parseMerlinScalar(value) {
+    const v = String(value ?? "").trim();
+
+    if (v === "null") return null;
+    if (v === "true") return true;
+    if (v === "false") return false;
+
+    if (
+      (v.startsWith('"') && v.endsWith('"')) ||
+      (v.startsWith("'") && v.endsWith("'"))
+    ) {
+      return v.slice(1, -1);
+    }
+
+    if (!Number.isNaN(Number(v)) && v !== "") {
+      return Number(v);
+    }
+
+    return v;
+  }
+
+  function parseMerlinList(value) {
+    const trimmed = value.trim();
+    if (!trimmed.startsWith("[") || !trimmed.endsWith("]")) return [];
+
+    const inner = trimmed.slice(1, -1).trim();
+    if (!inner) return [];
+
+    return splitTopLevelArgs(inner).map(parseMerlinScalar);
+  }
+
+  function parseMerlin2DList(value) {
+    const trimmed = value.trim();
+    if (!trimmed.startsWith("[") || !trimmed.endsWith("]")) return [];
+
+    const inner = trimmed.slice(1, -1).trim();
+    if (!inner) return [];
+
+    return splitTopLevelArgs(inner).map((part) => parseMerlinList(part));
+  }
+
+  function parseArchitecturesFromContext(model, position) {
+    const architecturesByVariable = {};
+    const lines = model.getValue().split("\n");
+
+    let currentArchitecture = null;
+    let currentBlock = null;
+    let currentSection = null;
+    let insideArchitecture = false;
+    let insideBlock = false;
+    let insideNodes = false;
+    let insideEdges = false;
+    let insideGroups = false;
+
+    for (const rawLine of lines) {
+      const line = rawLine.trim();
+
+      // architecture a = {
+      let match = rawLine.match(/^\s*architecture\s+(\w+)\s*=\s*\{/);
+      if (match) {
+        const varName = match[1];
+        currentArchitecture = varName;
+        architecturesByVariable[varName] = {
+          title: null,
+          blockOrder: [],
+          blocks: {},
+          diagram: {
+            gap: null,
+            layout: null,
+            uses: {},
+            useOrder: [], // preserve order
+            connections: [],
+          },
+        };
+        insideArchitecture = true;
+        currentBlock = null;
+        currentSection = null;
+        continue;
+      }
+
+      if (!insideArchitecture) {
+        // a.removeGroup(Stem, row1)
+        match = rawLine.match(/^\s*(\w+)\.removeGroup\((.*)\)\s*$/);
+        if (match) {
+          const [, varName, argsText] = match;
+          const arch = architecturesByVariable[varName];
+          if (!arch) continue;
+
+          const args = splitTopLevelArgs(argsText);
+          const blockName = parseMerlinScalar(args[0]);
+          const groupName = parseMerlinScalar(args[1]);
+          const block = arch.blocks[blockName];
+          if (!block) continue;
+
+          block.groups = block.groups.filter((g) => g !== groupName);
+          continue;
+        }
+
+        // a.removeBlock(Encoder)
+        match = rawLine.match(/^\s*(\w+)\.removeBlock\((.*)\)\s*$/);
+        if (match) {
+          const [, varName, argsText] = match;
+          const arch = architecturesByVariable[varName];
+          if (!arch) continue;
+
+          const blockName = parseMerlinScalar(argsText);
+          if (!blockName || !arch.blocks?.[blockName]) continue;
+
+          delete arch.blocks[blockName];
+          arch.blockOrder = (arch.blockOrder || []).filter(
+            (b) => b !== blockName,
+          );
+
+          const removedAliases = new Set(
+            Object.entries(arch.diagram?.uses || {})
+              .filter(([, targetBlock]) => targetBlock === blockName)
+              .map(([alias]) => alias),
+          );
+
+          if (arch.diagram) {
+            for (const alias of removedAliases) {
+              delete arch.diagram.uses[alias];
+            }
+
+            arch.diagram.useOrder = (arch.diagram.useOrder || []).filter(
+              (alias) => !removedAliases.has(alias),
+            );
+
+            arch.diagram.connections = (arch.diagram.connections || []).filter(
+              (conn) => {
+                const text = String(conn || "");
+                for (const alias of removedAliases) {
+                  if (new RegExp(`\\b${alias}\\.`).test(text)) {
+                    return false;
+                  }
+                }
+                return true;
+              },
+            );
+          }
+
+          continue;
+        }
+        // a.removeNode(Stem, conv1)
+        match = rawLine.match(/^\s*(\w+)\.removeNode\((.*)\)\s*$/);
+        if (match) {
+          const [, varName, argsText] = match;
+          const arch = architecturesByVariable[varName];
+          if (!arch) continue;
+
+          const args = splitTopLevelArgs(argsText);
+          const blockName = parseMerlinScalar(args[0]);
+          const nodeName = parseMerlinScalar(args[1]);
+          const block = arch.blocks[blockName];
+          if (!block) continue;
+
+          block.nodes = block.nodes.filter((n) => n !== nodeName);
+          block.hiddenNodes.delete(nodeName);
+          continue;
+        }
+
+        // a.removeNodes(Stem, [conv1, pool1])
+        match = rawLine.match(/^\s*(\w+)\.removeNodes\((.*)\)\s*$/);
+        if (match) {
+          const [, varName, argsText] = match;
+          const arch = architecturesByVariable[varName];
+          if (!arch) continue;
+
+          const args = splitTopLevelArgs(argsText);
+          const blockName = parseMerlinScalar(args[0]);
+          const nodeNames = parseMerlinList(args[1]);
+          const block = arch.blocks[blockName];
+          if (!block) continue;
+
+          block.nodes = block.nodes.filter((n) => !nodeNames.includes(n));
+          nodeNames.forEach((n) => block.hiddenNodes.delete(n));
+          continue;
+        }
+
+        // a.hideNode(Stem, conv1)
+        match = rawLine.match(/^\s*(\w+)\.hideNode\((.*)\)\s*$/);
+        if (match) {
+          const [, varName, argsText] = match;
+          const arch = architecturesByVariable[varName];
+          if (!arch) continue;
+
+          const args = splitTopLevelArgs(argsText);
+          const blockName = parseMerlinScalar(args[0]);
+          const nodeName = parseMerlinScalar(args[1]);
+          const block = arch.blocks[blockName];
+          if (!block) continue;
+
+          if (block.nodes.includes(nodeName)) {
+            block.hiddenNodes.add(nodeName);
+          }
+          continue;
+        }
+
+        // a.showNode(Stem, conv1)
+        match = rawLine.match(/^\s*(\w+)\.showNode\((.*)\)\s*$/);
+        if (match) {
+          const [, varName, argsText] = match;
+          const arch = architecturesByVariable[varName];
+          if (!arch) continue;
+
+          const args = splitTopLevelArgs(argsText);
+          const blockName = parseMerlinScalar(args[0]);
+          const nodeName = parseMerlinScalar(args[1]);
+          const block = arch.blocks[blockName];
+          if (!block) continue;
+
+          block.hiddenNodes.delete(nodeName);
+          continue;
+        }
+
+        // a.removeEdge(Stem, e3)
+        match = rawLine.match(/^\s*(\w+)\.removeEdge\((.*)\)\s*$/);
+        if (match) {
+          const [, varName, argsText] = match;
+          const arch = architecturesByVariable[varName];
+          if (!arch) continue;
+
+          const args = splitTopLevelArgs(argsText);
+          const blockName = parseMerlinScalar(args[0]);
+          const edgeName = parseMerlinScalar(args[1]);
+          const block = arch.blocks[blockName];
+          if (!block) continue;
+
+          block.edges = block.edges.filter((e) => e !== edgeName);
+          block.hiddenEdges.delete(edgeName);
+          continue;
+        }
+
+        // a.removeEdges(Stem, [e3, e1])
+        match = rawLine.match(/^\s*(\w+)\.removeEdges\((.*)\)\s*$/);
+        if (match) {
+          const [, varName, argsText] = match;
+          const arch = architecturesByVariable[varName];
+          if (!arch) continue;
+
+          const args = splitTopLevelArgs(argsText);
+          const blockName = parseMerlinScalar(args[0]);
+          const edgeNames = parseMerlinList(args[1]);
+          const block = arch.blocks[blockName];
+          if (!block) continue;
+
+          block.edges = block.edges.filter((e) => !edgeNames.includes(e));
+          edgeNames.forEach((e) => block.hiddenEdges.delete(e));
+          continue;
+        }
+
+        // a.hideEdge(Stem, e1)
+        match = rawLine.match(/^\s*(\w+)\.hideEdge\((.*)\)\s*$/);
+        if (match) {
+          const [, varName, argsText] = match;
+          const arch = architecturesByVariable[varName];
+          if (!arch) continue;
+
+          const args = splitTopLevelArgs(argsText);
+          const blockName = parseMerlinScalar(args[0]);
+          const edgeName = parseMerlinScalar(args[1]);
+          const block = arch.blocks[blockName];
+          if (!block) continue;
+
+          if (block.edges.includes(edgeName)) {
+            block.hiddenEdges.add(edgeName);
+          }
+          continue;
+        }
+
+        // a.showEdge(Stem, e1)
+        match = rawLine.match(/^\s*(\w+)\.showEdge\((.*)\)\s*$/);
+        if (match) {
+          const [, varName, argsText] = match;
+          const arch = architecturesByVariable[varName];
+          if (!arch) continue;
+
+          const args = splitTopLevelArgs(argsText);
+          const blockName = parseMerlinScalar(args[0]);
+          const edgeName = parseMerlinScalar(args[1]);
+          const block = arch.blocks[blockName];
+          if (!block) continue;
+
+          block.hiddenEdges.delete(edgeName);
+          continue;
+        }
+
+        // a.hideBlock(Stem)
+        match = rawLine.match(/^\s*(\w+)\.hideBlock\((.*)\)\s*$/);
+        if (match) {
+          const [, varName, argsText] = match;
+          const arch = architecturesByVariable[varName];
+          if (!arch) continue;
+
+          const blockName = parseMerlinScalar(argsText);
+          const block = arch.blocks[blockName];
+          if (block) block.hidden = true;
+          continue;
+        }
+
+        // a.showBlock(Stem)
+        match = rawLine.match(/^\s*(\w+)\.showBlock\((.*)\)\s*$/);
+        if (match) {
+          const [, varName, argsText] = match;
+          const arch = architecturesByVariable[varName];
+          if (!arch) continue;
+
+          const blockName = parseMerlinScalar(argsText);
+          const block = arch.blocks[blockName];
+          if (block) block.hidden = false;
+          continue;
+        }
+
+        continue;
+      }
+
+      // end architecture
+      if (insideArchitecture && !insideBlock && rawLine.match(/^\s*}\s*$/)) {
+        insideArchitecture = false;
+        currentArchitecture = null;
+        currentBlock = null;
+        currentSection = null;
+        continue;
+      }
+
+      if (!currentArchitecture) continue;
+
+      const arch = architecturesByVariable[currentArchitecture];
+
+      // title: "Hello"
+      match = rawLine.match(/^\s*title:\s*["'](.+?)["']\s*,?\s*$/);
+      if (match) {
+        arch.title = match[1];
+        continue;
+      }
+
+      // diagram: [
+      if (!insideBlock && rawLine.match(/^\s*diagram\s*:\s*\[\s*$/)) {
+        currentSection = "diagram";
+        continue;
+      }
+
+      // end diagram
+      if (currentSection === "diagram" && rawLine.match(/^\s*]\s*,?\s*$/)) {
+        currentSection = null;
+        continue;
+      }
+
+      if (currentSection === "diagram") {
+        const diagram = arch.diagram;
+
+        let match;
+
+        match = rawLine.match(/^\s*gap\s*:\s*(\d+(?:\.\d+)?)\s*,?\s*$/);
+        if (match) {
+          diagram.gap = Number(match[1]);
+          continue;
+        }
+
+        match = rawLine.match(
+          /^\s*layout\s*:\s*(horizontal|vertical|grid)\s*,?\s*$/,
+        );
+        if (match) {
+          diagram.layout = match[1];
+          continue;
+        }
+
+        // uses: [
+        if (rawLine.match(/^\s*uses\s*:\s*\[\s*$/)) {
+          currentSection = "diagram-uses";
+          continue;
+        }
+
+        // uses: [e = Encoder, d = Decoder]
+        match = rawLine.match(/^\s*uses\s*:\s*\[(.*)\]\s*,?\s*$/);
+        if (match) {
+          const items = splitTopLevelArgs(match[1]);
+          items.forEach((item) => {
+            const useMatch = item.match(
+              /^\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*$/,
+            );
+            if (useMatch) {
+              const [, alias, blockName] = useMatch;
+              diagram.uses[alias] = blockName;
+              diagram.useOrder = diagram.useOrder.filter((a) => a !== alias);
+              diagram.useOrder.push(alias);
+            }
+          });
+          continue;
+        }
+
+        // connects: [
+        if (rawLine.match(/^\s*connects\s*:\s*\[\s*$/)) {
+          currentSection = "diagram-connects";
+          continue;
+        }
+
+        match = rawLine.match(/^\s*connects\s*:\s*\[(.*)\]\s*,?\s*$/);
+        if (match) {
+          const items = splitTopLevelArgs(match[1]);
+          items.forEach((item) => {
+            const trimmed = item.trim();
+            if (trimmed) {
+              arch.diagram.connections.push(trimmed);
+            }
+          });
+          continue;
+        }
+      }
+      if (currentSection === "diagram-connects") {
+        if (rawLine.match(/^\s*]\s*,?\s*$/)) {
+          currentSection = "diagram";
+          continue;
+        }
+
+        const trimmed = rawLine.trim();
+        if (trimmed) {
+          arch.diagram.connections.push(trimmed.replace(/,\s*$/, ""));
+        }
+        continue;
+      }
+      if (currentSection === "diagram-uses") {
+        if (rawLine.match(/^\s*]\s*,?\s*$/)) {
+          currentSection = "diagram";
+          continue;
+        }
+
+        const trimmed = rawLine.trim().replace(/,\s*$/, "");
+        if (!trimmed) continue;
+
+        const useMatch = trimmed.match(
+          /^\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*$/,
+        );
+
+        if (useMatch) {
+          const [, alias, blockName] = useMatch;
+          const diagram = arch.diagram;
+
+          diagram.uses[alias] = blockName;
+          diagram.useOrder = diagram.useOrder.filter((a) => a !== alias);
+          diagram.useOrder.push(alias);
+        }
+
+        continue;
+      }
+      // block Encoder: [
+      match = rawLine.match(/^\s*block\s+(\w+)\s*:\s*\[\s*$/);
+      if (match) {
+        const blockName = match[1];
+        currentBlock = blockName;
+        insideBlock = true;
+        insideNodes = false;
+        insideEdges = false;
+        insideGroups = false;
+        currentSection = null;
+
+        arch.blockOrder.push(blockName);
+        arch.blocks[blockName] = {
+          nodes: [],
+          edges: [],
+          groups: [],
+          hiddenNodes: new Set(),
+          hiddenEdges: new Set(),
+          hidden: false,
+          blockName,
+          nodeTypes: {},
+        };
+        continue;
+      }
+
+      // end block
+      if (
+        insideBlock &&
+        !insideNodes &&
+        !insideEdges &&
+        !insideGroups &&
+        rawLine.match(/^\s*]\s*,?\s*$/)
+      ) {
+        insideBlock = false;
+        insideNodes = false;
+        insideEdges = false;
+        insideGroups = false;
+        currentBlock = null;
+        currentSection = null;
+        continue;
+      }
+
+      if (!insideBlock || !currentBlock) continue;
+
+      const block = arch.blocks[currentBlock];
+
+      // nodes: [
+      if (rawLine.match(/^\s*nodes:\s*\[\s*$/)) {
+        insideNodes = true;
+        insideEdges = false;
+        insideGroups = false;
+        currentSection = "nodes";
+        continue;
+      }
+
+      // edges: [
+      if (rawLine.match(/^\s*edges:\s*\[\s*$/)) {
+        insideNodes = false;
+        insideEdges = true;
+        insideGroups = false;
+        currentSection = "edges";
+        continue;
+      }
+
+      // groups: [
+      if (rawLine.match(/^\s*groups:\s*\[\s*$/)) {
+        insideNodes = false;
+        insideEdges = false;
+        insideGroups = true;
+        currentSection = "groups";
+        continue;
+      }
+
+      // end section
+      if (
+        (insideNodes || insideEdges || insideGroups) &&
+        rawLine.match(/^\s*]\s*,?\s*$/)
+      ) {
+        insideNodes = false;
+        insideEdges = false;
+        insideGroups = false;
+        currentSection = null;
+        continue;
+      }
+
+      if (insideNodes) {
+        const nodeMatch = rawLine.match(/^\s*(\w+)\s*=\s*(.*)$/);
+        if (nodeMatch) {
+          const nodeName = nodeMatch[1];
+          const nodeBody = nodeMatch[2] || "";
+
+          block.nodes.push(nodeName);
+
+          const typeMatch = nodeBody.match(
+            /\btype\s*:\s*([a-zA-Z_][a-zA-Z0-9_]*)/,
+          );
+          block.nodeTypes[nodeName] = typeMatch ? typeMatch[1] : null;
+        }
+        continue;
+      }
+
+      if (insideEdges) {
+        // e1 = ...
+        match = rawLine.match(/^\s*(\w+)\s*=\s*/);
+        if (match) {
+          block.edges.push(match[1]);
+        }
+        continue;
+      }
+
+      if (insideGroups) {
+        // row1 = ...
+        match = rawLine.match(/^\s*(\w+)\s*=\s*/);
+        if (match) {
+          block.groups.push(match[1]);
+        }
+        continue;
+      }
+    }
+
+    return architecturesByVariable;
+  }
+  function parseNeuralNetworksFromContext(model, position) {
+    const textUntilPosition = model.getValueInRange({
+      startLineNumber: 1,
+      startColumn: 1,
+      endLineNumber: position.lineNumber,
+      endColumn: position.column,
+    });
+
+    const neuralNetworksByVariable = {};
+    const lines = textUntilPosition.split("\n");
+
+    let currentVariable = null;
+    let insideDeclaration = false;
+
+    for (const rawLine of lines) {
+      const line = rawLine.trim();
+
+      const declarationMatch = rawLine.match(
+        /^\s*neuralnetwork\s+(\w+)\s*=\s*\{/,
+      );
+      if (declarationMatch) {
+        currentVariable = declarationMatch[1];
+        neuralNetworksByVariable[currentVariable] = {
+          layers: [],
+          neurons: [],
+          layerColors: [],
+          neuronColors: [],
+          showBias: null,
+          showLabels: null,
+          labelPosition: null,
+          showWeights: null,
+          showArrowheads: null,
+        };
+        insideDeclaration = true;
+        continue;
+      }
+
+      if (insideDeclaration && rawLine.includes("}")) {
+        insideDeclaration = false;
+        currentVariable = null;
+        continue;
+      }
+
+      if (insideDeclaration && currentVariable) {
+        const current = neuralNetworksByVariable[currentVariable];
+
+        const layersMatch = rawLine.match(/layers:\s*(\[.*\])/);
+        if (layersMatch) {
+          current.layers = parseMerlinList(layersMatch[1]);
+        }
+
+        const neuronsMatch = rawLine.match(/neurons:\s*(\[\[.*\]\])/);
+        if (neuronsMatch) {
+          current.neurons = parseMerlin2DList(neuronsMatch[1]);
+        }
+
+        const layerColorsMatch = rawLine.match(/layerColors:\s*(\[.*\])/);
+        if (layerColorsMatch) {
+          current.layerColors = parseMerlinList(layerColorsMatch[1]);
+        }
+
+        const neuronColorsMatch = rawLine.match(/neuronColors:\s*(\[\[.*\]\])/);
+        if (neuronColorsMatch) {
+          current.neuronColors = parseMerlin2DList(neuronColorsMatch[1]);
+        }
+
+        const showBiasMatch = rawLine.match(/showBias:\s*(true|false)/);
+        if (showBiasMatch) {
+          current.showBias = showBiasMatch[1] === "true";
+        }
+
+        const showLabelsMatch = rawLine.match(/showLabels:\s*(true|false)/);
+        if (showLabelsMatch) {
+          current.showLabels = showLabelsMatch[1] === "true";
+        }
+
+        const showWeightsMatch = rawLine.match(/showWeights:\s*(true|false)/);
+        if (showWeightsMatch) {
+          current.showWeights = showWeightsMatch[1] === "true";
+        }
+
+        const showArrowheadsMatch = rawLine.match(
+          /showArrowheads:\s*(true|false)/,
+        );
+        if (showArrowheadsMatch) {
+          current.showArrowheads = showArrowheadsMatch[1] === "true";
+        }
+
+        const labelPositionMatch = rawLine.match(
+          /labelPosition:\s*["'](top|bottom)["']/,
+        );
+        if (labelPositionMatch) {
+          current.labelPosition = labelPositionMatch[1];
+        }
+
+        continue;
+      }
+
+      // nn.setNeuron(layerIdx, neuronIdx, value)
+      let match = rawLine.match(/^\s*(\w+)\.setNeuron\((.*)\)\s*$/);
+      if (match) {
+        const [, varName, argsText] = match;
+        const nn = neuralNetworksByVariable[varName];
+        if (!nn) continue;
+
+        const args = splitTopLevelArgs(argsText);
+        const layerIndex = Number(args[0]);
+        const neuronIndex = Number(args[1]);
+        const value = parseMerlinScalar(args[2]);
+
+        if (!Number.isNaN(layerIndex) && !Number.isNaN(neuronIndex)) {
+          if (!nn.neurons[layerIndex]) nn.neurons[layerIndex] = [];
+          nn.neurons[layerIndex][neuronIndex] = value;
+        }
+        continue;
+      }
+
+      // nn.setNeuronColor(layerIdx, neuronIdx, color)
+      match = rawLine.match(/^\s*(\w+)\.setNeuronColor\((.*)\)\s*$/);
+      if (match) {
+        const [, varName, argsText] = match;
+        const nn = neuralNetworksByVariable[varName];
+        if (!nn) continue;
+
+        const args = splitTopLevelArgs(argsText);
+        const layerIndex = Number(args[0]);
+        const neuronIndex = Number(args[1]);
+        const value = parseMerlinScalar(args[2]);
+
+        if (!Number.isNaN(layerIndex) && !Number.isNaN(neuronIndex)) {
+          if (!nn.neuronColors[layerIndex]) nn.neuronColors[layerIndex] = [];
+          nn.neuronColors[layerIndex][neuronIndex] = value;
+        }
+        continue;
+      }
+
+      // nn.setLayer(index, value)
+      match = rawLine.match(/^\s*(\w+)\.setLayer\((.*)\)\s*$/);
+      if (match) {
+        const [, varName, argsText] = match;
+        const nn = neuralNetworksByVariable[varName];
+        if (!nn) continue;
+
+        const args = splitTopLevelArgs(argsText);
+        const index = Number(args[0]);
+        const value = parseMerlinScalar(args[1]);
+
+        if (!Number.isNaN(index)) {
+          nn.layers[index] = value;
+        }
+        continue;
+      }
+
+      // nn.setLayerColor(index, value)
+      match = rawLine.match(/^\s*(\w+)\.setLayerColor\((.*)\)\s*$/);
+      if (match) {
+        const [, varName, argsText] = match;
+        const nn = neuralNetworksByVariable[varName];
+        if (!nn) continue;
+
+        const args = splitTopLevelArgs(argsText);
+        const index = Number(args[0]);
+        const value = parseMerlinScalar(args[1]);
+
+        if (!Number.isNaN(index)) {
+          nn.layerColors[index] = value;
+        }
+        continue;
+      }
+
+      // nn.setNeurons([[...], [...]])
+      match = rawLine.match(/^\s*(\w+)\.setNeurons\((.*)\)\s*$/);
+      if (match) {
+        const [, varName, argsText] = match;
+        const nn = neuralNetworksByVariable[varName];
+        if (!nn) continue;
+
+        nn.neurons = parseMerlin2DList(argsText);
+        continue;
+      }
+
+      // nn.setNeuronColors([[...], [...]])
+      match = rawLine.match(/^\s*(\w+)\.setNeuronColors\((.*)\)\s*$/);
+      if (match) {
+        const [, varName, argsText] = match;
+        const nn = neuralNetworksByVariable[varName];
+        if (!nn) continue;
+
+        nn.neuronColors = parseMerlin2DList(argsText);
+        continue;
+      }
+
+      // nn.setLayers([...])
+      match = rawLine.match(/^\s*(\w+)\.setLayers\((.*)\)\s*$/);
+      if (match) {
+        const [, varName, argsText] = match;
+        const nn = neuralNetworksByVariable[varName];
+        if (!nn) continue;
+
+        nn.layers = parseMerlinList(argsText);
+        continue;
+      }
+
+      // nn.setLayerColors([...])
+      match = rawLine.match(/^\s*(\w+)\.setLayerColors\((.*)\)\s*$/);
+      if (match) {
+        const [, varName, argsText] = match;
+        const nn = neuralNetworksByVariable[varName];
+        if (!nn) continue;
+
+        nn.layerColors = parseMerlinList(argsText);
+        continue;
+      }
+
+      // nn.addNeurons(layerIndex, [...])
+      match = rawLine.match(/^\s*(\w+)\.addNeurons\((.*)\)\s*$/);
+      if (match) {
+        const [, varName, argsText] = match;
+        const nn = neuralNetworksByVariable[varName];
+        if (!nn) continue;
+
+        const args = splitTopLevelArgs(argsText);
+        const layerIndex = Number(args[0]);
+        const values = parseMerlinList(args[1]);
+
+        if (!Number.isNaN(layerIndex)) {
+          if (!nn.neurons[layerIndex]) nn.neurons[layerIndex] = [];
+          nn.neurons[layerIndex].push(...values);
+        }
+        continue;
+      }
+
+      // nn.addLayer(value, [...])
+      match = rawLine.match(/^\s*(\w+)\.addLayer\((.*)\)\s*$/);
+      if (match) {
+        const [, varName, argsText] = match;
+        const nn = neuralNetworksByVariable[varName];
+        if (!nn) continue;
+
+        const args = splitTopLevelArgs(argsText);
+        const layerValue = parseMerlinScalar(args[0]);
+        const neuronValues = parseMerlinList(args[1]);
+
+        nn.layers.push(layerValue);
+        nn.neurons.push(neuronValues);
+        if (nn.layerColors.length < nn.layers.length) nn.layerColors.push(null);
+        if (nn.neuronColors.length < nn.neurons.length) {
+          nn.neuronColors.push(neuronValues.map(() => null));
+        }
+        continue;
+      }
+
+      // nn.removeLayerAt(index)
+      match = rawLine.match(/^\s*(\w+)\.removeLayerAt\((.*)\)\s*$/);
+      if (match) {
+        const [, varName, argsText] = match;
+        const nn = neuralNetworksByVariable[varName];
+        if (!nn) continue;
+
+        const index = Number(argsText.trim());
+        if (!Number.isNaN(index)) {
+          nn.layers.splice(index, 1);
+          nn.neurons.splice(index, 1);
+          nn.layerColors.splice(index, 1);
+          nn.neuronColors.splice(index, 1);
+        }
+        continue;
+      }
+
+      // nn.removeNeuronsFromLayer(layerIndex, [...])
+      match = rawLine.match(/^\s*(\w+)\.removeNeuronsFromLayer\((.*)\)\s*$/);
+      if (match) {
+        const [, varName, argsText] = match;
+        const nn = neuralNetworksByVariable[varName];
+        if (!nn) continue;
+
+        const args = splitTopLevelArgs(argsText);
+        const layerIndex = Number(args[0]);
+        const neuronIndexes = parseMerlinList(args[1])
+          .map(Number)
+          .filter((n) => !Number.isNaN(n))
+          .sort((a, b) => b - a);
+
+        if (!Number.isNaN(layerIndex) && nn.neurons[layerIndex]) {
+          neuronIndexes.forEach((idx) => {
+            nn.neurons[layerIndex].splice(idx, 1);
+            if (nn.neuronColors[layerIndex]) {
+              nn.neuronColors[layerIndex].splice(idx, 1);
+            }
+          });
+        }
+        continue;
+      }
+    }
+
+    return neuralNetworksByVariable;
+  }
   // Function to parse nodes from variable declarations
   function parseNodesFromContext(model, position) {
     const textUntilPosition = model.getValueInRange({
@@ -657,11 +1781,25 @@ export function registerCustomLanguage(monaco) {
         [/\b(digit|number)\b/, "custom-number"],
         [/\/\/.*$/, "comment"],
         [/$[ \t]*.*/, "inlinecomment"],
+
+        [
+          /^(\s*)(architecture)(\s+)([a-zA-Z_][a-zA-Z0-9_]*)(\s*=\s*\{)/,
+          [
+            "",
+            "component",
+            "",
+            "variable",
+            { token: "symbol", next: "@architecture" },
+          ],
+        ],
+
         [keywordPattern, "keyword"],
-        [setCommand, "dot-command"],
-        [addCommand, "dot-command"],
-        [insertCommand, "dot-command"],
-        [removeCommand, "dot-command"],
+
+        [
+          /(\.)([a-zA-Z_][a-zA-Z0-9_]*)(?=\s*\()/,
+          ["symbol", "external-method-call"],
+        ],
+
         [componentPattern, "component"],
         [attributePattern, "attribute"],
         [positionPattern, "positional"],
@@ -672,6 +1810,161 @@ export function registerCustomLanguage(monaco) {
         [/("([^"\\]|\\.)*")|('([^'\\]|\\.)*')/, "string"],
         [symbolPattern, "symbol"],
       ],
+
+      architecture: [
+        [/\/\/.*$/, "comment"],
+
+        [/^\s*\}/, { token: "symbol", next: "@pop" }],
+
+        [
+          /^(\s*)(block)(\s+)([a-zA-Z_][a-zA-Z0-9_]*)(\s*:\s*\[)/,
+          [
+            "",
+            "arch-header",
+            "",
+            "arch-header",
+            { token: "symbol", next: "@archBlock" },
+          ],
+        ],
+
+        [/^(\s*)(title)(?=\s*:)/, ["", "arch-header"]],
+
+        [
+          /^(\s*)(diagram)(\s*:\s*\[)/,
+          ["", "arch-header", { token: "symbol", next: "@archDiagram" }],
+        ],
+
+        [/^(\s*)(title)(?=\s*:)/, ["", "arch-section"]],
+
+        [positionPattern, "positional"],
+        [layoutPattern, "positional"],
+        [/\b\d+(\.\d+)?\b/, "number"],
+        [/("([^"\\]|\\.)*")|('([^'\\]|\\.)*')/, "string"],
+        [symbolPattern, "symbol"],
+        [/\b[a-zA-Z_][a-zA-Z0-9_]*\b/, "variable"],
+      ],
+
+      archBlock: [
+        [/\/\/.*$/, "comment"],
+
+        // enter child sections FIRST
+        [
+          /^(\s*)(nodes)(\s*:\s*\[)/,
+          ["", "arch-section", { token: "symbol", next: "@archNodes" }],
+        ],
+        [
+          /^(\s*)(edges)(\s*:\s*\[)/,
+          ["", "arch-section", { token: "symbol", next: "@archEdges" }],
+        ],
+        [
+          /^(\s*)(groups)(\s*:\s*\[)/,
+          ["", "arch-section", { token: "symbol", next: "@archGroups" }],
+        ],
+
+        [/^\s*\],?/, { token: "symbol", next: "@pop" }],
+
+        [
+          /^(\s*)(layout|gap|size|color|style|annotation\.(?:top|bottom|left|right))(?=\s*:)/,
+          ["", "arch-section"],
+        ],
+
+        [positionPattern, "positional"],
+        [layoutPattern, "positional"],
+        [/\b\d+(\.\d+)?\b/, "number"],
+        [/("([^"\\]|\\.)*")|('([^'\\]|\\.)*')/, "string"],
+        [symbolPattern, "symbol"],
+        [/\b[a-zA-Z_][a-zA-Z0-9_]*\b/, "variable"],
+      ],
+
+      archDiagram: [
+        [/\/\/.*$/, "comment"],
+
+        [/^\s*\],?/, { token: "symbol", next: "@pop" }],
+
+        [/^(\s*)(gap|layout|uses|connects)(?=\s*:)/, ["", "arch-section"]],
+
+        [
+          /^(\s*)([a-zA-Z_][a-zA-Z0-9_]*)(\s*=)/,
+          ["", "arch-item-name", "symbol"],
+        ],
+
+        [/\b(style|color|label|arrowheads)(?=\s*:)/, "arch-inline-prop"],
+
+        [positionPattern, "positional"],
+        [/\b(straight|bow)\b/, "variable"],
+        [edgePattern, "variable"],
+        [/\b\d+(\.\d+)?\b/, "number"],
+        [/("([^"\\]|\\.)*")|('([^'\\]|\\.)*')/, "string"],
+        [symbolPattern, "symbol"],
+        [/\b[a-zA-Z_][a-zA-Z0-9_]*\b/, "variable"],
+      ],
+
+      archNodes: [
+        [/\/\/.*$/, "comment"],
+
+        [/^\s*\],?/, { token: "symbol", next: "@pop" }],
+
+        [
+          /^(\s*)([a-zA-Z_][a-zA-Z0-9_]*)(\s*=)/,
+          ["", "arch-item-name", "symbol"],
+        ],
+
+        [
+          /\b(type|label|label\.orientation|subtext|size|style|color|stroke|annotation\.(?:top|bottom|left|right))(?=\s*:)/,
+          "arch-inline-prop",
+        ],
+
+        [positionPattern, "positional"],
+        [/\b(rect|circle|text|box|rounded|horizontal|vertical)\b/, "variable"],
+        [/\b\d+(\.\d+)?\b/, "number"],
+        [/("([^"\\]|\\.)*")|('([^'\\]|\\.)*')/, "string"],
+        [symbolPattern, "symbol"],
+        [/\b[a-zA-Z_][a-zA-Z0-9_]*\b/, "variable"],
+      ],
+
+      archEdges: [
+        [/\/\/.*$/, "comment"],
+
+        [/^\s*\],?/, { token: "symbol", next: "@pop" }],
+
+        [
+          /^(\s*)([a-zA-Z_][a-zA-Z0-9_]*)(\s*=)/,
+          ["", "arch-item-name", "symbol"],
+        ],
+
+        [/\b(label|style|color|arrowheads)(?=\s*:)/, "arch-inline-prop"],
+
+        [positionPattern, "positional"],
+        [/\b(straight|bow|start|mid|end)\b/, "variable"],
+        [edgePattern, "variable"],
+        [/\b\d+(\.\d+)?\b/, "number"],
+        [/("([^"\\]|\\.)*")|('([^'\\]|\\.)*')/, "string"],
+        [symbolPattern, "symbol"],
+        [/\b[a-zA-Z_][a-zA-Z0-9_]*\b/, "variable"],
+      ],
+
+      archGroups: [
+        [/\/\/.*$/, "comment"],
+
+        [/^\s*\],?/, { token: "symbol", next: "@pop" }],
+
+        [
+          /^(\s*)([a-zA-Z_][a-zA-Z0-9_]*)(\s*=)/,
+          ["", "arch-item-name", "symbol"],
+        ],
+
+        [
+          /\b(members|layout|anchor|gap|color|annotation\.(?:top|bottom|left|right))(?=\s*:)/,
+          "arch-inline-prop",
+        ],
+
+        [positionPattern, "positional"],
+        [/\b(horizontal|vertical|grid)\b/, "variable"],
+        [/\b\d+(\.\d+)?\b/, "number"],
+        [/("([^"\\]|\\.)*")|('([^'\\]|\\.)*')/, "string"],
+        [symbolPattern, "symbol"],
+        [/\b[a-zA-Z_][a-zA-Z0-9_]*\b/, "variable"],
+      ],
     },
   });
 
@@ -679,6 +1972,1090 @@ export function registerCustomLanguage(monaco) {
   monaco.editor.defineTheme("customTheme", themeConfig);
 
   monaco.languages.setLanguageConfiguration("customLang", monacoLanguageConfig);
+
+  function countToken(text, token) {
+    return (text.match(new RegExp(`\\${token}`, "g")) || []).length;
+  }
+
+  function getArchitectureTopLevelContext(model, position) {
+    const textUntilPosition = model.getValueInRange({
+      startLineNumber: 1,
+      startColumn: 1,
+      endLineNumber: position.lineNumber,
+      endColumn: position.column,
+    });
+
+    const lines = textUntilPosition.split("\n");
+
+    let insideArchitecture = false;
+    let architectureName = null;
+
+    let insideBlock = false;
+    let insideDiagram = false;
+    let insideDiagramConnects = false;
+    let insideNodes = false;
+    let insideEdges = false;
+    let insideGroups = false;
+
+    let usedTopLevelEntries = new Set();
+
+    for (const rawLine of lines) {
+      const archMatch = rawLine.match(/^\s*architecture\s+(\w+)\s*=\s*\{/);
+      if (!insideArchitecture && archMatch) {
+        insideArchitecture = true;
+        architectureName = archMatch[1];
+        insideBlock = false;
+        insideDiagram = false;
+        insideDiagramConnects = false;
+        insideNodes = false;
+        insideEdges = false;
+        insideGroups = false;
+        continue;
+      }
+
+      if (!insideArchitecture) continue;
+
+      // collect only direct architecture top-level entries
+      if (
+        !insideBlock &&
+        !insideDiagram &&
+        !insideNodes &&
+        !insideEdges &&
+        !insideGroups
+      ) {
+        if (/^\s*title\s*:/.test(rawLine)) usedTopLevelEntries.add("title");
+        if (/^\s*diagram\s*:\s*\[/.test(rawLine))
+          usedTopLevelEntries.add("diagram");
+        if (/^\s*above\s*:/.test(rawLine)) usedTopLevelEntries.add("above");
+        if (/^\s*below\s*:/.test(rawLine)) usedTopLevelEntries.add("below");
+        if (/^\s*left\s*:/.test(rawLine)) usedTopLevelEntries.add("left");
+        if (/^\s*right\s*:/.test(rawLine)) usedTopLevelEntries.add("right");
+      }
+
+      // enter block
+      if (
+        !insideBlock &&
+        !insideDiagram &&
+        /^\s*block\s+\w+\s*:\s*\[\s*$/.test(rawLine)
+      ) {
+        insideBlock = true;
+        insideNodes = false;
+        insideEdges = false;
+        insideGroups = false;
+        continue;
+      }
+
+      // enter diagram
+      if (
+        !insideBlock &&
+        !insideDiagram &&
+        /^\s*diagram\s*:\s*\[\s*$/.test(rawLine)
+      ) {
+        insideDiagram = true;
+        insideDiagramConnects = false;
+        continue;
+      }
+
+      // handle nested diagram connects
+      if (
+        insideDiagram &&
+        !insideDiagramConnects &&
+        /^\s*connects\s*:\s*\[\s*$/.test(rawLine)
+      ) {
+        insideDiagramConnects = true;
+        continue;
+      }
+
+      if (insideDiagramConnects && /^\s*]\s*,?\s*$/.test(rawLine)) {
+        insideDiagramConnects = false;
+        continue;
+      }
+
+      // leave diagram only if we're not inside connects
+      if (
+        insideDiagram &&
+        !insideDiagramConnects &&
+        /^\s*]\s*,?\s*$/.test(rawLine)
+      ) {
+        insideDiagram = false;
+        continue;
+      }
+
+      if (insideBlock) {
+        if (/^\s*nodes\s*:\s*\[\s*$/.test(rawLine)) {
+          insideNodes = true;
+          insideEdges = false;
+          insideGroups = false;
+          continue;
+        }
+
+        if (/^\s*edges\s*:\s*\[\s*$/.test(rawLine)) {
+          insideNodes = false;
+          insideEdges = true;
+          insideGroups = false;
+          continue;
+        }
+
+        if (/^\s*groups\s*:\s*\[\s*$/.test(rawLine)) {
+          insideNodes = false;
+          insideEdges = false;
+          insideGroups = true;
+          continue;
+        }
+
+        if (
+          (insideNodes || insideEdges || insideGroups) &&
+          /^\s*]\s*,?\s*$/.test(rawLine)
+        ) {
+          insideNodes = false;
+          insideEdges = false;
+          insideGroups = false;
+          continue;
+        }
+
+        if (
+          !insideNodes &&
+          !insideEdges &&
+          !insideGroups &&
+          /^\s*]\s*,?\s*$/.test(rawLine)
+        ) {
+          insideBlock = false;
+          continue;
+        }
+      }
+
+      // leave architecture
+      if (
+        !insideBlock &&
+        !insideDiagram &&
+        !insideDiagramConnects &&
+        !insideNodes &&
+        !insideEdges &&
+        !insideGroups &&
+        /^\s*}\s*$/.test(rawLine)
+      ) {
+        insideArchitecture = false;
+        architectureName = null;
+        usedTopLevelEntries = new Set();
+        continue;
+      }
+    }
+
+    return {
+      insideArchitectureTopLevel:
+        insideArchitecture &&
+        !insideBlock &&
+        !insideDiagram &&
+        !insideDiagramConnects &&
+        !insideNodes &&
+        !insideEdges &&
+        !insideGroups,
+      architectureName,
+      usedTopLevelEntries,
+    };
+  }
+
+  function getArchitectureBlockContext(model, position) {
+    const textUntilPosition = model.getValueInRange({
+      startLineNumber: 1,
+      startColumn: 1,
+      endLineNumber: position.lineNumber,
+      endColumn: position.column,
+    });
+
+    const lines = textUntilPosition.split("\n");
+
+    let insideArchitecture = false;
+    let architectureBraceDepth = 0;
+    let currentArchitectureName = null;
+
+    let insideBlock = false;
+    let currentBlockName = null;
+    let blockBracketDepth = 0;
+
+    let usedBlockEntries = new Set();
+
+    for (const rawLine of lines) {
+      const archMatch = rawLine.match(/^\s*architecture\s+(\w+)\s*=\s*\{/);
+
+      if (!insideArchitecture && archMatch) {
+        insideArchitecture = true;
+        currentArchitectureName = archMatch[1];
+        architectureBraceDepth = 1;
+
+        const rest = rawLine.slice(rawLine.indexOf("{") + 1);
+        architectureBraceDepth += countToken(rest, "{") - countToken(rest, "}");
+        continue;
+      }
+
+      if (!insideArchitecture) continue;
+
+      const blockMatch = rawLine.match(/^\s*block\s+(\w+)\s*:\s*\[\s*$/);
+
+      if (!insideBlock && blockMatch) {
+        insideBlock = true;
+        currentBlockName = blockMatch[1];
+        blockBracketDepth = 1;
+        usedBlockEntries = new Set();
+        continue;
+      }
+
+      if (insideBlock) {
+        if (blockBracketDepth === 1) {
+          if (/^\s*layout\s*:/.test(rawLine)) usedBlockEntries.add("layout");
+          if (/^\s*gap\s*:/.test(rawLine)) usedBlockEntries.add("gap");
+          if (/^\s*size\s*:/.test(rawLine)) usedBlockEntries.add("size");
+          if (/^\s*color\s*:/.test(rawLine)) usedBlockEntries.add("color");
+          if (/^\s*style\s*:/.test(rawLine)) usedBlockEntries.add("style");
+          if (/^\s*nodes\s*:\s*\[/.test(rawLine)) usedBlockEntries.add("nodes");
+          if (/^\s*edges\s*:\s*\[/.test(rawLine)) usedBlockEntries.add("edges");
+          if (/^\s*groups\s*:\s*\[/.test(rawLine))
+            usedBlockEntries.add("groups");
+
+          const annotationMatch = rawLine.match(
+            /^\s*(annotation\.(?:top|bottom|left|right))\s*:/,
+          );
+          if (annotationMatch) {
+            usedBlockEntries.add(annotationMatch[1]);
+          }
+        }
+
+        blockBracketDepth +=
+          countToken(rawLine, "[") - countToken(rawLine, "]");
+
+        if (blockBracketDepth <= 0) {
+          insideBlock = false;
+          currentBlockName = null;
+          blockBracketDepth = 0;
+          usedBlockEntries = new Set();
+          continue;
+        }
+      }
+
+      architectureBraceDepth +=
+        countToken(rawLine, "{") - countToken(rawLine, "}");
+
+      if (architectureBraceDepth <= 0) {
+        insideArchitecture = false;
+        architectureBraceDepth = 0;
+        currentArchitectureName = null;
+        insideBlock = false;
+        currentBlockName = null;
+        blockBracketDepth = 0;
+        usedBlockEntries = new Set();
+      }
+    }
+
+    return {
+      insideArchitectureBlockTopLevel:
+        insideArchitecture && insideBlock && blockBracketDepth === 1,
+      architectureName: currentArchitectureName,
+      blockName: currentBlockName,
+      usedBlockEntries,
+    };
+  }
+
+  function getArchitectureEdgeCompletionContext(edgeText, block) {
+    const text = (edgeText || "").trim();
+
+    const nodeNames = block?.nodes || [];
+    const edgeNames = block?.edges || [];
+
+    const endpointSources = [
+      ...nodeNames.map((name) => ({ kind: "node", name })),
+      ...edgeNames.map((name) => ({ kind: "edge", name })),
+    ];
+
+    const usedProps = getUsedInlineProps(text, [
+      "label",
+      "style",
+      "color",
+      "arrowheads",
+    ]);
+    const hasArrow = /\s*->\s*/.test(text);
+
+    const endsWithCompleteEndpoint =
+      /\b([a-zA-Z_][a-zA-Z0-9_]*)\.(left|right|top|bottom)(?:\[\d+\])?\s*$/.test(
+        text,
+      ) || /\b([a-zA-Z_][a-zA-Z0-9_]*)\.(start|mid|end)\s*$/.test(text);
+
+    return {
+      text,
+      nodeNames,
+      edgeNames,
+      endpointSources,
+      usedProps,
+      hasArrow,
+
+      isEmpty: text === "",
+      needsTargetEndpoint: /->\s*$/.test(text),
+
+      // only need arrow after first endpoint, not after second
+      needsArrow: endsWithCompleteEndpoint && !hasArrow,
+
+      afterDotMatch: text.match(/([a-zA-Z_][a-zA-Z0-9_]*)\.(\w*)$/),
+      afterEdgeAnchorMatch: text.match(
+        /([a-zA-Z_][a-zA-Z0-9_]*)\.(start|mid|end)\s*$/,
+      ),
+      afterNodeAnchorMatch: text.match(
+        /([a-zA-Z_][a-zA-Z0-9_]*)\.(left|right|top|bottom)(?:\[(\d*)\])?\s*$/,
+      ),
+
+      endsAfterCompleteEndpoint: endsWithCompleteEndpoint,
+
+      // second endpoint completed: arrow already exists
+      endsAfterTargetEndpoint: endsWithCompleteEndpoint && hasArrow,
+
+      endsWithBareSource:
+        /\b([a-zA-Z_][a-zA-Z0-9_]*)\s*$/.test(text) &&
+        !/([a-zA-Z_][a-zA-Z0-9_]*)\.(\w*)$/.test(text) &&
+        !/->\s*$/.test(text),
+
+      bareSourceMatch: text.match(/\b([a-zA-Z_][a-zA-Z0-9_]*)\s*$/),
+    };
+  }
+
+  function shouldShowArchitectureItemStarters(
+    model,
+    position,
+    rawCurrentItemText,
+  ) {
+    const currentLinePrefix = model
+      .getLineContent(position.lineNumber)
+      .substring(0, position.column - 1);
+
+    const prevLineContent =
+      position.lineNumber > 1
+        ? model.getLineContent(position.lineNumber - 1)
+        : "";
+
+    const trimmedPrefix = (rawCurrentItemText || "").trim();
+
+    const isTypingNamePrefix = /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(trimmedPrefix);
+
+    const isBlankCurrentLine = /^\s*$/.test(currentLinePrefix);
+
+    // disallow: directly after "," on the same line
+    const isImmediatelyAfterCommaSameLine =
+      rawCurrentItemText === "" && /,\s*$/.test(currentLinePrefix);
+
+    // allow: ", " on the same line
+    const isAfterCommaAndSpaceSameLine =
+      /^\s+$/.test(rawCurrentItemText || "") && /,\s+$/.test(currentLinePrefix);
+
+    // allow: "," then Enter
+    const isAfterCommaAndEnter =
+      isBlankCurrentLine && /,\s*$/.test(prevLineContent);
+
+    // also allow a fresh blank line when starting the section / item area
+    const isFreshBlankLine =
+      isBlankCurrentLine &&
+      !isAfterCommaAndEnter &&
+      !isImmediatelyAfterCommaSameLine;
+
+    return (
+      !isImmediatelyAfterCommaSameLine &&
+      (isAfterCommaAndSpaceSameLine ||
+        isAfterCommaAndEnter ||
+        isFreshBlankLine ||
+        isTypingNamePrefix)
+    );
+  }
+
+  function getCurrentDiagramConnectText(model, position) {
+    const linePrefix = model
+      .getLineContent(position.lineNumber)
+      .substring(0, position.column - 1);
+
+    // inline case: connects: [e.a.right -> d.b.left, e
+    const inlineMatch = linePrefix.match(/^\s*connects\s*:\s*\[(.*)$/);
+    if (inlineMatch) {
+      return getTrailingTopLevelSegment(inlineMatch[1]);
+    }
+
+    // multiline case:
+    // connects: [
+    //   e.a.right -> d.b.left,
+    //   e
+    // ]
+    return getTrailingTopLevelSegment(linePrefix);
+  }
+
+  function getTrailingTopLevelSegment(text) {
+    let depth = 0;
+    let inQuotes = false;
+    let quoteChar = "";
+    let lastCommaIndex = -1;
+
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+
+      if (!inQuotes) {
+        if (char === '"' || char === "'") {
+          inQuotes = true;
+          quoteChar = char;
+        } else if (char === "(" || char === "[" || char === "{") {
+          depth++;
+        } else if (char === ")" || char === "]" || char === "}") {
+          depth = Math.max(0, depth - 1);
+        } else if (char === "," && depth === 0) {
+          lastCommaIndex = i;
+        }
+      } else if (char === quoteChar && text[i - 1] !== "\\") {
+        inQuotes = false;
+      }
+    }
+
+    return text.slice(lastCommaIndex + 1);
+  }
+
+  function getArchitectureDiagramSectionContext(model, position) {
+    const lines = [];
+
+    for (let i = 1; i <= position.lineNumber; i++) {
+      lines.push(model.getLineContent(i));
+    }
+
+    let insideArchitecture = false;
+    let insideBlock = false;
+    let insideDiagram = false;
+    let insideDiagramConnects = false;
+    let insideDiagramUses = false;
+
+    for (let i = 0; i < lines.length; i++) {
+      const rawLine = lines[i];
+      const isCursorLine = i === lines.length - 1;
+
+      if (
+        !insideArchitecture &&
+        /^\s*architecture\s+\w+\s*=\s*\{/.test(rawLine)
+      ) {
+        insideArchitecture = true;
+        insideBlock = false;
+        insideDiagram = false;
+        insideDiagramConnects = false;
+        insideDiagramUses = false;
+        continue;
+      }
+
+      if (
+        insideArchitecture &&
+        !insideBlock &&
+        !insideDiagram &&
+        /^\s*}\s*$/.test(rawLine)
+      ) {
+        insideArchitecture = false;
+        continue;
+      }
+
+      if (!insideArchitecture) continue;
+
+      if (!insideDiagram && /^\s*block\s+\w+\s*:\s*\[\s*$/.test(rawLine)) {
+        insideBlock = true;
+        continue;
+      }
+
+      if (insideBlock && /^\s*]\s*,?\s*$/.test(rawLine)) {
+        insideBlock = false;
+        continue;
+      }
+
+      if (insideBlock) continue;
+
+      if (!insideDiagram && /^\s*diagram\s*:\s*\[\s*$/.test(rawLine)) {
+        insideDiagram = true;
+        insideDiagramConnects = false;
+        insideDiagramUses = false;
+        continue;
+      }
+
+      if (!insideDiagram) continue;
+
+      if (!insideDiagramUses) {
+        const usesInlineOpen = /^\s*uses\s*:\s*\[/.test(rawLine);
+        const usesInlineClosed = /^\s*uses\s*:\s*\[[\s\S]*]\s*,?\s*$/.test(
+          rawLine,
+        );
+
+        if (usesInlineOpen && !usesInlineClosed) {
+          insideDiagramUses = true;
+          continue;
+        }
+      }
+
+      if (!insideDiagramConnects) {
+        const connectsInlineOpen = /^\s*connects\s*:\s*\[/.test(rawLine);
+        const connectsInlineClosed =
+          /^\s*connects\s*:\s*\[[\s\S]*]\s*,?\s*$/.test(rawLine);
+
+        if (connectsInlineOpen && !connectsInlineClosed) {
+          insideDiagramConnects = true;
+          continue;
+        }
+      }
+
+      if (insideDiagramUses && /^\s*]\s*,?\s*$/.test(rawLine)) {
+        insideDiagramUses = false;
+        continue;
+      }
+
+      if (insideDiagramConnects && /^\s*]\s*,?\s*$/.test(rawLine)) {
+        insideDiagramConnects = false;
+        continue;
+      }
+
+      if (
+        !insideDiagramUses &&
+        !insideDiagramConnects &&
+        /^\s*]\s*,?\s*$/.test(rawLine)
+      ) {
+        insideDiagram = false;
+        continue;
+      }
+    }
+
+    return {
+      insideDiagramTopLevel:
+        insideArchitecture &&
+        insideDiagram &&
+        !insideDiagramConnects &&
+        !insideDiagramUses,
+      insideDiagramConnects,
+      insideDiagramUses,
+    };
+  }
+  function getArchitectureDiagramTopLevelContext(model, position) {
+    const textUntilPosition = model.getValueInRange({
+      startLineNumber: 1,
+      startColumn: 1,
+      endLineNumber: position.lineNumber,
+      endColumn: position.column,
+    });
+
+    const lines = textUntilPosition.split("\n");
+
+    let insideArchitecture = false;
+    let insideBlock = false;
+    let insideDiagram = false;
+    let insideDiagramConnects = false;
+    let insideDiagramUses = false;
+    let architectureName = null;
+    const usedEntries = new Set();
+
+    for (const rawLine of lines) {
+      const archMatch = rawLine.match(/^\s*architecture\s+(\w+)\s*=\s*\{/);
+      if (!insideArchitecture && archMatch) {
+        insideArchitecture = true;
+        architectureName = archMatch[1];
+        insideBlock = false;
+        insideDiagram = false;
+        insideDiagramConnects = false;
+        insideDiagramUses = false;
+        continue;
+      }
+
+      if (!insideArchitecture) continue;
+
+      if (!insideDiagram && /^\s*block\s+\w+\s*:\s*\[\s*$/.test(rawLine)) {
+        insideBlock = true;
+        continue;
+      }
+
+      if (insideBlock && /^\s*]\s*,?\s*$/.test(rawLine)) {
+        insideBlock = false;
+        continue;
+      }
+
+      if (insideBlock) continue;
+
+      if (!insideDiagram && /^\s*diagram\s*:\s*\[\s*$/.test(rawLine)) {
+        insideDiagram = true;
+        continue;
+      }
+
+      if (insideDiagram && !insideDiagramConnects && !insideDiagramUses) {
+        if (/^\s*gap\s*:/.test(rawLine)) usedEntries.add("gap");
+        if (/^\s*layout\s*:/.test(rawLine)) usedEntries.add("layout");
+        if (/^\s*uses\s*:/.test(rawLine)) usedEntries.add("uses");
+        if (/^\s*connects\s*:\s*\[/.test(rawLine)) usedEntries.add("connects");
+      }
+
+      if (insideDiagram && !insideDiagramUses) {
+        const usesInlineOpen = /^\s*uses\s*:\s*\[/.test(rawLine);
+        const usesInlineClosed = /^\s*uses\s*:\s*\[[\s\S]*]\s*,?\s*$/.test(
+          rawLine,
+        );
+
+        if (usesInlineOpen && !usesInlineClosed) {
+          insideDiagramUses = true;
+          continue;
+        }
+      }
+
+      if (insideDiagram && !insideDiagramConnects) {
+        const connectsInlineOpen = /^\s*connects\s*:\s*\[/.test(rawLine);
+        const connectsInlineClosed =
+          /^\s*connects\s*:\s*\[[\s\S]*]\s*,?\s*$/.test(rawLine);
+
+        if (connectsInlineOpen && !connectsInlineClosed) {
+          insideDiagramConnects = true;
+          continue;
+        }
+      }
+      if (insideDiagramUses && /^\s*]\s*,?\s*$/.test(rawLine)) {
+        insideDiagramUses = false;
+        continue;
+      }
+
+      if (insideDiagramConnects && /^\s*]\s*,?\s*$/.test(rawLine)) {
+        insideDiagramConnects = false;
+        continue;
+      }
+
+      if (
+        insideDiagram &&
+        !insideDiagramConnects &&
+        !insideDiagramUses &&
+        /^\s*]\s*,?\s*$/.test(rawLine)
+      ) {
+        insideDiagram = false;
+        continue;
+      }
+
+      if (!insideBlock && !insideDiagram && /^\s*}\s*$/.test(rawLine)) {
+        insideArchitecture = false;
+        architectureName = null;
+        usedEntries.clear();
+      }
+    }
+
+    return {
+      architectureName,
+      insideDiagramTopLevel:
+        insideArchitecture &&
+        insideDiagram &&
+        !insideDiagramConnects &&
+        !insideDiagramUses,
+      usedEntries,
+    };
+  }
+  function getArchitectureNameAtPosition(model, position) {
+    const textUntilPosition = model.getValueInRange({
+      startLineNumber: 1,
+      startColumn: 1,
+      endLineNumber: position.lineNumber,
+      endColumn: position.column,
+    });
+
+    const lines = textUntilPosition.split("\n");
+    let currentArchitecture = null;
+    let braceDepth = 0;
+
+    for (const rawLine of lines) {
+      const match = rawLine.match(/^\s*architecture\s+(\w+)\s*=\s*\{/);
+      if (match) {
+        currentArchitecture = match[1];
+        braceDepth = 1;
+        continue;
+      }
+
+      if (currentArchitecture) {
+        braceDepth += countToken(rawLine, "{") - countToken(rawLine, "}");
+        if (braceDepth <= 0) {
+          currentArchitecture = null;
+          braceDepth = 0;
+        }
+      }
+    }
+
+    return currentArchitecture;
+  }
+
+  function getDiagramMemberCandidates(arch, alias) {
+    const blockName = arch?.diagram?.uses?.[alias];
+    const block = blockName ? arch?.blocks?.[blockName] : null;
+
+    return {
+      blockName,
+      nodeNames: block?.nodes || [],
+      edgeNames: block?.edges || [],
+    };
+  }
+
+  function getDiagramConnectCompletionContext(connectText, arch) {
+    const rawText = connectText || "";
+    const text = rawText.trim();
+    const uses = arch?.diagram?.uses || {};
+    const aliases = Object.keys(uses);
+
+    const usedProps = getUsedInlineProps(text, [
+      "style",
+      "color",
+      "label",
+      "arrowheads",
+    ]);
+
+    const hasArrow = /\s*->\s*/.test(text);
+
+    const aliasDotMatch = text.match(/([a-zA-Z_][a-zA-Z0-9_]*)\.(\w*)$/);
+
+    const aliasMemberAnchorMatch = text.match(
+      /([a-zA-Z_][a-zA-Z0-9_]*)\.([a-zA-Z_][a-zA-Z0-9_]*)\.(\w*)$/,
+    );
+
+    const bareAliasMatch = text.match(/\b([a-zA-Z_][a-zA-Z0-9_]*)\s*$/);
+
+    const endsWithBareAlias =
+      !!bareAliasMatch &&
+      !/([a-zA-Z_][a-zA-Z0-9_]*)\.(\w*)$/.test(text) &&
+      !/->\s*$/.test(text);
+
+    const endsWithCompleteAnchoredEndpoint =
+      /\b([a-zA-Z_][a-zA-Z0-9_]*)\.([a-zA-Z_][a-zA-Z0-9_]*)\.(left|right|top|bottom)(?:\[\d+\])?\s*$/.test(
+        text,
+      ) ||
+      /\b([a-zA-Z_][a-zA-Z0-9_]*)\.([a-zA-Z_][a-zA-Z0-9_]*)\.(start|mid|end)\s*$/.test(
+        text,
+      );
+
+    let endsWithCompleteMember = false;
+    let memberNeedsDot = false;
+    let completeMemberInfo = null;
+
+    if (aliasDotMatch) {
+      const [, alias, memberPrefix] = aliasDotMatch;
+      const { nodeNames, edgeNames } = getDiagramMemberCandidates(arch, alias);
+
+      const isCompleteNode = nodeNames.includes(memberPrefix);
+      const isCompleteEdge = edgeNames.includes(memberPrefix);
+
+      if (isCompleteNode || isCompleteEdge) {
+        endsWithCompleteMember = true;
+        memberNeedsDot = !text.endsWith(".");
+        completeMemberInfo = {
+          alias,
+          memberName: memberPrefix,
+          memberKind: isCompleteNode ? "node" : "edge",
+        };
+      }
+    }
+
+    const endsWithCompleteEndpoint =
+      endsWithCompleteAnchoredEndpoint || endsWithCompleteMember;
+
+    return {
+      text,
+      rawText,
+      aliases,
+      usedProps,
+      hasArrow,
+
+      isEmpty: text === "",
+
+      needsTargetEndpoint: /->\s*$/.test(text),
+
+      needsArrow: endsWithCompleteAnchoredEndpoint && !hasArrow,
+
+      aliasDotMatch,
+      aliasMemberAnchorMatch,
+
+      bareAliasMatch,
+      endsWithBareAlias,
+
+      endsWithCompleteMember,
+      memberNeedsDot,
+      completeMemberInfo,
+
+      endsAfterTargetEndpoint: endsWithCompleteEndpoint && hasArrow,
+    };
+  }
+
+  function getArchitectureInlineItemContext(model, position) {
+    const textUntilPosition = model.getValueInRange({
+      startLineNumber: 1,
+      startColumn: 1,
+      endLineNumber: position.lineNumber,
+      endColumn: position.column,
+    });
+
+    const lines = textUntilPosition.split("\n");
+
+    let insideArchitecture = false;
+    let insideBlock = false;
+    let insideNodes = false;
+    let insideEdges = false;
+    let insideGroups = false;
+
+    for (const rawLine of lines) {
+      if (
+        !insideArchitecture &&
+        /^\s*architecture\s+\w+\s*=\s*\{/.test(rawLine)
+      ) {
+        insideArchitecture = true;
+        insideBlock = false;
+        insideNodes = false;
+        insideEdges = false;
+        insideGroups = false;
+        continue;
+      }
+
+      if (insideArchitecture && !insideBlock && /^\s*}\s*$/.test(rawLine)) {
+        insideArchitecture = false;
+        continue;
+      }
+
+      if (!insideArchitecture) continue;
+
+      if (/^\s*block\s+\w+\s*:\s*\[\s*$/.test(rawLine)) {
+        insideBlock = true;
+        insideNodes = false;
+        insideEdges = false;
+        insideGroups = false;
+        continue;
+      }
+
+      if (
+        insideBlock &&
+        !insideNodes &&
+        !insideEdges &&
+        !insideGroups &&
+        /^\s*]\s*,?\s*$/.test(rawLine)
+      ) {
+        insideBlock = false;
+        continue;
+      }
+
+      if (!insideBlock) continue;
+
+      if (/^\s*nodes:\s*\[\s*$/.test(rawLine)) {
+        insideNodes = true;
+        insideEdges = false;
+        insideGroups = false;
+        continue;
+      }
+
+      if (/^\s*edges:\s*\[\s*$/.test(rawLine)) {
+        insideNodes = false;
+        insideEdges = true;
+        insideGroups = false;
+        continue;
+      }
+
+      if (/^\s*groups:\s*\[\s*$/.test(rawLine)) {
+        insideNodes = false;
+        insideEdges = false;
+        insideGroups = true;
+        continue;
+      }
+
+      if (
+        (insideNodes || insideEdges || insideGroups) &&
+        /^\s*]\s*,?\s*$/.test(rawLine)
+      ) {
+        insideNodes = false;
+        insideEdges = false;
+        insideGroups = false;
+        continue;
+      }
+    }
+
+    const currentLineBeforeCursor = lines[lines.length - 1] || "";
+    const currentItemText = getTrailingTopLevelSegment(currentLineBeforeCursor);
+
+    const itemMatch = currentItemText.match(
+      /^\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.*)$/,
+    );
+
+    return {
+      section: insideNodes
+        ? "nodes"
+        : insideEdges
+          ? "edges"
+          : insideGroups
+            ? "groups"
+            : null,
+      isAfterEquals: !!itemMatch,
+      isAtFreshItemStart: currentItemText.trim() === "",
+      itemName: itemMatch?.[1] ?? null,
+      afterEqualsText: itemMatch?.[2] ?? "",
+      currentItemText,
+    };
+  }
+
+  function getUsedInlineProps(text, keys) {
+    const used = new Set();
+
+    keys.forEach((key) => {
+      const escaped = key.replace(/\./g, "\\.");
+      if (new RegExp(`\\b${escaped}\\s*:`).test(text)) {
+        used.add(key);
+      }
+    });
+
+    return used;
+  }
+
+  function getArchitectureSectionContext(model, position) {
+    const textUntilPosition = model.getValueInRange({
+      startLineNumber: 1,
+      startColumn: 1,
+      endLineNumber: position.lineNumber,
+      endColumn: position.column,
+    });
+
+    const lines = textUntilPosition.split("\n");
+
+    let insideArchitecture = false;
+    let insideBlock = false;
+    let insideNodes = false;
+    let insideEdges = false;
+    let insideGroups = false;
+
+    for (const rawLine of lines) {
+      if (
+        !insideArchitecture &&
+        /^\s*architecture\s+\w+\s*=\s*\{/.test(rawLine)
+      ) {
+        insideArchitecture = true;
+        insideBlock = false;
+        insideNodes = false;
+        insideEdges = false;
+        insideGroups = false;
+        continue;
+      }
+
+      if (insideArchitecture && !insideBlock && /^\s*}\s*$/.test(rawLine)) {
+        insideArchitecture = false;
+        continue;
+      }
+
+      if (!insideArchitecture) continue;
+
+      if (/^\s*block\s+\w+\s*:\s*\[\s*$/.test(rawLine)) {
+        insideBlock = true;
+        insideNodes = false;
+        insideEdges = false;
+        insideGroups = false;
+        continue;
+      }
+
+      if (
+        insideBlock &&
+        !insideNodes &&
+        !insideEdges &&
+        !insideGroups &&
+        /^\s*]\s*,?\s*$/.test(rawLine)
+      ) {
+        insideBlock = false;
+        continue;
+      }
+
+      if (!insideBlock) continue;
+
+      if (/^\s*nodes:\s*\[\s*$/.test(rawLine)) {
+        insideNodes = true;
+        insideEdges = false;
+        insideGroups = false;
+        continue;
+      }
+
+      if (/^\s*edges:\s*\[\s*$/.test(rawLine)) {
+        insideNodes = false;
+        insideEdges = true;
+        insideGroups = false;
+        continue;
+      }
+
+      if (/^\s*groups:\s*\[\s*$/.test(rawLine)) {
+        insideNodes = false;
+        insideEdges = false;
+        insideGroups = true;
+        continue;
+      }
+
+      if (
+        (insideNodes || insideEdges || insideGroups) &&
+        /^\s*]\s*,?\s*$/.test(rawLine)
+      ) {
+        insideNodes = false;
+        insideEdges = false;
+        insideGroups = false;
+        continue;
+      }
+    }
+
+    return {
+      insideNodes,
+      insideEdges,
+      insideGroups,
+    };
+  }
+
+  function getComponentBodyContext(model, position) {
+    const textUntilPosition = model.getValueInRange({
+      startLineNumber: 1,
+      startColumn: 1,
+      endLineNumber: position.lineNumber,
+      endColumn: position.column,
+    });
+
+    const lines = textUntilPosition.split("\n");
+    const componentsPattern = languageConfig.components.join("|");
+    const declarationRegex = new RegExp(
+      `^\\s*(${componentsPattern})\\s+(\\w+)\\s*=\\s*\\{`,
+    );
+
+    let componentType = null;
+    let componentName = null;
+    let braceDepth = 0;
+    let insideComponentBody = false;
+
+    for (const rawLine of lines) {
+      const declMatch = rawLine.match(declarationRegex);
+
+      if (declMatch) {
+        componentType = declMatch[1];
+        componentName = declMatch[2];
+        insideComponentBody = true;
+        braceDepth = 1;
+
+        const afterBrace = rawLine.slice(rawLine.indexOf("{") + 1);
+        for (const ch of afterBrace) {
+          if (ch === "{") braceDepth++;
+          else if (ch === "}") braceDepth--;
+        }
+
+        if (braceDepth <= 0) {
+          insideComponentBody = false;
+          componentType = null;
+          componentName = null;
+          braceDepth = 0;
+        }
+
+        continue;
+      }
+
+      if (insideComponentBody) {
+        for (const ch of rawLine) {
+          if (ch === "{") braceDepth++;
+          else if (ch === "}") braceDepth--;
+        }
+
+        if (braceDepth <= 0) {
+          insideComponentBody = false;
+          componentType = null;
+          componentName = null;
+          braceDepth = 0;
+        }
+      }
+    }
+
+    return {
+      insideComponentBody,
+      componentType,
+      componentName,
+    };
+  }
 
   // Helper function to analyze context once
   function analyzeContext(model, position) {
@@ -691,10 +3068,13 @@ export function registerCustomLanguage(monaco) {
     const currentLine = allLines[position.lineNumber - 1];
 
     // Get cached parsed data
-    const { variableTypes, nodeData, gridLayout } = parseCache.getCachedData(
-      model,
-      position,
-    );
+    const {
+      variableTypes,
+      nodeData,
+      gridLayout,
+      neuralNetworkData,
+      architectureData,
+    } = parseCache.getCachedData(model, position);
     const variableNames = Object.keys(variableTypes);
 
     // Analyze different contexts
@@ -705,6 +3085,8 @@ export function registerCustomLanguage(monaco) {
       currentLine,
       variableTypes,
       nodeData,
+      neuralNetworkData,
+      architectureData,
       gridLayout,
       variableNames,
 
@@ -736,23 +3118,195 @@ export function registerCustomLanguage(monaco) {
     context.variableNameAtPosition = getVariableNameAtPosition(model, position);
     context.isAfterDot = !!context.variableNameAtPosition;
 
-    // Check if inside component definition
-    let defType = null;
-    for (const l of beforeLines) {
-      const m = l.match(/^\s*([a-zA-Z]+)\s+\w+\s*=\s*\{/);
-      const afterMatch = afterLines.find((line) => line.match(/^\s*}/));
-      if (
-        m &&
-        languageConfig.components.includes(m[1]) &&
-        afterMatch &&
-        !currentLine.includes(":")
-      ) {
-        defType = m[1];
-        break;
+    const componentBodyContext = getComponentBodyContext(model, position);
+    context.isInComponentDefinition = componentBodyContext.insideComponentBody;
+    context.componentDefinitionType = componentBodyContext.componentType;
+
+    function getAttributeValueContext(linePrefix) {
+      let inQuotes = false;
+      let quoteChar = "";
+      let bracketDepth = 0;
+      let parenDepth = 0;
+      let braceDepth = 0;
+
+      let lastTopLevelComma = -1;
+
+      for (let i = 0; i < linePrefix.length; i++) {
+        const ch = linePrefix[i];
+
+        if (!inQuotes) {
+          if (ch === '"' || ch === "'") {
+            inQuotes = true;
+            quoteChar = ch;
+          } else if (ch === "[") {
+            bracketDepth++;
+          } else if (ch === "]") {
+            bracketDepth = Math.max(0, bracketDepth - 1);
+          } else if (ch === "(") {
+            parenDepth++;
+          } else if (ch === ")") {
+            parenDepth = Math.max(0, parenDepth - 1);
+          } else if (ch === "{") {
+            braceDepth++;
+          } else if (ch === "}") {
+            braceDepth = Math.max(0, braceDepth - 1);
+          } else if (
+            ch === "," &&
+            bracketDepth === 0 &&
+            parenDepth === 0 &&
+            braceDepth === 0
+          ) {
+            lastTopLevelComma = i;
+          }
+        } else if (ch === quoteChar && linePrefix[i - 1] !== "\\") {
+          inQuotes = false;
+        }
       }
+
+      const tail = linePrefix.slice(lastTopLevelComma + 1);
+
+      // 1) Normal property form:
+      //    color: red
+      const directAttrMatch = tail.match(
+        /^\s*([a-zA-Z_][a-zA-Z0-9_.]*)\s*:\s*([\s\S]*)$/,
+      );
+
+      let attributeName = null;
+      let valueText = "";
+
+      if (directAttrMatch) {
+        attributeName = directAttrMatch[1];
+        valueText = directAttrMatch[2] ?? "";
+      } else {
+        // 2) Inline architecture item form:
+        //    add_norm1 = type: rect color:
+        //    e1 = a.right -> b.left style:
+        //    row1 = members: [a, b] layout:
+        const inlineText = tail.includes("=")
+          ? tail.slice(tail.indexOf("=") + 1)
+          : tail;
+
+        let localInQuotes = false;
+        let localQuoteChar = "";
+        let localBracketDepth = 0;
+        let localParenDepth = 0;
+        let localBraceDepth = 0;
+
+        let lastProp = null;
+
+        for (let i = 0; i < inlineText.length; i++) {
+          const ch = inlineText[i];
+
+          if (!localInQuotes) {
+            if (ch === '"' || ch === "'") {
+              localInQuotes = true;
+              localQuoteChar = ch;
+              continue;
+            }
+
+            if (ch === "[") {
+              localBracketDepth++;
+              continue;
+            }
+            if (ch === "]") {
+              localBracketDepth = Math.max(0, localBracketDepth - 1);
+              continue;
+            }
+            if (ch === "(") {
+              localParenDepth++;
+              continue;
+            }
+            if (ch === ")") {
+              localParenDepth = Math.max(0, localParenDepth - 1);
+              continue;
+            }
+            if (ch === "{") {
+              localBraceDepth++;
+              continue;
+            }
+            if (ch === "}") {
+              localBraceDepth = Math.max(0, localBraceDepth - 1);
+              continue;
+            }
+
+            if (
+              ch === ":" &&
+              localBracketDepth === 0 &&
+              localParenDepth === 0 &&
+              localBraceDepth === 0
+            ) {
+              let j = i - 1;
+              while (j >= 0 && /\s/.test(inlineText[j])) j--;
+
+              const end = j + 1;
+              while (j >= 0 && /[a-zA-Z0-9_.]/.test(inlineText[j])) j--;
+
+              const start = j + 1;
+              const key = inlineText.slice(start, end);
+
+              const boundaryOk =
+                start === 0 || /\s/.test(inlineText[start - 1]);
+
+              if (key && boundaryOk) {
+                lastProp = {
+                  attributeName: key,
+                  valueStart: i + 1,
+                };
+              }
+            }
+          } else if (ch === localQuoteChar && inlineText[i - 1] !== "\\") {
+            localInQuotes = false;
+          }
+        }
+
+        if (lastProp) {
+          attributeName = lastProp.attributeName;
+          valueText = inlineText.slice(lastProp.valueStart);
+        }
+      }
+
+      if (!attributeName) return null;
+
+      // If user already finished a scalar and typed space,
+      // stop treating it as current value so next property suggestions can appear.
+      const hasTrailingWhitespace = /\s+$/.test(valueText);
+      const trimmedValue = valueText.trim();
+
+      const startsWithQuote =
+        trimmedValue.startsWith('"') || trimmedValue.startsWith("'");
+
+      const endsWithMatchingQuote =
+        (trimmedValue.startsWith('"') && trimmedValue.endsWith('"')) ||
+        (trimmedValue.startsWith("'") && trimmedValue.endsWith("'"));
+
+      const isUnterminatedQuotedValue =
+        startsWithQuote && !endsWithMatchingQuote;
+
+      const openBrackets = (valueText.match(/\[/g) || []).length;
+      const closeBrackets = (valueText.match(/\]/g) || []).length;
+      const openParens = (valueText.match(/\(/g) || []).length;
+      const closeParens = (valueText.match(/\)/g) || []).length;
+      const openBraces = (valueText.match(/\{/g) || []).length;
+      const closeBraces = (valueText.match(/\}/g) || []).length;
+
+      const isInsideOpenStructure =
+        openBrackets > closeBrackets ||
+        openParens > closeParens ||
+        openBraces > closeBraces;
+
+      const isCompleteScalarValue =
+        trimmedValue !== "" &&
+        !isInsideOpenStructure &&
+        !isUnterminatedQuotedValue;
+
+      if (hasTrailingWhitespace && isCompleteScalarValue) {
+        return null;
+      }
+      return {
+        attributeName,
+        valueText,
+      };
     }
-    context.isInComponentDefinition = !!defType;
-    context.componentDefinitionType = defType;
 
     // Check other contexts
     context.isAtLineStart =
@@ -760,35 +3314,197 @@ export function registerCustomLanguage(monaco) {
     context.showHideMatch = beforeCursor.match(/\b(show|hide)\s+(\w+)?\s*$/);
     context.isAfterShowHide = !!context.showHideMatch;
     context.isAfterPage = beforeCursor.match(/\bpage\s+$/);
-    context.attributeValueMatch = beforeCursor.match(
-      /(\w+):\s*(?:\[([^\]]*))?\s*$/,
-    );
-    context.isInAttributeValue = !!context.attributeValueMatch;
+    const attributeValueContext = getAttributeValueContext(beforeCursor);
+    context.attributeValueMatch = attributeValueContext
+      ? [
+          attributeValueContext.valueText,
+          attributeValueContext.attributeName,
+          attributeValueContext.valueText,
+        ]
+      : null;
+    context.isInAttributeValue = !!attributeValueContext;
     context.insideParensMatch = beforeCursor.match(/\(\s*([^)]*?)$/);
     context.isInsideParens = !!context.insideParensMatch;
 
     return context;
   }
 
+  function isImmediatelyAfterInlinePropertyComma(model, position) {
+    const linePrefix = model
+      .getLineContent(position.lineNumber)
+      .substring(0, position.column - 1);
+
+    // Block only this exact state:
+    //   layout: vertical,|
+    //   style: box,|
+    //   type: rect,|
+    //
+    // Do not block:
+    //   layout: vertical, |
+    //   layout: vertical,
+    //   <next line>
+    return /^[ \t]*[a-zA-Z_][a-zA-Z0-9_.]*\s*:\s*.+,$/.test(linePrefix);
+  }
+
   // Register completion provider for comprehensive autocomplete
   monaco.languages.registerCompletionItemProvider("customLang", {
-    triggerCharacters: [".", " "],
+    triggerCharacters: [".", " ", ",", ":"],
     provideCompletionItems: function (model, position) {
       try {
         const context = analyzeContext(model, position);
+
+        if (isImmediatelyAfterInlinePropertyComma(model, position)) {
+          return { suggestions: [] };
+        }
+
         const range = {
           startLineNumber: position.lineNumber,
           endLineNumber: position.lineNumber,
           startColumn: context.word.startColumn,
           endColumn: context.word.endColumn,
         };
-
         // Skip general completion if we're inside a method call
         if (context.isMethodCall) {
-          return { suggestions: [] }; // Let method argument provider handle it
+          return { suggestions: [] };
         }
 
         const suggestions = [];
+
+        function getArchitectureInlineDotContext(model, position) {
+          const architectureInlineItemContext =
+            getArchitectureInlineItemContext(model, position);
+          const architectureBlockContext = getArchitectureBlockContext(
+            model,
+            position,
+          );
+
+          return {
+            architectureInlineItemContext,
+            architectureBlockContext,
+          };
+        }
+
+        function pushAnchorSuggestionsForSource(
+          suggestions,
+          monaco,
+          range,
+          sourceName,
+          block,
+          prefix = "",
+        ) {
+          const isNode = (block?.nodes || []).includes(sourceName);
+          const isEdge = (block?.edges || []).includes(sourceName);
+
+          if (isNode) {
+            ["top", "bottom", "left", "right"]
+              .filter((anchor) => anchor.startsWith(prefix))
+              .forEach((anchor, index) => {
+                suggestions.push({
+                  label: anchor,
+                  kind: monaco.languages.CompletionItemKind.EnumMember,
+                  insertText: anchor,
+                  detail: "Node anchor",
+                  documentation: `Use node anchor ${sourceName}.${anchor}`,
+                  range,
+                  sortText: `0anchor_${index}`,
+                });
+              });
+          }
+
+          if (isEdge) {
+            ["start", "mid", "end"]
+              .filter((anchor) => anchor.startsWith(prefix))
+              .forEach((anchor, index) => {
+                suggestions.push({
+                  label: anchor,
+                  kind: monaco.languages.CompletionItemKind.EnumMember,
+                  insertText: anchor,
+                  detail: "Edge anchor",
+                  documentation: `Use edge anchor ${sourceName}.${anchor}`,
+                  range,
+                  sortText: `1edgeanchor_${index}`,
+                });
+              });
+          }
+        }
+
+        function getArchitectureDotAccessContext(model, position) {
+          const line = model.getLineContent(position.lineNumber);
+          const beforeCursor = line.substring(0, position.column - 1);
+
+          // only the current edge/node expression fragment, not the whole line
+          const segment = getTrailingTopLevelSegment(beforeCursor);
+
+          // match "... foo." or "... foo.ba"
+          const match = segment.match(/([a-zA-Z_][a-zA-Z0-9_]*)\.(\w*)$/);
+          if (!match) return null;
+
+          return {
+            sourceName: match[1],
+            memberPrefix: match[2] || "",
+            isImmediatelyAfterDot: segment.endsWith("."),
+            segment,
+          };
+        }
+
+        const architectureInlineDotCtx = getArchitectureInlineDotContext(
+          model,
+          position,
+        );
+        const architectureDotAccessCtx = getArchitectureDotAccessContext(
+          model,
+          position,
+        );
+
+        if (
+          architectureDotAccessCtx &&
+          (architectureInlineDotCtx.architectureInlineItemContext.section ===
+            "edges" ||
+            architectureInlineDotCtx.architectureInlineItemContext.section ===
+              "nodes") &&
+          !context.methodCallContext
+        ) {
+          const archName =
+            architectureInlineDotCtx.architectureBlockContext.architectureName;
+          const blockName =
+            architectureInlineDotCtx.architectureBlockContext.blockName;
+          const block =
+            context.architectureData?.[archName]?.blocks?.[blockName] || null;
+
+          const sourceName = architectureDotAccessCtx.sourceName;
+          const memberPrefix = architectureDotAccessCtx.memberPrefix;
+
+          const isNode = (block?.nodes || []).includes(sourceName);
+          const isEdge =
+            (block?.edges || []).includes(sourceName) &&
+            sourceName !==
+              architectureInlineDotCtx.architectureInlineItemContext.itemName;
+
+          const validNodeAnchors = ["top", "bottom", "left", "right"];
+          const validEdgeAnchors = ["start", "mid", "end"];
+
+          const isCompleteNodeAnchor =
+            isNode && validNodeAnchors.includes(memberPrefix);
+          const isCompleteEdgeAnchor =
+            isEdge && validEdgeAnchors.includes(memberPrefix);
+
+          // only show anchor suggestions while actively typing the anchor
+          if (
+            (isNode || isEdge) &&
+            !isCompleteNodeAnchor &&
+            !isCompleteEdgeAnchor
+          ) {
+            pushAnchorSuggestionsForSource(
+              suggestions,
+              monaco,
+              range,
+              sourceName,
+              block,
+              memberPrefix,
+            );
+            return { suggestions };
+          }
+        }
 
         // Method completion after dot
         if (context.isAfterDot) {
@@ -873,29 +3589,2115 @@ export function registerCustomLanguage(monaco) {
           }
         }
 
-        // Component definition properties
-        if (context.isInComponentDefinition) {
-          const props =
-            typeDocumentation[context.componentDefinitionType]
-              ?.supportedProperties || [];
-          props.forEach((prop) => {
+        function pushDiagramConnectInlineProps(
+          suggestions,
+          monaco,
+          range,
+          usedProps,
+        ) {
+          [
+            {
+              key: "style",
+              label: "style",
+              insertText: "style: ",
+              documentation: "Set connection style",
+            },
+            {
+              key: "color",
+              label: "color",
+              insertText: "color: ",
+              documentation: "Set connection color",
+            },
+            {
+              key: "label",
+              label: "label",
+              insertText: 'label: "${1:text}"',
+              documentation: "Set connection label",
+              isSnippet: true,
+            },
+            {
+              key: "arrowheads",
+              label: "arrowheads",
+              insertText: "arrowheads: ",
+              documentation: "Set arrowheads count",
+            },
+          ]
+            .filter((item) => !usedProps.has(item.key))
+            .forEach((item, index) => {
+              const suggestion = createPropertyOnlySuggestion(monaco, range, {
+                label: item.label,
+                insertText: item.insertText,
+                detail: "diagram connect property",
+                documentation: item.documentation,
+                sortText: `2diagram_conn_prop_${index}`,
+              });
+
+              if (item.isSnippet) {
+                suggestion.insertTextRules =
+                  monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet;
+              }
+
+              suggestions.push(suggestion);
+            });
+        }
+
+        function pushEdgeEndpointSourceSuggestions(
+          suggestions,
+          monaco,
+          range,
+          block,
+          currentEdgeName = null,
+          prefix = "",
+        ) {
+          const nodeNames = block?.nodes || [];
+          const edgeNames = (block?.edges || []).filter(
+            (name) => name !== currentEdgeName,
+          );
+
+          nodeNames.forEach((name, index) => {
             suggestions.push({
-              label: prop,
-              kind: monaco.languages.CompletionItemKind.Property,
-              insertText: `${prop}: $0`,
-              insertTextRules:
-                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-              detail: `${context.componentDefinitionType} property`,
-              documentation:
-                typeDocumentation[context.componentDefinitionType]
-                  ?.description || "",
-              range: range,
-              sortText: `0prop_${prop}`,
+              label: name,
+              kind: monaco.languages.CompletionItemKind.Variable,
+              insertText: name,
+              detail: "Node endpoint source",
+              documentation: `Use node ${name} as endpoint source`,
+              range,
+              sortText: `0edge_node_${index}`,
+              filterText: `${prefix}${name}`,
             });
           });
+
+          edgeNames.forEach((name, index) => {
+            suggestions.push({
+              label: name,
+              kind: monaco.languages.CompletionItemKind.Variable,
+              insertText: name,
+              detail: "Edge endpoint source",
+              documentation: `Use existing edge ${name} as endpoint source`,
+              range,
+              sortText: `1edge_edge_${index}`,
+              filterText: `${prefix}${name}`,
+            });
+          });
+        }
+
+        function pushRemainingEdgeInlineProps(
+          suggestions,
+          monaco,
+          range,
+          usedProps,
+        ) {
+          const edgeInlineItems = [
+            {
+              key: "label",
+              label: "label",
+              insertText: 'label: "${1:text}"',
+              documentation: "Set edge label",
+              isSnippet: true,
+            },
+            {
+              key: "style",
+              label: "style",
+              insertText: "style: ",
+              documentation: "Set edge style",
+            },
+            {
+              key: "color",
+              label: "color",
+              insertText: "color: ",
+              documentation: "Set edge color",
+            },
+            {
+              key: "arrowheads",
+              label: "arrowheads",
+              insertText: "arrowheads: ",
+              documentation: "Set number of arrowheads",
+            },
+          ];
+
+          edgeInlineItems
+            .filter((item) => !usedProps.has(item.key))
+            .forEach((item, index) => {
+              const suggestion = createPropertyOnlySuggestion(monaco, range, {
+                label: item.label,
+                insertText: item.insertText,
+                detail: "edge inline property",
+                documentation: item.documentation,
+                sortText: `2edgeprop_${index}`,
+              });
+
+              if (item.isSnippet) {
+                suggestion.insertTextRules =
+                  monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet;
+              }
+
+              suggestions.push(suggestion);
+            });
+        }
+
+        function isImmediatelyAfterCommaInArchitectureInlineItem(
+          model,
+          position,
+          architectureInlineItemContext,
+        ) {
+          const section = architectureInlineItemContext.section;
+
+          if (
+            section !== "nodes" &&
+            section !== "edges" &&
+            section !== "groups"
+          ) {
+            return false;
+          }
+
+          const linePrefix = model
+            .getLineContent(position.lineNumber)
+            .substring(0, position.column - 1);
+
+          const currentItemText =
+            architectureInlineItemContext.currentItemText ?? "";
+
+          return currentItemText === "" && /,$/.test(linePrefix);
+        }
+
+        function pushDiagramAliasSuggestions(
+          suggestions,
+          monaco,
+          range,
+          arch,
+          prefix = "",
+        ) {
+          const aliases = Object.keys(arch?.diagram?.uses || {});
+          aliases
+            .filter((alias) => !prefix || alias.startsWith(prefix))
+            .forEach((alias, index) => {
+              suggestions.push({
+                label: alias,
+                kind: monaco.languages.CompletionItemKind.Variable,
+                insertText: alias,
+                detail: `Diagram alias for ${arch.diagram.uses[alias]}`,
+                documentation: `Use alias ${alias} for block ${arch.diagram.uses[alias]}`,
+                range,
+                sortText: `0diagram_alias_${index}`,
+              });
+            });
+        }
+
+        const architectureInlineItemContext = getArchitectureInlineItemContext(
+          model,
+          position,
+        );
+
+        const architectureSectionContext = getArchitectureSectionContext(
+          model,
+          position,
+        );
+
+        const diagramSectionContext = getArchitectureDiagramSectionContext(
+          model,
+          position,
+        );
+        const diagramTopLevelContext = getArchitectureDiagramTopLevelContext(
+          model,
+          position,
+        );
+        const currentArchitectureName = getArchitectureNameAtPosition(
+          model,
+          position,
+        );
+
+        const architectureTopLevelContext = getArchitectureTopLevelContext(
+          model,
+          position,
+        );
+
+        const architectureBlockContext = getArchitectureBlockContext(
+          model,
+          position,
+        );
+
+        if (
+          isAfterCompletedTopLevelArchProperty(model, position) &&
+          (architectureTopLevelContext.insideArchitectureTopLevel ||
+            architectureBlockContext.insideArchitectureBlockTopLevel ||
+            diagramTopLevelContext.insideDiagramTopLevel) &&
+          !architectureSectionContext.insideNodes &&
+          !architectureSectionContext.insideEdges &&
+          !architectureSectionContext.insideGroups &&
+          !diagramSectionContext.insideDiagramConnects &&
+          !diagramSectionContext.insideDiagramUses
+        ) {
+          return { suggestions: [] };
+        }
+
+        function isImmediatelyAfterComma(model, position) {
+          const linePrefix = model
+            .getLineContent(position.lineNumber)
+            .substring(0, position.column - 1);
+
+          return linePrefix.endsWith(",");
+        }
+        if (
+          !context.isInAttributeValue &&
+          (diagramTopLevelContext.insideDiagramTopLevel ||
+            architectureTopLevelContext.insideArchitectureTopLevel ||
+            architectureBlockContext.insideArchitectureBlockTopLevel) &&
+          isImmediatelyAfterComma(model, position)
+        ) {
+          return { suggestions: [] };
+        }
+
+        if (
+          isImmediatelyAfterCommaInArchitectureInlineItem(
+            model,
+            position,
+            architectureInlineItemContext,
+          )
+        ) {
+          return { suggestions: [] };
+        }
+
+        const currentArchitecture = currentArchitectureName
+          ? context.architectureData?.[currentArchitectureName]
+          : null;
+
+        if (
+          diagramSectionContext.insideDiagramConnects &&
+          !context.methodCallContext
+        ) {
+          const connectText = getCurrentDiagramConnectText(model, position);
+          const connectCtx = getDiagramConnectCompletionContext(
+            connectText,
+            currentArchitecture,
+          );
+
+          function shouldSuppressDiagramConnectValueSuggestions(
+            attributeName,
+            valueText,
+          ) {
+            const value = String(valueText ?? "").trim();
+
+            if (attributeName === "style") {
+              return value === "straight" || value === "bow";
+            }
+
+            if (attributeName === "arrowheads") {
+              return value === "0" || value === "1" || value === "2";
+            }
+
+            if (attributeName === "color") {
+              return value === "null" || isCompletedQuotedString(value);
+            }
+
+            if (attributeName === "label") {
+              return isCompletedQuotedString(value);
+            }
+
+            return false;
+          }
+
+          if (context.isInAttributeValue) {
+            const attributeName = context.attributeValueMatch?.[1];
+            const valueText = context.attributeValueMatch?.[2] ?? "";
+
+            if (
+              shouldSuppressDiagramConnectValueSuggestions(
+                attributeName,
+                valueText,
+              )
+            ) {
+              return { suggestions: [] };
+            }
+
+            if (attributeName === "style") {
+              ["straight", "bow"].forEach((value, index) => {
+                suggestions.push({
+                  label: value,
+                  kind: monaco.languages.CompletionItemKind.EnumMember,
+                  insertText: value,
+                  detail: "Diagram connection style",
+                  documentation: `Set connection style to ${value}`,
+                  range,
+                  sortText: `0diagram_style_${index}`,
+                });
+              });
+
+              return { suggestions };
+            }
+
+            if (attributeName === "arrowheads") {
+              ["0", "1", "2"].forEach((value, index) => {
+                suggestions.push({
+                  label: value,
+                  kind: monaco.languages.CompletionItemKind.Value,
+                  insertText: value,
+                  detail: "Arrowheads count",
+                  documentation: `Set arrowheads to ${value}`,
+                  range,
+                  sortText: `0diagram_arrowheads_${index}`,
+                });
+              });
+
+              return { suggestions };
+            }
+
+            if (attributeName === "color") {
+              suggestions.push({
+                label: "null",
+                kind: monaco.languages.CompletionItemKind.Constant,
+                insertText: "null",
+                detail: "Default color",
+                documentation: "Use default color",
+                range,
+                sortText: "0null",
+              });
+
+              languageConfig.namedColors.forEach((color, index) => {
+                suggestions.push({
+                  label: color,
+                  kind: monaco.languages.CompletionItemKind.Color,
+                  insertText: `"${color}"`,
+                  detail: "Named color",
+                  documentation: `Use ${color} color`,
+                  range,
+                  sortText: `1diagram_color_${index}`,
+                });
+              });
+
+              return { suggestions };
+            }
+
+            if (attributeName === "label") {
+              return { suggestions: [] };
+            }
+          }
+
+          if (!context.isInAttributeValue) {
+            if (connectCtx.isEmpty) {
+              pushDiagramAliasSuggestions(
+                suggestions,
+                monaco,
+                range,
+                currentArchitecture,
+              );
+              return { suggestions };
+            }
+
+            if (connectCtx.endsWithBareAlias) {
+              const alias = connectCtx.bareAliasMatch?.[1];
+              if ((currentArchitecture?.diagram?.uses || {})[alias]) {
+                suggestions.push({
+                  label: ".",
+                  kind: monaco.languages.CompletionItemKind.Operator,
+                  insertText: ".",
+                  detail: "Alias accessor",
+                  documentation: `Continue from ${alias} with a block member`,
+                  range: {
+                    startLineNumber: position.lineNumber,
+                    endLineNumber: position.lineNumber,
+                    startColumn: position.column,
+                    endColumn: position.column,
+                  },
+                  sortText: "0diagram_dot",
+                  command: {
+                    id: "editor.action.triggerSuggest",
+                    title: "Trigger suggest",
+                  },
+                });
+                return { suggestions };
+              }
+            }
+
+            if (connectCtx.memberNeedsDot) {
+              suggestions.push({
+                label: ".",
+                kind: monaco.languages.CompletionItemKind.Operator,
+                insertText: ".",
+                detail: "Member anchor accessor",
+                documentation: `Continue from ${connectCtx.completeMemberInfo.alias}.${connectCtx.completeMemberInfo.memberName} with an anchor`,
+                range: {
+                  startLineNumber: position.lineNumber,
+                  endLineNumber: position.lineNumber,
+                  startColumn: position.column,
+                  endColumn: position.column,
+                },
+                sortText: "0diagram_member_dot",
+                command: {
+                  id: "editor.action.triggerSuggest",
+                  title: "Trigger suggest",
+                },
+              });
+              return { suggestions };
+            }
+
+            if (connectCtx.needsArrow) {
+              suggestions.push({
+                label: "->",
+                kind: monaco.languages.CompletionItemKind.Operator,
+                insertText: "-> ",
+                detail: "Connection arrow",
+                documentation: "Connect source endpoint to target endpoint",
+                range,
+                sortText: "0diagram_arrow",
+              });
+              return { suggestions };
+            }
+
+            if (connectCtx.needsTargetEndpoint) {
+              pushDiagramAliasSuggestions(
+                suggestions,
+                monaco,
+                range,
+                currentArchitecture,
+              );
+              return { suggestions };
+            }
+
+            if (connectCtx.endsAfterTargetEndpoint) {
+              pushDiagramConnectInlineProps(
+                suggestions,
+                monaco,
+                range,
+                connectCtx.usedProps,
+              );
+              return { suggestions };
+            }
+
+            if (connectCtx.aliasMemberAnchorMatch) {
+              const [, alias, memberName, anchorPrefix] =
+                connectCtx.aliasMemberAnchorMatch;
+
+              const { nodeNames, edgeNames } = getDiagramMemberCandidates(
+                currentArchitecture,
+                alias,
+              );
+
+              const prefix = anchorPrefix || "";
+
+              if (nodeNames.includes(memberName)) {
+                ["top", "bottom", "left", "right"]
+                  .filter((a) => a.startsWith(prefix))
+                  .forEach((anchor, index) => {
+                    suggestions.push({
+                      label: anchor,
+                      kind: monaco.languages.CompletionItemKind.EnumMember,
+                      insertText: anchor,
+                      detail: "Node anchor",
+                      documentation: `Use ${alias}.${memberName}.${anchor}`,
+                      range,
+                      sortText: `0diagram_anchor_${index}`,
+                    });
+                  });
+              }
+
+              if (edgeNames.includes(memberName)) {
+                ["start", "mid", "end"]
+                  .filter((a) => a.startsWith(prefix))
+                  .forEach((anchor, index) => {
+                    suggestions.push({
+                      label: anchor,
+                      kind: monaco.languages.CompletionItemKind.EnumMember,
+                      insertText: anchor,
+                      detail: "Edge anchor",
+                      documentation: `Use ${alias}.${memberName}.${anchor}`,
+                      range,
+                      sortText: `1diagram_edgeanchor_${index}`,
+                    });
+                  });
+              }
+
+              return { suggestions };
+            }
+
+            if (connectCtx.aliasDotMatch) {
+              const [, alias, memberPrefix] = connectCtx.aliasDotMatch;
+
+              if ((currentArchitecture?.diagram?.uses || {})[alias]) {
+                const { nodeNames, edgeNames, blockName } =
+                  getDiagramMemberCandidates(currentArchitecture, alias);
+
+                const allMembers = [...nodeNames, ...edgeNames];
+                const isCompleteMember = allMembers.includes(memberPrefix);
+
+                if (isCompleteMember) {
+                  return { suggestions: [] };
+                }
+
+                const prefix = memberPrefix || "";
+
+                nodeNames
+                  .filter((name) => !prefix || name.startsWith(prefix))
+                  .forEach((name, index) => {
+                    suggestions.push({
+                      label: name,
+                      kind: monaco.languages.CompletionItemKind.Variable,
+                      insertText: name,
+                      detail: `Node in ${blockName}`,
+                      documentation: `Use node ${name} from block ${blockName}`,
+                      range,
+                      sortText: `0diagram_node_${index}`,
+                    });
+                  });
+
+                edgeNames
+                  .filter((name) => !prefix || name.startsWith(prefix))
+                  .forEach((name, index) => {
+                    suggestions.push({
+                      label: name,
+                      kind: monaco.languages.CompletionItemKind.Variable,
+                      insertText: name,
+                      detail: `Edge in ${blockName}`,
+                      documentation: `Use edge ${name} from block ${blockName}`,
+                      range,
+                      sortText: `1diagram_edge_${index}`,
+                    });
+                  });
+              }
+
+              return { suggestions };
+            }
+
+            pushDiagramConnectInlineProps(
+              suggestions,
+              monaco,
+              range,
+              connectCtx.usedProps,
+            );
+            return { suggestions };
+          }
+
+          return { suggestions: [] };
+        }
+
+        if (
+          architectureTopLevelContext.insideArchitectureTopLevel &&
+          !architectureSectionContext.insideNodes &&
+          !architectureSectionContext.insideEdges &&
+          !architectureSectionContext.insideGroups &&
+          !context.isInAttributeValue &&
+          !context.isAfterDot &&
+          shouldShowTopLevelPropertyStarters(model, position)
+        ) {
+          const used = architectureTopLevelContext.usedTopLevelEntries;
+
+          const architectureItems = [
+            {
+              key: "block",
+              label: "block",
+              repeatable: true,
+              kind: monaco.languages.CompletionItemKind.Class,
+              insertText: "block ${1:Encoder}: [\n\t$0\n]",
+              detail: "architecture block",
+              documentation:
+                "Add a new block. Blocks can appear multiple times.",
+            },
+            {
+              key: "diagram",
+              label: "diagram",
+              repeatable: false,
+              kind: monaco.languages.CompletionItemKind.Property,
+              insertText: "diagram: [\n\t$0\n]",
+              detail: "architecture diagram",
+              documentation:
+                "Add the diagram section. Only one diagram is allowed.",
+            },
+            {
+              key: "title",
+              label: "title",
+              repeatable: false,
+              kind: monaco.languages.CompletionItemKind.Property,
+              insertText: 'title: "${1:title}"',
+              detail: "architecture property",
+              documentation: "Set the architecture title.",
+            },
+            {
+              key: "above",
+              label: "above",
+              repeatable: false,
+              kind: monaco.languages.CompletionItemKind.Property,
+              insertText: "above: ",
+              detail: "architecture property",
+              documentation: "Attach text above the architecture.",
+            },
+            {
+              key: "below",
+              label: "below",
+              repeatable: false,
+              kind: monaco.languages.CompletionItemKind.Property,
+              insertText: "below: ",
+              detail: "architecture property",
+              documentation: "Attach text below the architecture.",
+            },
+            {
+              key: "left",
+              label: "left",
+              repeatable: false,
+              kind: monaco.languages.CompletionItemKind.Property,
+              insertText: "left: ",
+              detail: "architecture property",
+              documentation: "Attach text on the left of the architecture.",
+            },
+            {
+              key: "right",
+              label: "right",
+              repeatable: false,
+              kind: monaco.languages.CompletionItemKind.Property,
+              insertText: "right: ",
+              detail: "architecture property",
+              documentation: "Attach text on the right of the architecture.",
+            },
+          ];
+
+          architectureItems
+            .filter((item) => item.repeatable || !used.has(item.key))
+            .forEach((item, index) => {
+              const base =
+                item.kind === monaco.languages.CompletionItemKind.Property
+                  ? {
+                      ...createPropertyOnlySuggestion(monaco, range, {
+                        label: item.label,
+                        insertText: item.insertText,
+                        detail: item.detail,
+                        documentation: item.documentation,
+                        sortText: `0arch_${index}_${item.label}`,
+                      }),
+                      insertTextRules:
+                        monaco.languages.CompletionItemInsertTextRule
+                          .InsertAsSnippet,
+                    }
+                  : {
+                      label: item.label,
+                      kind: item.kind,
+                      insertText: item.insertText,
+                      insertTextRules:
+                        monaco.languages.CompletionItemInsertTextRule
+                          .InsertAsSnippet,
+                      detail: item.detail,
+                      documentation: item.documentation,
+                      range,
+                      sortText: `0arch_${index}_${item.label}`,
+                      filterText: item.label,
+                    };
+
+              suggestions.push(base);
+            });
+
           return { suggestions };
         }
 
+        const blockLinePrefix = context.beforeCursor;
+        const blockPropertyPrefixMatch = blockLinePrefix.match(
+          /^\s*([a-zA-Z_][a-zA-Z0-9_.]*)?$/,
+        );
+        const blockPropertyPrefix = blockPropertyPrefixMatch?.[1] || "";
+
+        const isBlockPropertyPosition = shouldShowTopLevelPropertyStarters(
+          model,
+          position,
+        );
+        if (
+          architectureBlockContext.insideArchitectureBlockTopLevel &&
+          !architectureSectionContext.insideNodes &&
+          !architectureSectionContext.insideEdges &&
+          !architectureSectionContext.insideGroups &&
+          isBlockPropertyPosition &&
+          !context.isAfterDot &&
+          !context.methodCallContext &&
+          !context.isInAttributeValue
+        ) {
+          const used = architectureBlockContext.usedBlockEntries;
+
+          const blockItems = [
+            {
+              key: "layout",
+              label: "layout",
+              insertText: "layout: ",
+              documentation: "Set block layout",
+            },
+            {
+              key: "gap",
+              label: "gap",
+              insertText: "gap: ${1:10}",
+              documentation: "Set block gap",
+            },
+            {
+              key: "size",
+              label: "size",
+              insertText: "size: (${1:200}, ${2:100})",
+              documentation: "Set block size",
+            },
+            {
+              key: "color",
+              label: "color",
+              insertText: "color: ",
+              documentation: "Set block color",
+            },
+            {
+              key: "style",
+              label: "style",
+              insertText: "style: ",
+              documentation: "Set block style",
+            },
+            {
+              key: "nodes",
+              label: "nodes",
+              insertText: "nodes: [\n\t$0\n]",
+              documentation: "Add nodes section",
+            },
+            {
+              key: "edges",
+              label: "edges",
+              insertText: "edges: [\n\t$0\n]",
+              documentation: "Add edges section",
+            },
+            {
+              key: "groups",
+              label: "groups",
+              insertText: "groups: [\n\t$0\n]",
+              documentation: "Add groups section",
+            },
+            {
+              key: "annotation.top",
+              label: "annotation.top",
+              insertText: 'annotation.top: "${1:text}"',
+              documentation: "Top annotation",
+            },
+            {
+              key: "annotation.bottom",
+              label: "annotation.bottom",
+              insertText: 'annotation.bottom: "${1:text}"',
+              documentation: "Bottom annotation",
+            },
+            {
+              key: "annotation.left",
+              label: "annotation.left",
+              insertText: 'annotation.left: "${1:text}"',
+              documentation: "Left annotation",
+            },
+            {
+              key: "annotation.right",
+              label: "annotation.right",
+              insertText: 'annotation.right: "${1:text}"',
+              documentation: "Right annotation",
+            },
+          ];
+
+          blockItems
+            .filter((item) => !used.has(item.key))
+            .filter(
+              (item) =>
+                !blockPropertyPrefix ||
+                item.label
+                  .toLowerCase()
+                  .startsWith(blockPropertyPrefix.toLowerCase()),
+            )
+            .forEach((item, index) => {
+              suggestions.push({
+                label: item.label,
+                kind: monaco.languages.CompletionItemKind.Property,
+                insertText: item.insertText,
+                insertTextRules:
+                  monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                detail: "architecture block property",
+                documentation: item.documentation,
+                range,
+                sortText: `0block_${index}_${item.label}`,
+                filterText: item.label,
+                command:
+                  item.key === "nodes" ||
+                  item.key === "edges" ||
+                  item.key === "groups"
+                    ? {
+                        id: "editor.action.triggerSuggest",
+                        title: "Trigger suggest",
+                      }
+                    : undefined,
+              });
+            });
+          return { suggestions };
+        }
+
+        if (
+          diagramSectionContext.insideDiagramUses &&
+          !context.methodCallContext &&
+          !context.isAfterDot
+        ) {
+          const usesText = getCurrentDiagramUsesText(model, position);
+          const currentArchitecture = currentArchitectureName
+            ? context.architectureData?.[currentArchitectureName]
+            : null;
+
+          if (currentArchitecture) {
+            const rawSegment = getTrailingTopLevelSegment(usesText);
+            const trimmedSegment = rawSegment.trim();
+            const endsWithComma = /,\s*$/.test(usesText);
+
+            const availableBlocks =
+              getAvailableBlocksForDiagramUses(currentArchitecture);
+
+            if (trimmedSegment === "" || endsWithComma) {
+              availableBlocks.forEach((blockName, index) => {
+                const defaultAlias = blockName[0].toLowerCase();
+
+                suggestions.push({
+                  label: `${defaultAlias} = ${blockName}`,
+                  kind: monaco.languages.CompletionItemKind.Variable,
+                  insertText: `${defaultAlias} = ${blockName}`,
+                  detail: "diagram use alias",
+                  documentation: `Alias block ${blockName}`,
+                  range,
+                  sortText: `0diagram_use_tpl_${index}`,
+                });
+              });
+
+              return { suggestions };
+            }
+
+            const aliasEqualsMatch = trimmedSegment.match(
+              /^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([a-zA-Z_][a-zA-Z0-9_]*)$/,
+            );
+
+            if (aliasEqualsMatch) {
+              const currentAlias = aliasEqualsMatch[1];
+              const blockPrefix = aliasEqualsMatch[2];
+
+              const availableForAlias = getAvailableBlocksForDiagramUses(
+                currentArchitecture,
+                currentAlias,
+              );
+
+              if (availableForAlias.includes(blockPrefix)) {
+                return { suggestions: [] };
+              }
+
+              availableForAlias
+                .filter((blockName) => blockName.startsWith(blockPrefix))
+                .forEach((blockName, index) => {
+                  suggestions.push({
+                    label: blockName,
+                    kind: monaco.languages.CompletionItemKind.Variable,
+                    insertText: blockName,
+                    detail: "Architecture block",
+                    documentation: `Use block ${blockName} in diagram alias`,
+                    range,
+                    sortText: `0diagram_use_block_${index}`,
+                  });
+                });
+
+              return { suggestions };
+            }
+
+            const aliasWaitingForBlockMatch = trimmedSegment.match(
+              /^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*$/,
+            );
+
+            if (aliasWaitingForBlockMatch) {
+              const currentAlias = aliasWaitingForBlockMatch[1];
+
+              getAvailableBlocksForDiagramUses(
+                currentArchitecture,
+                currentAlias,
+              ).forEach((blockName, index) => {
+                suggestions.push({
+                  label: blockName,
+                  kind: monaco.languages.CompletionItemKind.Variable,
+                  insertText: blockName,
+                  detail: "Architecture block",
+                  documentation: `Use block ${blockName} in diagram alias`,
+                  range,
+                  sortText: `0diagram_use_block_${index}`,
+                });
+              });
+
+              return { suggestions };
+            }
+          }
+        }
+
+        if (
+          diagramTopLevelContext.insideDiagramTopLevel &&
+          !diagramSectionContext.insideDiagramConnects &&
+          !diagramSectionContext.insideDiagramUses &&
+          !context.isAfterDot &&
+          !context.methodCallContext &&
+          !context.isInAttributeValue &&
+          shouldShowTopLevelPropertyStarters(model, position)
+        ) {
+          const used = diagramTopLevelContext.usedEntries;
+
+          [
+            {
+              key: "gap",
+              label: "gap",
+              insertText: "gap: ${1:10}",
+              documentation: "Set diagram gap",
+            },
+            {
+              key: "layout",
+              label: "layout",
+              insertText: "layout: ",
+              documentation: "Set diagram layout",
+            },
+            {
+              key: "uses",
+              label: "uses",
+              insertText: "uses: [${1}]",
+              documentation: "Define block aliases",
+            },
+            {
+              key: "connects",
+              label: "connects",
+              insertText: "connects: [\n\t$0\n]",
+              documentation: "Define connections between aliased blocks",
+            },
+          ]
+            .filter((item) => !used.has(item.key))
+            .forEach((item, index) => {
+              suggestions.push({
+                label: item.label,
+                kind: monaco.languages.CompletionItemKind.Property,
+                insertText: item.insertText,
+                insertTextRules:
+                  monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                detail: "diagram property",
+                documentation: item.documentation,
+                range,
+                sortText: `0diagram_top_${index}`,
+              });
+            });
+
+          return { suggestions };
+        }
+        if (
+          architectureSectionContext.insideGroups &&
+          !context.isAfterDot &&
+          !context.isInAttributeValue &&
+          !context.methodCallContext
+        ) {
+          const rawCurrentItemPrefix =
+            architectureInlineItemContext.currentItemText;
+          const currentItemPrefix = rawCurrentItemPrefix.trim();
+          const groupNameState =
+            getArchitectureItemNameState(rawCurrentItemPrefix);
+
+          const groupNameSuggestions = ["row1", "row2"];
+          const isExactGroupNameMatch =
+            groupNameSuggestions.includes(currentItemPrefix);
+
+          const shouldShowGroupNameStage =
+            shouldShowArchitectureItemStarters(
+              model,
+              position,
+              rawCurrentItemPrefix,
+            ) &&
+            !isExactGroupNameMatch &&
+            (currentItemPrefix === "" ||
+              /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(currentItemPrefix));
+
+          // Stage 1: typing group name only
+          if (
+            shouldShowGroupNameStage &&
+            !groupNameState.isNameThenSpace &&
+            !groupNameState.isAfterEquals
+          ) {
+            [
+              {
+                label: "row1",
+                kind: monaco.languages.CompletionItemKind.Variable,
+                insertText: "row1",
+                detail: "group name",
+                documentation: "Insert group name",
+              },
+              {
+                label: "row2",
+                kind: monaco.languages.CompletionItemKind.Snippet,
+                insertText:
+                  '${1:row2} = members: [] layout: ${2:horizontal} gap: ${3:10} color: "${4:grey}",',
+                insertTextRules:
+                  monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                detail: "group template",
+                documentation: "Insert full template for row2",
+                command: {
+                  id: "editor.action.triggerSuggest",
+                  title: "Trigger suggest",
+                },
+              },
+            ].forEach((item, index) => {
+              suggestions.push({
+                label: item.label,
+                kind: item.kind,
+                insertText: item.insertText,
+                insertTextRules: item.insertTextRules,
+                detail: item.detail,
+                documentation: item.documentation,
+                range,
+                sortText: `0group_name_${index}`,
+                command: item.command,
+              });
+            });
+
+            return { suggestions };
+          }
+
+          // Stage 2: after "groupName "
+          if (groupNameState.isNameThenSpace) {
+            suggestions.push({
+              label: "=",
+              kind: monaco.languages.CompletionItemKind.Operator,
+              insertText: "= ",
+              detail: "Assign group definition",
+              documentation: `Start defining group ${groupNameState.itemName}`,
+              range,
+              sortText: "0group_equals",
+            });
+
+            return { suggestions };
+          }
+
+          // Stage 3: after "groupName = "
+          if (groupNameState.isAfterEquals) {
+            const used = getUsedInlineProps(groupNameState.afterEqualsText, [
+              "members",
+              "layout",
+              "anchor",
+              "gap",
+              "color",
+              "annotation.top",
+              "annotation.bottom",
+              "annotation.left",
+              "annotation.right",
+            ]);
+
+            const groupInlineItems = [
+              {
+                key: "members",
+                label: "members",
+                insertText: "members: [${1}]",
+                documentation: "Set group members",
+              },
+              {
+                key: "layout",
+                label: "layout",
+                insertText: "layout: ",
+                documentation: "Set group layout",
+              },
+              {
+                key: "anchor",
+                label: "anchor",
+                insertText: "anchor: ",
+                documentation: "Set group anchor",
+              },
+              {
+                key: "gap",
+                label: "gap",
+                insertText: "gap: ${1:10}",
+                documentation: "Set group gap",
+              },
+              {
+                key: "color",
+                label: "color",
+                insertText: "color: ",
+                documentation: "Set group color",
+              },
+              {
+                key: "annotation.top",
+                label: "annotation.top",
+                insertText: 'annotation.top: "${1:text}"',
+                documentation: "Top annotation",
+              },
+              {
+                key: "annotation.bottom",
+                label: "annotation.bottom",
+                insertText: 'annotation.bottom: "${1:text}"',
+                documentation: "Bottom annotation",
+              },
+              {
+                key: "annotation.left",
+                label: "annotation.left",
+                insertText: 'annotation.left: "${1:text}"',
+                documentation: "Left annotation",
+              },
+              {
+                key: "annotation.right",
+                label: "annotation.right",
+                insertText: 'annotation.right: "${1:text}"',
+                documentation: "Right annotation",
+              },
+            ];
+
+            groupInlineItems
+              .filter((item) => !used.has(item.key))
+              .forEach((item, index) => {
+                suggestions.push({
+                  label: item.label,
+                  kind: monaco.languages.CompletionItemKind.Property,
+                  insertText: item.insertText,
+                  insertTextRules:
+                    monaco.languages.CompletionItemInsertTextRule
+                      .InsertAsSnippet,
+                  detail: "group inline property",
+                  documentation: item.documentation,
+                  range,
+                  sortText: `0group_inline_${index}`,
+                });
+              });
+
+            return { suggestions };
+          }
+        }
+
+        if (
+          architectureInlineItemContext.section === "edges" &&
+          architectureInlineItemContext.isAfterEquals &&
+          !context.isAfterDot &&
+          !context.methodCallContext
+        ) {
+          const archName = architectureBlockContext.architectureName;
+          const blockName = architectureBlockContext.blockName;
+          const block =
+            context.architectureData?.[archName]?.blocks?.[blockName] || null;
+
+          const edgeCtx = getArchitectureEdgeCompletionContext(
+            architectureInlineItemContext.afterEqualsText,
+            block,
+          );
+
+          // If we're currently typing a property value, let the attribute-value branch handle it
+          if (!context.isInAttributeValue) {
+            if (edgeCtx.isEmpty) {
+              pushEdgeEndpointSourceSuggestions(
+                suggestions,
+                monaco,
+                range,
+                block,
+                architectureInlineItemContext.itemName,
+              );
+              return { suggestions };
+            }
+
+            if (edgeCtx.endsWithBareSource) {
+              const sourceName = edgeCtx.bareSourceMatch?.[1];
+              const isNode = (block?.nodes || []).includes(sourceName);
+              const isEdge =
+                (block?.edges || []).includes(sourceName) &&
+                sourceName !== architectureInlineItemContext.itemName;
+
+              if (isNode || isEdge) {
+                const insertAtCursorRange = {
+                  startLineNumber: position.lineNumber,
+                  endLineNumber: position.lineNumber,
+                  startColumn: position.column,
+                  endColumn: position.column,
+                };
+
+                suggestions.push({
+                  label: ".",
+                  filterText: sourceName,
+                  kind: monaco.languages.CompletionItemKind.Operator,
+                  insertText: ".",
+                  detail: "Endpoint accessor",
+                  documentation: `Continue from ${sourceName} with an anchor`,
+                  range: insertAtCursorRange,
+                  sortText: "0dot",
+                  command: {
+                    id: "editor.action.triggerSuggest",
+                    title: "Trigger suggest",
+                  },
+                });
+
+                return { suggestions };
+              }
+            }
+            if (edgeCtx.needsArrow) {
+              suggestions.push({
+                label: "->",
+                kind: monaco.languages.CompletionItemKind.Operator,
+                insertText: "-> ",
+                detail: "Edge connector",
+                documentation: "Connect source endpoint to target endpoint",
+                range,
+                sortText: "0arrow",
+              });
+              return { suggestions };
+            }
+
+            if (edgeCtx.needsTargetEndpoint) {
+              pushEdgeEndpointSourceSuggestions(
+                suggestions,
+                monaco,
+                range,
+                block,
+                architectureInlineItemContext.itemName,
+              );
+              return { suggestions };
+            }
+
+            // after second endpoint: only edge properties
+            if (edgeCtx.endsAfterTargetEndpoint) {
+              pushRemainingEdgeInlineProps(
+                suggestions,
+                monaco,
+                range,
+                edgeCtx.usedProps,
+              );
+              return { suggestions };
+            }
+
+            if (edgeCtx.afterDotMatch) {
+              const sourceName = edgeCtx.afterDotMatch[1];
+              const memberPrefix = edgeCtx.afterDotMatch[2] || "";
+
+              if (sourceName === architectureInlineItemContext.itemName) {
+                return { suggestions: [] };
+              }
+
+              pushAnchorSuggestionsForSource(
+                suggestions,
+                monaco,
+                range,
+                sourceName,
+                block,
+                memberPrefix,
+              );
+              return { suggestions };
+            }
+
+            pushRemainingEdgeInlineProps(
+              suggestions,
+              monaco,
+              range,
+              edgeCtx.usedProps,
+            );
+
+            return { suggestions };
+          }
+        }
+
+        const groupAfterEqualsText =
+          architectureInlineItemContext.afterEqualsText || "";
+
+        const isInsideGroupMembersValue = /\bmembers\s*:\s*\[[^\]]*$/.test(
+          groupAfterEqualsText,
+        );
+        const isInsideGroupAnchorValue =
+          /\banchor\s*:\s*([a-zA-Z_][a-zA-Z0-9_]*)?$/.test(
+            groupAfterEqualsText,
+          );
+
+        if (
+          architectureInlineItemContext.section === "groups" &&
+          architectureInlineItemContext.isAfterEquals &&
+          !context.isAfterDot &&
+          !context.methodCallContext &&
+          (!context.isInAttributeValue ||
+            isInsideGroupMembersValue ||
+            isInsideGroupAnchorValue)
+        ) {
+          const archName = architectureBlockContext.architectureName;
+          const blockName = architectureBlockContext.blockName;
+          const block =
+            context.architectureData?.[archName]?.blocks?.[blockName] || null;
+
+          const groupText = architectureInlineItemContext.afterEqualsText || "";
+          const currentGroupName =
+            architectureInlineItemContext.itemName || null;
+
+          const anchorValueMatch = groupText.match(
+            /\banchor\s*:\s*([a-zA-Z_][a-zA-Z0-9_]*)?$/,
+          );
+
+          if (anchorValueMatch) {
+            const membersMatch = groupText.match(
+              /\bmembers\s*:\s*\[([^\]]*)\]/,
+            );
+
+            const memberNames = membersMatch
+              ? splitTopLevelArgs(membersMatch[1])
+                  .map((s) => s.trim())
+                  .filter(Boolean)
+              : [];
+
+            const anchorPrefix = anchorValueMatch[1] || "";
+            const trimmedAnchorValue = anchorPrefix.trim();
+
+            // Already completed with a valid member -> no popup
+            if (
+              trimmedAnchorValue &&
+              memberNames.includes(trimmedAnchorValue)
+            ) {
+              return { suggestions: [] };
+            }
+
+            memberNames
+              .filter((name) => !anchorPrefix || name.startsWith(anchorPrefix))
+              .forEach((name, index) => {
+                suggestions.push({
+                  label: name,
+                  kind: monaco.languages.CompletionItemKind.Variable,
+                  insertText: name,
+                  detail: "Group anchor member",
+                  documentation: `Use member ${name} as anchor`,
+                  range,
+                  sortText: `0groupanchor_${index}`,
+                });
+              });
+
+            return { suggestions };
+          }
+
+          const membersMatch = groupText.match(/members\s*:\s*\[([^\]]*)$/);
+
+          if (membersMatch) {
+            const membersText = membersMatch[1] || "";
+
+            const rawParts = splitTopLevelArgs(membersText).map((s) =>
+              s.trim(),
+            );
+            const endsWithComma = /,\s*$/.test(membersText);
+
+            let currentPrefix = "";
+            let alreadySelected = [];
+
+            if (endsWithComma) {
+              alreadySelected = rawParts.filter(Boolean);
+              currentPrefix = "";
+            } else {
+              const nonEmptyParts = rawParts.filter(Boolean);
+              currentPrefix =
+                nonEmptyParts.length > 0
+                  ? nonEmptyParts[nonEmptyParts.length - 1]
+                  : "";
+              alreadySelected = currentPrefix
+                ? nonEmptyParts.slice(0, -1)
+                : nonEmptyParts;
+            }
+
+            const allNodes = block?.nodes || [];
+            const allGroups = block?.groups || [];
+
+            // Use the latest occurrence, which is the row currently being edited
+            const currentGroupIndex = currentGroupName
+              ? allGroups.lastIndexOf(currentGroupName)
+              : -1;
+
+            // Only groups defined above the current row
+            const previousGroups =
+              currentGroupIndex >= 0
+                ? allGroups.slice(0, currentGroupIndex)
+                : allGroups;
+
+            const available = [...allNodes, ...previousGroups]
+              .filter((name) => !alreadySelected.includes(name))
+              .filter(
+                (name) => !currentPrefix || name.startsWith(currentPrefix),
+              )
+              .filter((name) => name !== currentPrefix);
+
+            available.forEach((name, index) => {
+              const isNode = allNodes.includes(name);
+
+              suggestions.push({
+                label: name,
+                kind: monaco.languages.CompletionItemKind.Variable,
+                insertText: name,
+                detail: isNode ? "Group member node" : "Group member group",
+                documentation: `Use ${name} in members`,
+                range,
+                sortText: isNode
+                  ? `0group_node_${index}`
+                  : `1group_row_${index}`,
+              });
+            });
+
+            return { suggestions };
+          }
+
+          const used = getUsedInlineProps(groupText, [
+            "members",
+            "layout",
+            "anchor",
+            "gap",
+            "color",
+            "annotation.top",
+            "annotation.bottom",
+            "annotation.left",
+            "annotation.right",
+          ]);
+
+          const groupInlineItems = [
+            {
+              key: "members",
+              label: "members",
+              insertText: "members: [${1}]",
+              documentation: "Set group members",
+            },
+            {
+              key: "layout",
+              label: "layout",
+              insertText: "layout: ",
+              documentation: "Set group layout",
+            },
+            {
+              key: "anchor",
+              label: "anchor",
+              insertText: "anchor: ",
+              documentation: "Set group anchor",
+            },
+            {
+              key: "gap",
+              label: "gap",
+              insertText: "gap: ${1:10}",
+              documentation: "Set group gap",
+            },
+            {
+              key: "color",
+              label: "color",
+              insertText: "color: ",
+              documentation: "Set group color",
+            },
+            {
+              key: "annotation.top",
+              label: "annotation.top",
+              insertText: 'annotation.top: "${1:text}"',
+              documentation: "Top annotation",
+            },
+            {
+              key: "annotation.bottom",
+              label: "annotation.bottom",
+              insertText: 'annotation.bottom: "${1:text}"',
+              documentation: "Bottom annotation",
+            },
+            {
+              key: "annotation.left",
+              label: "annotation.left",
+              insertText: 'annotation.left: "${1:text}"',
+              documentation: "Left annotation",
+            },
+            {
+              key: "annotation.right",
+              label: "annotation.right",
+              insertText: 'annotation.right: "${1:text}"',
+              documentation: "Right annotation",
+            },
+          ];
+
+          groupInlineItems
+            .filter((item) => !used.has(item.key))
+            .forEach((item, index) => {
+              suggestions.push({
+                label: item.label,
+                kind: monaco.languages.CompletionItemKind.Property,
+                insertText: item.insertText,
+                insertTextRules:
+                  monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                detail: "group inline property",
+                documentation: item.documentation,
+                range,
+                sortText: `2group_inline_${index}`,
+              });
+            });
+
+          return { suggestions };
+        }
+
+        function getNextEdgeName(block) {
+          const existing = new Set(block?.edges || []);
+          let i = 1;
+          while (existing.has(`e${i}`)) i++;
+          return `e${i}`;
+        }
+
+        function isBlankOrEdgeNamePrefix(text) {
+          const t = (text || "").trim();
+          return t === "" || /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(t);
+        }
+
+        if (
+          architectureSectionContext.insideEdges &&
+          !context.isAfterDot &&
+          !context.isInAttributeValue &&
+          !context.methodCallContext
+        ) {
+          const archName = architectureBlockContext.architectureName;
+          const blockName = architectureBlockContext.blockName;
+          const block =
+            context.architectureData?.[archName]?.blocks?.[blockName] || null;
+
+          const rawCurrentItemPrefix =
+            architectureInlineItemContext.currentItemText;
+          const currentItemPrefix = rawCurrentItemPrefix.trim();
+          const edgeNameState =
+            getArchitectureItemNameState(rawCurrentItemPrefix);
+
+          const nextEdgeName = getNextEdgeName(block);
+
+          const edgeNameSuggestions = [nextEdgeName];
+
+          const isExactEdgeNameMatch =
+            edgeNameSuggestions.includes(currentItemPrefix);
+
+          const shouldShowEdgeNameStage =
+            shouldShowArchitectureItemStarters(
+              model,
+              position,
+              rawCurrentItemPrefix,
+            ) &&
+            !isExactEdgeNameMatch &&
+            (currentItemPrefix === "" ||
+              /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(currentItemPrefix));
+
+          // Stage 1: typing edge name only
+          if (
+            shouldShowEdgeNameStage &&
+            !edgeNameState.isNameThenSpace &&
+            !edgeNameState.isAfterEquals
+          ) {
+            [
+              {
+                label: nextEdgeName,
+                insertText: nextEdgeName,
+                detail: "edge name",
+                documentation: "Insert edge name",
+                kind: monaco.languages.CompletionItemKind.Variable,
+              },
+              {
+                label: "straight edge template",
+                insertText:
+                  "${1:e1} = ${2:nodeA}.${3:top} -> ${4:nodeB}.${5:bottom} style: ${6:straight}",
+                detail: "edge template",
+                documentation: "Straight edge between two nodes",
+                kind: monaco.languages.CompletionItemKind.Snippet,
+              },
+              {
+                label: "bow edge template",
+                insertText:
+                  "${1:e2} = ${2:e1}.${3:mid} -> ${4:nodeC}.${5:left} style: ${6:bow}",
+                detail: "edge template",
+                documentation: "Bow edge from an existing edge anchor",
+                kind: monaco.languages.CompletionItemKind.Snippet,
+              },
+              {
+                label: "labeled edge template",
+                insertText:
+                  '${1:e3} = ${2:nodeA}.${3:right} -> ${4:nodeB}.${5:left} label: "${6:flow}" arrowheads: ${7:1}',
+                detail: "edge template",
+                documentation: "Labeled edge template",
+                kind: monaco.languages.CompletionItemKind.Snippet,
+              },
+            ].forEach((item, index) => {
+              suggestions.push({
+                label: item.label,
+                kind: item.kind,
+                insertText: item.insertText,
+                insertTextRules:
+                  item.kind === monaco.languages.CompletionItemKind.Snippet
+                    ? monaco.languages.CompletionItemInsertTextRule
+                        .InsertAsSnippet
+                    : undefined,
+                detail: item.detail,
+                documentation: item.documentation,
+                range,
+                sortText: `0edge_name_${index}`,
+                command:
+                  item.kind === monaco.languages.CompletionItemKind.Snippet
+                    ? {
+                        id: "editor.action.triggerSuggest",
+                        title: "Trigger suggest",
+                      }
+                    : undefined,
+              });
+            });
+
+            return { suggestions };
+          }
+
+          // Stage 2: after "edgeName "
+          if (edgeNameState.isNameThenSpace) {
+            suggestions.push({
+              label: "=",
+              kind: monaco.languages.CompletionItemKind.Operator,
+              insertText: "= ",
+              detail: "Assign edge definition",
+              documentation: `Start defining edge ${edgeNameState.itemName}`,
+              range,
+              sortText: "0edge_equals",
+            });
+
+            return { suggestions };
+          }
+
+          // Stage 3: after "edgeName = "
+          if (edgeNameState.isAfterEquals) {
+            const edgeCtx = getArchitectureEdgeCompletionContext(
+              edgeNameState.afterEqualsText,
+              block,
+            );
+
+            if (!context.isInAttributeValue) {
+              if (edgeCtx.isEmpty) {
+                pushEdgeEndpointSourceSuggestions(
+                  suggestions,
+                  monaco,
+                  range,
+                  block,
+                  edgeNameState.itemName,
+                );
+                return { suggestions };
+              }
+
+              if (edgeCtx.endsWithBareSource) {
+                const sourceName = edgeCtx.bareSourceMatch?.[1];
+                const isNode = (block?.nodes || []).includes(sourceName);
+                const isEdge =
+                  (block?.edges || []).includes(sourceName) &&
+                  sourceName !== edgeNameState.itemName;
+
+                if (isNode || isEdge) {
+                  suggestions.push({
+                    label: ".",
+                    filterText: sourceName,
+                    kind: monaco.languages.CompletionItemKind.Operator,
+                    insertText: ".",
+                    detail: "Endpoint accessor",
+                    documentation: `Continue from ${sourceName} with an anchor`,
+                    range: {
+                      startLineNumber: position.lineNumber,
+                      endLineNumber: position.lineNumber,
+                      startColumn: position.column,
+                      endColumn: position.column,
+                    },
+                    sortText: "0dot",
+                    command: {
+                      id: "editor.action.triggerSuggest",
+                      title: "Trigger suggest",
+                    },
+                  });
+
+                  return { suggestions };
+                }
+              }
+
+              if (edgeCtx.needsArrow) {
+                suggestions.push({
+                  label: "->",
+                  kind: monaco.languages.CompletionItemKind.Operator,
+                  insertText: "-> ",
+                  detail: "Edge connector",
+                  documentation: "Connect source endpoint to target endpoint",
+                  range,
+                  sortText: "0arrow",
+                });
+                return { suggestions };
+              }
+
+              if (edgeCtx.needsTargetEndpoint) {
+                pushEdgeEndpointSourceSuggestions(
+                  suggestions,
+                  monaco,
+                  range,
+                  block,
+                  edgeNameState.itemName,
+                );
+                return { suggestions };
+              }
+
+              if (edgeCtx.endsAfterTargetEndpoint) {
+                pushRemainingEdgeInlineProps(
+                  suggestions,
+                  monaco,
+                  range,
+                  edgeCtx.usedProps,
+                );
+                return { suggestions };
+              }
+
+              if (edgeCtx.afterDotMatch) {
+                const sourceName = edgeCtx.afterDotMatch[1];
+                const memberPrefix = edgeCtx.afterDotMatch[2] || "";
+
+                if (sourceName === edgeNameState.itemName) {
+                  return { suggestions: [] };
+                }
+
+                pushAnchorSuggestionsForSource(
+                  suggestions,
+                  monaco,
+                  range,
+                  sourceName,
+                  block,
+                  memberPrefix,
+                );
+                return { suggestions };
+              }
+
+              pushRemainingEdgeInlineProps(
+                suggestions,
+                monaco,
+                range,
+                edgeCtx.usedProps,
+              );
+
+              return { suggestions };
+            }
+          }
+        }
+
+        function pushNodeInlinePropertySuggestions(
+          suggestions,
+          monaco,
+          range,
+          afterEqualsText = "",
+        ) {
+          const used = getUsedInlineProps(afterEqualsText, [
+            "type",
+            "label",
+            "label.orientation",
+            "subtext",
+            "size",
+            "style",
+            "color",
+            "stroke",
+            "annotation.top",
+            "annotation.bottom",
+            "annotation.left",
+            "annotation.right",
+          ]);
+          const nodeInlineItems = [
+            {
+              key: "type",
+              label: "type",
+              insertText: "type: ",
+              documentation: "Set node type",
+            },
+            {
+              key: "label",
+              label: "label",
+              insertText: 'label: "${1:CNN}"',
+              documentation: "Set node label",
+            },
+            {
+              key: "label.orientation",
+              label: "label.orientation",
+              insertText: "label.orientation: ",
+              documentation: "Set label orientation",
+            },
+            {
+              key: "subtext",
+              label: "subtext",
+              insertText: 'subtext: "${1:Subtext}"',
+              documentation: "Set node subtext",
+            },
+            {
+              key: "size",
+              label: "size",
+              insertText: "size: (${1:120}, ${2:48})",
+              documentation: "Set node size",
+            },
+            {
+              key: "style",
+              label: "style",
+              insertText: "style: ",
+              documentation: "Set node style",
+            },
+            {
+              key: "color",
+              label: "color",
+              insertText: "color: ",
+              documentation: "Set node color",
+            },
+            {
+              key: "stroke",
+              label: "stroke",
+              insertText: "stroke: ",
+              documentation: "Set node stroke",
+            },
+            {
+              key: "annotation.top",
+              label: "annotation.top",
+              insertText: 'annotation.top: "${1:text}"',
+              documentation: "Top annotation",
+            },
+            {
+              key: "annotation.bottom",
+              label: "annotation.bottom",
+              insertText: 'annotation.bottom: "${1:text}"',
+              documentation: "Bottom annotation",
+            },
+            {
+              key: "annotation.left",
+              label: "annotation.left",
+              insertText: 'annotation.left: "${1:text}"',
+              documentation: "Left annotation",
+            },
+            {
+              key: "annotation.right",
+              label: "annotation.right",
+              insertText: 'annotation.right: "${1:text}"',
+              documentation: "Right annotation",
+            },
+          ];
+          nodeInlineItems
+            .filter((item) => !used.has(item.key))
+            .forEach((item, index) => {
+              suggestions.push({
+                ...createPropertyOnlySuggestion(monaco, range, {
+                  label: item.label,
+                  insertText: item.insertText,
+                  detail: "node inline property",
+                  documentation: item.documentation,
+                  sortText: `0node_inline_${index}`,
+                }),
+                insertTextRules:
+                  monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              });
+            });
+        }
+        if (
+          architectureSectionContext.insideNodes &&
+          !context.isAfterDot &&
+          !context.isInAttributeValue &&
+          !context.methodCallContext
+        ) {
+          const rawCurrentItemPrefix =
+            architectureInlineItemContext.currentItemText;
+          const currentItemPrefix = rawCurrentItemPrefix.trim();
+          const nodeNameState =
+            getArchitectureItemNameState(rawCurrentItemPrefix);
+
+          const nodeNameSuggestions = ["add_norm1", "plus", "inputs"];
+
+          const isExactNodeNameMatch =
+            nodeNameSuggestions.includes(currentItemPrefix);
+
+          const shouldShowNodeNameStage =
+            shouldShowArchitectureItemStarters(
+              model,
+              position,
+              rawCurrentItemPrefix,
+            ) &&
+            !isExactNodeNameMatch &&
+            (currentItemPrefix === "" ||
+              /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(currentItemPrefix));
+
+          // Stage 1: typing node name only
+          if (
+            shouldShowNodeNameStage &&
+            !nodeNameState.isNameThenSpace &&
+            !nodeNameState.isAfterEquals
+          ) {
+            [
+              {
+                label: "add_norm1",
+                insertText: "add_norm1",
+                detail: "node name",
+                documentation: "Insert node name",
+                kind: monaco.languages.CompletionItemKind.Variable,
+              },
+              {
+                label: "plus",
+                insertText:
+                  'plus = type: ${1:circle} label: "${2:+}" color: "${3:blue}" size: (${4:40}, ${5:40})',
+                detail: "node template",
+                documentation: "Insert full template for plus node",
+                kind: monaco.languages.CompletionItemKind.Snippet,
+              },
+              {
+                label: "inputs",
+                insertText:
+                  'inputs = type: ${1:rect} label: "${2:Inputs}" style: ${3|box,rounded|} color: "${4:gray}" size: (${5:120}, ${6:48})',
+                detail: "node template",
+                documentation: "Insert full template for inputs node",
+                kind: monaco.languages.CompletionItemKind.Snippet,
+              },
+            ].forEach((item, index) => {
+              suggestions.push({
+                label: item.label,
+                kind: item.kind,
+                insertText: item.insertText,
+                insertTextRules:
+                  item.kind === monaco.languages.CompletionItemKind.Snippet
+                    ? monaco.languages.CompletionItemInsertTextRule
+                        .InsertAsSnippet
+                    : undefined,
+                detail: item.detail,
+                documentation: item.documentation,
+                range,
+                sortText: `0node_name_${index}`,
+                command:
+                  item.kind === monaco.languages.CompletionItemKind.Snippet
+                    ? {
+                        id: "editor.action.triggerSuggest",
+                        title: "Trigger suggest",
+                      }
+                    : undefined,
+              });
+            });
+
+            return { suggestions };
+          }
+
+          // Stage 2: after "nodeName "
+          if (nodeNameState.isNameThenSpace) {
+            suggestions.push({
+              label: "=",
+              kind: monaco.languages.CompletionItemKind.Operator,
+              insertText: "= ",
+              detail: "Assign node definition",
+              documentation: `Start defining node ${nodeNameState.itemName}`,
+              range,
+              sortText: "0node_equals",
+            });
+
+            return { suggestions };
+          }
+
+          // Stage 3: after "nodeName = "
+          if (nodeNameState.isAfterEquals) {
+            pushNodeInlinePropertySuggestions(
+              suggestions,
+              monaco,
+              range,
+              nodeNameState.afterEqualsText,
+            );
+
+            return { suggestions };
+          }
+        }
+
+        function getUsedTopLevelPropertiesInCurrentDefinition(
+          model,
+          position,
+          componentType,
+        ) {
+          const textUntilPosition = model.getValueInRange({
+            startLineNumber: 1,
+            startColumn: 1,
+            endLineNumber: position.lineNumber,
+            endColumn: position.column,
+          });
+
+          const lines = textUntilPosition.split("\n");
+
+          let startLineIndex = -1;
+
+          for (let i = lines.length - 1; i >= 0; i--) {
+            const match = lines[i].match(/^\s*([a-zA-Z]+)\s+\w+\s*=\s*\{/);
+            if (match && match[1] === componentType) {
+              startLineIndex = i;
+              break;
+            }
+          }
+
+          const usedProps = new Set();
+
+          if (startLineIndex === -1) {
+            return usedProps;
+          }
+
+          for (let i = startLineIndex + 1; i < lines.length; i++) {
+            const trimmed = lines[i].trim();
+
+            if (!trimmed || trimmed === "}") continue;
+
+            const propMatch = trimmed.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*:/);
+            if (propMatch) {
+              usedProps.add(propMatch[1]);
+            }
+          }
+
+          return usedProps;
+        }
+        if (
+          context.isInComponentDefinition &&
+          isImmediatelyAfterCompletedPropertyValue(model, position)
+        ) {
+          return { suggestions: [] };
+        }
+
+        // Component definition properties
+        if (context.isInComponentDefinition && !context.isInAttributeValue) {
+          const componentType = context.componentDefinitionType;
+
+          const allProps =
+            typeDocumentation[componentType]?.supportedProperties || [];
+
+          const usedProps = getUsedTopLevelPropertiesInCurrentDefinition(
+            model,
+            position,
+            componentType,
+          );
+
+          const remainingProps = allProps.filter(
+            (prop) => !usedProps.has(prop),
+          );
+
+          const neuralNetworkPropertySnippets = {
+            layers: {
+              insertText: "layers: [$0]",
+              documentation: "Layer labels for the neural network",
+            },
+            neurons: {
+              insertText: "neurons: [[$1], [$2], [$3]]",
+              documentation: "Neuron values grouped by layer",
+            },
+            layerColors: {
+              insertText: "layerColors: [$1]",
+              documentation: "Color for each layer",
+            },
+            neuronColors: {
+              insertText: "neuronColors: [[$1], [$2], [$3]]",
+              documentation: "Color for each neuron in each layer",
+            },
+            showBias: {
+              insertText: "showBias: ",
+              documentation: "Show or hide bias nodes",
+            },
+            showLabels: {
+              insertText: "showLabels: ",
+              documentation: "Show or hide layer labels",
+            },
+            labelPosition: {
+              insertText: "labelPosition: ",
+              documentation: "Position of layer labels",
+            },
+            showWeights: {
+              insertText: "showWeights: ",
+              documentation: "Show or hide weights",
+            },
+            showArrowheads: {
+              insertText: "showArrowheads: ",
+              documentation: "Show or hide arrowheads",
+            },
+          };
+
+          remainingProps.forEach((prop) => {
+            const neuralProp =
+              componentType === "neuralnetwork"
+                ? neuralNetworkPropertySnippets[prop]
+                : null;
+
+            suggestions.push({
+              ...createPropertyOnlySuggestion(monaco, range, {
+                label: prop,
+                insertText: neuralProp?.insertText ?? `${prop}: `,
+                detail: `${componentType} property`,
+                documentation:
+                  neuralProp?.documentation ||
+                  typeDocumentation[componentType]?.description ||
+                  "",
+                sortText: `0prop_${prop}`,
+              }),
+              insertTextRules:
+                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              command: {
+                id: "editor.action.triggerSuggest",
+                title: "Trigger suggest",
+              },
+            });
+          });
+
+          return { suggestions };
+        }
         // At the beginning of a line - suggest components and keywords
         if (context.isAtLineStart) {
           languageConfig.keywords.forEach((keyword) => {
@@ -1072,6 +5874,7 @@ export function registerCustomLanguage(monaco) {
           !context.isAfterShowHide &&
           !context.isAtLineStart &&
           !context.isInAttributeValue &&
+          !context.isInComponentDefinition &&
           context.beforeCursor.length > 0
         ) {
           const isInVariableContext =
@@ -1118,7 +5921,8 @@ export function registerCustomLanguage(monaco) {
         // Attribute suggestions when inside component declaration
         if (
           context.beforeCursor.includes("{") &&
-          !context.beforeCursor.includes("}")
+          !context.beforeCursor.includes("}") &&
+          !context.isInComponentDefinition
         ) {
           const openBraceIndex = context.beforeCursor.lastIndexOf("{");
           const textAfterBrace = context.beforeCursor.substring(
@@ -1188,9 +5992,712 @@ export function registerCustomLanguage(monaco) {
           }
         }
 
-        // Attribute value suggestions
+        // layer helper
+        function isCompletedQuotedString(text) {
+          const v = String(text ?? "").trim();
+          return (
+            (v.startsWith('"') && v.endsWith('"') && v.length >= 2) ||
+            (v.startsWith("'") && v.endsWith("'") && v.length >= 2)
+          );
+        }
+
+        function isCompletedNumber(text) {
+          return /^-?\d+(\.\d+)?$/.test(String(text ?? "").trim());
+        }
+
+        function isCompletedBareIdentifier(text) {
+          return /^[a-zA-Z_][a-zA-Z0-9_.]*$/.test(String(text ?? "").trim());
+        }
+
+        function isCompletedScalarValue(text, options = {}) {
+          const {
+            allowNull = false,
+            allowBoolean = false,
+            allowNumber = false,
+            allowQuotedString = false,
+            allowBareIdentifier = false,
+            allowedBareWords = [],
+          } = options;
+
+          const v = String(text ?? "").trim();
+          if (!v) return false;
+
+          if (allowNull && v === "null") return true;
+          if (allowBoolean && (v === "true" || v === "false")) return true;
+          if (allowNumber && isCompletedNumber(v)) return true;
+          if (allowQuotedString && isCompletedQuotedString(v)) return true;
+          if (allowBareIdentifier && isCompletedBareIdentifier(v)) return true;
+          if (allowedBareWords.includes(v)) return true;
+
+          return false;
+        }
+
+        function shouldSuppressArchitectureInlineValueSuggestions(
+          section,
+          attributeName,
+          valueText,
+        ) {
+          const value = String(valueText ?? "");
+
+          if (section === "nodes") {
+            if (attributeName === "type") {
+              return isCompletedScalarValue(value, {
+                allowedBareWords: ["rect", "circle", "text"],
+              });
+            }
+
+            if (attributeName === "label.orientation") {
+              return isCompletedScalarValue(value, {
+                allowedBareWords: ["vertical", "horizontal"],
+              });
+            }
+
+            if (attributeName === "style") {
+              return isCompletedScalarValue(value, {
+                allowedBareWords: ["box", "rounded"],
+              });
+            }
+
+            if (attributeName === "color" || attributeName === "stroke") {
+              return isCompletedScalarValue(value, {
+                allowNull: true,
+                allowQuotedString: true,
+              });
+            }
+          }
+
+          if (section === "edges") {
+            if (attributeName === "style") {
+              return isCompletedScalarValue(value, {
+                allowedBareWords: ["straight", "bow"],
+              });
+            }
+
+            if (attributeName === "arrowheads") {
+              return isCompletedScalarValue(value, {
+                allowedBareWords: ["0", "1", "2"],
+                allowNumber: true,
+              });
+            }
+
+            if (attributeName === "color") {
+              return isCompletedScalarValue(value, {
+                allowNull: true,
+                allowQuotedString: true,
+              });
+            }
+          }
+
+          if (section === "groups") {
+            if (attributeName === "layout") {
+              return isCompletedScalarValue(value, {
+                allowedBareWords: ["horizontal", "vertical", "grid"],
+              });
+            }
+
+            if (attributeName === "anchor") {
+              return isCompletedScalarValue(value, {
+                allowBareIdentifier: true,
+              });
+            }
+
+            if (attributeName === "color") {
+              return isCompletedScalarValue(value, {
+                allowNull: true,
+                allowQuotedString: true,
+              });
+            }
+          }
+
+          return false;
+        }
+        function getArrayItemCompletionContext(fullText) {
+          let depth = 0;
+          let inQuotes = false;
+          let quoteChar = "";
+          let lastCommaIndex = -1;
+
+          for (let i = 0; i < fullText.length; i++) {
+            const ch = fullText[i];
+
+            if (!inQuotes) {
+              if (ch === '"' || ch === "'") {
+                inQuotes = true;
+                quoteChar = ch;
+              } else if (ch === "[" || ch === "(" || ch === "{") {
+                depth++;
+              } else if (ch === "]" || ch === ")" || ch === "}") {
+                depth = Math.max(0, depth - 1);
+              } else if (ch === "," && depth === 0) {
+                lastCommaIndex = i;
+              }
+            } else if (ch === quoteChar && fullText[i - 1] !== "\\") {
+              inQuotes = false;
+            }
+          }
+
+          const currentSegment = fullText.slice(lastCommaIndex + 1);
+          const trimmedSegment = currentSegment.trimStart();
+
+          const quoteMatch = trimmedSegment.match(/^["']([^"']*)$/);
+          const unquotedMatch = trimmedSegment.match(
+            /^([a-zA-Z_][a-zA-Z0-9_]*)$/,
+          );
+
+          return {
+            currentSegment,
+            currentPrefix: quoteMatch
+              ? quoteMatch[1]
+              : unquotedMatch
+                ? unquotedMatch[1]
+                : "",
+            hasOpeningQuote: !!quoteMatch,
+            replaceCurrentSegmentStartOffset:
+              currentSegment.length - trimmedSegment.length,
+          };
+        }
+
         if (context.isInAttributeValue) {
           const [, attributeName, arrayContent] = context.attributeValueMatch;
+
+          const architectureInlineSection =
+            architectureInlineItemContext.section;
+
+          if (
+            (architectureInlineSection === "nodes" ||
+              architectureInlineSection === "edges" ||
+              architectureInlineSection === "groups") &&
+            shouldSuppressArchitectureInlineValueSuggestions(
+              architectureInlineSection,
+              attributeName,
+              arrayContent,
+            )
+          ) {
+            return { suggestions: [] };
+          }
+
+          const noSuggestStringAttributes = new Set([
+            "title",
+            "label",
+            "subtext",
+            "annotation.top",
+            "annotation.bottom",
+            "annotation.left",
+            "annotation.right",
+            "gap",
+          ]);
+          if (noSuggestStringAttributes.has(attributeName)) {
+            return { suggestions: [] };
+          }
+
+          if (diagramTopLevelContext.insideDiagramTopLevel) {
+            if (attributeName === "layout") {
+              ["horizontal", "vertical", "grid"].forEach((value, index) => {
+                suggestions.push({
+                  label: value,
+                  kind: monaco.languages.CompletionItemKind.EnumMember,
+                  insertText: value,
+                  detail: "Diagram layout",
+                  documentation: `Set diagram layout to ${value}`,
+                  range,
+                  sortText: `0diagramlayout${index}`,
+                });
+              });
+
+              return { suggestions };
+            }
+          }
+
+          if (diagramSectionContext.insideDiagramConnects) {
+            if (attributeName === "style") {
+              ["straight", "bow"].forEach((value, index) => {
+                suggestions.push({
+                  label: value,
+                  kind: monaco.languages.CompletionItemKind.EnumMember,
+                  insertText: value,
+                  detail: "Diagram connection style",
+                  documentation: `Set connection style to ${value}`,
+                  range,
+                  sortText: `0diagram_style_${index}`,
+                });
+              });
+
+              return { suggestions };
+            }
+
+            if (attributeName === "arrowheads") {
+              ["0", "1", "2"].forEach((value, index) => {
+                suggestions.push({
+                  label: value,
+                  kind: monaco.languages.CompletionItemKind.Value,
+                  insertText: value,
+                  detail: "Arrowheads count",
+                  documentation: `Set arrowheads to ${value}`,
+                  range,
+                  sortText: `0diagram_arrowheads_${index}`,
+                });
+              });
+
+              return { suggestions };
+            }
+
+            if (attributeName === "color") {
+              suggestions.push({
+                label: "null",
+                kind: monaco.languages.CompletionItemKind.Constant,
+                insertText: "null",
+                detail: "Default color",
+                documentation: "Use default color",
+                range,
+                sortText: "0null",
+              });
+
+              languageConfig.namedColors.forEach((color, index) => {
+                suggestions.push({
+                  label: color,
+                  kind: monaco.languages.CompletionItemKind.Color,
+                  insertText: `"${color}"`,
+                  detail: "Named color",
+                  documentation: `Use ${color} color`,
+                  range,
+                  sortText: `1diagram_color_${index}`,
+                });
+              });
+
+              return { suggestions };
+            }
+          }
+
+          if (
+            (diagramTopLevelContext.insideDiagramTopLevel ||
+              diagramSectionContext.insideDiagramConnects === false) &&
+            attributeName === "uses"
+          ) {
+            const usesText = getCurrentDiagramUsesText(model, position);
+
+            if (currentArchitecture) {
+              const rawSegment = getTrailingTopLevelSegment(usesText);
+              const trimmedSegment = rawSegment.trim();
+              const endsWithComma = /,\s*$/.test(usesText);
+
+              const availableBlocks =
+                getAvailableBlocksForDiagramUses(currentArchitecture);
+
+              // empty slot or right after comma -> show full alias suggestions
+              if (trimmedSegment === "" || endsWithComma) {
+                availableBlocks.forEach((blockName, index) => {
+                  const defaultAlias = blockName[0].toLowerCase();
+
+                  suggestions.push({
+                    label: `${defaultAlias} = ${blockName}`,
+                    kind: monaco.languages.CompletionItemKind.Variable,
+                    insertText: `${defaultAlias} = ${blockName}`,
+                    detail: "diagram use alias",
+                    documentation: `Alias block ${blockName}`,
+                    range,
+                    sortText: `0diagram_use_tpl_${index}`,
+                  });
+                });
+
+                return { suggestions };
+              }
+
+              // alias = partialBlock
+              const aliasEqualsMatch = trimmedSegment.match(
+                /^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([a-zA-Z_][a-zA-Z0-9_]*)$/,
+              );
+
+              if (aliasEqualsMatch) {
+                const currentAlias = aliasEqualsMatch[1];
+                const blockPrefix = aliasEqualsMatch[2];
+
+                const availableForAlias = getAvailableBlocksForDiagramUses(
+                  currentArchitecture,
+                  currentAlias,
+                );
+
+                // fully completed item -> stop suggestions
+                if (availableForAlias.includes(blockPrefix)) {
+                  return { suggestions: [] };
+                }
+
+                availableForAlias
+                  .filter((blockName) => blockName.startsWith(blockPrefix))
+                  .forEach((blockName, index) => {
+                    suggestions.push({
+                      label: blockName,
+                      kind: monaco.languages.CompletionItemKind.Variable,
+                      insertText: blockName,
+                      detail: "Architecture block",
+                      documentation: `Use block ${blockName} in diagram alias`,
+                      range,
+                      sortText: `0diagram_use_block_${index}`,
+                    });
+                  });
+
+                return { suggestions };
+              }
+
+              // typing alias only, before "="
+              if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(trimmedSegment)) {
+                availableBlocks.forEach((blockName, index) => {
+                  const defaultAlias = blockName[0].toLowerCase();
+
+                  suggestions.push({
+                    label: `${defaultAlias} = ${blockName}`,
+                    kind: monaco.languages.CompletionItemKind.Variable,
+                    insertText: `${defaultAlias} = ${blockName}`,
+                    detail: "diagram use alias",
+                    documentation: `Alias block ${blockName}`,
+                    range,
+                    sortText: `0diagram_use_tpl_${index}`,
+                  });
+                });
+
+                return { suggestions };
+              }
+
+              // alias =   -> still selecting block
+              const aliasWaitingForBlockMatch = trimmedSegment.match(
+                /^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*$/,
+              );
+
+              if (aliasWaitingForBlockMatch) {
+                const currentAlias = aliasWaitingForBlockMatch[1];
+
+                getAvailableBlocksForDiagramUses(
+                  currentArchitecture,
+                  currentAlias,
+                ).forEach((blockName, index) => {
+                  suggestions.push({
+                    label: blockName,
+                    kind: monaco.languages.CompletionItemKind.Variable,
+                    insertText: blockName,
+                    detail: "Architecture block",
+                    documentation: `Use block ${blockName} in diagram alias`,
+                    range,
+                    sortText: `0diagram_use_block_${index}`,
+                  });
+                });
+
+                return { suggestions };
+              }
+
+              return { suggestions: [] };
+            }
+          }
+          if (
+            architectureSectionContext.insideGroups ||
+            architectureInlineItemContext.section === "groups"
+          ) {
+            if (attributeName === "layout") {
+              ["horizontal", "vertical", "grid"].forEach((value, index) => {
+                suggestions.push({
+                  label: value,
+                  kind: monaco.languages.CompletionItemKind.EnumMember,
+                  insertText: value,
+                  detail: "Group layout",
+                  documentation: `Set group layout to ${value}`,
+                  range,
+                  sortText: `0grouplayout${index}`,
+                });
+              });
+
+              return { suggestions };
+            }
+
+            if (attributeName === "color") {
+              suggestions.push({
+                label: "null",
+                kind: monaco.languages.CompletionItemKind.Constant,
+                insertText: "null",
+                detail: "Default color",
+                documentation: "Use default color",
+                range,
+                sortText: "0null",
+              });
+
+              languageConfig.namedColors.forEach((color, index) => {
+                suggestions.push({
+                  label: color,
+                  kind: monaco.languages.CompletionItemKind.Color,
+                  insertText: `"${color}"`,
+                  detail: "Named color",
+                  documentation: `Use ${color} color`,
+                  range,
+                  sortText: `1groupcolor${index}`,
+                });
+              });
+
+              return { suggestions };
+            }
+
+            if (attributeName === "anchor") {
+              const groupText =
+                architectureInlineItemContext.afterEqualsText || "";
+
+              const membersMatch = groupText.match(
+                /\bmembers\s*:\s*\[([^\]]*)\]/,
+              );
+              const memberNames = membersMatch
+                ? splitTopLevelArgs(membersMatch[1])
+                    .map((s) => s.trim())
+                    .filter(Boolean)
+                : [];
+
+              memberNames.forEach((name, index) => {
+                suggestions.push({
+                  label: name,
+                  kind: monaco.languages.CompletionItemKind.Variable,
+                  insertText: name,
+                  detail: "Group anchor member",
+                  documentation: `Use member ${name} as anchor`,
+                  range,
+                  sortText: `0groupanchor${index}`,
+                });
+              });
+
+              return { suggestions };
+            }
+          }
+          if (
+            architectureSectionContext.insideNodes ||
+            architectureInlineItemContext.section === "nodes"
+          ) {
+            if (attributeName === "color" || attributeName === "stroke") {
+              suggestions.push({
+                label: "null",
+                kind: monaco.languages.CompletionItemKind.Constant,
+                insertText: "null",
+                detail: "Default color",
+                documentation: "Use default color",
+                range,
+                sortText: "0null",
+              });
+
+              languageConfig.namedColors.forEach((color, index) => {
+                suggestions.push({
+                  label: color,
+                  kind: monaco.languages.CompletionItemKind.Color,
+                  insertText: `"${color}"`,
+                  detail: "Named color",
+                  documentation: `Use ${color} color`,
+                  range,
+                  sortText: `1edgecolor${index}`,
+                });
+              });
+
+              return { suggestions };
+            }
+
+            if (attributeName === "type") {
+              ["rect", "circle", "text"].forEach((value, index) => {
+                suggestions.push({
+                  label: value,
+                  kind: monaco.languages.CompletionItemKind.EnumMember,
+                  insertText: value,
+                  detail: "Node type",
+                  documentation: `Set node type to ${value}`,
+                  range,
+                  sortText: `0nodetype${index}`,
+                });
+              });
+
+              return { suggestions };
+            }
+
+            if (attributeName === "label.orientation") {
+              ["vertical", "horizontal"].forEach((value, index) => {
+                suggestions.push({
+                  label: value,
+                  kind: monaco.languages.CompletionItemKind.EnumMember,
+                  insertText: value,
+                  detail: "Node label orientation",
+                  documentation: `Set node label orientation to ${value}`,
+                  range,
+                  sortText: `0nodeorientation${index}`,
+                });
+              });
+
+              return { suggestions };
+            }
+
+            if (attributeName === "style") {
+              ["box", "rounded"].forEach((value, index) => {
+                suggestions.push({
+                  label: value,
+                  kind: monaco.languages.CompletionItemKind.EnumMember,
+                  insertText: value,
+                  detail: "Node style",
+                  documentation: `Set node style to ${value}`,
+                  range,
+                  sortText: `0nodestyle${index}`,
+                });
+              });
+
+              return { suggestions };
+            }
+          }
+
+          if (
+            architectureSectionContext.insideEdges ||
+            architectureInlineItemContext.section === "edges"
+          ) {
+            if (attributeName === "style") {
+              ["straight", "bow"].forEach((value, index) => {
+                suggestions.push({
+                  label: value,
+                  kind: monaco.languages.CompletionItemKind.EnumMember,
+                  insertText: value,
+                  detail: "Edge style",
+                  documentation: `Set edge style to ${value}`,
+                  range,
+                  sortText: `0edgestyle${index}`,
+                });
+              });
+
+              return { suggestions };
+            }
+
+            if (attributeName === "arrowheads") {
+              ["0", "1", "2"].forEach((value, index) => {
+                suggestions.push({
+                  label: value,
+                  kind: monaco.languages.CompletionItemKind.Value,
+                  insertText: value,
+                  detail: "Arrowheads count",
+                  documentation: `Set arrowheads to ${value}`,
+                  range,
+                  sortText: `0arrowheads${index}`,
+                });
+              });
+
+              return { suggestions };
+            }
+
+            if (attributeName === "color") {
+              suggestions.push({
+                label: "null",
+                kind: monaco.languages.CompletionItemKind.Constant,
+                insertText: "null",
+                detail: "Default color",
+                documentation: "Use default color",
+                range,
+                sortText: "0null",
+              });
+
+              languageConfig.namedColors.forEach((color, index) => {
+                suggestions.push({
+                  label: color,
+                  kind: monaco.languages.CompletionItemKind.Color,
+                  insertText: `"${color}"`,
+                  detail: "Named color",
+                  documentation: `Use ${color} color`,
+                  range,
+                  sortText: `1edgecolor${index}`,
+                });
+              });
+
+              return { suggestions };
+            }
+          }
+
+          if (architectureBlockContext.insideArchitectureBlockTopLevel) {
+            if (attributeName === "layout") {
+              ["horizontal", "vertical", "grid"].forEach((value, index) => {
+                suggestions.push({
+                  label: value,
+                  kind: monaco.languages.CompletionItemKind.EnumMember,
+                  insertText: value,
+                  detail: "Block layout",
+                  documentation: `Set block layout to ${value}`,
+                  range,
+                  sortText: `0blocklayout${index}`,
+                });
+              });
+
+              return { suggestions };
+            }
+
+            if (attributeName === "style") {
+              ["box", "rounded"].forEach((value, index) => {
+                suggestions.push({
+                  label: value,
+                  kind: monaco.languages.CompletionItemKind.EnumMember,
+                  insertText: value,
+                  detail: "Block style",
+                  documentation: `Set block style to ${value}`,
+                  range,
+                  sortText: `0blockstyle${index}`,
+                });
+              });
+
+              return { suggestions };
+            }
+
+            if (attributeName === "color") {
+              suggestions.push({
+                label: "null",
+                kind: monaco.languages.CompletionItemKind.Constant,
+                insertText: "null",
+                detail: "Default color",
+                documentation: "Use default color",
+                range,
+                sortText: "0null",
+              });
+
+              languageConfig.namedColors.forEach((color, index) => {
+                suggestions.push({
+                  label: color,
+                  kind: monaco.languages.CompletionItemKind.Color,
+                  insertText: `"${color}",`,
+                  detail: "Block color",
+                  documentation: `Set block color to ${color}`,
+                  range,
+                  sortText: `1blockcolor${index}`,
+                });
+              });
+
+              return { suggestions };
+            }
+          }
+
+          if (
+            architectureSectionContext.insideNodes ||
+            architectureInlineItemContext.section === "nodes"
+          ) {
+            if (attributeName === "label.orientation") {
+              ["vertical", "horizontal"].forEach((value, index) => {
+                suggestions.push({
+                  label: value,
+                  kind: monaco.languages.CompletionItemKind.EnumMember,
+                  insertText: value,
+                  detail: "Node label orientation",
+                  documentation: `Set node label orientation to ${value}`,
+                  range,
+                  sortText: `0nodeorientation${index}`,
+                });
+              });
+
+              return { suggestions };
+            }
+
+            if (attributeName === "style") {
+              ["box", "rounded"].forEach((value, index) => {
+                suggestions.push({
+                  label: value,
+                  kind: monaco.languages.CompletionItemKind.EnumMember,
+                  insertText: value,
+                  detail: "Node style",
+                  documentation: `Set node style to ${value}`,
+                  range,
+                  sortText: `0nodestyle${index}`,
+                });
+              });
+
+              return { suggestions };
+            }
+          }
 
           const booleanAttrs = new Set([
             "showBias",
@@ -1223,20 +6730,296 @@ export function registerCustomLanguage(monaco) {
           }
 
           if (attributeName === "labelPosition") {
+            const linePrefix = model
+              .getLineContent(position.lineNumber)
+              .substring(0, position.column - 1);
+
+            const match = linePrefix.match(/\blabelPosition\s*:\s*(.*)$/);
+            if (!match) {
+              return { suggestions: [] };
+            }
+
+            const valueText = match[1];
+
+            if (
+              /^\s*"bottom"\s*$/.test(valueText) ||
+              /^\s*"top"\s*$/.test(valueText)
+            ) {
+              return { suggestions: [] };
+            }
+
             suggestions.push(
               {
                 label: "bottom",
                 kind: monaco.languages.CompletionItemKind.Keyword,
                 insertText: '"bottom"',
+                detail: "Label position",
+                documentation: 'Set labelPosition to "bottom"',
+                range,
+                sortText: "0bottom",
               },
               {
                 label: "top",
                 kind: monaco.languages.CompletionItemKind.Keyword,
                 insertText: '"top"',
+                detail: "Label position",
+                documentation: 'Set labelPosition to "top"',
+                range,
+                sortText: "1top",
               },
             );
 
             return { suggestions };
+          }
+
+          if (attributeName === "neurons") {
+            const linePrefix = model
+              .getLineContent(position.lineNumber)
+              .substring(0, position.column - 1);
+
+            const neuronsMatch = linePrefix.match(/\bneurons\s*:\s*\[(.*)$/);
+
+            if (!neuronsMatch) {
+              return { suggestions: [] };
+            }
+
+            const neuronsText = neuronsMatch[1];
+
+            // We only want to suggest when the cursor is inside an inner layer array:
+            // neurons: [[...], [...], [...]]
+            const lastOpenBracket = neuronsText.lastIndexOf("[");
+            const lastCloseBracket = neuronsText.lastIndexOf("]");
+
+            if (lastOpenBracket === -1 || lastOpenBracket < lastCloseBracket) {
+              return { suggestions: [] };
+            }
+
+            // Text inside the current inner [...]
+            const innerText = neuronsText.slice(lastOpenBracket + 1);
+            const itemCtx = getArrayItemCompletionContext(innerText);
+
+            const neuronSuggestions = [
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "8",
+              "10",
+              "16",
+              "32",
+              "64",
+              "128",
+              "256",
+              "512",
+              "x1",
+              "x2",
+              "x3",
+              "h1",
+              "h2",
+              "h3",
+              "z1",
+              "z2",
+              "y",
+              "output",
+            ];
+
+            const itemRange = {
+              startLineNumber: position.lineNumber,
+              endLineNumber: position.lineNumber,
+              startColumn:
+                position.column -
+                itemCtx.currentSegment.length +
+                itemCtx.replaceCurrentSegmentStartOffset,
+              endColumn: position.column,
+            };
+
+            neuronSuggestions
+              .filter(
+                (value) =>
+                  !itemCtx.currentPrefix ||
+                  value
+                    .toLowerCase()
+                    .startsWith(itemCtx.currentPrefix.toLowerCase()),
+              )
+              .forEach((value, index) => {
+                const isNumber = !Number.isNaN(Number(value));
+
+                suggestions.push({
+                  label: value,
+                  kind: monaco.languages.CompletionItemKind.Value,
+                  insertText: isNumber ? value : `"${value}"`,
+                  detail: "Neuron value",
+                  documentation: `Use neuron value ${isNumber ? value : `"${value}"`}`,
+                  range: itemRange,
+                  sortText: `0neuron_item_${index}`,
+                });
+              });
+
+            return { suggestions };
+          }
+
+          if (attributeName === "neuronColors") {
+            const linePrefix = model
+              .getLineContent(position.lineNumber)
+              .substring(0, position.column - 1);
+
+            const neuronColorsMatch = linePrefix.match(
+              /\bneuronColors\s*:\s*\[(.*)$/,
+            );
+
+            if (!neuronColorsMatch) {
+              return { suggestions: [] };
+            }
+
+            const neuronColorsText = neuronColorsMatch[1];
+
+            // neuronColors: [[...], [...], [...]]
+            const lastOpenBracket = neuronColorsText.lastIndexOf("[");
+            const lastCloseBracket = neuronColorsText.lastIndexOf("]");
+
+            if (lastOpenBracket === -1 || lastOpenBracket < lastCloseBracket) {
+              return { suggestions: [] };
+            }
+
+            const innerText = neuronColorsText.slice(lastOpenBracket + 1);
+            const itemCtx = getArrayItemCompletionContext(innerText);
+
+            const itemRange = {
+              startLineNumber: position.lineNumber,
+              endLineNumber: position.lineNumber,
+              startColumn:
+                position.column -
+                itemCtx.currentSegment.length +
+                itemCtx.replaceCurrentSegmentStartOffset,
+              endColumn: position.column,
+            };
+
+            // same style as "color"
+            suggestions.push({
+              label: "null",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "null",
+              detail: "Default color",
+              documentation: "Use default color for this element",
+              range: itemRange,
+              sortText: "0null",
+            });
+
+            languageConfig.namedColors
+              .filter(
+                (color) =>
+                  !itemCtx.currentPrefix ||
+                  color
+                    .toLowerCase()
+                    .startsWith(itemCtx.currentPrefix.toLowerCase()),
+              )
+              .forEach((color, index) => {
+                suggestions.push({
+                  label: color,
+                  kind: monaco.languages.CompletionItemKind.Color,
+                  insertText: `"${color}"`,
+                  detail: "Named color",
+                  documentation: `Use ${color} color`,
+                  range: itemRange,
+                  sortText: `1color${index.toString().padStart(3, "0")}`,
+                });
+              });
+
+            return { suggestions };
+          }
+
+          if (attributeName === "layers") {
+            const linePrefix = model
+              .getLineContent(position.lineNumber)
+              .substring(0, position.column - 1);
+
+            const layersMatch = linePrefix.match(/\blayers\s*:\s*\[([^\]]*)$/);
+
+            if (!layersMatch) {
+              return { suggestions: [] };
+            }
+
+            const innerText = layersMatch[1];
+            const itemCtx = getArrayItemCompletionContext(innerText);
+
+            const layerNameSuggestions = [
+              "input",
+              "embedding",
+              "token",
+              "positional",
+              "attention",
+              "multihead",
+              "add",
+              "norm1",
+              "ffn",
+              "linear1",
+              "activation",
+              "linear2",
+              "norm2",
+              "hidden",
+              "hidden1",
+              "hidden2",
+              "output",
+            ];
+
+            const itemRange = {
+              startLineNumber: position.lineNumber,
+              endLineNumber: position.lineNumber,
+              startColumn:
+                position.column -
+                itemCtx.currentSegment.length +
+                itemCtx.replaceCurrentSegmentStartOffset,
+              endColumn: position.column,
+            };
+
+            layerNameSuggestions
+              .filter(
+                (name) =>
+                  !itemCtx.currentPrefix ||
+                  name
+                    .toLowerCase()
+                    .startsWith(itemCtx.currentPrefix.toLowerCase()),
+              )
+              .forEach((name, index) => {
+                suggestions.push({
+                  label: name,
+                  kind: monaco.languages.CompletionItemKind.Value,
+                  insertText: `"${name}"`,
+                  detail: "Layer name",
+                  documentation: `Use layer name "${name}"`,
+                  range: itemRange,
+                  sortText: `0layer_item_${index}`,
+                });
+              });
+
+            return { suggestions };
+          }
+
+          if (attributeName === "layerColors") {
+            // Add null first
+            suggestions.push({
+              label: "null",
+              kind: monaco.languages.CompletionItemKind.Constant,
+              insertText: "null",
+              detail: "Default color",
+              documentation: "Use default color for this element",
+              range: range,
+              sortText: "0null",
+            });
+
+            // Add color suggestions
+            languageConfig.namedColors.forEach((color, index) => {
+              suggestions.push({
+                label: color,
+                kind: monaco.languages.CompletionItemKind.Color,
+                insertText: `"${color}"`,
+                detail: "Named color",
+                documentation: `Use ${color} color`,
+                range: range,
+                sortText: `1color${index.toString().padStart(3, "0")}`,
+              });
+            });
           }
 
           if (attributeName === "color") {
@@ -1473,9 +7256,80 @@ export function registerCustomLanguage(monaco) {
   monaco.languages.registerCompletionItemProvider("customLang", {
     provideCompletionItems: function (model, position) {
       try {
+        if (isImmediatelyAfterInlinePropertyComma(model, position)) {
+          return { suggestions: [] };
+        }
+
         const context = analyzeContext(model, position);
+
+        const architectureSectionContext = getArchitectureSectionContext(
+          model,
+          position,
+        );
+        const diagramSectionContext = getArchitectureDiagramSectionContext(
+          model,
+          position,
+        );
+        const diagramTopLevelContext = getArchitectureDiagramTopLevelContext(
+          model,
+          position,
+        );
+        const architectureTopLevelContext = getArchitectureTopLevelContext(
+          model,
+          position,
+        );
+        const architectureBlockContext = getArchitectureBlockContext(
+          model,
+          position,
+        );
+
+        if (
+          isAfterCompletedTopLevelArchProperty(model, position) &&
+          (architectureTopLevelContext.insideArchitectureTopLevel ||
+            architectureBlockContext.insideArchitectureBlockTopLevel ||
+            diagramTopLevelContext.insideDiagramTopLevel) &&
+          !architectureSectionContext.insideNodes &&
+          !architectureSectionContext.insideEdges &&
+          !architectureSectionContext.insideGroups &&
+          !diagramSectionContext.insideDiagramConnects &&
+          !diagramSectionContext.insideDiagramUses
+        ) {
+          return { suggestions: [] };
+        }
+
+        const currentArchitectureName = getArchitectureNameAtPosition(
+          model,
+          position,
+        );
+        const currentArchitecture = currentArchitectureName
+          ? context.architectureData?.[currentArchitectureName]
+          : null;
+
+        if (diagramSectionContext.insideDiagramConnects) {
+          const connectText = getCurrentDiagramConnectText(model, position);
+          const connectCtx = getDiagramConnectCompletionContext(
+            connectText,
+            currentArchitecture,
+          );
+
+          if (
+            connectCtx.isEmpty ||
+            connectCtx.endsWithBareAlias ||
+            connectCtx.aliasDotMatch ||
+            connectCtx.aliasMemberAnchorMatch ||
+            connectCtx.needsArrow ||
+            connectCtx.needsTargetEndpoint ||
+            connectCtx.memberNeedsDot
+          ) {
+            return { suggestions: [] };
+          }
+        }
         if (!context.word || context.word.word.length < 2)
           return { suggestions: [] }; // Only show for 2+ characters
+
+        if (context.isInComponentDefinition) {
+          return { suggestions: [] };
+        }
 
         const range = {
           startLineNumber: position.lineNumber,
@@ -1574,9 +7428,12 @@ export function registerCustomLanguage(monaco) {
 
   // Register a completion provider specifically for method arguments
   monaco.languages.registerCompletionItemProvider("customLang", {
-    triggerCharacters: ["(", ",", " ", '"', ".", "-", ""],
+    triggerCharacters: ["(", ",", " ", '"', ".", "-"],
     provideCompletionItems: function (model, position) {
       try {
+        if (isImmediatelyAfterInlinePropertyComma(model, position)) {
+          return { suggestions: [] };
+        }
         const context = analyzeContext(model, position);
 
         if (!context.methodCallContext) {
@@ -1603,6 +7460,104 @@ export function registerCustomLanguage(monaco) {
 
         // Add null suggestion for most parameters
         if (
+          !(methodName === "showBlock" && parameterIndex === 0) &&
+          !(methodName === "hideBlock" && parameterIndex === 0) &&
+          !(
+            methodName === "showEdge" &&
+            (parameterIndex === 0 || parameterIndex === 1)
+          ) &&
+          !(
+            methodName === "hideEdge" &&
+            (parameterIndex === 0 || parameterIndex === 1)
+          ) &&
+          !(
+            methodName === "showNode" &&
+            (parameterIndex === 0 || parameterIndex === 1)
+          ) &&
+          !(
+            methodName === "hideNode" &&
+            (parameterIndex === 0 || parameterIndex === 1)
+          ) &&
+          !(
+            methodName === "removeGroup" &&
+            (parameterIndex === 0 || parameterIndex === 1)
+          ) &&
+          !(methodName === "removeBlock" && parameterIndex === 0) &&
+          !(
+            methodName === "setGroupAnnotation" &&
+            (parameterIndex === 0 ||
+              parameterIndex === 1 ||
+              parameterIndex === 2)
+          ) &&
+          !(
+            methodName === "setGroupColor" &&
+            (parameterIndex === 0 || parameterIndex === 1)
+          ) &&
+          !(
+            methodName === "setGroupLayout" &&
+            (parameterIndex === 0 ||
+              parameterIndex === 1 ||
+              parameterIndex === 2)
+          ) &&
+          !(
+            methodName === "setBlockLayout" &&
+            (parameterIndex === 0 || parameterIndex === 1)
+          ) &&
+          !(
+            methodName === "setBlockAnnotation" &&
+            (parameterIndex === 0 || parameterIndex === 1)
+          ) &&
+          !(methodName === "setBlockColor" && parameterIndex === 0) &&
+          !(
+            methodName === "removeEdges" &&
+            (parameterIndex === 0 || parameterIndex === 1)
+          ) &&
+          !(
+            methodName === "removeEdge" &&
+            (parameterIndex === 0 || parameterIndex === 1) &&
+            varType === "architecture"
+          ) &&
+          !(
+            methodName === "setEdgeColor" &&
+            (parameterIndex === 0 || parameterIndex === 1)
+          ) &&
+          !(
+            methodName === "setEdgeLabel" &&
+            (parameterIndex === 0 || parameterIndex === 1)
+          ) &&
+          !(
+            methodName === "setEdgeStyle" &&
+            (parameterIndex === 0 ||
+              parameterIndex === 1 ||
+              parameterIndex === 2)
+          ) &&
+          !(
+            methodName === "setNodeAnnotation" &&
+            (parameterIndex === 0 ||
+              parameterIndex === 1 ||
+              parameterIndex === 2)
+          ) &&
+          !(
+            methodName === "setNodeStroke" &&
+            (parameterIndex === 0 || parameterIndex === 1)
+          ) &&
+          !(
+            methodName === "setNodeColor" &&
+            (parameterIndex === 0 || parameterIndex === 1)
+          ) &&
+          !(
+            methodName === "setNodeLabel" &&
+            (parameterIndex === 0 || parameterIndex === 1)
+          ) &&
+          !(
+            methodName === "removeNodes" &&
+            (parameterIndex === 0 || parameterIndex === 1)
+          ) &&
+          !(
+            methodName === "removeNode" &&
+            (parameterIndex === 0 || parameterIndex === 1) &&
+            varType === "architecture"
+          ) &&
           !(
             methodName === "setNeuronColor" &&
             (parameterIndex === 0 || parameterIndex === 1)
@@ -1615,7 +7570,10 @@ export function registerCustomLanguage(monaco) {
           !(methodName === "setLayerColor" && parameterIndex === 0) &&
           !(methodName === "addNeurons" && parameterIndex === 0) &&
           !(methodName === "removeLayerAt" && parameterIndex === 0) &&
-          !(methodName === "removeNeuronsFromLayer" && parameterIndex === 0)
+          !(
+            methodName === "removeNeuronsFromLayer" &&
+            (parameterIndex === 0 || parameterIndex === 1)
+          )
         ) {
           suggestions.push({
             label: "null",
@@ -1628,10 +7586,1219 @@ export function registerCustomLanguage(monaco) {
           });
         }
 
-        if (methodName === "setNeuronColor") {
+        if (methodName === "showBlock") {
+          const a = context.architectureData?.[variableName];
+          const hiddenBlocks = a?.blockOrder?.filter(
+            (blockName) => a?.blocks?.[blockName].hidden,
+          );
+
           if (parameterIndex === 0) {
-            // First parameter: index (number)
-            ["0", "1", "2", "3", "4"].forEach((num, index) => {
+            (hiddenBlocks || []).forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: num,
+                detail: "Block name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          return { suggestions };
+        }
+
+        if (methodName === "hideBlock") {
+          const a = context.architectureData?.[variableName];
+          const nonHiddenBlocks = a?.blockOrder?.filter(
+            (blockName) => !a?.blocks?.[blockName].hidden,
+          );
+
+          if (parameterIndex === 0) {
+            (nonHiddenBlocks || []).forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: num,
+                detail: "Block name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          return { suggestions };
+        }
+
+        if (methodName === "showEdge") {
+          const a = context.architectureData?.[variableName];
+
+          if (parameterIndex === 0) {
+            const allBlocks = a?.blockOrder || [];
+            allBlocks.forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: num,
+                detail: "Block name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          if (parameterIndex === 1) {
+            const args = splitTopLevelArgs(
+              context.methodCallContext.paramsText,
+            );
+            const selectedBlock = args[0];
+
+            const hiddenEdges = a?.blocks?.[selectedBlock].hiddenEdges || [];
+
+            hiddenEdges.forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: num,
+                detail: "Edge name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          return { suggestions };
+        }
+
+        if (methodName === "hideEdge") {
+          const a = context.architectureData?.[variableName];
+
+          if (parameterIndex === 0) {
+            const allBlocks = a?.blockOrder || [];
+            allBlocks.forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: num,
+                detail: "Block name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          if (parameterIndex === 1) {
+            const args = splitTopLevelArgs(
+              context.methodCallContext.paramsText,
+            );
+            const selectedBlock = args[0];
+
+            const allEdges = a?.blocks?.[selectedBlock].edges || [];
+
+            allEdges.forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: num,
+                detail: "Edge name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          return { suggestions };
+        }
+
+        if (methodName === "showNode") {
+          const a = context.architectureData?.[variableName];
+
+          if (parameterIndex === 0) {
+            const allBlocks = a?.blockOrder || [];
+            allBlocks.forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: num,
+                detail: "Block name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          if (parameterIndex === 1) {
+            const args = splitTopLevelArgs(
+              context.methodCallContext.paramsText,
+            );
+            const selectedBlock = args[0];
+
+            const hiddenNodes = a?.blocks?.[selectedBlock].hiddenNodes || [];
+
+            hiddenNodes.forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: num,
+                detail: "Node name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          return { suggestions };
+        }
+
+        if (methodName === "hideNode") {
+          const a = context.architectureData?.[variableName];
+
+          if (parameterIndex === 0) {
+            const allBlocks = a?.blockOrder || [];
+            allBlocks.forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: num,
+                detail: "Block name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          if (parameterIndex === 1) {
+            const args = splitTopLevelArgs(
+              context.methodCallContext.paramsText,
+            );
+            const selectedBlock = args[0];
+
+            const allNodes = a?.blocks?.[selectedBlock].nodes || [];
+
+            allNodes.forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: num,
+                detail: "Node name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          return { suggestions };
+        }
+
+        if (methodName === "setGroupAnnotation") {
+          const a = context.architectureData?.[variableName];
+
+          if (parameterIndex === 0) {
+            const allBlocks = a?.blockOrder || [];
+            allBlocks.forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: num,
+                detail: "Block name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          if (parameterIndex === 1) {
+            const args = splitTopLevelArgs(
+              context.methodCallContext.paramsText,
+            );
+            const selectedBlock = args[0];
+
+            const allNodes = a?.blocks?.[selectedBlock].groups || [];
+
+            allNodes.forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: num,
+                detail: "Group name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          if (parameterIndex === 2) {
+            ["left", "right", "bottom", "top"].forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: `${num}`,
+                detail: "Side name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          if (parameterIndex === 3) {
+            ["Important", "left part", "right part"].forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: `"${num}"`,
+                detail: "Annotation",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          return { suggestions };
+        }
+
+        if (methodName === "setGroupLayout") {
+          const a = context.architectureData?.[variableName];
+
+          if (parameterIndex === 0) {
+            const allBlocks = a?.blockOrder || [];
+            allBlocks.forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: num,
+                detail: "Block name",
+                range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          if (parameterIndex === 1) {
+            const args = splitTopLevelArgs(
+              context.methodCallContext.paramsText,
+            );
+            const selectedBlock = args[0];
+            const allGroups = a?.blocks?.[selectedBlock]?.groups || [];
+
+            allGroups.forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: num,
+                detail: "Group name",
+                range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          if (parameterIndex === 2) {
+            ["vertical", "horizontal", "grid"].forEach((layout, index) => {
+              suggestions.push({
+                label: layout,
+                kind: monaco.languages.CompletionItemKind.EnumMember,
+                insertText: layout,
+                detail: "Group layout",
+                documentation: `Set group layout to ${layout}`,
+                range,
+                sortText: `1layout${index}`,
+              });
+            });
+          }
+
+          return { suggestions };
+        }
+
+        if (methodName === "setGroupColor") {
+          const a = context.architectureData?.[variableName];
+
+          if (parameterIndex === 0) {
+            const allBlocks = a?.blockOrder || [];
+            allBlocks.forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: num,
+                detail: "Block name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          if (parameterIndex === 1) {
+            const args = splitTopLevelArgs(
+              context.methodCallContext.paramsText,
+            );
+            const selectedBlock = args[0];
+
+            const allNodes = a?.blocks?.[selectedBlock].groups || [];
+
+            allNodes.forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: num,
+                detail: "Group name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          if (parameterIndex === 2) {
+            languageConfig.namedColors.forEach((color, index) => {
+              suggestions.push({
+                label: color,
+                kind: monaco.languages.CompletionItemKind.Color,
+                insertText: `"${color}"`,
+                detail: "Named color",
+                documentation: `Use ${color} color`,
+                range: range,
+                sortText: `1color${index}`,
+              });
+            });
+          }
+
+          return { suggestions };
+        }
+
+        if (methodName === "setBlockAnnotation") {
+          const a = context.architectureData?.[variableName];
+
+          if (parameterIndex === 0) {
+            const allBlocks = a?.blockOrder || [];
+            allBlocks.forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: num,
+                detail: "Block name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          if (parameterIndex === 1) {
+            ["left", "right", "bottom", "top"].forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: `${num}`,
+                detail: "Side name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          if (parameterIndex === 2) {
+            ["Important", "left part", "right part"].forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: `"${num}"`,
+                detail: "Annotation",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          return { suggestions };
+        }
+
+        if (methodName === "setBlockLayout") {
+          const a = context.architectureData?.[variableName];
+
+          if (parameterIndex === 0) {
+            const allBlocks = a?.blockOrder || [];
+            allBlocks.forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: num,
+                detail: "Block name",
+                range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          if (parameterIndex === 1) {
+            ["vertical", "horizontal", "grid"].forEach((layout, index) => {
+              suggestions.push({
+                label: layout,
+                kind: monaco.languages.CompletionItemKind.EnumMember,
+                insertText: layout,
+                detail: "Block layout",
+                documentation: `Set block layout to ${layout}`,
+                range,
+                sortText: `1layout${index}`,
+              });
+            });
+          }
+
+          return { suggestions };
+        }
+
+        if (methodName === "setBlockColor") {
+          const a = context.architectureData?.[variableName];
+
+          if (parameterIndex === 0) {
+            const allBlocks = a?.blockOrder || [];
+            allBlocks.forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: num,
+                detail: "Block name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+          if (parameterIndex === 1) {
+            languageConfig.namedColors.forEach((color, index) => {
+              suggestions.push({
+                label: color,
+                kind: monaco.languages.CompletionItemKind.Color,
+                insertText: `"${color}"`,
+                detail: "Named color",
+                documentation: `Use ${color} color`,
+                range: range,
+                sortText: `1color${index}`,
+              });
+            });
+          }
+
+          return { suggestions };
+        }
+
+        if (methodName === "removeEdges") {
+          const a = context.architectureData?.[variableName];
+
+          if (parameterIndex === 0) {
+            const firstParamOptions = [...(a?.blockOrder || [])];
+
+            if ((a?.diagram?.connections || []).length > 0) {
+              firstParamOptions.push("diagram");
+            }
+
+            firstParamOptions.forEach((name, index) => {
+              suggestions.push({
+                label: name,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: name,
+                detail:
+                  name === "diagram" ? "Diagram connections" : "Block name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          if (parameterIndex === 1) {
+            const args = splitTopLevelArgs(
+              context.methodCallContext.paramsText,
+            );
+            const selectedTarget = args[0]?.trim();
+
+            if (selectedTarget === "diagram") {
+              const diagramConnections = a?.diagram?.connections || [];
+
+              diagramConnections.forEach((_, index) => {
+                suggestions.push({
+                  label: String(index),
+                  kind: monaco.languages.CompletionItemKind.Value,
+                  insertText: String(index),
+                  detail: "Diagram edge index",
+                  range: range,
+                  sortText: `1diagramindex${index}`,
+                });
+              });
+            } else {
+              const blockEdges = a?.blocks?.[selectedTarget]?.edges || [];
+
+              blockEdges.forEach((edgeName, index) => {
+                suggestions.push({
+                  label: edgeName,
+                  kind: monaco.languages.CompletionItemKind.Value,
+                  insertText: edgeName,
+                  detail: "Edge name",
+                  range: range,
+                  sortText: `1blockedge${index}`,
+                });
+              });
+            }
+          }
+
+          return { suggestions };
+        }
+
+        if (methodName === "removeBlock") {
+          const a = context.architectureData?.[variableName];
+
+          if (parameterIndex === 0) {
+            const allBlocks = a?.blockOrder || [];
+            allBlocks.forEach((blockName, index) => {
+              suggestions.push({
+                label: blockName,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: blockName,
+                detail: "Block name",
+                documentation: `Remove block ${blockName}`,
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          return { suggestions };
+        }
+
+        if (methodName === "removeGroup") {
+          const a = context.architectureData?.[variableName];
+
+          if (parameterIndex === 0) {
+            const allBlocks = a?.blockOrder || [];
+            allBlocks.forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: num,
+                detail: "Block name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          if (parameterIndex === 1) {
+            const args = splitTopLevelArgs(
+              context.methodCallContext.paramsText,
+            );
+            const selectedBlock = args[0];
+            const allGroups = a?.blocks?.[selectedBlock]?.groups || [];
+
+            allGroups.forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: num,
+                detail: "Group name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          return { suggestions };
+        }
+
+        if (methodName === "removeEdge" && varType === "architecture") {
+          const a = context.architectureData?.[variableName];
+
+          if (parameterIndex === 0) {
+            const firstParamOptions = [...(a?.blockOrder || [])];
+
+            if ((a?.diagram?.connections || []).length > 0) {
+              firstParamOptions.push("diagram");
+            }
+
+            firstParamOptions.forEach((name, index) => {
+              suggestions.push({
+                label: name,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: name,
+                detail:
+                  name === "diagram" ? "Diagram connections" : "Block name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          if (parameterIndex === 1) {
+            const args = splitTopLevelArgs(
+              context.methodCallContext.paramsText,
+            );
+            const selectedTarget = args[0]?.trim();
+
+            if (selectedTarget === "diagram") {
+              const diagramConnections = a?.diagram?.connections || [];
+
+              diagramConnections.forEach((_, index) => {
+                suggestions.push({
+                  label: String(index),
+                  kind: monaco.languages.CompletionItemKind.Value,
+                  insertText: String(index),
+                  detail: "Diagram edge index",
+                  range: range,
+                  sortText: `1diagramindex${index}`,
+                });
+              });
+            } else {
+              const blockEdges = a?.blocks?.[selectedTarget]?.edges || [];
+
+              blockEdges.forEach((edgeName, index) => {
+                suggestions.push({
+                  label: edgeName,
+                  kind: monaco.languages.CompletionItemKind.Value,
+                  insertText: edgeName,
+                  detail: "Edge name",
+                  range: range,
+                  sortText: `1blockedge${index}`,
+                });
+              });
+            }
+          }
+
+          return { suggestions };
+        }
+
+        if (methodName === "setEdgeColor") {
+          const a = context.architectureData?.[variableName];
+
+          if (parameterIndex === 0) {
+            const firstParamOptions = [...(a?.blockOrder || [])];
+
+            if ((a?.diagram?.connections || []).length > 0) {
+              firstParamOptions.push("diagram");
+            }
+
+            firstParamOptions.forEach((name, index) => {
+              suggestions.push({
+                label: name,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: name,
+                detail:
+                  name === "diagram" ? "Diagram connections" : "Block name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          if (parameterIndex === 1) {
+            const args = splitTopLevelArgs(
+              context.methodCallContext.paramsText,
+            );
+            const selectedTarget = args[0]?.trim();
+
+            if (selectedTarget === "diagram") {
+              const diagramConnections = a?.diagram?.connections || [];
+
+              diagramConnections.forEach((_, index) => {
+                suggestions.push({
+                  label: String(index),
+                  kind: monaco.languages.CompletionItemKind.Value,
+                  insertText: String(index),
+                  detail: "Diagram edge index",
+                  range: range,
+                  sortText: `1diagramindex${index}`,
+                });
+              });
+            } else {
+              const allEdges = a?.blocks?.[selectedTarget]?.edges || [];
+
+              allEdges.forEach((edgeName, index) => {
+                suggestions.push({
+                  label: edgeName,
+                  kind: monaco.languages.CompletionItemKind.Value,
+                  insertText: edgeName,
+                  detail: "Edge name",
+                  range: range,
+                  sortText: `1blockedge${index}`,
+                });
+              });
+            }
+          }
+
+          if (parameterIndex === 2) {
+            languageConfig.namedColors.forEach((color, index) => {
+              suggestions.push({
+                label: color,
+                kind: monaco.languages.CompletionItemKind.Color,
+                insertText: `"${color}"`,
+                detail: "Named color",
+                documentation: `Use ${color} color`,
+                range: range,
+                sortText: `1color${index}`,
+              });
+            });
+          }
+
+          return { suggestions };
+        }
+        if (methodName === "setEdgeLabel") {
+          const a = context.architectureData?.[variableName];
+
+          if (parameterIndex === 0) {
+            const firstParamOptions = [...(a?.blockOrder || [])];
+
+            if ((a?.diagram?.connections || []).length > 0) {
+              firstParamOptions.push("diagram");
+            }
+
+            firstParamOptions.forEach((name, index) => {
+              suggestions.push({
+                label: name,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: name,
+                detail:
+                  name === "diagram" ? "Diagram connections" : "Block name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          if (parameterIndex === 1) {
+            const args = splitTopLevelArgs(
+              context.methodCallContext.paramsText,
+            );
+            const selectedTarget = args[0]?.trim();
+
+            if (selectedTarget === "diagram") {
+              const diagramConnections = a?.diagram?.connections || [];
+
+              diagramConnections.forEach((_, index) => {
+                suggestions.push({
+                  label: String(index),
+                  kind: monaco.languages.CompletionItemKind.Value,
+                  insertText: String(index),
+                  detail: "Diagram edge index",
+                  range: range,
+                  sortText: `1diagramindex${index}`,
+                });
+              });
+            } else {
+              const allEdges = a?.blocks?.[selectedTarget]?.edges || [];
+
+              allEdges.forEach((edgeName, index) => {
+                suggestions.push({
+                  label: edgeName,
+                  kind: monaco.languages.CompletionItemKind.Value,
+                  insertText: edgeName,
+                  detail: "Edge name",
+                  range: range,
+                  sortText: `1blockedge${index}`,
+                });
+              });
+            }
+          }
+
+          if (parameterIndex === 2) {
+            ["CNN Edge", "Feed Forward left Edge", "HERE"].forEach(
+              (text, index) => {
+                suggestions.push({
+                  label: text,
+                  kind: monaco.languages.CompletionItemKind.Value,
+                  insertText: `"${text}"`,
+                  detail: "Label",
+                  range: range,
+                  sortText: `1index${index}`,
+                });
+              },
+            );
+          }
+
+          return { suggestions };
+        }
+        if (methodName === "setEdgeStyle") {
+          const a = context.architectureData?.[variableName];
+
+          if (parameterIndex === 0) {
+            const firstParamOptions = [...(a?.blockOrder || [])];
+
+            if ((a?.diagram?.connections || []).length > 0) {
+              firstParamOptions.push("diagram");
+            }
+
+            firstParamOptions.forEach((name, index) => {
+              suggestions.push({
+                label: name,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: name,
+                detail:
+                  name === "diagram" ? "Diagram connections" : "Block name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          if (parameterIndex === 1) {
+            const args = splitTopLevelArgs(
+              context.methodCallContext.paramsText,
+            );
+            const selectedTarget = args[0]?.trim();
+
+            if (selectedTarget === "diagram") {
+              const diagramConnections = a?.diagram?.connections || [];
+
+              diagramConnections.forEach((_, index) => {
+                suggestions.push({
+                  label: String(index),
+                  kind: monaco.languages.CompletionItemKind.Value,
+                  insertText: String(index),
+                  detail: "Diagram edge index",
+                  range: range,
+                  sortText: `1diagramindex${index}`,
+                });
+              });
+            } else {
+              const allEdges = a?.blocks?.[selectedTarget]?.edges || [];
+
+              allEdges.forEach((edgeName, index) => {
+                suggestions.push({
+                  label: edgeName,
+                  kind: monaco.languages.CompletionItemKind.Value,
+                  insertText: edgeName,
+                  detail: "Edge name",
+                  range: range,
+                  sortText: `1blockedge${index}`,
+                });
+              });
+            }
+          }
+
+          if (parameterIndex === 2) {
+            ["straight", "bow"].forEach((style, index) => {
+              suggestions.push({
+                label: style,
+                kind: monaco.languages.CompletionItemKind.EnumMember,
+                insertText: style,
+                detail: "Edge style",
+                documentation: `Set edge style to ${style}`,
+                range: range,
+                sortText: `1style${index}`,
+              });
+            });
+          }
+
+          return { suggestions };
+        }
+        if (methodName === "setNodeAnnotation") {
+          const a = context.architectureData?.[variableName];
+
+          if (parameterIndex === 0) {
+            const allBlocks = a?.blockOrder || [];
+            allBlocks.forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: num,
+                detail: "Block name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          if (parameterIndex === 1) {
+            const args = splitTopLevelArgs(
+              context.methodCallContext.paramsText,
+            );
+            const selectedBlock = args[0];
+
+            const allNodes = a?.blocks?.[selectedBlock].nodes || [];
+
+            allNodes.forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: num,
+                detail: "Node name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          if (parameterIndex === 2) {
+            ["left", "right", "bottom", "top"].forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: `${num}`,
+                detail: "Side name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          if (parameterIndex === 3) {
+            ["Important", "left part", "right part"].forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: `"${num}"`,
+                detail: "Annotation",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          return { suggestions };
+        }
+        if (methodName === "setNodeStroke") {
+          const a = context.architectureData?.[variableName];
+
+          if (parameterIndex === 0) {
+            const allBlocks = a?.blockOrder || [];
+            allBlocks.forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: num,
+                detail: "Block name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          if (parameterIndex === 1) {
+            const args = splitTopLevelArgs(
+              context.methodCallContext.paramsText,
+            );
+            const selectedBlock = parseMerlinScalar(args[0]);
+            const block = a?.blocks?.[selectedBlock];
+
+            const strokeableNodeTypes = new Set(["rect", "circle"]);
+            const strokeableNodes = (block?.nodes || []).filter((nodeName) => {
+              const nodeType = block?.nodeTypes?.[nodeName];
+              return strokeableNodeTypes.has(nodeType);
+            });
+
+            strokeableNodes.forEach((nodeName, index) => {
+              suggestions.push({
+                label: nodeName,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: nodeName,
+                detail: "Node name",
+                documentation: "Node that supports stroke",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          if (parameterIndex === 2) {
+            languageConfig.namedColors.forEach((color, index) => {
+              suggestions.push({
+                label: color,
+                kind: monaco.languages.CompletionItemKind.Color,
+                insertText: `"${color}"`,
+                detail: "Named color",
+                documentation: `Use ${color} color`,
+                range: range,
+                sortText: `1color${index}`,
+              });
+            });
+          }
+
+          return { suggestions };
+        }
+
+        if (methodName === "setNodeColor") {
+          const a = context.architectureData?.[variableName];
+
+          if (parameterIndex === 0) {
+            const allBlocks = a?.blockOrder || [];
+            allBlocks.forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: num,
+                detail: "Block name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          if (parameterIndex === 1) {
+            const args = splitTopLevelArgs(
+              context.methodCallContext.paramsText,
+            );
+            const selectedBlock = args[0];
+
+            const allNodes = a?.blocks?.[selectedBlock].nodes || [];
+
+            allNodes.forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: num,
+                detail: "Node name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          if (parameterIndex === 2) {
+            languageConfig.namedColors.forEach((color, index) => {
+              suggestions.push({
+                label: color,
+                kind: monaco.languages.CompletionItemKind.Color,
+                insertText: `"${color}"`,
+                detail: "Named color",
+                documentation: `Use ${color} color`,
+                range: range,
+                sortText: `1color${index}`,
+              });
+            });
+          }
+
+          return { suggestions };
+        }
+
+        if (methodName === "setNodeLabel") {
+          const a = context.architectureData?.[variableName];
+
+          if (parameterIndex === 0) {
+            const allBlocks = a?.blockOrder || [];
+            allBlocks.forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: num,
+                detail: "Block name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          if (parameterIndex === 1) {
+            const args = splitTopLevelArgs(
+              context.methodCallContext.paramsText,
+            );
+            const selectedBlock = args[0];
+
+            const allNodes = a?.blocks?.[selectedBlock].nodes || [];
+
+            allNodes.forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: num,
+                detail: "Node name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          if (parameterIndex === 2) {
+            ["CNN", "Feed Forward", "+", "Add & Norm"].forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: `"${num}"`,
+                detail: "Label",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          return { suggestions };
+        }
+
+        if (methodName === "removeNode" && varType === "architecture") {
+          const a = context.architectureData?.[variableName];
+
+          if (parameterIndex === 0) {
+            const allBlocks = a?.blockOrder || [];
+            allBlocks.forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: num,
+                detail: "Block name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          if (parameterIndex === 1) {
+            const args = splitTopLevelArgs(
+              context.methodCallContext.paramsText,
+            );
+            const selectedBlock = args[0];
+
+            const allNodes = a?.blocks?.[selectedBlock].nodes || [];
+
+            allNodes.forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: num,
+                detail: "Node name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          return { suggestions };
+        }
+
+        if (methodName === "removeNodes") {
+          const a = context.architectureData?.[variableName];
+
+          if (parameterIndex === 0) {
+            const allBlocks = a?.blockOrder || [];
+            allBlocks.forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: num,
+                detail: "Block name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          if (parameterIndex === 1) {
+            const args = splitTopLevelArgs(
+              context.methodCallContext.paramsText,
+            );
+            const selectedBlock = args[0];
+
+            const allNodes = a?.blocks?.[selectedBlock].nodes || [];
+
+            allNodes.forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: num,
+                detail: "Node names",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          return { suggestions };
+        }
+
+        if (methodName === "setNeuronColor") {
+          const nn = context.neuralNetworkData?.[variableName];
+          if (parameterIndex === 0) {
+            const layerIndexes =
+              nn?.neuronColors?.map((_, i) => String(i)) || [];
+            layerIndexes.forEach((num, index) => {
               suggestions.push({
                 label: num,
                 kind: monaco.languages.CompletionItemKind.Value,
@@ -1645,14 +8812,22 @@ export function registerCustomLanguage(monaco) {
           }
 
           if (parameterIndex === 1) {
-            // First parameter: index (number)
-            ["0", "1", "2", "3", "4"].forEach((num, index) => {
+            const args = splitTopLevelArgs(
+              context.methodCallContext.paramsText,
+            );
+            const selectedLayerIndex = Number(args[0]);
+
+            const neuronsInLayer = nn?.neuronColors?.[selectedLayerIndex]
+              ? nn.neurons[selectedLayerIndex].map((_, i) => String(i))
+              : [];
+
+            neuronsInLayer.forEach((num, index) => {
               suggestions.push({
                 label: num,
                 kind: monaco.languages.CompletionItemKind.Value,
                 insertText: num,
-                detail: "Layer index",
-                documentation: `Set layer index to ${num}`,
+                detail: "Neuron index",
+                documentation: `Set neuron index to ${num}`,
                 range: range,
                 sortText: `1index${index}`,
               });
@@ -1678,8 +8853,10 @@ export function registerCustomLanguage(monaco) {
         }
 
         if (methodName === "setNeuron") {
+          const nn = context.neuralNetworkData?.[variableName];
           if (parameterIndex === 0) {
-            ["0", "1", "2", "3", "4"].forEach((num, index) => {
+            const layerIndexes = nn?.neurons?.map((_, i) => String(i)) || [];
+            layerIndexes.forEach((num, index) => {
               suggestions.push({
                 label: num,
                 kind: monaco.languages.CompletionItemKind.Value,
@@ -1693,13 +8870,22 @@ export function registerCustomLanguage(monaco) {
           }
 
           if (parameterIndex === 1) {
-            ["0", "1", "2", "3", "4"].forEach((num, index) => {
+            const args = splitTopLevelArgs(
+              context.methodCallContext.paramsText,
+            );
+            const selectedLayerIndex = Number(args[0]);
+
+            const neuronsInLayer = nn?.neurons?.[selectedLayerIndex]
+              ? nn.neurons[selectedLayerIndex].map((_, i) => String(i))
+              : [];
+
+            neuronsInLayer.forEach((num, index) => {
               suggestions.push({
                 label: num,
                 kind: monaco.languages.CompletionItemKind.Value,
                 insertText: num,
-                detail: "Layer index",
-                documentation: `Set layer index to ${num}`,
+                detail: "Neurons index",
+                documentation: `Set neuron index to ${num}`,
                 range: range,
                 sortText: `1index${index}`,
               });
@@ -1727,8 +8913,10 @@ export function registerCustomLanguage(monaco) {
         }
 
         if (methodName === "setLayer") {
+          const nn = context.neuralNetworkData?.[variableName];
           if (parameterIndex === 0) {
-            ["0", "1", "2", "3", "4"].forEach((num, index) => {
+            const layerIndexes = nn?.layers?.map((_, i) => String(i)) || [];
+            layerIndexes.forEach((num, index) => {
               suggestions.push({
                 label: num,
                 kind: monaco.languages.CompletionItemKind.Value,
@@ -1762,9 +8950,11 @@ export function registerCustomLanguage(monaco) {
         }
 
         if (methodName === "setLayerColor") {
+          const nn = context.neuralNetworkData?.[variableName];
           if (parameterIndex === 0) {
-            // First parameter: index (number)
-            ["0", "1", "2", "3", "4"].forEach((num, index) => {
+            const layerColorIndexes =
+              nn?.layerColors?.map((_, i) => String(i)) || [];
+            layerColorIndexes.forEach((num, index) => {
               suggestions.push({
                 label: num,
                 kind: monaco.languages.CompletionItemKind.Value,
@@ -1875,8 +9065,10 @@ export function registerCustomLanguage(monaco) {
         }
 
         if (methodName === "addNeurons") {
+          const nn = context.neuralNetworkData?.[variableName];
           if (parameterIndex === 0) {
-            ["0", "1", "2", "3", "4"].forEach((num, index) => {
+            const layerIndexes = nn?.neurons?.map((_, i) => String(i)) || [];
+            layerIndexes.forEach((num, index) => {
               suggestions.push({
                 label: num,
                 kind: monaco.languages.CompletionItemKind.Value,
@@ -1931,8 +9123,10 @@ export function registerCustomLanguage(monaco) {
         }
 
         if (methodName === "removeLayerAt") {
+          const nn = context.neuralNetworkData?.[variableName];
           if (parameterIndex === 0) {
-            ["0", "1", "2", "3", "4"].forEach((num, index) => {
+            const layerIndexes = nn?.layers?.map((_, i) => String(i)) || [];
+            layerIndexes.forEach((num, index) => {
               suggestions.push({
                 label: num,
                 kind: monaco.languages.CompletionItemKind.Value,
@@ -1949,8 +9143,10 @@ export function registerCustomLanguage(monaco) {
         }
 
         if (methodName === "removeNeuronsFromLayer") {
+          const nn = context.neuralNetworkData?.[variableName];
           if (parameterIndex === 0) {
-            ["0", "1", "2", "3", "4"].forEach((num, index) => {
+            const layerIndexes = nn?.neurons?.map((_, i) => String(i)) || [];
+            layerIndexes.forEach((num, index) => {
               suggestions.push({
                 label: num,
                 kind: monaco.languages.CompletionItemKind.Value,
@@ -1964,20 +9160,25 @@ export function registerCustomLanguage(monaco) {
           }
 
           if (parameterIndex === 1) {
-            ["x5", "layer", "newLayer", "x1", "x0", "1", "3"].forEach(
-              (num, index) => {
-                const isNumber = !isNaN(num) && num.trim() !== "";
-                suggestions.push({
-                  label: num,
-                  kind: monaco.languages.CompletionItemKind.Value,
-                  insertText: isNumber ? num : `"${num}"`,
-                  detail: "Layer index",
-                  documentation: `Set layer index to ${num}`,
-                  range: range,
-                  sortText: `1index${index}`,
-                });
-              },
+            const args = splitTopLevelArgs(
+              context.methodCallContext.paramsText,
             );
+            const selectedLayerIndex = Number(args[0]);
+
+            const neuronsInLayer = nn?.neurons?.[selectedLayerIndex] ?? [];
+            const res = neuronsInLayer.map((item) => String(item));
+            res.forEach((num, index) => {
+              const isNumber = !isNaN(num) && num.trim() !== "";
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: isNumber ? num : `"${num}"`,
+                detail: "Layer index",
+                documentation: `Set layer index to ${num}`,
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
           }
 
           return { suggestions };
@@ -2085,7 +9286,7 @@ export function registerCustomLanguage(monaco) {
           }
         }
 
-        if (methodName === "removeNode") {
+        if (methodName === "removeNode" && varType === "graph") {
           if (parameterIndex === 0) {
             // Suggest existing nodes for removal (no quotes)
             const existingNodes =
@@ -2389,6 +9590,10 @@ export function registerCustomLanguage(monaco) {
   function getMethodDocumentation(methodName, varType) {
     const methodDoc = methodDocumentation[methodName];
     if (!methodDoc) return null;
+
+    if (typeof methodDoc === "function") {
+      return methodDoc(varType);
+    }
 
     // If method has type-specific documentation
     if (typeof methodDoc === "object" && methodDoc[varType]) {
@@ -2698,12 +9903,7 @@ export function registerCustomLanguage(monaco) {
   monaco.languages.registerInlineCompletionsProvider("customLang", {
     provideInlineCompletions(model, position, context, token) {
       // Simple inline suggestions for page and show commands
-      const inlineItems = [];
-
-      const nothingToShowFixes = getNothingToShowQuickFixes(model, true);
-      inlineItems.push(...nothingToShowFixes);
-
-      return { items: inlineItems, dispose: () => {} };
+      return { items: [], dispose: () => {} };
     },
     handleItemDidShow: () => {},
     freeInlineCompletions: () => {},
@@ -3422,4 +10622,204 @@ export function registerCustomLanguage(monaco) {
       return actions;
     }
   }
+  let lastAutoSuggestKey = null;
+
+  function shouldAutoSuggestInsideDiagramUses(editor, position) {
+    const model = editor.getModel();
+    if (!model) return false;
+
+    const diagramCtx = getArchitectureDiagramSectionContext(model, position);
+    if (!diagramCtx.insideDiagramUses) return false;
+
+    const lineNumber = position.lineNumber;
+    const line = model.getLineContent(lineNumber);
+    const prevLine = lineNumber > 1 ? model.getLineContent(lineNumber - 1) : "";
+    const linePrefix = line.substring(0, position.column - 1);
+
+    const usesText = getCurrentDiagramUsesText(model, position);
+    const currentSegment = getTrailingTopLevelSegment(usesText);
+
+    // uses: [|
+    const justOpenedUsesInline = /^\s*uses\s*:\s*\[$/.test(linePrefix);
+
+    // same line after comma + space
+    // works for both:
+    // uses: [e = Encoder, |
+    //   e = Encoder, |
+    const afterCommaAndSpaceSameLine = /,\s*$/.test(currentSegment);
+
+    // next line after comma
+    // e = Encoder,
+    // |
+    const afterCommaAndEnter =
+      /^\s*$/.test(linePrefix) && /,\s*$/.test(prevLine);
+
+    return (
+      justOpenedUsesInline || afterCommaAndSpaceSameLine || afterCommaAndEnter
+    );
+  }
+  function shouldAutoSuggestInsideEmptyBlockBody(editor, position) {
+    const model = editor.getModel();
+    if (!model) return false;
+
+    const lineNumber = position.lineNumber;
+    const line = model.getLineContent(lineNumber);
+    const prevLine = lineNumber > 1 ? model.getLineContent(lineNumber - 1) : "";
+    const nextLine =
+      lineNumber < model.getLineCount()
+        ? model.getLineContent(lineNumber + 1)
+        : "";
+
+    const currentLineIsBlank = /^\s*$/.test(line);
+    const prevLineStartsBlock =
+      /^\s*block\s+[a-zA-Z_][a-zA-Z0-9_]*\s*:\s*\[\s*,?\s*$/.test(prevLine);
+    const nextLineIsClosingBracket = /^\s*]\s*,?\s*$/.test(nextLine);
+
+    return (
+      currentLineIsBlank && prevLineStartsBlock && nextLineIsClosingBracket
+    );
+  }
+
+  function shouldAutoSuggestInsideNeurons(editor, position) {
+    const model = editor.getModel();
+    if (!model) return false;
+
+    const line = model.getLineContent(position.lineNumber);
+    const linePrefix = line.substring(0, position.column - 1);
+
+    const neuronsMatch = linePrefix.match(/\bneurons\s*:\s*\[(.*)$/);
+    if (!neuronsMatch) return false;
+
+    return /(?:^|,)\s*\[$/.test(neuronsMatch[1]);
+  }
+
+  function shouldAutoSuggestInsideArchitectureItems(editor, position) {
+    const model = editor.getModel();
+    if (!model) return false;
+
+    const inlineCtx = getArchitectureInlineItemContext(model, position);
+    const section = inlineCtx.section;
+
+    if (section !== "nodes" && section !== "groups" && section !== "edges") {
+      return false;
+    }
+
+    const lineNumber = position.lineNumber;
+    const line = model.getLineContent(lineNumber);
+    const prevLine = lineNumber > 1 ? model.getLineContent(lineNumber - 1) : "";
+    const linePrefix = line.substring(0, position.column - 1);
+
+    const rawItemText = inlineCtx.currentItemText || "";
+    const itemText = rawItemText.trim();
+
+    const itemState = getArchitectureItemNameState(rawItemText);
+
+    const justOpenedSection =
+      /^\s*(nodes|groups|edges)\s*:\s*\[$/.test(prevLine) && /^\s*$/.test(line);
+
+    const afterCommaSameLine = /,\s*$/.test(rawItemText);
+    const afterCommaAndEnter =
+      /^\s*$/.test(linePrefix) && /,\s*$/.test(prevLine);
+
+    const freshItemStart = shouldShowArchitectureItemStarters(
+      model,
+      position,
+      rawItemText,
+    );
+
+    const afterNameSpace = itemState.isNameThenSpace;
+    const afterEquals =
+      itemState.isAfterEquals && /^\s*$/.test(itemState.afterEqualsText);
+
+    if (section === "groups") {
+      const afterMembersOpen =
+        /\bmembers\s*:\s*\[$/.test(linePrefix) ||
+        /\bmembers\s*:\s*\[[^\]]*,\s*$/.test(linePrefix);
+      const afterAnchorColon = /\banchor\s*:\s*$/.test(linePrefix);
+
+      if (afterMembersOpen || afterAnchorColon) return true;
+    }
+
+    if (section === "edges") {
+      const afterArrow = /->\s*$/.test(linePrefix);
+      const afterDot = /\.\w*$/.test(linePrefix) || /\.$/.test(linePrefix);
+
+      if (afterArrow || afterDot) return true;
+    }
+
+    return (
+      justOpenedSection ||
+      afterCommaSameLine ||
+      afterCommaAndEnter ||
+      freshItemStart ||
+      afterNameSpace ||
+      afterEquals
+    );
+  }
+
+  function triggerSuggestIfNeeded(editor, position) {
+    const model = editor.getModel();
+    if (!model) return;
+
+    const shouldTrigger =
+      shouldAutoSuggestInsideEmptyBlockBody(editor, position) ||
+      shouldAutoSuggestInsideDiagramUses(editor, position) ||
+      shouldAutoSuggestInsideNeurons(editor, position) ||
+      shouldAutoSuggestInsideArchitectureItems(editor, position);
+
+    if (!shouldTrigger) return;
+
+    const key = `${model.uri.toString()}:${model.getVersionId()}:${position.lineNumber}:${position.column}`;
+    if (lastAutoSuggestKey === key) return;
+    lastAutoSuggestKey = key;
+
+    requestAnimationFrame(() => {
+      if (!editor.getModel()) return;
+      editor.trigger("auto-suggest", "editor.action.triggerSuggest", {});
+    });
+  }
+
+  monaco.editor.onDidCreateEditor((editor) => {
+    const maybeTrigger = () => {
+      const pos = editor.getPosition();
+      if (!pos) return;
+      triggerSuggestIfNeeded(editor, pos);
+    };
+
+    // existing content changes
+    editor.onDidChangeModelContent((e) => {
+      const shouldCheck = e.changes.some((change) => {
+        return (
+          change.text.includes("\n") ||
+          change.text.includes(" ") ||
+          change.text.includes("\t") ||
+          change.text === "[" ||
+          change.text === "," ||
+          change.text === "="
+        );
+      });
+
+      if (shouldCheck) {
+        requestAnimationFrame(maybeTrigger);
+      }
+    });
+
+    // important: Enter often lands here more reliably for your use case
+    editor.onDidChangeCursorPosition(() => {
+      requestAnimationFrame(maybeTrigger);
+    });
+
+    // useful for normal typing cases
+    editor.onDidType((text) => {
+      if (
+        text === " " ||
+        text === "\n" ||
+        text === "[" ||
+        text === "," ||
+        text === "="
+      ) {
+        requestAnimationFrame(maybeTrigger);
+      }
+    });
+  });
 }

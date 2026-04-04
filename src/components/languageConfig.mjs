@@ -16,6 +16,7 @@ export const languageConfig = {
     "graph",
     "text",
     "neuralnetwork",
+    "architecture",
   ],
 
   attributes: [
@@ -38,6 +39,16 @@ export const languageConfig = {
     "width",
     "height",
     "children",
+    "title",
+    "layers",
+    "neurons",
+    "layerColors",
+    "neuronColors",
+    "showBias",
+    "showLabels",
+    "labelPosition",
+    "showWeights",
+    "showArrowheads",
   ],
 
   // Position keywords for syntax highlighting
@@ -51,14 +62,15 @@ export const languageConfig = {
     "top-right",
     "bottom-left",
     "bottom-right",
-    // Edge positions
     "top",
     "bottom",
     "left",
     "right",
-    // Center positions
     "center",
     "centre",
+    "mid",
+    "start",
+    "end",
   ],
 
   namedColors: [
@@ -141,6 +153,55 @@ export const languageConfig = {
 
 // Data structure type documentation with features and documentation links
 export const typeDocumentation = {
+  architecture: {
+    description:
+      "Architectures represent block-based system diagrams with nodes, edges, groups, and cross-block connections.",
+    features: [
+      "Multiple named blocks (for example Encoder and Decoder)",
+      "Block-local nodes, edges, and groups",
+      "Cross-block connections through diagram uses/connects",
+      "Per-block styling, layout, spacing, and annotations",
+    ],
+    url: "https://eth-peach-lab.github.io/merlin-docs/docs/data-structures/architecture",
+    insertText: `architecture \${1:a} = {
+  title: "\${2:Hello}",
+
+  block \${3:Encoder}: [
+    layout: \${4:vertical},
+    gap: \${5:40},
+    color: "\${6:yellow}",
+    style: \${7:box},
+
+    nodes: [
+      \${8:add_norm1} = type: rect label: "Add & Norm",
+      \${9:feed_forward} = type: rect label: "Feed Forward"
+    ],
+
+    edges: [
+      \${10:e1} = \${8:add_norm1}.top -> \${9:feed_forward}.bottom
+    ],
+
+    groups: [
+      \${11:row1} = members: [\${8:add_norm1}, \${9:feed_forward}] layout: vertical gap: 10
+    ]
+  ],
+
+  diagram: [
+    gap: \${12:15},
+    uses: [\${13:e} = \${3:Encoder}],
+    connects: []
+  ]
+}`,
+    insertTextName: "a",
+    supportedProperties: [
+      "title",
+      "diagram",
+      "above",
+      "below",
+      "left",
+      "right",
+    ],
+  },
   neuralnetwork: {
     description:
       "Neural networks represent layered structures of neurons, supporting per-layer and per-neuron values and colors.",
@@ -303,6 +364,42 @@ export const typeDocumentation = {
 
 // Method availability by data structure type
 export const typeMethodsMap = {
+  architecture: {
+    node: [
+      "removeNode",
+      "removeNodes",
+      "setNodeLabel",
+      "setNodeColor",
+      "setNodeStroke",
+      "setNodeAnnotation",
+      "hideNode",
+      "showNode",
+    ],
+    edge: [
+      "setEdgeLabel",
+      "setEdgeColor",
+      "setEdgeStyle",
+      "removeEdge",
+      "removeEdges",
+      "hideEdge",
+      "showEdge",
+    ],
+    block: [
+      "setBlockColor",
+      "setBlockAnnotation",
+      "hideBlock",
+      "showBlock",
+      "setBlockLayout",
+      "removeBlock",
+    ],
+    group: [
+      "setGroupColor",
+      "setGroupAnnotation",
+      "setGroupLayout",
+      "removeGroup",
+    ],
+    textControl: ["setText"],
+  },
   neuralnetwork: {
     single: ["setLayer", "setNeuron", "setLayerColor", "setNeuronColor"],
     multiple: ["setLayers", "setNeurons", "setLayerColors", "setNeuronColors"],
@@ -442,9 +539,7 @@ export const methodSignatures = {
   removeAt: () => "removeAt(${1:index})",
   addNode: () => "addNode(${1:name}, ${2:value})",
   insertNode: () => "insertNode(${1:id}, ${2:name}, ${3:value})",
-  removeNode: () => "removeNode(${1:name})",
   addEdge: () => "addEdge(${1:nodeA}-${2:nodeB})",
-  removeEdge: () => "removeEdge(${1:nodeA}-${2:nodeB})",
   setEdges: () => "setEdges([${1:edges}])",
   setHidden: () => "setHidden(${1:index}, ${2:hidden})",
   addChild: () => "addChild(${1:parent}-${2:child}, ${3:value})",
@@ -469,36 +564,406 @@ export const methodSignatures = {
   setWidth: () => "setWidth(${1:width})",
   setHeight: () => "setHeight(${1:height})",
   setText: () => 'setText(${1:"text"}, ${2:"position"})',
+
   setNeuronColor: () =>
     "setNeuronColor(${1:layerIndex}, ${2:neuronIndex}, ${3:color})",
   setNeuron: () => "setNeuron(${1:layerIndex}, ${2:neuronIndex}, ${3:value})",
-
   setLayer: () => "setLayer(${1:layerIndex}, ${2:value})",
   setLayerColor: () => "setLayerColor(${1:layerIndex}, ${2:color})",
-
   setNeurons: () =>
     "setNeurons([[${1:NeuronsForLayer1}], [${2:NeuronsForLayer2}], [${3:NeuronsForLayer3}]])",
-
   setNeuronColors: () =>
     "setNeuronColors([[${1:NeuronsColorLayer1}], [${2:NeuronsColorLayer2}], [${3:NeuronsColorLayer3}]])",
-
   setLayers: () => "setLayers([${1:layerValues}])",
-
-  setLayerColors: () => "setLayerColors([${1:color, color, color}])",
-
+  setLayerColors: () => "setLayerColors([${1:color}, ${2:color}, ${3:color}])",
   addNeurons: () => "addNeurons(${1:layerIndex}, [${2:neurons}])",
-
   addLayer: () => "addLayer(${1:layerName}, [${2:neurons}])",
-
   removeLayerAt: () => "removeLayerAt(${1:layerIndex})",
-
   removeNeuronsFromLayer: () =>
     "removeNeuronsFromLayer(${1:layerIndex}, [${2:neurons}])",
+
+  removeNode: (varType) =>
+    varType === "architecture"
+      ? "removeNode(${1:blockName}, ${2:nodeName})"
+      : "removeNode(${1:name})",
+
+  removeEdge: (varType) =>
+    varType === "architecture"
+      ? "removeEdge(${1:blockNameOrdiagram}, ${2:edgeNameOrIndex})"
+      : "removeEdge(${1:nodeA}-${2:nodeB})",
+
+  removeNodes: () => "removeNodes(${1:blockName}, [${2:node1}, ${3:node2}])",
+  removeGroup: () => "removeGroup(${1:blockName}, ${2:groupName})",
+  removeBlock: () => "removeBlock(${1:blockName})",
+  setNodeLabel: () => "setNodeLabel(${1:blockName}, ${2:nodeName}, ${3:label})",
+  setNodeColor: () => "setNodeColor(${1:blockName}, ${2:nodeName}, ${3:color})",
+  setNodeStroke: () =>
+    "setNodeStroke(${1:blockName}, ${2:nodeName}, ${3:color})",
+  setNodeAnnotation: () =>
+    "setNodeAnnotation(${1:blockName}, ${2:nodeName}, ${3:left}, ${4:value})",
+  hideNode: () => "hideNode(${1:blockName}, ${2:nodeName})",
+  showNode: () => "showNode(${1:blockName}, ${2:nodeName})",
+  setEdgeLabel: () =>
+    "setEdgeLabel(${1:blockNameOrdiagram}, ${2:edgeNameOrIndex}, ${3:label})",
+  setEdgeColor: () =>
+    "setEdgeColor(${1:blockNameOrdiagram}, ${2:edgeNameOrIndex}, ${3:color})",
+  setEdgeStyle: () =>
+    "setEdgeStyle(${1:blockNameOrdiagram}, ${2:edgeNameOrIndex}, ${3:style})",
+  removeEdges: () =>
+    "removeEdges(${1:blockNameOrdiagram}, [${2:edgeNameOrIndex1}, ${3:edgeNameOrIndex2}])",
+  hideEdge: () => "hideEdge(${1:blockName}, ${2:edgeName})",
+  showEdge: () => "showEdge(${1:blockName}, ${2:edgeName})",
+  setBlockColor: () => "setBlockColor(${1:blockName}, ${2:color})",
+  setBlockAnnotation: () =>
+    "setBlockAnnotation(${1:blockName}, ${2:left}, ${3:value})",
+  setBlockLayout: () => "setBlockLayout(${1:blockName}, ${2:layout})",
+  hideBlock: () => "hideBlock(${1:blockName})",
+  showBlock: () => "showBlock(${1:blockName})",
+  setGroupColor: () =>
+    "setGroupColor(${1:blockName}, ${2:groupName}, ${3:color})",
+  setGroupAnnotation: () =>
+    "setGroupAnnotation(${1:blockName}, ${2:groupName}, ${3:left}, ${4:value})",
+  setGroupLayout: () =>
+    "setGroupLayout(${1:blockName}, ${2:groupName}, ${3:layout})",
 };
 
 // Comprehensive method documentation with type-specific variations
 export const methodDocumentation = {
-  // Neural network method docs (Merlin)
+  removeNode: (varType) =>
+    varType === "architecture"
+      ? {
+          signature: "removeNode(blockName, nodeName)",
+          description: "Remove a node from a specific block.",
+          parameters: [
+            "blockName: `identifier` - Block name",
+            "nodeName: `identifier` - Node name to remove",
+          ],
+          example: "a.removeNode(Stem, conv1)",
+        }
+      : {
+          description: "Remove node from structure",
+          signature: "removeNode(name)",
+          parameters: ["name: `id` - The node identifier to remove"],
+          example: "myGraph.removeNode(client)",
+        },
+
+  removeNodes: {
+    default: {
+      signature: "removeNodes(blockName, nodeNames)",
+      description: "Remove multiple nodes from a specific block.",
+      parameters: [
+        "blockName: `identifier` - Block name",
+        "nodeNames: `Array<identifier>` - List of node names to remove",
+      ],
+      example: "a.removeNodes(Stem, [conv1, pool1])",
+    },
+  },
+
+  setNodeLabel: {
+    default: {
+      signature: "setNodeLabel(blockName, nodeName, label)",
+      description: "Set the label of a node inside a specific block.",
+      parameters: [
+        "blockName: `identifier` - Block name",
+        "nodeName: `identifier` - Node name",
+        "label: `string|null` - Label text to display (null clears the label)",
+      ],
+      example: 'a.setNodeLabel(Stem, conv1, "HERE")',
+    },
+  },
+
+  setNodeColor: {
+    default: {
+      signature: "setNodeColor(blockName, nodeName, color)",
+      description: "Set the fill color of a node inside a specific block.",
+      parameters: [
+        "blockName: `identifier` - Block name",
+        "nodeName: `identifier` - Node name",
+        "color: `string|null` - Color name or hex code (null clears the color)",
+      ],
+      example: 'a.setNodeColor(Stem, conv1, "blue")',
+    },
+  },
+
+  setNodeStroke: {
+    default: {
+      signature: "setNodeStroke(blockName, nodeName, color)",
+      description:
+        "Set the stroke/border color of a node inside a specific block.",
+      parameters: [
+        "blockName: `identifier` - Block name",
+        "nodeName: `identifier` - Node name",
+        "color: `string|null` - Stroke color name or hex code (null clears the stroke)",
+      ],
+      example: 'a.setNodeStroke(Stem, pool1, "yellow")',
+    },
+  },
+
+  setNodeAnnotation: {
+    default: {
+      signature: "setNodeAnnotation(blockName, nodeName, position, value)",
+      description: "Set an annotation for a node at a specific position.",
+      parameters: [
+        "blockName: `identifier` - Block name",
+        "nodeName: `identifier` - Node name",
+        "position: `left|right|above|below` - Annotation position relative to the node",
+        "value: `string|null` - Annotation text (null clears the annotation)",
+      ],
+      example: 'a.setNodeAnnotation(Stem, conv1, left, "VALUE")',
+    },
+  },
+
+  hideNode: {
+    default: {
+      signature: "hideNode(blockName, nodeName)",
+      description: "Hide a node inside a specific block.",
+      parameters: [
+        "blockName: `identifier` - Block name",
+        "nodeName: `identifier` - Node name to hide",
+      ],
+      example: "a.hideNode(Encoder, add_norm1)",
+    },
+  },
+
+  showNode: {
+    default: {
+      signature: "showNode(blockName, nodeName)",
+      description: "Show a node inside a specific block.",
+      parameters: [
+        "blockName: `identifier` - Block name",
+        "nodeName: `identifier` - Node name to show",
+      ],
+      example: "a.showNode(Encoder, add_norm1)",
+    },
+  },
+
+  setEdgeLabel: {
+    default: {
+      signature:
+        "setEdgeLabel(blockName, edgeName, label) or setEdgeLabel(diagram, connectionIndex, label)",
+      description:
+        "Set the label of a block edge by name, or set the label of a diagram connection by index.",
+      parameters: [
+        "blockName | diagram: `identifier` - A block name, or the literal `diagram`",
+        "edgeName | connectionIndex: `identifier | number` - Edge name for a block edge, or connection index for a diagram connection",
+        "label: `string | null` - Label text to show. Use null to clear the label",
+      ],
+      example:
+        'a.setEdgeLabel(Encoder, e3, "skip")\na.setEdgeLabel(diagram, 0, "residual")',
+    },
+  },
+
+  setEdgeStyle: {
+    default: {
+      signature:
+        "setEdgeStyle(blockName, edgeName, style) or setEdgeStyle(diagram, connectionIndex, style)",
+      description:
+        "Set the style of a block edge by name, or set the style of a diagram connection by index.",
+      parameters: [
+        "blockName | diagram: `identifier` - A block name, or the literal `diagram`",
+        "edgeName | connectionIndex: `identifier | number` - Edge name for a block edge, or connection index for a diagram connection",
+        "style: `bow | straight` - Edge rendering style",
+      ],
+      example:
+        "a.setEdgeStyle(Encoder, e1, bow)\na.setEdgeStyle(diagram, 0, straight)",
+    },
+  },
+
+  setEdgeColor: {
+    default: {
+      signature:
+        "setEdgeColor(blockName, edgeName, color) or setEdgeColor(diagram, connectionIndex, color)",
+      description:
+        "Set the color of a block edge by name, or set the color of a diagram connection by index.",
+      parameters: [
+        "blockName | diagram: `identifier` - A block name, or the literal `diagram`",
+        "edgeName | connectionIndex: `identifier | number` - Edge name for a block edge, or connection index for a diagram connection",
+        "color: `string | null` - Color name or hex value. Use null to clear the custom color",
+      ],
+      example:
+        'a.setEdgeColor(Encoder, e3, "blue")\na.setEdgeColor(diagram, 1, "red")',
+    },
+  },
+
+  removeBlock: {
+    default: {
+      signature: "removeBlock(blockName)",
+      description:
+        "Remove a block from the architecture. Also removes diagram uses aliases that point to that block and removes diagram connections that reference those aliases.",
+      parameters: ["blockName: `identifier` - Block name to remove"],
+      example: "a.removeBlock(Encoder)",
+    },
+  },
+  removeGroup: {
+    default: {
+      signature: "removeGroup(blockName, groupName)",
+      description: "Remove a group from a specific block.",
+      parameters: [
+        "blockName: `identifier` - Block name",
+        "groupName: `identifier` - Group name to remove",
+      ],
+      example: "a.removeGroup(Encoder, row1)",
+    },
+  },
+  removeEdge: (varType) =>
+    varType === "architecture"
+      ? {
+          signature:
+            "removeEdge(blockName, edgeName) or removeEdge(diagram, connectionIndex)",
+          description:
+            "Remove a block edge by its name, or remove a diagram connection by its index.",
+          parameters: [
+            "blockName | diagram: `identifier` - A block name, or the literal `diagram`",
+            "edgeName | connectionIndex: `identifier | number` - Edge name when removing from a block, or connection index when removing from `diagram`",
+          ],
+          example: "a.removeEdge(Encoder, e3)\na.removeEdge(diagram, 0)",
+        }
+      : {
+          description: "Remove edge between nodes",
+          signature: "removeEdge(nodeA-nodeB)",
+          parameters: ['edge: `id-id` - Edge in format "nodeA-nodeB"'],
+          example: "myGraph.removeEdge(client-router)",
+        },
+
+  removeEdges: {
+    architecture: {
+      signature: "removeEdges(blockName|diagram, edgeNamesOrIndexes)",
+      description:
+        "Remove multiple edges from a specific block by edge names, or from diagram connections by indexes.",
+      parameters: [
+        "blockName|diagram: `identifier` - Block name or the literal diagram",
+        "edgeNamesOrIndexes: `Array<identifier|number>` - Edge names for block edges, or indexes for diagram connections",
+      ],
+      example: "a.removeEdges(diagram, [0, 2])",
+    },
+    default: {
+      signature: "removeEdges(blockName, edgeNames)",
+      description: "Remove multiple edges from a specific block.",
+      parameters: [
+        "blockName: `identifier` - Block name",
+        "edgeNames: `Array<identifier>` - List of edge names to remove",
+      ],
+      example: "a.removeEdges(Stem, [e3, e1])",
+    },
+  },
+  hideEdge: {
+    default: {
+      signature: "hideEdge(blockName, edgeName)",
+      description: "Hide an edge inside a specific block.",
+      parameters: [
+        "blockName: `identifier` - Block name",
+        "edgeName: `identifier` - Edge name to hide",
+      ],
+      example: "a.hideEdge(Encoder, e1)",
+    },
+  },
+
+  showEdge: {
+    default: {
+      signature: "showEdge(blockName, edgeName)",
+      description: "Show an edge inside a specific block.",
+      parameters: [
+        "blockName: `identifier` - Block name",
+        "edgeName: `identifier` - Edge name to show",
+      ],
+      example: "a.showEdge(Encoder, e1)",
+    },
+  },
+
+  setBlockLayout: {
+    default: {
+      signature: "setBlockLayout(blockName, layout)",
+      description: "Set the layout of a block.",
+      parameters: [
+        "blockName: `identifier` - Block name",
+        "layout: `horizontal|vertical|grid` - Block layout",
+      ],
+      example: "a.setBlockLayout(Encoder, vertical)",
+    },
+  },
+
+  setBlockColor: {
+    default: {
+      signature: "setBlockColor(blockName, color)",
+      description: "Set the color of a block.",
+      parameters: [
+        "blockName: `identifier` - Block name",
+        "color: `string|null` - Color name or hex code (null clears the color)",
+      ],
+      example: 'a.setBlockColor(Stem, "blue")',
+    },
+  },
+
+  setBlockAnnotation: {
+    default: {
+      signature: "setBlockAnnotation(blockName, position, value)",
+      description: "Set an annotation for a block at a specific position.",
+      parameters: [
+        "blockName: `identifier` - Block name",
+        "position: `left|right|above|below` - Annotation position relative to the block",
+        "value: `string|null` - Annotation text (null clears the annotation)",
+      ],
+      example: 'a.setBlockAnnotation(Stem, left, "VALUE")',
+    },
+  },
+
+  hideBlock: {
+    default: {
+      signature: "hideBlock(blockName)",
+      description: "Hide a block.",
+      parameters: ["blockName: `identifier` - Block name to hide"],
+      example: "a.hideBlock(Stem)",
+    },
+  },
+
+  showBlock: {
+    default: {
+      signature: "showBlock(blockName)",
+      description: "Show a block.",
+      parameters: ["blockName: `identifier` - Block name to show"],
+      example: "a.showBlock(Stem)",
+    },
+  },
+
+  setGroupColor: {
+    default: {
+      signature: "setGroupColor(blockName, groupName, color)",
+      description: "Set the color of a group inside a specific block.",
+      parameters: [
+        "blockName: `identifier` - Block name",
+        "groupName: `identifier` - Group name",
+        "color: `string|null` - Color name or hex code (null clears the color)",
+      ],
+      example: 'a.setGroupColor(Stem, row1, "red")',
+    },
+  },
+
+  setGroupLayout: {
+    default: {
+      signature: "setGroupLayout(blockName, groupName, layout)",
+      description: "Set the layout of a group inside a specific block.",
+      parameters: [
+        "blockName: `identifier` - Block name",
+        "groupName: `identifier` - Group name",
+        "layout: `horizontal|vertical|grid` - Group layout",
+      ],
+      example: "a.setGroupLayout(Encoder, row1, vertical)",
+    },
+  },
+
+  setGroupAnnotation: {
+    default: {
+      signature: "setGroupAnnotation(blockName, groupName, position, value)",
+      description: "Set an annotation for a group at a specific position.",
+      parameters: [
+        "blockName: `identifier` - Block name",
+        "groupName: `identifier` - Group name",
+        "position: `left|right|above|below` - Annotation position relative to the group",
+        "value: `string|null` - Annotation text (null clears the annotation)",
+      ],
+      example: 'a.setGroupAnnotation(Stem, conv1, left, "VALUE")',
+    },
+  },
   setNeuronColor: {
     neuralnetwork: {
       signature: "setNeuronColor(layerIndex, neuronIndex, color)",
@@ -507,7 +972,7 @@ export const methodDocumentation = {
       parameters: [
         "layerIndex: `number` - Layer index (0-based)",
         "neuronIndex: `number` - Neuron index within the layer (0-based)",
-        'color: `string|null` - Color name or hex code (null or "null" clears the color)',
+        "color: `string|null` - Color name or hex code (null clears the color)",
       ],
       example: 'nn.setNeuronColor(0, 0, "blue")',
     },
@@ -518,7 +983,7 @@ export const methodDocumentation = {
       parameters: [
         "layerIndex: `number` - Layer index (0-based)",
         "neuronIndex: `number` - Neuron index within the layer (0-based)",
-        'color: `string|null` - Color name or hex code (null or "null" clears the color)',
+        "color: `string|null` - Color name or hex code (null clears the color)",
       ],
       example: 'nn.setNeuronColor(0, 0, "blue")',
     },
@@ -532,7 +997,7 @@ export const methodDocumentation = {
       parameters: [
         "layerIndex: `number` - Layer index (0-based)",
         "neuronIndex: `number` - Neuron index within the layer (0-based)",
-        'value: `number|string|null` - Value/label to display (null or "null" clears the value)',
+        "value: `number|string|null` - Value/label to display (null clears the value)",
       ],
       example: 'nn.setNeuron(0, 0, "x")',
     },
@@ -543,7 +1008,7 @@ export const methodDocumentation = {
       parameters: [
         "layerIndex: `number` - Layer index (0-based)",
         "neuronIndex: `number` - Neuron index within the layer (0-based)",
-        'value: `number|string|null` - Value/label to display (null or "null" clears the value)',
+        "value: `number|string|null` - Value/label to display (null clears the value)",
       ],
       example: 'nn.setNeuron(0, 0, "x")',
     },
@@ -555,7 +1020,7 @@ export const methodDocumentation = {
       description: "Set the label/value of a layer at a specific layer index.",
       parameters: [
         "layerIndex: `number` - Layer index (0-based)",
-        'value: `number|string|null` - Layer label/value (null or "null" clears the value)',
+        "value: `number|string|null` - Layer label/value (null clears the value)",
       ],
       example: 'nn.setLayer(0, "layerNEW")',
     },
@@ -564,7 +1029,7 @@ export const methodDocumentation = {
       description: "Set the label/value of a layer at a specific layer index.",
       parameters: [
         "layerIndex: `number` - Layer index (0-based)",
-        'value: `number|string|null` - Layer label/value (null or "null" clears the value)',
+        "value: `number|string|null` - Layer label/value (null clears the value)",
       ],
       example: 'nn.setLayer(0, "layerNEW")',
     },
@@ -576,7 +1041,7 @@ export const methodDocumentation = {
       description: "Set the color of a layer at a specific layer index.",
       parameters: [
         "layerIndex: `number` - Layer index (0-based)",
-        'color: `string|null` - Color name or hex code (null or "null" clears the color)',
+        "color: `string|null` - Color name or hex code (null clears the color)",
       ],
       example: 'nn.setLayerColor(0, "blue")',
     },
@@ -585,7 +1050,7 @@ export const methodDocumentation = {
       description: "Set the color of a layer at a specific layer index.",
       parameters: [
         "layerIndex: `number` - Layer index (0-based)",
-        'color: `string|null` - Color name or hex code (null or "null" clears the color)',
+        "color: `string|null` - Color name or hex code (null clears the color)",
       ],
       example: 'nn.setLayerColor(0, "blue")',
     },
@@ -595,7 +1060,7 @@ export const methodDocumentation = {
     neuralnetwork: {
       signature: "setNeurons(neurons)",
       description:
-        'Set neuron values for all layers using a 2D array (layer-by-layer). Use _ to keep an existing neuron value. Use null or "null" to clear neuron value',
+        "Set neuron values for all layers using a 2D array (layer-by-layer). Use _ to keep an existing neuron value. Use null to clear neuron value",
       parameters: [
         "neurons: `Array<Array<number|string|null|_>>` - 2D list of neuron values per layer",
       ],
@@ -604,7 +1069,7 @@ export const methodDocumentation = {
     default: {
       signature: "setNeurons(neurons)",
       description:
-        'Set neuron values for all layers using a 2D array (layer-by-layer). Use _ to keep an existing neuron value. Use null or "null" to clear neuron value',
+        "Set neuron values for all layers using a 2D array (layer-by-layer). Use _ to keep an existing neuron value. Use null to clear neuron value",
       parameters: [
         "neurons: `Array<Array<number|string|null|_>>` - 2D list of neuron values per layer",
       ],
@@ -616,7 +1081,7 @@ export const methodDocumentation = {
     neuralnetwork: {
       signature: "setNeuronColors(colors)",
       description:
-        'Set neuron colors for all layers using a 2D array (layer-by-layer). Use _ to keep an existing color. Use null or "null" to clear neuron color',
+        "Set neuron colors for all layers using a 2D array (layer-by-layer). Use _ to keep an existing color. Use null to clear neuron color",
       parameters: [
         "colors: `Array<Array<string|null|_>>` - 2D list of colors per layer",
       ],
@@ -626,7 +1091,7 @@ export const methodDocumentation = {
     default: {
       signature: "setNeuronColors(colors)",
       description:
-        'Set neuron colors for all layers using a 2D array (layer-by-layer). Use _ to keep an existing color. Use null or "null" to clear neuron color',
+        "Set neuron colors for all layers using a 2D array (layer-by-layer). Use _ to keep an existing color. Use null to clear neuron color",
       parameters: [
         "colors: `Array<Array<string|null|_>>` - 2D list of colors per layer",
       ],
@@ -639,7 +1104,7 @@ export const methodDocumentation = {
     neuralnetwork: {
       signature: "setLayers(layers)",
       description:
-        'Set all layer labels/values using an array. Use _ to keep an existing layer value. Use null or "null" to clear layer value',
+        "Set all layer labels/values using an array. Use _ to keep an existing layer value. Use null to clear layer value",
       parameters: [
         "layers: `Array<number|string|null|_>` - List of layer labels/values",
       ],
@@ -648,7 +1113,7 @@ export const methodDocumentation = {
     default: {
       signature: "setLayers(layers)",
       description:
-        'Set all layer labels/values using an array. Use _ to keep an existing layer value. Use null or "null" to clear layer value',
+        "Set all layer labels/values using an array. Use _ to keep an existing layer value. Use null to clear layer value",
       parameters: [
         "layers: `Array<number|string|null|_>` - List of layer labels/values",
       ],
@@ -660,14 +1125,14 @@ export const methodDocumentation = {
     neuralnetwork: {
       signature: "setLayerColors(colors)",
       description:
-        'Set all layer colors using an array. Use _ to keep an existing layer color. Use null or "null" to clear layer color',
+        "Set all layer colors using an array. Use _ to keep an existing layer color. Use null to clear layer color",
       parameters: ["colors: `Array<string|null|_>` - List of layer colors"],
       example: 'nn.setLayerColors(["blue", "red", "red"])',
     },
     default: {
       signature: "setLayerColors(colors)",
       description:
-        'Set all layer colors using an array. Use _ to keep an existing layer color. Use null or "null" to clear layer color',
+        "Set all layer colors using an array. Use _ to keep an existing layer color. Use null to clear layer color",
       parameters: ["colors: `Array<string|null|_>` - List of layer colors"],
       example: 'nn.setLayerColors(["blue", "red", "red"])',
     },
@@ -680,7 +1145,7 @@ export const methodDocumentation = {
         "Add one or more neurons to the end of a specific layer. Use null to clear neuron value",
       parameters: [
         "layerIndex: `number` - Layer index to add neurons to (0-based)",
-        'neurons: `Array<number|string|null>` - List of neuron values to add (use null or "null" for empty neurons)',
+        "neurons: `Array<number|string|null>` - List of neuron values to add (use null for empty neurons)",
       ],
       example: 'nn.addNeurons(0, ["x", "y"])',
     },
@@ -690,7 +1155,7 @@ export const methodDocumentation = {
         "Add one or more neurons to the end of a specific layer. Use null to clear neuron value",
       parameters: [
         "layerIndex: `number` - Layer index to add neurons to (0-based)",
-        'neurons: `Array<number|string|null>` - List of neuron values to add (use null or "null" for empty neurons)',
+        "neurons: `Array<number|string|null>` - List of neuron values to add (use null for empty neurons)",
       ],
       example: 'nn.addNeurons(0, ["x", "y"])',
     },
@@ -703,7 +1168,7 @@ export const methodDocumentation = {
         "Add a new layer at the end of the network with the given layer label/value and initial neurons.",
       parameters: [
         "layerValue: `number|string|null` - Label/value of the new layer (use null for an unlabeled layer)",
-        'neurons: `Array<number|string|null>` - Initial neuron values for the new layer (use null or "null" for empty neurons)',
+        "neurons: `Array<number|string|null>` - Initial neuron values for the new layer (use null for empty neurons)",
       ],
       example: 'nn.addLayer("LayerName", ["x", "x", "y", "neuron"])',
     },
@@ -713,7 +1178,7 @@ export const methodDocumentation = {
         "Add a new layer at the end of the network with the given layer label/value and initial neurons.",
       parameters: [
         "layerValue: `number|string|null` - Label/value of the new layer (use null for an unlabeled layer)",
-        'neurons: `Array<number|string|null>` - Initial neuron values for the new layer (use null or "null" for empty neurons)',
+        "neurons: `Array<number|string|null>` - Initial neuron values for the new layer (use null for empty neurons)",
       ],
       example: 'nn.addLayer("LayerName", ["x", "x", "y", "neuron"])',
     },
@@ -745,8 +1210,8 @@ export const methodDocumentation = {
         "layerIndex: `number` - Layer index to remove neurons from (0-based)",
         "valuesToRemove: `Array<number|string|null>` - Values to remove (all occurrences)",
       ],
-      example: 'nn.removeNeuronsFromLayer(0, ["x1", "null"])',
-      note: 'If you want to remove a literal null or "null", use null or "null".',
+      example: 'nn.removeNeuronsFromLayer(0, ["x1", null])',
+      note: "If you want to remove a literal null, use null.",
     },
     default: {
       signature: "removeNeuronsFromLayer(layerIndex, valuesToRemove)",
@@ -756,8 +1221,8 @@ export const methodDocumentation = {
         "layerIndex: `number` - Layer index to remove neurons from (0-based)",
         "valuesToRemove: `Array<number|string|null>` - Values to remove (all occurrences)",
       ],
-      example: 'nn.removeNeuronsFromLayer(0, ["x1", "null"])',
-      note: 'If you want to remove a literal null or "null", use null or "null".',
+      example: 'nn.removeNeuronsFromLayer(0, ["x1", null])',
+      note: "If you want to remove a literal null, use null.",
     },
   },
 
@@ -964,24 +1429,14 @@ export const methodDocumentation = {
     example:
       "myLinkedList.insertNode(2, newNode, 42) or myGraph.insertNode(router, newNode, 42)",
   },
-  removeNode: {
-    description: "Remove node from structure",
-    signature: "removeNode(name)",
-    parameters: ["name: `id` - The node identifier to remove"],
-    example: "myGraph.removeNode(client)",
-  },
+
   addEdge: {
     description: "Add edge between two nodes",
     signature: "addEdge(nodeA-nodeB)",
     parameters: ['edge: `id-id` - Edge in format "nodeA-nodeB"'],
     example: "myGraph.addEdge(client-router)",
   },
-  removeEdge: {
-    description: "Remove edge between nodes",
-    signature: "removeEdge(nodeA-nodeB)",
-    parameters: ['edge: `id-id` - Edge in format "nodeA-nodeB"'],
-    example: "myGraph.removeEdge(client-router)",
-  },
+
   setEdges: {
     description: "Set all edges at once",
     signature: "setEdges([edges])",
@@ -1265,6 +1720,37 @@ export const methodDescriptions = {
   removeLayerAt: "Remove an entire layer at a specific index",
   removeNeuronsFromLayer:
     "Remove one or more neurons from a specific layer by value",
+  removeNodes: "Remove multiple nodes from a specific block",
+  setNodeLabel: "Set the label of a node inside a specific block",
+  setNodeColor: "Set the fill color of a node inside a specific block",
+  setNodeStroke:
+    "Set the stroke/border color of a node inside a specific block",
+  setNodeAnnotation: "Set an annotation for a node at a specific position",
+  hideNode: "Hide a node inside a specific block",
+  showNode: "Show a node inside a specific block",
+
+  setEdgeLabel:
+    "Set a block edge label by edge name, or a diagram connection label by index",
+  setEdgeColor:
+    "Set a block edge color by edge name, or a diagram connection color by index",
+  setEdgeStyle:
+    "Set a block edge style by edge name, or a diagram connection style by index",
+  removeEdges: "Remove multiple edges from a specific block",
+  hideEdge: "Hide an edge inside a specific block",
+  showEdge: "Show an edge inside a specific block",
+
+  setBlockColor: "Set the color of a block",
+  setBlockAnnotation: "Set an annotation for a block at a specific position",
+  setBlockLayout: "Set the layout of a block",
+  hideBlock: "Hide a block",
+  showBlock: "Show a block",
+
+  setGroupColor: "Set the color of a group inside a specific block",
+  setGroupAnnotation: "Set an annotation for a group at a specific position",
+  setGroupLayout: "Set the layout of a group inside a specific block",
+  removeGroup: "Remove a group from a specific block",
+  removeBlock:
+    "Remove a block and clean related diagram uses/connects references",
 };
 
 // Theme configuration for syntax highlighting
@@ -1277,17 +1763,28 @@ export const themeConfig = {
     { token: "custom-info", foreground: "0000ff" },
     { token: "custom-debug", foreground: "008800" },
     { token: "custom-number", foreground: "800080" },
+
     { token: "comment", foreground: "6a9955" },
     { token: "inlinecomment", foreground: "6a9955" },
+
     { token: "variable", foreground: "50C1F9" },
     { token: "number", foreground: "b5cea8" },
     { token: "keyword", foreground: "8477FD" },
     { token: "symbol", foreground: "ffffff" },
     { token: "string", foreground: "3AE1FF", fontStyle: "bold" },
+
     { token: "component", foreground: "21FFD6" },
     { token: "attribute", foreground: "21FFD6" },
     { token: "positional", foreground: "21FFD6" },
     { token: "dot-command", foreground: "21FFD6" },
+
+    { token: "arch-header", foreground: "21FFD6" },
+    { token: "arch-section", foreground: "7CDCF9" },
+    { token: "arch-inline-prop", foreground: "C792EA" },
+    { token: "external-method-call", foreground: "21FFD6" },
+
+    // ids before "=" like add_norm1, feed_forward
+    { token: "arch-item-name", foreground: "50C1F9" },
   ],
   colors: {
     "editor.background": "#1E1E1E",
@@ -1299,7 +1796,6 @@ export const themeConfig = {
     "editor.inactiveSelectionBackground": "#3A3D41",
   },
 };
-
 // Language configuration for Monaco editor
 export const monacoLanguageConfig = {
   comments: {

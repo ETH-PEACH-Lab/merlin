@@ -7,8 +7,9 @@ const moo = require("moo");
 
 const lexer = moo.compile({
   nlw: { match: /[ \t]*\r?\n[ \t]*/, lineBreaks: true },
-  ws:     /[ \t]+/,
+  ws: /[ \t]+/,
   nullT: { match: /null/, value: () => null },
+  layoutspec: /-?(?:[0-9]*\.[0-9]+|[0-9]+)x-?(?:[0-9]*\.[0-9]+|[0-9]+)/, 
   number: /-?(?:[0-9]*\.[0-9]+|[0-9]+)/,
   boolean: { match: /true|false/, value: s => s === "true" },
   times:  /\*/,
@@ -22,12 +23,14 @@ const lexer = moo.compile({
   comma: ",",
   dotdot: "..", // Add range operator before dot to avoid conflicts
   dot: ".",
+  arrow: "->",
   dash: "-",
   equals: "=",
   pass: "_",
-  x: "x",
-  word: { match: /[a-zA-Z_][a-zA-Z0-9_]*/, type: moo.keywords({
-    def: ["array", "matrix", "graph", "linkedlist", "tree", "stack", "text", "neuralnetwork"],
+  word: { match: /[a-zA-Z_][a-zA-Z0-9_]*/, 
+  type: moo.keywords({
+    def: ["array", "matrix", "graph", "linkedlist", "tree", "stack", "text", "neuralnetwork", "architecture"],
+    
   })},
   comment: { match: /\/\/.*?$/, lineBreaks: true, value: s => s.slice(2).trim() },
   string: { match: /"(?:\\.|[^"\\])*"/, value: s => s.slice(1, -1) },
@@ -94,6 +97,7 @@ var grammar = {
             return { defs, cmds };
         } },
     {"name": "definition$subexpression$1", "symbols": ["array_def"]},
+    {"name": "definition$subexpression$1", "symbols": ["architecture_def"]},
     {"name": "definition$subexpression$1", "symbols": ["neuralNetwork_def"]},
     {"name": "definition$subexpression$1", "symbols": ["matrix_def"]},
     {"name": "definition$subexpression$1", "symbols": ["linkedlist_def"]},
@@ -108,36 +112,59 @@ var grammar = {
     {"name": "array_def$macrocall$2", "symbols": [{"literal":"array"}]},
     {"name": "array_def$macrocall$3", "symbols": ["array_pair"]},
     {"name": "array_def$macrocall$1$macrocall$2", "symbols": ["array_def$macrocall$3"]},
-    {"name": "array_def$macrocall$1$macrocall$1$ebnf$1", "symbols": []},
-    {"name": "array_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1", "symbols": ["comma_nlow", "array_def$macrocall$1$macrocall$2"]},
-    {"name": "array_def$macrocall$1$macrocall$1$ebnf$1", "symbols": ["array_def$macrocall$1$macrocall$1$ebnf$1", "array_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
-    {"name": "array_def$macrocall$1$macrocall$1$ebnf$2", "symbols": ["nlow"], "postprocess": id},
-    {"name": "array_def$macrocall$1$macrocall$1$ebnf$2", "symbols": [], "postprocess": function(d) {return null;}},
-    {"name": "array_def$macrocall$1$macrocall$1", "symbols": ["lbracket", "nlow", "array_def$macrocall$1$macrocall$2", "array_def$macrocall$1$macrocall$1$ebnf$1", "array_def$macrocall$1$macrocall$1$ebnf$2", "rbracket"], "postprocess":  d => {
-            const firstXValue = d[2];
-            const repetitionGroups = d[3];
+    {"name": "array_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "symbols": []},
+    {"name": "array_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1$subexpression$1", "symbols": ["comma_nlow_new", "array_def$macrocall$1$macrocall$2"]},
+    {"name": "array_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "symbols": ["array_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "array_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "array_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1", "symbols": ["array_def$macrocall$1$macrocall$2", "array_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1"]},
+    {"name": "array_def$macrocall$1$macrocall$1$ebnf$1", "symbols": ["array_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1"], "postprocess": id},
+    {"name": "array_def$macrocall$1$macrocall$1$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "array_def$macrocall$1$macrocall$1", "symbols": ["lbracket", "wsn", "array_def$macrocall$1$macrocall$1$ebnf$1", "wsn", "rbracket"], "postprocess":  d => {
+            const items = d[2];
             let result = {};
         
-            // Process the first $X item
-            // Expect firstXValue to be in the format: [[{key: value_obj}]]
-            if (Array.isArray(firstXValue) && firstXValue.length > 0 &&
+            const mergeEntry = (entry) => {
+                if (!entry || typeof entry !== "object") return;
+        
+                if (Array.isArray(entry.blocks)) {
+                    if (!result.blocks) result.blocks = [];
+                    result.blocks.push(...entry.blocks);
+                    const { blocks, ...rest } = entry;
+                    Object.assign(result, rest);
+                    return;
+                }
+        
+                Object.assign(result, entry);
+            };
+        
+            if (!items) return result;
+        
+            const [firstXValue, repetitionGroups] = items;
+        
+            if (
+                Array.isArray(firstXValue) && firstXValue.length > 0 &&
                 Array.isArray(firstXValue[0]) && firstXValue[0].length > 0 &&
-                firstXValue[0][0] !== null && typeof firstXValue[0][0] === 'object' && !Array.isArray(firstXValue[0][0])) {
-                Object.assign(result, firstXValue[0][0]);
+                firstXValue[0][0] !== null &&
+                typeof firstXValue[0][0] === "object" &&
+                !Array.isArray(firstXValue[0][0])
+            ) {
+                mergeEntry(firstXValue[0][0]);
             }
         
-            // Process subsequent $X items
             if (repetitionGroups) {
                 repetitionGroups.forEach(group => {
                     const subsequentXValue = group[1];
-                    // Expect subsequentXValue to be in the format: [[{key: value_obj}]]
-                    if (Array.isArray(subsequentXValue) && subsequentXValue.length > 0 &&
+                    if (
+                        Array.isArray(subsequentXValue) && subsequentXValue.length > 0 &&
                         Array.isArray(subsequentXValue[0]) && subsequentXValue[0].length > 0 &&
-                        subsequentXValue[0][0] !== null && typeof subsequentXValue[0][0] === 'object' && !Array.isArray(subsequentXValue[0][0])) {
-                        Object.assign(result, subsequentXValue[0][0]);
+                        subsequentXValue[0][0] !== null &&
+                        typeof subsequentXValue[0][0] === "object" &&
+                        !Array.isArray(subsequentXValue[0][0])
+                    ) {
+                        mergeEntry(subsequentXValue[0][0]);
                     }
                 });
             }
+        
             return result;
         } },
     {"name": "array_def$macrocall$1", "symbols": ["array_def$macrocall$2", "__", "wordL", "_", "equals", "_", "array_def$macrocall$1$macrocall$1", "_"], "postprocess": ([type, , wordL, , , , body]) => ({ ...getDef(type), body: body, ...wordL })},
@@ -179,39 +206,707 @@ var grammar = {
     {"name": "array_pair$subexpression$1$macrocall$19", "symbols": ["array_pair$subexpression$1$macrocall$20", "colon", "_", "array_pair$subexpression$1$macrocall$21"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
     {"name": "array_pair$subexpression$1", "symbols": ["array_pair$subexpression$1$macrocall$19"]},
     {"name": "array_pair", "symbols": ["array_pair$subexpression$1"], "postprocess": iid},
-    {"name": "neuralNetwork_def$macrocall$2", "symbols": [{"literal":"neuralnetwork"}]},
-    {"name": "neuralNetwork_def$macrocall$3", "symbols": ["neuralNetwork_pair"]},
-    {"name": "neuralNetwork_def$macrocall$1$macrocall$2", "symbols": ["neuralNetwork_def$macrocall$3"]},
-    {"name": "neuralNetwork_def$macrocall$1$macrocall$1$ebnf$1", "symbols": []},
-    {"name": "neuralNetwork_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1", "symbols": ["comma_nlow", "neuralNetwork_def$macrocall$1$macrocall$2"]},
-    {"name": "neuralNetwork_def$macrocall$1$macrocall$1$ebnf$1", "symbols": ["neuralNetwork_def$macrocall$1$macrocall$1$ebnf$1", "neuralNetwork_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
-    {"name": "neuralNetwork_def$macrocall$1$macrocall$1$ebnf$2", "symbols": ["nlow"], "postprocess": id},
-    {"name": "neuralNetwork_def$macrocall$1$macrocall$1$ebnf$2", "symbols": [], "postprocess": function(d) {return null;}},
-    {"name": "neuralNetwork_def$macrocall$1$macrocall$1", "symbols": ["lbracket", "nlow", "neuralNetwork_def$macrocall$1$macrocall$2", "neuralNetwork_def$macrocall$1$macrocall$1$ebnf$1", "neuralNetwork_def$macrocall$1$macrocall$1$ebnf$2", "rbracket"], "postprocess":  d => {
-            const firstXValue = d[2];
-            const repetitionGroups = d[3];
+    {"name": "architecture_def$macrocall$2", "symbols": [{"literal":"architecture"}]},
+    {"name": "architecture_def$macrocall$3", "symbols": ["architecture_pair"]},
+    {"name": "architecture_def$macrocall$1$macrocall$2", "symbols": ["architecture_def$macrocall$3"]},
+    {"name": "architecture_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "symbols": []},
+    {"name": "architecture_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1$subexpression$1", "symbols": ["comma_nlow_new", "architecture_def$macrocall$1$macrocall$2"]},
+    {"name": "architecture_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "symbols": ["architecture_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "architecture_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "architecture_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1", "symbols": ["architecture_def$macrocall$1$macrocall$2", "architecture_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1"]},
+    {"name": "architecture_def$macrocall$1$macrocall$1$ebnf$1", "symbols": ["architecture_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1"], "postprocess": id},
+    {"name": "architecture_def$macrocall$1$macrocall$1$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "architecture_def$macrocall$1$macrocall$1", "symbols": ["lbracket", "wsn", "architecture_def$macrocall$1$macrocall$1$ebnf$1", "wsn", "rbracket"], "postprocess":  d => {
+            const items = d[2];
             let result = {};
         
-            // Process the first $X item
-            // Expect firstXValue to be in the format: [[{key: value_obj}]]
-            if (Array.isArray(firstXValue) && firstXValue.length > 0 &&
+            const mergeEntry = (entry) => {
+                if (!entry || typeof entry !== "object") return;
+        
+                if (Array.isArray(entry.blocks)) {
+                    if (!result.blocks) result.blocks = [];
+                    result.blocks.push(...entry.blocks);
+                    const { blocks, ...rest } = entry;
+                    Object.assign(result, rest);
+                    return;
+                }
+        
+                Object.assign(result, entry);
+            };
+        
+            if (!items) return result;
+        
+            const [firstXValue, repetitionGroups] = items;
+        
+            if (
+                Array.isArray(firstXValue) && firstXValue.length > 0 &&
                 Array.isArray(firstXValue[0]) && firstXValue[0].length > 0 &&
-                firstXValue[0][0] !== null && typeof firstXValue[0][0] === 'object' && !Array.isArray(firstXValue[0][0])) {
-                Object.assign(result, firstXValue[0][0]);
+                firstXValue[0][0] !== null &&
+                typeof firstXValue[0][0] === "object" &&
+                !Array.isArray(firstXValue[0][0])
+            ) {
+                mergeEntry(firstXValue[0][0]);
             }
         
-            // Process subsequent $X items
             if (repetitionGroups) {
                 repetitionGroups.forEach(group => {
                     const subsequentXValue = group[1];
-                    // Expect subsequentXValue to be in the format: [[{key: value_obj}]]
-                    if (Array.isArray(subsequentXValue) && subsequentXValue.length > 0 &&
+                    if (
+                        Array.isArray(subsequentXValue) && subsequentXValue.length > 0 &&
                         Array.isArray(subsequentXValue[0]) && subsequentXValue[0].length > 0 &&
-                        subsequentXValue[0][0] !== null && typeof subsequentXValue[0][0] === 'object' && !Array.isArray(subsequentXValue[0][0])) {
-                        Object.assign(result, subsequentXValue[0][0]);
+                        subsequentXValue[0][0] !== null &&
+                        typeof subsequentXValue[0][0] === "object" &&
+                        !Array.isArray(subsequentXValue[0][0])
+                    ) {
+                        mergeEntry(subsequentXValue[0][0]);
                     }
                 });
             }
+        
+            return result;
+        } },
+    {"name": "architecture_def$macrocall$1", "symbols": ["architecture_def$macrocall$2", "__", "wordL", "_", "equals", "_", "architecture_def$macrocall$1$macrocall$1", "_"], "postprocess": ([type, , wordL, , , , body]) => ({ ...getDef(type), body: body, ...wordL })},
+    {"name": "architecture_def", "symbols": ["architecture_def$macrocall$1"], "postprocess": id},
+    {"name": "architecture_pair$subexpression$1$macrocall$2", "symbols": [{"literal":"title"}]},
+    {"name": "architecture_pair$subexpression$1$macrocall$3$subexpression$1", "symbols": ["string"]},
+    {"name": "architecture_pair$subexpression$1$macrocall$3$subexpression$1", "symbols": ["word"]},
+    {"name": "architecture_pair$subexpression$1$macrocall$3", "symbols": ["architecture_pair$subexpression$1$macrocall$3$subexpression$1"], "postprocess": id},
+    {"name": "architecture_pair$subexpression$1$macrocall$1", "symbols": ["architecture_pair$subexpression$1$macrocall$2", "colon", "_", "architecture_pair$subexpression$1$macrocall$3"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "architecture_pair$subexpression$1", "symbols": ["architecture_pair$subexpression$1$macrocall$1"]},
+    {"name": "architecture_pair$subexpression$1", "symbols": ["architecture_block"]},
+    {"name": "architecture_pair$subexpression$1", "symbols": ["architecture_diagram"]},
+    {"name": "architecture_pair$subexpression$1$macrocall$5", "symbols": [{"literal":"above"}]},
+    {"name": "architecture_pair$subexpression$1$macrocall$6$subexpression$1", "symbols": ["string"]},
+    {"name": "architecture_pair$subexpression$1$macrocall$6$subexpression$1", "symbols": ["word"]},
+    {"name": "architecture_pair$subexpression$1$macrocall$6", "symbols": ["architecture_pair$subexpression$1$macrocall$6$subexpression$1"], "postprocess": id},
+    {"name": "architecture_pair$subexpression$1$macrocall$4", "symbols": ["architecture_pair$subexpression$1$macrocall$5", "colon", "_", "architecture_pair$subexpression$1$macrocall$6"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "architecture_pair$subexpression$1", "symbols": ["architecture_pair$subexpression$1$macrocall$4"]},
+    {"name": "architecture_pair$subexpression$1$macrocall$8", "symbols": [{"literal":"below"}]},
+    {"name": "architecture_pair$subexpression$1$macrocall$9$subexpression$1", "symbols": ["string"]},
+    {"name": "architecture_pair$subexpression$1$macrocall$9$subexpression$1", "symbols": ["word"]},
+    {"name": "architecture_pair$subexpression$1$macrocall$9", "symbols": ["architecture_pair$subexpression$1$macrocall$9$subexpression$1"], "postprocess": id},
+    {"name": "architecture_pair$subexpression$1$macrocall$7", "symbols": ["architecture_pair$subexpression$1$macrocall$8", "colon", "_", "architecture_pair$subexpression$1$macrocall$9"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "architecture_pair$subexpression$1", "symbols": ["architecture_pair$subexpression$1$macrocall$7"]},
+    {"name": "architecture_pair$subexpression$1$macrocall$11", "symbols": [{"literal":"left"}]},
+    {"name": "architecture_pair$subexpression$1$macrocall$12$subexpression$1", "symbols": ["string"]},
+    {"name": "architecture_pair$subexpression$1$macrocall$12$subexpression$1", "symbols": ["word"]},
+    {"name": "architecture_pair$subexpression$1$macrocall$12", "symbols": ["architecture_pair$subexpression$1$macrocall$12$subexpression$1"], "postprocess": id},
+    {"name": "architecture_pair$subexpression$1$macrocall$10", "symbols": ["architecture_pair$subexpression$1$macrocall$11", "colon", "_", "architecture_pair$subexpression$1$macrocall$12"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "architecture_pair$subexpression$1", "symbols": ["architecture_pair$subexpression$1$macrocall$10"]},
+    {"name": "architecture_pair$subexpression$1$macrocall$14", "symbols": [{"literal":"right"}]},
+    {"name": "architecture_pair$subexpression$1$macrocall$15$subexpression$1", "symbols": ["string"]},
+    {"name": "architecture_pair$subexpression$1$macrocall$15$subexpression$1", "symbols": ["word"]},
+    {"name": "architecture_pair$subexpression$1$macrocall$15", "symbols": ["architecture_pair$subexpression$1$macrocall$15$subexpression$1"], "postprocess": id},
+    {"name": "architecture_pair$subexpression$1$macrocall$13", "symbols": ["architecture_pair$subexpression$1$macrocall$14", "colon", "_", "architecture_pair$subexpression$1$macrocall$15"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "architecture_pair$subexpression$1", "symbols": ["architecture_pair$subexpression$1$macrocall$13"]},
+    {"name": "architecture_pair", "symbols": ["architecture_pair$subexpression$1"], "postprocess": iid},
+    {"name": "architecture_block", "symbols": [{"literal":"block"}, "__", "wordL", "_", "colon", "_", "block_body"], "postprocess":  ([, , name , , , , body]) => ({
+            blocks: [{id: name, ...body}]
+        }) },
+    {"name": "architecture_diagram", "symbols": [{"literal":"diagram"}, "_", "colon", "_", "diagram_body"], "postprocess":  ([ , , , , body]) => ({
+            diagram: body
+        
+        })},
+    {"name": "block_body$ebnf$1$subexpression$1$ebnf$1", "symbols": []},
+    {"name": "block_body$ebnf$1$subexpression$1$ebnf$1$subexpression$1", "symbols": ["comma_nlow_new", "block_entry"]},
+    {"name": "block_body$ebnf$1$subexpression$1$ebnf$1", "symbols": ["block_body$ebnf$1$subexpression$1$ebnf$1", "block_body$ebnf$1$subexpression$1$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "block_body$ebnf$1$subexpression$1", "symbols": ["block_entry", "block_body$ebnf$1$subexpression$1$ebnf$1"]},
+    {"name": "block_body$ebnf$1", "symbols": ["block_body$ebnf$1$subexpression$1"], "postprocess": id},
+    {"name": "block_body$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "block_body", "symbols": ["lbrac", "wsn", "block_body$ebnf$1", "wsn", "rbrac"], "postprocess":  ([ , ,items, , ]) => {
+            let result = {};
+        
+            const mergeEntry = (entry) => {
+                if (!entry || typeof entry !== "object") return;
+        
+                if (entry.annotation) {
+                    if (!result.annotations) result.annotations = [];
+                    result.annotations.push(entry.annotation);
+                    return;
+                }
+        
+                Object.assign(result, entry);
+            };
+        
+            if (!items) return result
+        
+            const [first, rest] = items
+        
+            mergeEntry(first);
+        
+            if (rest) {
+                rest.forEach(x => mergeEntry(x[1]));
+            }
+        
+            return result;
+        } },
+    {"name": "block_entry$subexpression$1$macrocall$2", "symbols": [{"literal":"layout"}]},
+    {"name": "block_entry$subexpression$1$macrocall$3", "symbols": ["layout_literal"]},
+    {"name": "block_entry$subexpression$1$macrocall$1", "symbols": ["block_entry$subexpression$1$macrocall$2", "colon", "_", "block_entry$subexpression$1$macrocall$3"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "block_entry$subexpression$1", "symbols": ["block_entry$subexpression$1$macrocall$1"]},
+    {"name": "block_entry$subexpression$1$macrocall$5", "symbols": [{"literal":"gap"}]},
+    {"name": "block_entry$subexpression$1$macrocall$6", "symbols": ["number"]},
+    {"name": "block_entry$subexpression$1$macrocall$4", "symbols": ["block_entry$subexpression$1$macrocall$5", "colon", "_", "block_entry$subexpression$1$macrocall$6"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "block_entry$subexpression$1", "symbols": ["block_entry$subexpression$1$macrocall$4"]},
+    {"name": "block_entry$subexpression$1$macrocall$8", "symbols": [{"literal":"size"}]},
+    {"name": "block_entry$subexpression$1$macrocall$9", "symbols": ["size_tuple"]},
+    {"name": "block_entry$subexpression$1$macrocall$7", "symbols": ["block_entry$subexpression$1$macrocall$8", "colon", "_", "block_entry$subexpression$1$macrocall$9"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "block_entry$subexpression$1", "symbols": ["block_entry$subexpression$1$macrocall$7"]},
+    {"name": "block_entry$subexpression$1$macrocall$11", "symbols": [{"literal":"color"}]},
+    {"name": "block_entry$subexpression$1$macrocall$12$subexpression$1", "symbols": ["string"]},
+    {"name": "block_entry$subexpression$1$macrocall$12$subexpression$1", "symbols": ["nullT"]},
+    {"name": "block_entry$subexpression$1$macrocall$12", "symbols": ["block_entry$subexpression$1$macrocall$12$subexpression$1"]},
+    {"name": "block_entry$subexpression$1$macrocall$10", "symbols": ["block_entry$subexpression$1$macrocall$11", "colon", "_", "block_entry$subexpression$1$macrocall$12"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "block_entry$subexpression$1", "symbols": ["block_entry$subexpression$1$macrocall$10"]},
+    {"name": "block_entry$subexpression$1$macrocall$14", "symbols": [{"literal":"style"}]},
+    {"name": "block_entry$subexpression$1$macrocall$15", "symbols": ["style_literal"]},
+    {"name": "block_entry$subexpression$1$macrocall$13", "symbols": ["block_entry$subexpression$1$macrocall$14", "colon", "_", "block_entry$subexpression$1$macrocall$15"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "block_entry$subexpression$1", "symbols": ["block_entry$subexpression$1$macrocall$13"]},
+    {"name": "block_entry$subexpression$1", "symbols": ["block_annotation"]},
+    {"name": "block_entry$subexpression$1", "symbols": ["block_nodes"]},
+    {"name": "block_entry$subexpression$1", "symbols": ["block_edges"]},
+    {"name": "block_entry$subexpression$1", "symbols": ["block_groups"]},
+    {"name": "block_entry", "symbols": ["block_entry$subexpression$1"], "postprocess": iid},
+    {"name": "block_annotation$subexpression$1", "symbols": ["string"]},
+    {"name": "block_annotation$subexpression$1", "symbols": ["nullT"]},
+    {"name": "block_annotation", "symbols": ["annotation_key", "colon", "_", "block_annotation$subexpression$1"], "postprocess":  ([key, , , value]) => ({
+          annotation: { side: key.side, value }
+        }) },
+    {"name": "block_nodes", "symbols": [{"literal":"nodes"}, "colon", "_", "node_list"], "postprocess": ([, , , list]) => ({ nodes: list })},
+    {"name": "block_edges", "symbols": [{"literal":"edges"}, "colon", "_", "edge_list"], "postprocess": ([, , , list]) => ({ edges: list })},
+    {"name": "block_groups", "symbols": [{"literal":"groups"}, "colon", "_", "group_list"], "postprocess": ([, , , list]) => ({ groups: list })},
+    {"name": "node_list$ebnf$1$subexpression$1$ebnf$1", "symbols": []},
+    {"name": "node_list$ebnf$1$subexpression$1$ebnf$1$subexpression$1", "symbols": ["comma_nlow_new", "node_entry"]},
+    {"name": "node_list$ebnf$1$subexpression$1$ebnf$1", "symbols": ["node_list$ebnf$1$subexpression$1$ebnf$1", "node_list$ebnf$1$subexpression$1$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "node_list$ebnf$1$subexpression$1", "symbols": ["node_entry", "node_list$ebnf$1$subexpression$1$ebnf$1"]},
+    {"name": "node_list$ebnf$1", "symbols": ["node_list$ebnf$1$subexpression$1"], "postprocess": id},
+    {"name": "node_list$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "node_list", "symbols": ["lbrac", "wsn", "node_list$ebnf$1", "wsn", "rbrac"], "postprocess":  ([, , items, ,]) => {
+            if (!items) return []
+            const [first, rest] = items
+            const result = [first];
+            if (rest) rest.forEach(x => result.push(x[1]));
+            return result;
+        } },
+    {"name": "node_entry", "symbols": ["word", "_", "equals", "wsn", "node_body"], "postprocess":  ([id, , , , body]) => ({
+          id,
+          ...body
+        }) },
+    {"name": "node_body$ebnf$1", "symbols": []},
+    {"name": "node_body$ebnf$1$subexpression$1", "symbols": ["nlow", "node_field"]},
+    {"name": "node_body$ebnf$1", "symbols": ["node_body$ebnf$1", "node_body$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "node_body", "symbols": ["node_field", "node_body$ebnf$1"], "postprocess":  ([first, rest]) => {
+            const fields = [first, ...rest.map(x => x[1])];
+        
+            let result = {};
+            let annotations = [];
+        
+            let seen = {
+                type: 0,
+                label: 0,
+                labelOrientation: 0,
+                subtext: 0,
+                size: 0,
+                style: 0,
+                color: 0,
+                stroke: 0,
+            };
+        
+            for (const entry of fields) {
+                if (!entry || typeof entry !== "object") continue;
+        
+                if (entry.annotation) {
+                    annotations.push(entry.annotation);
+                    continue;
+                }
+        
+                for (const key of Object.keys(entry)) {
+                    if (seen[key] !== undefined) {
+                        seen[key] += 1;
+                        if (seen[key] > 1) {
+                            throw new Error(`Duplicate node field: ${key}`);
+                        }
+                    }
+                    result[key] = entry[key];
+                }
+            }
+        
+            if (!result.type) {
+                throw new Error("Node must have a type");
+            }
+        
+            if (annotations.length > 0) {
+                result.annotations = annotations;
+            }
+        
+            const allowedByType = {
+                text: new Set(["type", "label", "labelOrientation", "color", "annotations"]),
+                rect: new Set(["type", "label", "labelOrientation", "subtext", "size", "style", "color", "stroke", "annotations"]),
+                circle: new Set(["type", "label", "labelOrientation", "subtext", "size", "style", "color", "stroke", "annotations"]),
+            };
+        
+            const allowed = allowedByType[result.type];
+            if (!allowed) {
+                throw new Error(`Unsupported node type: ${result.type}`);
+            }
+        
+            for (const key of Object.keys(result)) {
+                if (!allowed.has(key)) {
+                    throw new Error(`Field "${key}" is not allowed for node type "${result.type}"`);
+                }
+            }
+        
+            return result;
+        } },
+    {"name": "node_field$subexpression$1$macrocall$2", "symbols": [{"literal":"type"}]},
+    {"name": "node_field$subexpression$1$macrocall$3", "symbols": ["node_type_literal"]},
+    {"name": "node_field$subexpression$1$macrocall$1", "symbols": ["node_field$subexpression$1$macrocall$2", "colon", "_", "node_field$subexpression$1$macrocall$3"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "node_field$subexpression$1", "symbols": ["node_field$subexpression$1$macrocall$1"]},
+    {"name": "node_field$subexpression$1$macrocall$5", "symbols": [{"literal":"label"}]},
+    {"name": "node_field$subexpression$1$macrocall$6$subexpression$1", "symbols": ["string"]},
+    {"name": "node_field$subexpression$1$macrocall$6$subexpression$1", "symbols": ["nullT"]},
+    {"name": "node_field$subexpression$1$macrocall$6", "symbols": ["node_field$subexpression$1$macrocall$6$subexpression$1"]},
+    {"name": "node_field$subexpression$1$macrocall$4", "symbols": ["node_field$subexpression$1$macrocall$5", "colon", "_", "node_field$subexpression$1$macrocall$6"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "node_field$subexpression$1", "symbols": ["node_field$subexpression$1$macrocall$4"]},
+    {"name": "node_field$subexpression$1", "symbols": ["label_orientation"]},
+    {"name": "node_field$subexpression$1$macrocall$8", "symbols": [{"literal":"subtext"}]},
+    {"name": "node_field$subexpression$1$macrocall$9", "symbols": ["string"]},
+    {"name": "node_field$subexpression$1$macrocall$7", "symbols": ["node_field$subexpression$1$macrocall$8", "colon", "_", "node_field$subexpression$1$macrocall$9"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "node_field$subexpression$1", "symbols": ["node_field$subexpression$1$macrocall$7"]},
+    {"name": "node_field$subexpression$1$macrocall$11", "symbols": [{"literal":"size"}]},
+    {"name": "node_field$subexpression$1$macrocall$12", "symbols": ["size_tuple"]},
+    {"name": "node_field$subexpression$1$macrocall$10", "symbols": ["node_field$subexpression$1$macrocall$11", "colon", "_", "node_field$subexpression$1$macrocall$12"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "node_field$subexpression$1", "symbols": ["node_field$subexpression$1$macrocall$10"]},
+    {"name": "node_field$subexpression$1$macrocall$14", "symbols": [{"literal":"style"}]},
+    {"name": "node_field$subexpression$1$macrocall$15", "symbols": ["style_literal"]},
+    {"name": "node_field$subexpression$1$macrocall$13", "symbols": ["node_field$subexpression$1$macrocall$14", "colon", "_", "node_field$subexpression$1$macrocall$15"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "node_field$subexpression$1", "symbols": ["node_field$subexpression$1$macrocall$13"]},
+    {"name": "node_field$subexpression$1$macrocall$17", "symbols": [{"literal":"color"}]},
+    {"name": "node_field$subexpression$1$macrocall$18$subexpression$1", "symbols": ["string"]},
+    {"name": "node_field$subexpression$1$macrocall$18$subexpression$1", "symbols": ["nullT"]},
+    {"name": "node_field$subexpression$1$macrocall$18", "symbols": ["node_field$subexpression$1$macrocall$18$subexpression$1"]},
+    {"name": "node_field$subexpression$1$macrocall$16", "symbols": ["node_field$subexpression$1$macrocall$17", "colon", "_", "node_field$subexpression$1$macrocall$18"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "node_field$subexpression$1", "symbols": ["node_field$subexpression$1$macrocall$16"]},
+    {"name": "node_field$subexpression$1$macrocall$20", "symbols": [{"literal":"stroke"}]},
+    {"name": "node_field$subexpression$1$macrocall$21$subexpression$1", "symbols": ["string"]},
+    {"name": "node_field$subexpression$1$macrocall$21$subexpression$1", "symbols": ["nullT"]},
+    {"name": "node_field$subexpression$1$macrocall$21", "symbols": ["node_field$subexpression$1$macrocall$21$subexpression$1"]},
+    {"name": "node_field$subexpression$1$macrocall$19", "symbols": ["node_field$subexpression$1$macrocall$20", "colon", "_", "node_field$subexpression$1$macrocall$21"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "node_field$subexpression$1", "symbols": ["node_field$subexpression$1$macrocall$19"]},
+    {"name": "node_field$subexpression$1", "symbols": ["node_annotation"]},
+    {"name": "node_field", "symbols": ["node_field$subexpression$1"], "postprocess": iid},
+    {"name": "label_orientation", "symbols": [{"literal":"label"}, "dot", {"literal":"orientation"}, "colon", "_", "label_orientation_literal"], "postprocess":  ([ , , , , , orientation]) => ({
+          labelOrientation: orientation
+        }) },
+    {"name": "node_annotation$subexpression$1", "symbols": ["string"]},
+    {"name": "node_annotation$subexpression$1", "symbols": ["nullT"]},
+    {"name": "node_annotation", "symbols": ["annotation_key", "colon", "_", "node_annotation$subexpression$1"], "postprocess":  ([key, , , value]) => ({
+          annotation: { side: key.side, value }
+        }) },
+    {"name": "edge_list$ebnf$1$subexpression$1$ebnf$1", "symbols": []},
+    {"name": "edge_list$ebnf$1$subexpression$1$ebnf$1$subexpression$1", "symbols": ["comma_nlow_new", "edge_entry"]},
+    {"name": "edge_list$ebnf$1$subexpression$1$ebnf$1", "symbols": ["edge_list$ebnf$1$subexpression$1$ebnf$1", "edge_list$ebnf$1$subexpression$1$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "edge_list$ebnf$1$subexpression$1", "symbols": ["edge_entry", "edge_list$ebnf$1$subexpression$1$ebnf$1"]},
+    {"name": "edge_list$ebnf$1", "symbols": ["edge_list$ebnf$1$subexpression$1"], "postprocess": id},
+    {"name": "edge_list$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "edge_list", "symbols": ["lbrac", "wsn", "edge_list$ebnf$1", "wsn", "rbrac"], "postprocess":  ([, , items, ,]) => {
+            if (!items) return []
+            const [first, rest] = items
+            const result = [first];
+            if (rest) rest.forEach(x => result.push(x[1]));
+            return result;
+        } },
+    {"name": "edge_entry$ebnf$1$subexpression$1$ebnf$1", "symbols": []},
+    {"name": "edge_entry$ebnf$1$subexpression$1$ebnf$1$subexpression$1", "symbols": ["nlow", "edge_field"]},
+    {"name": "edge_entry$ebnf$1$subexpression$1$ebnf$1", "symbols": ["edge_entry$ebnf$1$subexpression$1$ebnf$1", "edge_entry$ebnf$1$subexpression$1$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "edge_entry$ebnf$1$subexpression$1", "symbols": ["__", "edge_field", "edge_entry$ebnf$1$subexpression$1$ebnf$1"]},
+    {"name": "edge_entry$ebnf$1", "symbols": ["edge_entry$ebnf$1$subexpression$1"], "postprocess": id},
+    {"name": "edge_entry$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "edge_entry", "symbols": ["word", "_", "equals", "wsn", "endpoint", "_", (lexer.has("arrow") ? {type: "arrow"} : arrow), "_", "endpoint", "edge_entry$ebnf$1"], "postprocess":  ([id, , , , from, , , , to, fields]) => {
+        
+            let result = {
+                id,
+                from,
+                to
+            };
+        
+            if (fields) {
+                const [ ,first, rest] = fields
+        
+                if (first) Object.assign(result, first);
+        
+                if (rest) {
+                    rest.forEach(x => {
+                        const field = x[1];
+                        if (field) Object.assign(result, field);
+                    });
+                }
+            }
+        
+            return result;
+        
+            
+        } },
+    {"name": "edge_field$subexpression$1$macrocall$2", "symbols": [{"literal":"label"}]},
+    {"name": "edge_field$subexpression$1$macrocall$3$subexpression$1", "symbols": ["string"]},
+    {"name": "edge_field$subexpression$1$macrocall$3$subexpression$1", "symbols": ["nullT"]},
+    {"name": "edge_field$subexpression$1$macrocall$3", "symbols": ["edge_field$subexpression$1$macrocall$3$subexpression$1"]},
+    {"name": "edge_field$subexpression$1$macrocall$1", "symbols": ["edge_field$subexpression$1$macrocall$2", "colon", "_", "edge_field$subexpression$1$macrocall$3"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "edge_field$subexpression$1", "symbols": ["edge_field$subexpression$1$macrocall$1"]},
+    {"name": "edge_field$subexpression$1$macrocall$5", "symbols": [{"literal":"style"}]},
+    {"name": "edge_field$subexpression$1$macrocall$6", "symbols": ["edge_style_literal"]},
+    {"name": "edge_field$subexpression$1$macrocall$4", "symbols": ["edge_field$subexpression$1$macrocall$5", "colon", "_", "edge_field$subexpression$1$macrocall$6"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "edge_field$subexpression$1", "symbols": ["edge_field$subexpression$1$macrocall$4"]},
+    {"name": "edge_field$subexpression$1$macrocall$8", "symbols": [{"literal":"color"}]},
+    {"name": "edge_field$subexpression$1$macrocall$9$subexpression$1", "symbols": ["string"]},
+    {"name": "edge_field$subexpression$1$macrocall$9$subexpression$1", "symbols": ["nullT"]},
+    {"name": "edge_field$subexpression$1$macrocall$9", "symbols": ["edge_field$subexpression$1$macrocall$9$subexpression$1"]},
+    {"name": "edge_field$subexpression$1$macrocall$7", "symbols": ["edge_field$subexpression$1$macrocall$8", "colon", "_", "edge_field$subexpression$1$macrocall$9"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "edge_field$subexpression$1", "symbols": ["edge_field$subexpression$1$macrocall$7"]},
+    {"name": "edge_field$subexpression$1$macrocall$11", "symbols": [{"literal":"arrowheads"}]},
+    {"name": "edge_field$subexpression$1$macrocall$12", "symbols": ["arrowheads_literal"]},
+    {"name": "edge_field$subexpression$1$macrocall$10", "symbols": ["edge_field$subexpression$1$macrocall$11", "colon", "_", "edge_field$subexpression$1$macrocall$12"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "edge_field$subexpression$1", "symbols": ["edge_field$subexpression$1$macrocall$10"]},
+    {"name": "edge_field", "symbols": ["edge_field$subexpression$1"], "postprocess": iid},
+    {"name": "endpoint", "symbols": ["wordL", "anchor_with_index"], "postprocess":  ([name, s]) => {
+            if (s.edgeAnchor) {
+                return {
+                    edge: name,
+                    ...s
+                };
+            }
+            return {
+                node: name,
+                ...s
+            };
+        } },
+    {"name": "anchor_with_index$ebnf$1", "symbols": ["index_opt"], "postprocess": id},
+    {"name": "anchor_with_index$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "anchor_with_index", "symbols": ["dot", "node_edge_literals", "anchor_with_index$ebnf$1"], "postprocess":  ([, anchor, index]) => {
+            if (anchor === "mid" || anchor === "start" || anchor === "end") {
+                return { edgeAnchor: anchor };
+            }
+        
+            if (index !== undefined) {
+                return {nodeAnchor: anchor, portIndex: index}
+            } else {
+                return {nodeAnchor: anchor}
+            }
+        
+        } },
+    {"name": "index_opt", "symbols": ["lbrac", "_", "ports_literal", "_", "rbrac"], "postprocess": ([, , n, ,]) => n},
+    {"name": "group_list$ebnf$1$subexpression$1$ebnf$1", "symbols": []},
+    {"name": "group_list$ebnf$1$subexpression$1$ebnf$1$subexpression$1", "symbols": ["comma_nlow_new", "group_entry"]},
+    {"name": "group_list$ebnf$1$subexpression$1$ebnf$1", "symbols": ["group_list$ebnf$1$subexpression$1$ebnf$1", "group_list$ebnf$1$subexpression$1$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "group_list$ebnf$1$subexpression$1", "symbols": ["group_entry", "group_list$ebnf$1$subexpression$1$ebnf$1"]},
+    {"name": "group_list$ebnf$1", "symbols": ["group_list$ebnf$1$subexpression$1"], "postprocess": id},
+    {"name": "group_list$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "group_list", "symbols": ["lbrac", "wsn", "group_list$ebnf$1", "wsn", "rbrac"], "postprocess":  ([, , items, ,]) => {
+            if (!items) return []
+            const [first, rest] = items
+            const result = [first];
+            if (rest) rest.forEach(x => result.push(x[1]));
+            return result;
+        } },
+    {"name": "group_entry", "symbols": ["wordL", "_", "equals", "wsn", "group_body"], "postprocess":  ([id, , , , body]) => ({
+          id,
+          ...body
+        }) },
+    {"name": "group_body$ebnf$1", "symbols": []},
+    {"name": "group_body$ebnf$1$subexpression$1", "symbols": ["nlow", "group_field"]},
+    {"name": "group_body$ebnf$1", "symbols": ["group_body$ebnf$1", "group_body$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "group_body", "symbols": ["group_field", "group_body$ebnf$1"], "postprocess":  ([first, rest]) => {
+            let result = {};
+        
+            const mergeField = (entry) => {
+                if (!entry || typeof entry !== "object") return;
+        
+                if (entry.annotation) {
+                    if (!result.annotations) result.annotations = [];
+                    result.annotations.push(entry.annotation);
+                    return;
+                }
+        
+                Object.assign(result, entry);
+            };
+        
+            mergeField(first);
+        
+            if (rest) {
+                rest.forEach(([, field]) => mergeField(field));
+            }
+        
+            return result;
+        
+            
+        } },
+    {"name": "group_field$subexpression$1$macrocall$2", "symbols": [{"literal":"members"}]},
+    {"name": "group_field$subexpression$1$macrocall$3", "symbols": ["member_list"]},
+    {"name": "group_field$subexpression$1$macrocall$1", "symbols": ["group_field$subexpression$1$macrocall$2", "colon", "_", "group_field$subexpression$1$macrocall$3"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "group_field$subexpression$1", "symbols": ["group_field$subexpression$1$macrocall$1"]},
+    {"name": "group_field$subexpression$1$macrocall$5", "symbols": [{"literal":"layout"}]},
+    {"name": "group_field$subexpression$1$macrocall$6", "symbols": ["layout_literal"]},
+    {"name": "group_field$subexpression$1$macrocall$4", "symbols": ["group_field$subexpression$1$macrocall$5", "colon", "_", "group_field$subexpression$1$macrocall$6"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "group_field$subexpression$1", "symbols": ["group_field$subexpression$1$macrocall$4"]},
+    {"name": "group_field$subexpression$1$macrocall$8", "symbols": [{"literal":"anchor"}]},
+    {"name": "group_field$subexpression$1$macrocall$9", "symbols": ["wordL"]},
+    {"name": "group_field$subexpression$1$macrocall$7", "symbols": ["group_field$subexpression$1$macrocall$8", "colon", "_", "group_field$subexpression$1$macrocall$9"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "group_field$subexpression$1", "symbols": ["group_field$subexpression$1$macrocall$7"]},
+    {"name": "group_field$subexpression$1$macrocall$11", "symbols": [{"literal":"gap"}]},
+    {"name": "group_field$subexpression$1$macrocall$12", "symbols": ["number"]},
+    {"name": "group_field$subexpression$1$macrocall$10", "symbols": ["group_field$subexpression$1$macrocall$11", "colon", "_", "group_field$subexpression$1$macrocall$12"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "group_field$subexpression$1", "symbols": ["group_field$subexpression$1$macrocall$10"]},
+    {"name": "group_field$subexpression$1$macrocall$14", "symbols": [{"literal":"color"}]},
+    {"name": "group_field$subexpression$1$macrocall$15$subexpression$1", "symbols": ["string"]},
+    {"name": "group_field$subexpression$1$macrocall$15$subexpression$1", "symbols": ["nullT"]},
+    {"name": "group_field$subexpression$1$macrocall$15", "symbols": ["group_field$subexpression$1$macrocall$15$subexpression$1"]},
+    {"name": "group_field$subexpression$1$macrocall$13", "symbols": ["group_field$subexpression$1$macrocall$14", "colon", "_", "group_field$subexpression$1$macrocall$15"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "group_field$subexpression$1", "symbols": ["group_field$subexpression$1$macrocall$13"]},
+    {"name": "group_field$subexpression$1", "symbols": ["group_annotation"]},
+    {"name": "group_field", "symbols": ["group_field$subexpression$1"], "postprocess": iid},
+    {"name": "group_annotation$subexpression$1", "symbols": ["string"]},
+    {"name": "group_annotation$subexpression$1", "symbols": ["nullT"]},
+    {"name": "group_annotation", "symbols": ["annotation_key", "colon", "_", "group_annotation$subexpression$1"], "postprocess":  ([key, , , value]) => ({
+          annotation: { side: key.side, value }
+        }) },
+    {"name": "member_list$ebnf$1$subexpression$1$ebnf$1", "symbols": []},
+    {"name": "member_list$ebnf$1$subexpression$1$ebnf$1$subexpression$1", "symbols": ["comma_nlow_new", "wordL"]},
+    {"name": "member_list$ebnf$1$subexpression$1$ebnf$1", "symbols": ["member_list$ebnf$1$subexpression$1$ebnf$1", "member_list$ebnf$1$subexpression$1$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "member_list$ebnf$1$subexpression$1", "symbols": ["wordL", "member_list$ebnf$1$subexpression$1$ebnf$1"]},
+    {"name": "member_list$ebnf$1", "symbols": ["member_list$ebnf$1$subexpression$1"], "postprocess": id},
+    {"name": "member_list$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "member_list", "symbols": ["lbrac", "wsn", "member_list$ebnf$1", "wsn", "rbrac"], "postprocess":  ([, ,items, ,]) => {
+           if (!items) return []
+           const [first, rest] = items
+           let result = [first]
+           if (rest) rest.forEach(([, member]) => result.push(member));
+           return result
+        } },
+    {"name": "diagram_body$ebnf$1$subexpression$1$ebnf$1", "symbols": []},
+    {"name": "diagram_body$ebnf$1$subexpression$1$ebnf$1$subexpression$1", "symbols": ["comma_nlow_new", "diagram_entry"]},
+    {"name": "diagram_body$ebnf$1$subexpression$1$ebnf$1", "symbols": ["diagram_body$ebnf$1$subexpression$1$ebnf$1", "diagram_body$ebnf$1$subexpression$1$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "diagram_body$ebnf$1$subexpression$1", "symbols": ["diagram_entry", "diagram_body$ebnf$1$subexpression$1$ebnf$1"]},
+    {"name": "diagram_body$ebnf$1", "symbols": ["diagram_body$ebnf$1$subexpression$1"], "postprocess": id},
+    {"name": "diagram_body$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "diagram_body", "symbols": ["lbrac", "wsn", "diagram_body$ebnf$1", "wsn", "rbrac"], "postprocess":  ([, ,items, ,]) => {
+            if (!items) return {}
+            const [first, rest] = items
+            let result = {};
+        
+            const mergeEntry = (entry) => {
+                if (!entry || typeof entry !== "object") return;
+                Object.assign(result, entry);
+            };
+        
+            mergeEntry(first);
+        
+            if (rest) {
+                rest.forEach(x => mergeEntry(x[1]));
+            }
+        
+            return result;
+        } },
+    {"name": "diagram_entry$subexpression$1$macrocall$2", "symbols": [{"literal":"layout"}]},
+    {"name": "diagram_entry$subexpression$1$macrocall$3", "symbols": ["layout_literal"]},
+    {"name": "diagram_entry$subexpression$1$macrocall$1", "symbols": ["diagram_entry$subexpression$1$macrocall$2", "colon", "_", "diagram_entry$subexpression$1$macrocall$3"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "diagram_entry$subexpression$1", "symbols": ["diagram_entry$subexpression$1$macrocall$1"]},
+    {"name": "diagram_entry$subexpression$1$macrocall$5", "symbols": [{"literal":"gap"}]},
+    {"name": "diagram_entry$subexpression$1$macrocall$6", "symbols": ["number"]},
+    {"name": "diagram_entry$subexpression$1$macrocall$4", "symbols": ["diagram_entry$subexpression$1$macrocall$5", "colon", "_", "diagram_entry$subexpression$1$macrocall$6"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "diagram_entry$subexpression$1", "symbols": ["diagram_entry$subexpression$1$macrocall$4"]},
+    {"name": "diagram_entry$subexpression$1$macrocall$8", "symbols": [{"literal":"uses"}]},
+    {"name": "diagram_entry$subexpression$1$macrocall$9", "symbols": ["use_list"]},
+    {"name": "diagram_entry$subexpression$1$macrocall$7", "symbols": ["diagram_entry$subexpression$1$macrocall$8", "colon", "_", "diagram_entry$subexpression$1$macrocall$9"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "diagram_entry$subexpression$1", "symbols": ["diagram_entry$subexpression$1$macrocall$7"]},
+    {"name": "diagram_entry$subexpression$1$macrocall$11", "symbols": [{"literal":"connects"}]},
+    {"name": "diagram_entry$subexpression$1$macrocall$12", "symbols": ["connect_list"]},
+    {"name": "diagram_entry$subexpression$1$macrocall$10", "symbols": ["diagram_entry$subexpression$1$macrocall$11", "colon", "_", "diagram_entry$subexpression$1$macrocall$12"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "diagram_entry$subexpression$1", "symbols": ["diagram_entry$subexpression$1$macrocall$10"]},
+    {"name": "diagram_entry", "symbols": ["diagram_entry$subexpression$1"], "postprocess": iid},
+    {"name": "connect_list$ebnf$1$subexpression$1$ebnf$1", "symbols": []},
+    {"name": "connect_list$ebnf$1$subexpression$1$ebnf$1$subexpression$1", "symbols": ["comma_nlow_new", "connect_entry"]},
+    {"name": "connect_list$ebnf$1$subexpression$1$ebnf$1", "symbols": ["connect_list$ebnf$1$subexpression$1$ebnf$1", "connect_list$ebnf$1$subexpression$1$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "connect_list$ebnf$1$subexpression$1", "symbols": ["connect_entry", "connect_list$ebnf$1$subexpression$1$ebnf$1"]},
+    {"name": "connect_list$ebnf$1", "symbols": ["connect_list$ebnf$1$subexpression$1"], "postprocess": id},
+    {"name": "connect_list$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "connect_list", "symbols": ["lbrac", "wsn", "connect_list$ebnf$1", "wsn", "rbrac"], "postprocess":  ([, , items, ,]) => {
+            if (!items) return []
+            const [first, rest] = items
+            const result = [first];
+            if (rest) rest.forEach(x => result.push(x[1]));
+            return result;
+        } },
+    {"name": "connect_entry$ebnf$1$subexpression$1$ebnf$1", "symbols": []},
+    {"name": "connect_entry$ebnf$1$subexpression$1$ebnf$1$subexpression$1", "symbols": ["nlow", "connect_field"]},
+    {"name": "connect_entry$ebnf$1$subexpression$1$ebnf$1", "symbols": ["connect_entry$ebnf$1$subexpression$1$ebnf$1", "connect_entry$ebnf$1$subexpression$1$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "connect_entry$ebnf$1$subexpression$1", "symbols": ["__", "connect_field", "connect_entry$ebnf$1$subexpression$1$ebnf$1"]},
+    {"name": "connect_entry$ebnf$1", "symbols": ["connect_entry$ebnf$1$subexpression$1"], "postprocess": id},
+    {"name": "connect_entry$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "connect_entry", "symbols": ["endpoint_connect", "_", (lexer.has("arrow") ? {type: "arrow"} : arrow), "_", "endpoint_connect", "connect_entry$ebnf$1"], "postprocess":  ([from, , , , to, fields]) => {
+        
+            let result = {
+                from,
+                to
+            };
+        
+            if (fields) {
+                const [ ,first, rest] = fields
+        
+                if (first) Object.assign(result, first);
+        
+                if (rest) {
+                    rest.forEach(x => {
+                        const field = x[1];
+                        if (field) Object.assign(result, field);
+                    });
+                }
+            }
+        
+            return result;
+        
+            
+        } },
+    {"name": "endpoint_connect", "symbols": ["wordL", "dot", "wordL", "anchor_with_index"], "postprocess":  ([blockName, ,node_or_edge, s]) => {
+            if (s.edgeAnchor) {
+                return {
+                    block: blockName,
+                    edge: node_or_edge,
+                    ...s
+                };
+            }
+            return {
+                block: blockName,
+                node: node_or_edge,
+                ...s
+            };
+        } },
+    {"name": "connect_field$subexpression$1$macrocall$2", "symbols": [{"literal":"label"}]},
+    {"name": "connect_field$subexpression$1$macrocall$3", "symbols": ["string"]},
+    {"name": "connect_field$subexpression$1$macrocall$1", "symbols": ["connect_field$subexpression$1$macrocall$2", "colon", "_", "connect_field$subexpression$1$macrocall$3"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "connect_field$subexpression$1", "symbols": ["connect_field$subexpression$1$macrocall$1"]},
+    {"name": "connect_field$subexpression$1$macrocall$5", "symbols": [{"literal":"style"}]},
+    {"name": "connect_field$subexpression$1$macrocall$6", "symbols": ["edge_style_literal"]},
+    {"name": "connect_field$subexpression$1$macrocall$4", "symbols": ["connect_field$subexpression$1$macrocall$5", "colon", "_", "connect_field$subexpression$1$macrocall$6"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "connect_field$subexpression$1", "symbols": ["connect_field$subexpression$1$macrocall$4"]},
+    {"name": "connect_field$subexpression$1$macrocall$8", "symbols": [{"literal":"color"}]},
+    {"name": "connect_field$subexpression$1$macrocall$9", "symbols": ["string"]},
+    {"name": "connect_field$subexpression$1$macrocall$7", "symbols": ["connect_field$subexpression$1$macrocall$8", "colon", "_", "connect_field$subexpression$1$macrocall$9"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "connect_field$subexpression$1", "symbols": ["connect_field$subexpression$1$macrocall$7"]},
+    {"name": "connect_field$subexpression$1$macrocall$11", "symbols": [{"literal":"arrowheads"}]},
+    {"name": "connect_field$subexpression$1$macrocall$12", "symbols": ["arrowheads_literal"]},
+    {"name": "connect_field$subexpression$1$macrocall$10", "symbols": ["connect_field$subexpression$1$macrocall$11", "colon", "_", "connect_field$subexpression$1$macrocall$12"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "connect_field$subexpression$1", "symbols": ["connect_field$subexpression$1$macrocall$10"]},
+    {"name": "connect_field", "symbols": ["connect_field$subexpression$1"], "postprocess": iid},
+    {"name": "use_list$ebnf$1$subexpression$1$ebnf$1", "symbols": []},
+    {"name": "use_list$ebnf$1$subexpression$1$ebnf$1$subexpression$1", "symbols": ["comma_nlow_new", "use_entry"]},
+    {"name": "use_list$ebnf$1$subexpression$1$ebnf$1", "symbols": ["use_list$ebnf$1$subexpression$1$ebnf$1", "use_list$ebnf$1$subexpression$1$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "use_list$ebnf$1$subexpression$1", "symbols": ["use_entry", "use_list$ebnf$1$subexpression$1$ebnf$1"]},
+    {"name": "use_list$ebnf$1", "symbols": ["use_list$ebnf$1$subexpression$1"], "postprocess": id},
+    {"name": "use_list$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "use_list", "symbols": ["lbrac", "wsn", "use_list$ebnf$1", "wsn", "rbrac"], "postprocess":  ([, ,items, ,]) => {
+           if (!items) return []
+           const [first, rest] = items
+           let result = [first]
+           if (rest) rest.forEach(([, member]) => result.push(member));
+           return result
+        } },
+    {"name": "use_entry", "symbols": ["wordL", "_", "equals", "_", "wordL"], "postprocess":  ([alias, , , ,blockName]) => ({
+          id: alias,
+          block: blockName
+        
+        }) },
+    {"name": "label_orientation_literal", "symbols": [{"literal":"horizontal"}], "postprocess": () => "horizontal"},
+    {"name": "label_orientation_literal", "symbols": [{"literal":"vertical"}], "postprocess": () => "vertical"},
+    {"name": "node_edge_literals", "symbols": ["side_literal"], "postprocess": id},
+    {"name": "node_edge_literals", "symbols": [{"literal":"mid"}], "postprocess": () => "mid"},
+    {"name": "node_edge_literals", "symbols": [{"literal":"start"}], "postprocess": () => "start"},
+    {"name": "node_edge_literals", "symbols": [{"literal":"end"}], "postprocess": () => "end"},
+    {"name": "ports_literal", "symbols": ["number"], "postprocess":  ([n]) => {
+          if (![0,1,2,3,4].includes(n)) throw new Error("port index must be 0..4");
+          return n;
+        } },
+    {"name": "arrowheads_literal", "symbols": ["number"], "postprocess":  ([n]) => {
+          if (![0,1,2,3].includes(n)) throw new Error("arrowheads must be 0..3");
+          return n;
+        } },
+    {"name": "edge_style_literal", "symbols": [{"literal":"straight"}], "postprocess": () => "straight"},
+    {"name": "edge_style_literal", "symbols": [{"literal":"bow"}], "postprocess": () => "bow"},
+    {"name": "annotation_key", "symbols": [{"literal":"annotation"}, "dot", "side_literal"], "postprocess":  ([, , side]) => {
+          return { side };
+        } },
+    {"name": "layout_literal", "symbols": [{"literal":"horizontal"}], "postprocess": () => "horizontal"},
+    {"name": "layout_literal", "symbols": [{"literal":"vertical"}], "postprocess": () => "vertical"},
+    {"name": "layout_literal", "symbols": [{"literal":"grid"}], "postprocess": () => "grid"},
+    {"name": "size_tuple$macrocall$2", "symbols": ["number"]},
+    {"name": "size_tuple$macrocall$3", "symbols": ["number"]},
+    {"name": "size_tuple$macrocall$1", "symbols": ["lparen", "_", "size_tuple$macrocall$2", "_", "comma", "_", "size_tuple$macrocall$3", "_", "rparen"], "postprocess": ([, , x, , , , y, ]) => [x[0], y[0]]},
+    {"name": "size_tuple", "symbols": ["size_tuple$macrocall$1"], "postprocess": id},
+    {"name": "node_type_literal", "symbols": [{"literal":"text"}], "postprocess": () => "text"},
+    {"name": "node_type_literal", "symbols": [{"literal":"rect"}], "postprocess": () => "rect"},
+    {"name": "node_type_literal", "symbols": [{"literal":"circle"}], "postprocess": () => "circle"},
+    {"name": "style_literal", "symbols": [{"literal":"rounded"}], "postprocess": () => "rounded"},
+    {"name": "style_literal", "symbols": [{"literal":"box"}], "postprocess": () => "box"},
+    {"name": "node_orientation_literal", "symbols": [{"literal":"vertical"}], "postprocess": () => "vertical"},
+    {"name": "node_orientation_literal", "symbols": [{"literal":"horizontal"}], "postprocess": () => "horizontal"},
+    {"name": "side_literal", "symbols": [{"literal":"top"}], "postprocess": () => "top"},
+    {"name": "side_literal", "symbols": [{"literal":"bottom"}], "postprocess": () => "bottom"},
+    {"name": "side_literal", "symbols": [{"literal":"left"}], "postprocess": () => "left"},
+    {"name": "side_literal", "symbols": [{"literal":"right"}], "postprocess": () => "right"},
+    {"name": "neuralNetwork_def$macrocall$2", "symbols": [{"literal":"neuralnetwork"}]},
+    {"name": "neuralNetwork_def$macrocall$3", "symbols": ["neuralNetwork_pair"]},
+    {"name": "neuralNetwork_def$macrocall$1$macrocall$2", "symbols": ["neuralNetwork_def$macrocall$3"]},
+    {"name": "neuralNetwork_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "symbols": []},
+    {"name": "neuralNetwork_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1$subexpression$1", "symbols": ["comma_nlow_new", "neuralNetwork_def$macrocall$1$macrocall$2"]},
+    {"name": "neuralNetwork_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "symbols": ["neuralNetwork_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "neuralNetwork_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "neuralNetwork_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1", "symbols": ["neuralNetwork_def$macrocall$1$macrocall$2", "neuralNetwork_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1"]},
+    {"name": "neuralNetwork_def$macrocall$1$macrocall$1$ebnf$1", "symbols": ["neuralNetwork_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1"], "postprocess": id},
+    {"name": "neuralNetwork_def$macrocall$1$macrocall$1$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "neuralNetwork_def$macrocall$1$macrocall$1", "symbols": ["lbracket", "wsn", "neuralNetwork_def$macrocall$1$macrocall$1$ebnf$1", "wsn", "rbracket"], "postprocess":  d => {
+            const items = d[2];
+            let result = {};
+        
+            const mergeEntry = (entry) => {
+                if (!entry || typeof entry !== "object") return;
+        
+                if (Array.isArray(entry.blocks)) {
+                    if (!result.blocks) result.blocks = [];
+                    result.blocks.push(...entry.blocks);
+                    const { blocks, ...rest } = entry;
+                    Object.assign(result, rest);
+                    return;
+                }
+        
+                Object.assign(result, entry);
+            };
+        
+            if (!items) return result;
+        
+            const [firstXValue, repetitionGroups] = items;
+        
+            if (
+                Array.isArray(firstXValue) && firstXValue.length > 0 &&
+                Array.isArray(firstXValue[0]) && firstXValue[0].length > 0 &&
+                firstXValue[0][0] !== null &&
+                typeof firstXValue[0][0] === "object" &&
+                !Array.isArray(firstXValue[0][0])
+            ) {
+                mergeEntry(firstXValue[0][0]);
+            }
+        
+            if (repetitionGroups) {
+                repetitionGroups.forEach(group => {
+                    const subsequentXValue = group[1];
+                    if (
+                        Array.isArray(subsequentXValue) && subsequentXValue.length > 0 &&
+                        Array.isArray(subsequentXValue[0]) && subsequentXValue[0].length > 0 &&
+                        subsequentXValue[0][0] !== null &&
+                        typeof subsequentXValue[0][0] === "object" &&
+                        !Array.isArray(subsequentXValue[0][0])
+                    ) {
+                        mergeEntry(subsequentXValue[0][0]);
+                    }
+                });
+            }
+        
             return result;
         } },
     {"name": "neuralNetwork_def$macrocall$1", "symbols": ["neuralNetwork_def$macrocall$2", "__", "wordL", "_", "equals", "_", "neuralNetwork_def$macrocall$1$macrocall$1", "_"], "postprocess": ([type, , wordL, , , , body]) => ({ ...getDef(type), body: body, ...wordL })},
@@ -280,36 +975,59 @@ var grammar = {
     {"name": "matrix_def$macrocall$2", "symbols": [{"literal":"matrix"}]},
     {"name": "matrix_def$macrocall$3", "symbols": ["matrix_pair"]},
     {"name": "matrix_def$macrocall$1$macrocall$2", "symbols": ["matrix_def$macrocall$3"]},
-    {"name": "matrix_def$macrocall$1$macrocall$1$ebnf$1", "symbols": []},
-    {"name": "matrix_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1", "symbols": ["comma_nlow", "matrix_def$macrocall$1$macrocall$2"]},
-    {"name": "matrix_def$macrocall$1$macrocall$1$ebnf$1", "symbols": ["matrix_def$macrocall$1$macrocall$1$ebnf$1", "matrix_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
-    {"name": "matrix_def$macrocall$1$macrocall$1$ebnf$2", "symbols": ["nlow"], "postprocess": id},
-    {"name": "matrix_def$macrocall$1$macrocall$1$ebnf$2", "symbols": [], "postprocess": function(d) {return null;}},
-    {"name": "matrix_def$macrocall$1$macrocall$1", "symbols": ["lbracket", "nlow", "matrix_def$macrocall$1$macrocall$2", "matrix_def$macrocall$1$macrocall$1$ebnf$1", "matrix_def$macrocall$1$macrocall$1$ebnf$2", "rbracket"], "postprocess":  d => {
-            const firstXValue = d[2];
-            const repetitionGroups = d[3];
+    {"name": "matrix_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "symbols": []},
+    {"name": "matrix_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1$subexpression$1", "symbols": ["comma_nlow_new", "matrix_def$macrocall$1$macrocall$2"]},
+    {"name": "matrix_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "symbols": ["matrix_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "matrix_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "matrix_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1", "symbols": ["matrix_def$macrocall$1$macrocall$2", "matrix_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1"]},
+    {"name": "matrix_def$macrocall$1$macrocall$1$ebnf$1", "symbols": ["matrix_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1"], "postprocess": id},
+    {"name": "matrix_def$macrocall$1$macrocall$1$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "matrix_def$macrocall$1$macrocall$1", "symbols": ["lbracket", "wsn", "matrix_def$macrocall$1$macrocall$1$ebnf$1", "wsn", "rbracket"], "postprocess":  d => {
+            const items = d[2];
             let result = {};
         
-            // Process the first $X item
-            // Expect firstXValue to be in the format: [[{key: value_obj}]]
-            if (Array.isArray(firstXValue) && firstXValue.length > 0 &&
+            const mergeEntry = (entry) => {
+                if (!entry || typeof entry !== "object") return;
+        
+                if (Array.isArray(entry.blocks)) {
+                    if (!result.blocks) result.blocks = [];
+                    result.blocks.push(...entry.blocks);
+                    const { blocks, ...rest } = entry;
+                    Object.assign(result, rest);
+                    return;
+                }
+        
+                Object.assign(result, entry);
+            };
+        
+            if (!items) return result;
+        
+            const [firstXValue, repetitionGroups] = items;
+        
+            if (
+                Array.isArray(firstXValue) && firstXValue.length > 0 &&
                 Array.isArray(firstXValue[0]) && firstXValue[0].length > 0 &&
-                firstXValue[0][0] !== null && typeof firstXValue[0][0] === 'object' && !Array.isArray(firstXValue[0][0])) {
-                Object.assign(result, firstXValue[0][0]);
+                firstXValue[0][0] !== null &&
+                typeof firstXValue[0][0] === "object" &&
+                !Array.isArray(firstXValue[0][0])
+            ) {
+                mergeEntry(firstXValue[0][0]);
             }
         
-            // Process subsequent $X items
             if (repetitionGroups) {
                 repetitionGroups.forEach(group => {
                     const subsequentXValue = group[1];
-                    // Expect subsequentXValue to be in the format: [[{key: value_obj}]]
-                    if (Array.isArray(subsequentXValue) && subsequentXValue.length > 0 &&
+                    if (
+                        Array.isArray(subsequentXValue) && subsequentXValue.length > 0 &&
                         Array.isArray(subsequentXValue[0]) && subsequentXValue[0].length > 0 &&
-                        subsequentXValue[0][0] !== null && typeof subsequentXValue[0][0] === 'object' && !Array.isArray(subsequentXValue[0][0])) {
-                        Object.assign(result, subsequentXValue[0][0]);
+                        subsequentXValue[0][0] !== null &&
+                        typeof subsequentXValue[0][0] === "object" &&
+                        !Array.isArray(subsequentXValue[0][0])
+                    ) {
+                        mergeEntry(subsequentXValue[0][0]);
                     }
                 });
             }
+        
             return result;
         } },
     {"name": "matrix_def$macrocall$1", "symbols": ["matrix_def$macrocall$2", "__", "wordL", "_", "equals", "_", "matrix_def$macrocall$1$macrocall$1", "_"], "postprocess": ([type, , wordL, , , , body]) => ({ ...getDef(type), body: body, ...wordL })},
@@ -354,36 +1072,59 @@ var grammar = {
     {"name": "linkedlist_def$macrocall$2", "symbols": [{"literal":"linkedlist"}]},
     {"name": "linkedlist_def$macrocall$3", "symbols": ["linkedlist_pair"]},
     {"name": "linkedlist_def$macrocall$1$macrocall$2", "symbols": ["linkedlist_def$macrocall$3"]},
-    {"name": "linkedlist_def$macrocall$1$macrocall$1$ebnf$1", "symbols": []},
-    {"name": "linkedlist_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1", "symbols": ["comma_nlow", "linkedlist_def$macrocall$1$macrocall$2"]},
-    {"name": "linkedlist_def$macrocall$1$macrocall$1$ebnf$1", "symbols": ["linkedlist_def$macrocall$1$macrocall$1$ebnf$1", "linkedlist_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
-    {"name": "linkedlist_def$macrocall$1$macrocall$1$ebnf$2", "symbols": ["nlow"], "postprocess": id},
-    {"name": "linkedlist_def$macrocall$1$macrocall$1$ebnf$2", "symbols": [], "postprocess": function(d) {return null;}},
-    {"name": "linkedlist_def$macrocall$1$macrocall$1", "symbols": ["lbracket", "nlow", "linkedlist_def$macrocall$1$macrocall$2", "linkedlist_def$macrocall$1$macrocall$1$ebnf$1", "linkedlist_def$macrocall$1$macrocall$1$ebnf$2", "rbracket"], "postprocess":  d => {
-            const firstXValue = d[2];
-            const repetitionGroups = d[3];
+    {"name": "linkedlist_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "symbols": []},
+    {"name": "linkedlist_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1$subexpression$1", "symbols": ["comma_nlow_new", "linkedlist_def$macrocall$1$macrocall$2"]},
+    {"name": "linkedlist_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "symbols": ["linkedlist_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "linkedlist_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "linkedlist_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1", "symbols": ["linkedlist_def$macrocall$1$macrocall$2", "linkedlist_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1"]},
+    {"name": "linkedlist_def$macrocall$1$macrocall$1$ebnf$1", "symbols": ["linkedlist_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1"], "postprocess": id},
+    {"name": "linkedlist_def$macrocall$1$macrocall$1$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "linkedlist_def$macrocall$1$macrocall$1", "symbols": ["lbracket", "wsn", "linkedlist_def$macrocall$1$macrocall$1$ebnf$1", "wsn", "rbracket"], "postprocess":  d => {
+            const items = d[2];
             let result = {};
         
-            // Process the first $X item
-            // Expect firstXValue to be in the format: [[{key: value_obj}]]
-            if (Array.isArray(firstXValue) && firstXValue.length > 0 &&
+            const mergeEntry = (entry) => {
+                if (!entry || typeof entry !== "object") return;
+        
+                if (Array.isArray(entry.blocks)) {
+                    if (!result.blocks) result.blocks = [];
+                    result.blocks.push(...entry.blocks);
+                    const { blocks, ...rest } = entry;
+                    Object.assign(result, rest);
+                    return;
+                }
+        
+                Object.assign(result, entry);
+            };
+        
+            if (!items) return result;
+        
+            const [firstXValue, repetitionGroups] = items;
+        
+            if (
+                Array.isArray(firstXValue) && firstXValue.length > 0 &&
                 Array.isArray(firstXValue[0]) && firstXValue[0].length > 0 &&
-                firstXValue[0][0] !== null && typeof firstXValue[0][0] === 'object' && !Array.isArray(firstXValue[0][0])) {
-                Object.assign(result, firstXValue[0][0]);
+                firstXValue[0][0] !== null &&
+                typeof firstXValue[0][0] === "object" &&
+                !Array.isArray(firstXValue[0][0])
+            ) {
+                mergeEntry(firstXValue[0][0]);
             }
         
-            // Process subsequent $X items
             if (repetitionGroups) {
                 repetitionGroups.forEach(group => {
                     const subsequentXValue = group[1];
-                    // Expect subsequentXValue to be in the format: [[{key: value_obj}]]
-                    if (Array.isArray(subsequentXValue) && subsequentXValue.length > 0 &&
+                    if (
+                        Array.isArray(subsequentXValue) && subsequentXValue.length > 0 &&
                         Array.isArray(subsequentXValue[0]) && subsequentXValue[0].length > 0 &&
-                        subsequentXValue[0][0] !== null && typeof subsequentXValue[0][0] === 'object' && !Array.isArray(subsequentXValue[0][0])) {
-                        Object.assign(result, subsequentXValue[0][0]);
+                        subsequentXValue[0][0] !== null &&
+                        typeof subsequentXValue[0][0] === "object" &&
+                        !Array.isArray(subsequentXValue[0][0])
+                    ) {
+                        mergeEntry(subsequentXValue[0][0]);
                     }
                 });
             }
+        
             return result;
         } },
     {"name": "linkedlist_def$macrocall$1", "symbols": ["linkedlist_def$macrocall$2", "__", "wordL", "_", "equals", "_", "linkedlist_def$macrocall$1$macrocall$1", "_"], "postprocess": ([type, , wordL, , , , body]) => ({ ...getDef(type), body: body, ...wordL })},
@@ -432,36 +1173,59 @@ var grammar = {
     {"name": "tree_def$macrocall$2", "symbols": [{"literal":"tree"}]},
     {"name": "tree_def$macrocall$3", "symbols": ["tree_pair"]},
     {"name": "tree_def$macrocall$1$macrocall$2", "symbols": ["tree_def$macrocall$3"]},
-    {"name": "tree_def$macrocall$1$macrocall$1$ebnf$1", "symbols": []},
-    {"name": "tree_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1", "symbols": ["comma_nlow", "tree_def$macrocall$1$macrocall$2"]},
-    {"name": "tree_def$macrocall$1$macrocall$1$ebnf$1", "symbols": ["tree_def$macrocall$1$macrocall$1$ebnf$1", "tree_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
-    {"name": "tree_def$macrocall$1$macrocall$1$ebnf$2", "symbols": ["nlow"], "postprocess": id},
-    {"name": "tree_def$macrocall$1$macrocall$1$ebnf$2", "symbols": [], "postprocess": function(d) {return null;}},
-    {"name": "tree_def$macrocall$1$macrocall$1", "symbols": ["lbracket", "nlow", "tree_def$macrocall$1$macrocall$2", "tree_def$macrocall$1$macrocall$1$ebnf$1", "tree_def$macrocall$1$macrocall$1$ebnf$2", "rbracket"], "postprocess":  d => {
-            const firstXValue = d[2];
-            const repetitionGroups = d[3];
+    {"name": "tree_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "symbols": []},
+    {"name": "tree_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1$subexpression$1", "symbols": ["comma_nlow_new", "tree_def$macrocall$1$macrocall$2"]},
+    {"name": "tree_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "symbols": ["tree_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "tree_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "tree_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1", "symbols": ["tree_def$macrocall$1$macrocall$2", "tree_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1"]},
+    {"name": "tree_def$macrocall$1$macrocall$1$ebnf$1", "symbols": ["tree_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1"], "postprocess": id},
+    {"name": "tree_def$macrocall$1$macrocall$1$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "tree_def$macrocall$1$macrocall$1", "symbols": ["lbracket", "wsn", "tree_def$macrocall$1$macrocall$1$ebnf$1", "wsn", "rbracket"], "postprocess":  d => {
+            const items = d[2];
             let result = {};
         
-            // Process the first $X item
-            // Expect firstXValue to be in the format: [[{key: value_obj}]]
-            if (Array.isArray(firstXValue) && firstXValue.length > 0 &&
+            const mergeEntry = (entry) => {
+                if (!entry || typeof entry !== "object") return;
+        
+                if (Array.isArray(entry.blocks)) {
+                    if (!result.blocks) result.blocks = [];
+                    result.blocks.push(...entry.blocks);
+                    const { blocks, ...rest } = entry;
+                    Object.assign(result, rest);
+                    return;
+                }
+        
+                Object.assign(result, entry);
+            };
+        
+            if (!items) return result;
+        
+            const [firstXValue, repetitionGroups] = items;
+        
+            if (
+                Array.isArray(firstXValue) && firstXValue.length > 0 &&
                 Array.isArray(firstXValue[0]) && firstXValue[0].length > 0 &&
-                firstXValue[0][0] !== null && typeof firstXValue[0][0] === 'object' && !Array.isArray(firstXValue[0][0])) {
-                Object.assign(result, firstXValue[0][0]);
+                firstXValue[0][0] !== null &&
+                typeof firstXValue[0][0] === "object" &&
+                !Array.isArray(firstXValue[0][0])
+            ) {
+                mergeEntry(firstXValue[0][0]);
             }
         
-            // Process subsequent $X items
             if (repetitionGroups) {
                 repetitionGroups.forEach(group => {
                     const subsequentXValue = group[1];
-                    // Expect subsequentXValue to be in the format: [[{key: value_obj}]]
-                    if (Array.isArray(subsequentXValue) && subsequentXValue.length > 0 &&
+                    if (
+                        Array.isArray(subsequentXValue) && subsequentXValue.length > 0 &&
                         Array.isArray(subsequentXValue[0]) && subsequentXValue[0].length > 0 &&
-                        subsequentXValue[0][0] !== null && typeof subsequentXValue[0][0] === 'object' && !Array.isArray(subsequentXValue[0][0])) {
-                        Object.assign(result, subsequentXValue[0][0]);
+                        subsequentXValue[0][0] !== null &&
+                        typeof subsequentXValue[0][0] === "object" &&
+                        !Array.isArray(subsequentXValue[0][0])
+                    ) {
+                        mergeEntry(subsequentXValue[0][0]);
                     }
                 });
             }
+        
             return result;
         } },
     {"name": "tree_def$macrocall$1", "symbols": ["tree_def$macrocall$2", "__", "wordL", "_", "equals", "_", "tree_def$macrocall$1$macrocall$1", "_"], "postprocess": ([type, , wordL, , , , body]) => ({ ...getDef(type), body: body, ...wordL })},
@@ -514,36 +1278,59 @@ var grammar = {
     {"name": "stack_def$macrocall$2", "symbols": [{"literal":"stack"}]},
     {"name": "stack_def$macrocall$3", "symbols": ["stack_pair"]},
     {"name": "stack_def$macrocall$1$macrocall$2", "symbols": ["stack_def$macrocall$3"]},
-    {"name": "stack_def$macrocall$1$macrocall$1$ebnf$1", "symbols": []},
-    {"name": "stack_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1", "symbols": ["comma_nlow", "stack_def$macrocall$1$macrocall$2"]},
-    {"name": "stack_def$macrocall$1$macrocall$1$ebnf$1", "symbols": ["stack_def$macrocall$1$macrocall$1$ebnf$1", "stack_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
-    {"name": "stack_def$macrocall$1$macrocall$1$ebnf$2", "symbols": ["nlow"], "postprocess": id},
-    {"name": "stack_def$macrocall$1$macrocall$1$ebnf$2", "symbols": [], "postprocess": function(d) {return null;}},
-    {"name": "stack_def$macrocall$1$macrocall$1", "symbols": ["lbracket", "nlow", "stack_def$macrocall$1$macrocall$2", "stack_def$macrocall$1$macrocall$1$ebnf$1", "stack_def$macrocall$1$macrocall$1$ebnf$2", "rbracket"], "postprocess":  d => {
-            const firstXValue = d[2];
-            const repetitionGroups = d[3];
+    {"name": "stack_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "symbols": []},
+    {"name": "stack_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1$subexpression$1", "symbols": ["comma_nlow_new", "stack_def$macrocall$1$macrocall$2"]},
+    {"name": "stack_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "symbols": ["stack_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "stack_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "stack_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1", "symbols": ["stack_def$macrocall$1$macrocall$2", "stack_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1"]},
+    {"name": "stack_def$macrocall$1$macrocall$1$ebnf$1", "symbols": ["stack_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1"], "postprocess": id},
+    {"name": "stack_def$macrocall$1$macrocall$1$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "stack_def$macrocall$1$macrocall$1", "symbols": ["lbracket", "wsn", "stack_def$macrocall$1$macrocall$1$ebnf$1", "wsn", "rbracket"], "postprocess":  d => {
+            const items = d[2];
             let result = {};
         
-            // Process the first $X item
-            // Expect firstXValue to be in the format: [[{key: value_obj}]]
-            if (Array.isArray(firstXValue) && firstXValue.length > 0 &&
+            const mergeEntry = (entry) => {
+                if (!entry || typeof entry !== "object") return;
+        
+                if (Array.isArray(entry.blocks)) {
+                    if (!result.blocks) result.blocks = [];
+                    result.blocks.push(...entry.blocks);
+                    const { blocks, ...rest } = entry;
+                    Object.assign(result, rest);
+                    return;
+                }
+        
+                Object.assign(result, entry);
+            };
+        
+            if (!items) return result;
+        
+            const [firstXValue, repetitionGroups] = items;
+        
+            if (
+                Array.isArray(firstXValue) && firstXValue.length > 0 &&
                 Array.isArray(firstXValue[0]) && firstXValue[0].length > 0 &&
-                firstXValue[0][0] !== null && typeof firstXValue[0][0] === 'object' && !Array.isArray(firstXValue[0][0])) {
-                Object.assign(result, firstXValue[0][0]);
+                firstXValue[0][0] !== null &&
+                typeof firstXValue[0][0] === "object" &&
+                !Array.isArray(firstXValue[0][0])
+            ) {
+                mergeEntry(firstXValue[0][0]);
             }
         
-            // Process subsequent $X items
             if (repetitionGroups) {
                 repetitionGroups.forEach(group => {
                     const subsequentXValue = group[1];
-                    // Expect subsequentXValue to be in the format: [[{key: value_obj}]]
-                    if (Array.isArray(subsequentXValue) && subsequentXValue.length > 0 &&
+                    if (
+                        Array.isArray(subsequentXValue) && subsequentXValue.length > 0 &&
                         Array.isArray(subsequentXValue[0]) && subsequentXValue[0].length > 0 &&
-                        subsequentXValue[0][0] !== null && typeof subsequentXValue[0][0] === 'object' && !Array.isArray(subsequentXValue[0][0])) {
-                        Object.assign(result, subsequentXValue[0][0]);
+                        subsequentXValue[0][0] !== null &&
+                        typeof subsequentXValue[0][0] === "object" &&
+                        !Array.isArray(subsequentXValue[0][0])
+                    ) {
+                        mergeEntry(subsequentXValue[0][0]);
                     }
                 });
             }
+        
             return result;
         } },
     {"name": "stack_def$macrocall$1", "symbols": ["stack_def$macrocall$2", "__", "wordL", "_", "equals", "_", "stack_def$macrocall$1$macrocall$1", "_"], "postprocess": ([type, , wordL, , , , body]) => ({ ...getDef(type), body: body, ...wordL })},
@@ -588,36 +1375,59 @@ var grammar = {
     {"name": "graph_def$macrocall$2", "symbols": [{"literal":"graph"}]},
     {"name": "graph_def$macrocall$3", "symbols": ["graph_pair"]},
     {"name": "graph_def$macrocall$1$macrocall$2", "symbols": ["graph_def$macrocall$3"]},
-    {"name": "graph_def$macrocall$1$macrocall$1$ebnf$1", "symbols": []},
-    {"name": "graph_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1", "symbols": ["comma_nlow", "graph_def$macrocall$1$macrocall$2"]},
-    {"name": "graph_def$macrocall$1$macrocall$1$ebnf$1", "symbols": ["graph_def$macrocall$1$macrocall$1$ebnf$1", "graph_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
-    {"name": "graph_def$macrocall$1$macrocall$1$ebnf$2", "symbols": ["nlow"], "postprocess": id},
-    {"name": "graph_def$macrocall$1$macrocall$1$ebnf$2", "symbols": [], "postprocess": function(d) {return null;}},
-    {"name": "graph_def$macrocall$1$macrocall$1", "symbols": ["lbracket", "nlow", "graph_def$macrocall$1$macrocall$2", "graph_def$macrocall$1$macrocall$1$ebnf$1", "graph_def$macrocall$1$macrocall$1$ebnf$2", "rbracket"], "postprocess":  d => {
-            const firstXValue = d[2];
-            const repetitionGroups = d[3];
+    {"name": "graph_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "symbols": []},
+    {"name": "graph_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1$subexpression$1", "symbols": ["comma_nlow_new", "graph_def$macrocall$1$macrocall$2"]},
+    {"name": "graph_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "symbols": ["graph_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "graph_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "graph_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1", "symbols": ["graph_def$macrocall$1$macrocall$2", "graph_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1"]},
+    {"name": "graph_def$macrocall$1$macrocall$1$ebnf$1", "symbols": ["graph_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1"], "postprocess": id},
+    {"name": "graph_def$macrocall$1$macrocall$1$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "graph_def$macrocall$1$macrocall$1", "symbols": ["lbracket", "wsn", "graph_def$macrocall$1$macrocall$1$ebnf$1", "wsn", "rbracket"], "postprocess":  d => {
+            const items = d[2];
             let result = {};
         
-            // Process the first $X item
-            // Expect firstXValue to be in the format: [[{key: value_obj}]]
-            if (Array.isArray(firstXValue) && firstXValue.length > 0 &&
+            const mergeEntry = (entry) => {
+                if (!entry || typeof entry !== "object") return;
+        
+                if (Array.isArray(entry.blocks)) {
+                    if (!result.blocks) result.blocks = [];
+                    result.blocks.push(...entry.blocks);
+                    const { blocks, ...rest } = entry;
+                    Object.assign(result, rest);
+                    return;
+                }
+        
+                Object.assign(result, entry);
+            };
+        
+            if (!items) return result;
+        
+            const [firstXValue, repetitionGroups] = items;
+        
+            if (
+                Array.isArray(firstXValue) && firstXValue.length > 0 &&
                 Array.isArray(firstXValue[0]) && firstXValue[0].length > 0 &&
-                firstXValue[0][0] !== null && typeof firstXValue[0][0] === 'object' && !Array.isArray(firstXValue[0][0])) {
-                Object.assign(result, firstXValue[0][0]);
+                firstXValue[0][0] !== null &&
+                typeof firstXValue[0][0] === "object" &&
+                !Array.isArray(firstXValue[0][0])
+            ) {
+                mergeEntry(firstXValue[0][0]);
             }
         
-            // Process subsequent $X items
             if (repetitionGroups) {
                 repetitionGroups.forEach(group => {
                     const subsequentXValue = group[1];
-                    // Expect subsequentXValue to be in the format: [[{key: value_obj}]]
-                    if (Array.isArray(subsequentXValue) && subsequentXValue.length > 0 &&
+                    if (
+                        Array.isArray(subsequentXValue) && subsequentXValue.length > 0 &&
                         Array.isArray(subsequentXValue[0]) && subsequentXValue[0].length > 0 &&
-                        subsequentXValue[0][0] !== null && typeof subsequentXValue[0][0] === 'object' && !Array.isArray(subsequentXValue[0][0])) {
-                        Object.assign(result, subsequentXValue[0][0]);
+                        subsequentXValue[0][0] !== null &&
+                        typeof subsequentXValue[0][0] === "object" &&
+                        !Array.isArray(subsequentXValue[0][0])
+                    ) {
+                        mergeEntry(subsequentXValue[0][0]);
                     }
                 });
             }
+        
             return result;
         } },
     {"name": "graph_def$macrocall$1", "symbols": ["graph_def$macrocall$2", "__", "wordL", "_", "equals", "_", "graph_def$macrocall$1$macrocall$1", "_"], "postprocess": ([type, , wordL, , , , body]) => ({ ...getDef(type), body: body, ...wordL })},
@@ -674,36 +1484,59 @@ var grammar = {
     {"name": "text_def$macrocall$2", "symbols": [{"literal":"text"}]},
     {"name": "text_def$macrocall$3", "symbols": ["text_pair"]},
     {"name": "text_def$macrocall$1$macrocall$2", "symbols": ["text_def$macrocall$3"]},
-    {"name": "text_def$macrocall$1$macrocall$1$ebnf$1", "symbols": []},
-    {"name": "text_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1", "symbols": ["comma_nlow", "text_def$macrocall$1$macrocall$2"]},
-    {"name": "text_def$macrocall$1$macrocall$1$ebnf$1", "symbols": ["text_def$macrocall$1$macrocall$1$ebnf$1", "text_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
-    {"name": "text_def$macrocall$1$macrocall$1$ebnf$2", "symbols": ["nlow"], "postprocess": id},
-    {"name": "text_def$macrocall$1$macrocall$1$ebnf$2", "symbols": [], "postprocess": function(d) {return null;}},
-    {"name": "text_def$macrocall$1$macrocall$1", "symbols": ["lbracket", "nlow", "text_def$macrocall$1$macrocall$2", "text_def$macrocall$1$macrocall$1$ebnf$1", "text_def$macrocall$1$macrocall$1$ebnf$2", "rbracket"], "postprocess":  d => {
-            const firstXValue = d[2];
-            const repetitionGroups = d[3];
+    {"name": "text_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "symbols": []},
+    {"name": "text_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1$subexpression$1", "symbols": ["comma_nlow_new", "text_def$macrocall$1$macrocall$2"]},
+    {"name": "text_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "symbols": ["text_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1", "text_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "text_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1", "symbols": ["text_def$macrocall$1$macrocall$2", "text_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1$ebnf$1"]},
+    {"name": "text_def$macrocall$1$macrocall$1$ebnf$1", "symbols": ["text_def$macrocall$1$macrocall$1$ebnf$1$subexpression$1"], "postprocess": id},
+    {"name": "text_def$macrocall$1$macrocall$1$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "text_def$macrocall$1$macrocall$1", "symbols": ["lbracket", "wsn", "text_def$macrocall$1$macrocall$1$ebnf$1", "wsn", "rbracket"], "postprocess":  d => {
+            const items = d[2];
             let result = {};
         
-            // Process the first $X item
-            // Expect firstXValue to be in the format: [[{key: value_obj}]]
-            if (Array.isArray(firstXValue) && firstXValue.length > 0 &&
+            const mergeEntry = (entry) => {
+                if (!entry || typeof entry !== "object") return;
+        
+                if (Array.isArray(entry.blocks)) {
+                    if (!result.blocks) result.blocks = [];
+                    result.blocks.push(...entry.blocks);
+                    const { blocks, ...rest } = entry;
+                    Object.assign(result, rest);
+                    return;
+                }
+        
+                Object.assign(result, entry);
+            };
+        
+            if (!items) return result;
+        
+            const [firstXValue, repetitionGroups] = items;
+        
+            if (
+                Array.isArray(firstXValue) && firstXValue.length > 0 &&
                 Array.isArray(firstXValue[0]) && firstXValue[0].length > 0 &&
-                firstXValue[0][0] !== null && typeof firstXValue[0][0] === 'object' && !Array.isArray(firstXValue[0][0])) {
-                Object.assign(result, firstXValue[0][0]);
+                firstXValue[0][0] !== null &&
+                typeof firstXValue[0][0] === "object" &&
+                !Array.isArray(firstXValue[0][0])
+            ) {
+                mergeEntry(firstXValue[0][0]);
             }
         
-            // Process subsequent $X items
             if (repetitionGroups) {
                 repetitionGroups.forEach(group => {
                     const subsequentXValue = group[1];
-                    // Expect subsequentXValue to be in the format: [[{key: value_obj}]]
-                    if (Array.isArray(subsequentXValue) && subsequentXValue.length > 0 &&
+                    if (
+                        Array.isArray(subsequentXValue) && subsequentXValue.length > 0 &&
                         Array.isArray(subsequentXValue[0]) && subsequentXValue[0].length > 0 &&
-                        subsequentXValue[0][0] !== null && typeof subsequentXValue[0][0] === 'object' && !Array.isArray(subsequentXValue[0][0])) {
-                        Object.assign(result, subsequentXValue[0][0]);
+                        subsequentXValue[0][0] !== null &&
+                        typeof subsequentXValue[0][0] === "object" &&
+                        !Array.isArray(subsequentXValue[0][0])
+                    ) {
+                        mergeEntry(subsequentXValue[0][0]);
                     }
                 });
             }
+        
             return result;
         } },
     {"name": "text_def$macrocall$1", "symbols": ["text_def$macrocall$2", "__", "wordL", "_", "equals", "_", "text_def$macrocall$1$macrocall$1", "_"], "postprocess": ([type, , wordL, , , , body]) => ({ ...getDef(type), body: body, ...wordL })},
@@ -766,6 +1599,31 @@ var grammar = {
     {"name": "commands$subexpression$1", "symbols": ["set_arrow"]},
     {"name": "commands$subexpression$1", "symbols": ["set_hidden"]},
     {"name": "commands$subexpression$1", "symbols": ["set_edges"]},
+    {"name": "commands$subexpression$1", "symbols": ["block_remove_nodes"]},
+    {"name": "commands$subexpression$1", "symbols": ["block_remove_node"]},
+    {"name": "commands$subexpression$1", "symbols": ["block_remove_group"]},
+    {"name": "commands$subexpression$1", "symbols": ["block_remove_block"]},
+    {"name": "commands$subexpression$1", "symbols": ["block_remove_edges"]},
+    {"name": "commands$subexpression$1", "symbols": ["block_remove_edge"]},
+    {"name": "commands$subexpression$1", "symbols": ["set_node_label"]},
+    {"name": "commands$subexpression$1", "symbols": ["set_node_color"]},
+    {"name": "commands$subexpression$1", "symbols": ["set_node_stroke"]},
+    {"name": "commands$subexpression$1", "symbols": ["set_edge_label"]},
+    {"name": "commands$subexpression$1", "symbols": ["set_edge_color"]},
+    {"name": "commands$subexpression$1", "symbols": ["set_edge_style"]},
+    {"name": "commands$subexpression$1", "symbols": ["hide_node"]},
+    {"name": "commands$subexpression$1", "symbols": ["show_node"]},
+    {"name": "commands$subexpression$1", "symbols": ["hide_edge"]},
+    {"name": "commands$subexpression$1", "symbols": ["show_edge"]},
+    {"name": "commands$subexpression$1", "symbols": ["hide_block"]},
+    {"name": "commands$subexpression$1", "symbols": ["show_block"]},
+    {"name": "commands$subexpression$1", "symbols": ["set_block_color"]},
+    {"name": "commands$subexpression$1", "symbols": ["set_block_annotation"]},
+    {"name": "commands$subexpression$1", "symbols": ["set_block_layout"]},
+    {"name": "commands$subexpression$1", "symbols": ["set_group_color"]},
+    {"name": "commands$subexpression$1", "symbols": ["set_group_layout"]},
+    {"name": "commands$subexpression$1", "symbols": ["set_group_annotation"]},
+    {"name": "commands$subexpression$1", "symbols": ["set_node_annotation"]},
     {"name": "commands$subexpression$1", "symbols": ["set_neuralnetwork_neuron"]},
     {"name": "commands$subexpression$1", "symbols": ["set_neuralnetwork_neuron_color"]},
     {"name": "commands$subexpression$1", "symbols": ["set_neuralnetwork_layer"]},
@@ -848,6 +1706,261 @@ var grammar = {
             col: wordL.col 
         }) },
     {"name": "hide", "symbols": [{"literal":"hide"}, "_", "wordL"], "postprocess": ([, , wordL]) => ({ type: "hide", value: wordL.name, line: wordL.line, col: wordL.col })},
+    {"name": "block_remove_nodes$macrocall$2", "symbols": [{"literal":"removeNodes"}]},
+    {"name": "block_remove_nodes$macrocall$3$macrocall$2", "symbols": ["word"]},
+    {"name": "block_remove_nodes$macrocall$3$macrocall$3", "symbols": ["w_list"]},
+    {"name": "block_remove_nodes$macrocall$3$macrocall$1", "symbols": ["block_remove_nodes$macrocall$3$macrocall$2", "_", "comma", "_", "block_remove_nodes$macrocall$3$macrocall$3"], "postprocess": ([x, , , , y]) => ({ index: id(x), value: id(y) })},
+    {"name": "block_remove_nodes$macrocall$3", "symbols": ["block_remove_nodes$macrocall$3$macrocall$1"]},
+    {"name": "block_remove_nodes$macrocall$1", "symbols": ["wordL", "dot", "block_remove_nodes$macrocall$2", "lparen", "_", "block_remove_nodes$macrocall$3", "_", "rparen"], "postprocess": ([wordL, dot, , , , args]) => ({ args: id(args), ...wordL })},
+    {"name": "block_remove_nodes", "symbols": ["block_remove_nodes$macrocall$1"], "postprocess": (details) => ({ type: "block_remove_nodes", ...id(details) })},
+    {"name": "block_remove_node$macrocall$2", "symbols": [{"literal":"removeNode"}]},
+    {"name": "block_remove_node$macrocall$3$macrocall$2", "symbols": ["word"]},
+    {"name": "block_remove_node$macrocall$3$macrocall$3", "symbols": ["word"]},
+    {"name": "block_remove_node$macrocall$3$macrocall$1", "symbols": ["block_remove_node$macrocall$3$macrocall$2", "_", "comma", "_", "block_remove_node$macrocall$3$macrocall$3"], "postprocess": ([x, , , , y]) => ({ index: id(x), value: id(y) })},
+    {"name": "block_remove_node$macrocall$3", "symbols": ["block_remove_node$macrocall$3$macrocall$1"]},
+    {"name": "block_remove_node$macrocall$1", "symbols": ["wordL", "dot", "block_remove_node$macrocall$2", "lparen", "_", "block_remove_node$macrocall$3", "_", "rparen"], "postprocess": ([wordL, dot, , , , args]) => ({ args: id(args), ...wordL })},
+    {"name": "block_remove_node", "symbols": ["block_remove_node$macrocall$1"], "postprocess": (details) => ({ type: "block_remove_node", ...id(details) })},
+    {"name": "block_remove_group$macrocall$2", "symbols": [{"literal":"removeGroup"}]},
+    {"name": "block_remove_group$macrocall$3$macrocall$2", "symbols": ["word"]},
+    {"name": "block_remove_group$macrocall$3$macrocall$3", "symbols": ["word"]},
+    {"name": "block_remove_group$macrocall$3$macrocall$1", "symbols": ["block_remove_group$macrocall$3$macrocall$2", "_", "comma", "_", "block_remove_group$macrocall$3$macrocall$3"], "postprocess": ([x, , , , y]) => ({ index: id(x), value: id(y) })},
+    {"name": "block_remove_group$macrocall$3", "symbols": ["block_remove_group$macrocall$3$macrocall$1"]},
+    {"name": "block_remove_group$macrocall$1", "symbols": ["wordL", "dot", "block_remove_group$macrocall$2", "lparen", "_", "block_remove_group$macrocall$3", "_", "rparen"], "postprocess": ([wordL, dot, , , , args]) => ({ args: id(args), ...wordL })},
+    {"name": "block_remove_group", "symbols": ["block_remove_group$macrocall$1"], "postprocess": (details) => ({ type: "block_remove_group", ...id(details) })},
+    {"name": "block_remove_block$macrocall$2", "symbols": [{"literal":"removeBlock"}]},
+    {"name": "block_remove_block$macrocall$3", "symbols": ["word"]},
+    {"name": "block_remove_block$macrocall$1", "symbols": ["wordL", "dot", "block_remove_block$macrocall$2", "lparen", "_", "block_remove_block$macrocall$3", "_", "rparen"], "postprocess": ([wordL, dot, , , , args]) => ({ args: id(args), ...wordL })},
+    {"name": "block_remove_block", "symbols": ["block_remove_block$macrocall$1"], "postprocess": (details) => ({ type: "block_remove_block", ...id(details) })},
+    {"name": "set_node_label$macrocall$2", "symbols": [{"literal":"setNodeLabel"}]},
+    {"name": "set_node_label$macrocall$3$macrocall$2", "symbols": ["word"]},
+    {"name": "set_node_label$macrocall$3$macrocall$3", "symbols": ["word"]},
+    {"name": "set_node_label$macrocall$3$macrocall$4$subexpression$1", "symbols": ["string"]},
+    {"name": "set_node_label$macrocall$3$macrocall$4$subexpression$1", "symbols": ["nullT"]},
+    {"name": "set_node_label$macrocall$3$macrocall$4", "symbols": ["set_node_label$macrocall$3$macrocall$4$subexpression$1"]},
+    {"name": "set_node_label$macrocall$3$macrocall$1", "symbols": ["set_node_label$macrocall$3$macrocall$2", "_", "comma", "_", "set_node_label$macrocall$3$macrocall$3", "_", "comma", "_", "set_node_label$macrocall$3$macrocall$4"], "postprocess":  ([x, , , , y, , , , z]) => ({
+          block: id(x),
+          second: id(y),
+          third: id(z)
+        }) },
+    {"name": "set_node_label$macrocall$3", "symbols": ["set_node_label$macrocall$3$macrocall$1"]},
+    {"name": "set_node_label$macrocall$1", "symbols": ["wordL", "dot", "set_node_label$macrocall$2", "lparen", "_", "set_node_label$macrocall$3", "_", "rparen"], "postprocess": ([wordL, dot, , , , args]) => ({ args: id(args), ...wordL })},
+    {"name": "set_node_label", "symbols": ["set_node_label$macrocall$1"], "postprocess": (details) => ({ type: "set_node_label", ...id(details) })},
+    {"name": "set_node_color$macrocall$2", "symbols": [{"literal":"setNodeColor"}]},
+    {"name": "set_node_color$macrocall$3$macrocall$2", "symbols": ["word"]},
+    {"name": "set_node_color$macrocall$3$macrocall$3", "symbols": ["word"]},
+    {"name": "set_node_color$macrocall$3$macrocall$4$subexpression$1", "symbols": ["string"]},
+    {"name": "set_node_color$macrocall$3$macrocall$4$subexpression$1", "symbols": ["nullT"]},
+    {"name": "set_node_color$macrocall$3$macrocall$4", "symbols": ["set_node_color$macrocall$3$macrocall$4$subexpression$1"]},
+    {"name": "set_node_color$macrocall$3$macrocall$1", "symbols": ["set_node_color$macrocall$3$macrocall$2", "_", "comma", "_", "set_node_color$macrocall$3$macrocall$3", "_", "comma", "_", "set_node_color$macrocall$3$macrocall$4"], "postprocess":  ([x, , , , y, , , , z]) => ({
+          block: id(x),
+          second: id(y),
+          third: id(z)
+        }) },
+    {"name": "set_node_color$macrocall$3", "symbols": ["set_node_color$macrocall$3$macrocall$1"]},
+    {"name": "set_node_color$macrocall$1", "symbols": ["wordL", "dot", "set_node_color$macrocall$2", "lparen", "_", "set_node_color$macrocall$3", "_", "rparen"], "postprocess": ([wordL, dot, , , , args]) => ({ args: id(args), ...wordL })},
+    {"name": "set_node_color", "symbols": ["set_node_color$macrocall$1"], "postprocess": (details) => ({ type: "set_node_color", ...id(details) })},
+    {"name": "block_remove_edges$macrocall$2", "symbols": [{"literal":"removeEdges"}]},
+    {"name": "block_remove_edges$macrocall$3$macrocall$2", "symbols": ["word"]},
+    {"name": "block_remove_edges$macrocall$3$macrocall$3$subexpression$1", "symbols": ["w_list"]},
+    {"name": "block_remove_edges$macrocall$3$macrocall$3$subexpression$1", "symbols": ["number_only_list"]},
+    {"name": "block_remove_edges$macrocall$3$macrocall$3", "symbols": ["block_remove_edges$macrocall$3$macrocall$3$subexpression$1"]},
+    {"name": "block_remove_edges$macrocall$3$macrocall$1", "symbols": ["block_remove_edges$macrocall$3$macrocall$2", "_", "comma", "_", "block_remove_edges$macrocall$3$macrocall$3"], "postprocess": ([x, , , , y]) => ({ index: id(x), value: id(y) })},
+    {"name": "block_remove_edges$macrocall$3", "symbols": ["block_remove_edges$macrocall$3$macrocall$1"]},
+    {"name": "block_remove_edges$macrocall$1", "symbols": ["wordL", "dot", "block_remove_edges$macrocall$2", "lparen", "_", "block_remove_edges$macrocall$3", "_", "rparen"], "postprocess": ([wordL, dot, , , , args]) => ({ args: id(args), ...wordL })},
+    {"name": "block_remove_edges", "symbols": ["block_remove_edges$macrocall$1"], "postprocess": (details) => ({ type: "block_remove_edges", ...id(details) })},
+    {"name": "block_remove_edge$macrocall$2", "symbols": [{"literal":"removeEdge"}]},
+    {"name": "block_remove_edge$macrocall$3$macrocall$2", "symbols": ["word"]},
+    {"name": "block_remove_edge$macrocall$3$macrocall$3$subexpression$1", "symbols": ["word"]},
+    {"name": "block_remove_edge$macrocall$3$macrocall$3$subexpression$1", "symbols": ["number"]},
+    {"name": "block_remove_edge$macrocall$3$macrocall$3", "symbols": ["block_remove_edge$macrocall$3$macrocall$3$subexpression$1"]},
+    {"name": "block_remove_edge$macrocall$3$macrocall$1", "symbols": ["block_remove_edge$macrocall$3$macrocall$2", "_", "comma", "_", "block_remove_edge$macrocall$3$macrocall$3"], "postprocess": ([x, , , , y]) => ({ index: id(x), value: id(y) })},
+    {"name": "block_remove_edge$macrocall$3", "symbols": ["block_remove_edge$macrocall$3$macrocall$1"]},
+    {"name": "block_remove_edge$macrocall$1", "symbols": ["wordL", "dot", "block_remove_edge$macrocall$2", "lparen", "_", "block_remove_edge$macrocall$3", "_", "rparen"], "postprocess": ([wordL, dot, , , , args]) => ({ args: id(args), ...wordL })},
+    {"name": "block_remove_edge", "symbols": ["block_remove_edge$macrocall$1"], "postprocess": (details) => ({ type: "block_remove_edge", ...id(details) })},
+    {"name": "set_edge_label$macrocall$2", "symbols": [{"literal":"setEdgeLabel"}]},
+    {"name": "set_edge_label$macrocall$3$macrocall$2", "symbols": ["word"]},
+    {"name": "set_edge_label$macrocall$3$macrocall$3$subexpression$1", "symbols": ["word"]},
+    {"name": "set_edge_label$macrocall$3$macrocall$3$subexpression$1", "symbols": ["number"]},
+    {"name": "set_edge_label$macrocall$3$macrocall$3", "symbols": ["set_edge_label$macrocall$3$macrocall$3$subexpression$1"]},
+    {"name": "set_edge_label$macrocall$3$macrocall$4$subexpression$1", "symbols": ["string"]},
+    {"name": "set_edge_label$macrocall$3$macrocall$4$subexpression$1", "symbols": ["nullT"]},
+    {"name": "set_edge_label$macrocall$3$macrocall$4", "symbols": ["set_edge_label$macrocall$3$macrocall$4$subexpression$1"]},
+    {"name": "set_edge_label$macrocall$3$macrocall$1", "symbols": ["set_edge_label$macrocall$3$macrocall$2", "_", "comma", "_", "set_edge_label$macrocall$3$macrocall$3", "_", "comma", "_", "set_edge_label$macrocall$3$macrocall$4"], "postprocess":  ([x, , , , y, , , , z]) => ({
+          block: id(x),
+          second: id(y),
+          third: id(z)
+        }) },
+    {"name": "set_edge_label$macrocall$3", "symbols": ["set_edge_label$macrocall$3$macrocall$1"]},
+    {"name": "set_edge_label$macrocall$1", "symbols": ["wordL", "dot", "set_edge_label$macrocall$2", "lparen", "_", "set_edge_label$macrocall$3", "_", "rparen"], "postprocess": ([wordL, dot, , , , args]) => ({ args: id(args), ...wordL })},
+    {"name": "set_edge_label", "symbols": ["set_edge_label$macrocall$1"], "postprocess": (details) => ({ type: "set_edge_label", ...id(details) })},
+    {"name": "set_edge_color$macrocall$2", "symbols": [{"literal":"setEdgeColor"}]},
+    {"name": "set_edge_color$macrocall$3$macrocall$2", "symbols": ["word"]},
+    {"name": "set_edge_color$macrocall$3$macrocall$3$subexpression$1", "symbols": ["word"]},
+    {"name": "set_edge_color$macrocall$3$macrocall$3$subexpression$1", "symbols": ["number"]},
+    {"name": "set_edge_color$macrocall$3$macrocall$3", "symbols": ["set_edge_color$macrocall$3$macrocall$3$subexpression$1"]},
+    {"name": "set_edge_color$macrocall$3$macrocall$4$subexpression$1", "symbols": ["string"]},
+    {"name": "set_edge_color$macrocall$3$macrocall$4$subexpression$1", "symbols": ["nullT"]},
+    {"name": "set_edge_color$macrocall$3$macrocall$4", "symbols": ["set_edge_color$macrocall$3$macrocall$4$subexpression$1"]},
+    {"name": "set_edge_color$macrocall$3$macrocall$1", "symbols": ["set_edge_color$macrocall$3$macrocall$2", "_", "comma", "_", "set_edge_color$macrocall$3$macrocall$3", "_", "comma", "_", "set_edge_color$macrocall$3$macrocall$4"], "postprocess":  ([x, , , , y, , , , z]) => ({
+          block: id(x),
+          second: id(y),
+          third: id(z)
+        }) },
+    {"name": "set_edge_color$macrocall$3", "symbols": ["set_edge_color$macrocall$3$macrocall$1"]},
+    {"name": "set_edge_color$macrocall$1", "symbols": ["wordL", "dot", "set_edge_color$macrocall$2", "lparen", "_", "set_edge_color$macrocall$3", "_", "rparen"], "postprocess": ([wordL, dot, , , , args]) => ({ args: id(args), ...wordL })},
+    {"name": "set_edge_color", "symbols": ["set_edge_color$macrocall$1"], "postprocess": (details) => ({ type: "set_edge_color", ...id(details) })},
+    {"name": "set_edge_style$macrocall$2", "symbols": [{"literal":"setEdgeStyle"}]},
+    {"name": "set_edge_style$macrocall$3$macrocall$2", "symbols": ["word"]},
+    {"name": "set_edge_style$macrocall$3$macrocall$3$subexpression$1", "symbols": ["word"]},
+    {"name": "set_edge_style$macrocall$3$macrocall$3$subexpression$1", "symbols": ["number"]},
+    {"name": "set_edge_style$macrocall$3$macrocall$3", "symbols": ["set_edge_style$macrocall$3$macrocall$3$subexpression$1"]},
+    {"name": "set_edge_style$macrocall$3$macrocall$4", "symbols": ["edge_style_literal"]},
+    {"name": "set_edge_style$macrocall$3$macrocall$1", "symbols": ["set_edge_style$macrocall$3$macrocall$2", "_", "comma", "_", "set_edge_style$macrocall$3$macrocall$3", "_", "comma", "_", "set_edge_style$macrocall$3$macrocall$4"], "postprocess":  ([x, , , , y, , , , z]) => ({
+          block: id(x),
+          second: id(y),
+          third: id(z)
+        }) },
+    {"name": "set_edge_style$macrocall$3", "symbols": ["set_edge_style$macrocall$3$macrocall$1"]},
+    {"name": "set_edge_style$macrocall$1", "symbols": ["wordL", "dot", "set_edge_style$macrocall$2", "lparen", "_", "set_edge_style$macrocall$3", "_", "rparen"], "postprocess": ([wordL, dot, , , , args]) => ({ args: id(args), ...wordL })},
+    {"name": "set_edge_style", "symbols": ["set_edge_style$macrocall$1"], "postprocess": (details) => ({ type: "set_edge_style", ...id(details) })},
+    {"name": "set_node_stroke$macrocall$2", "symbols": [{"literal":"setNodeStroke"}]},
+    {"name": "set_node_stroke$macrocall$3$macrocall$2", "symbols": ["word"]},
+    {"name": "set_node_stroke$macrocall$3$macrocall$3", "symbols": ["word"]},
+    {"name": "set_node_stroke$macrocall$3$macrocall$4$subexpression$1", "symbols": ["string"]},
+    {"name": "set_node_stroke$macrocall$3$macrocall$4$subexpression$1", "symbols": ["nullT"]},
+    {"name": "set_node_stroke$macrocall$3$macrocall$4", "symbols": ["set_node_stroke$macrocall$3$macrocall$4$subexpression$1"]},
+    {"name": "set_node_stroke$macrocall$3$macrocall$1", "symbols": ["set_node_stroke$macrocall$3$macrocall$2", "_", "comma", "_", "set_node_stroke$macrocall$3$macrocall$3", "_", "comma", "_", "set_node_stroke$macrocall$3$macrocall$4"], "postprocess":  ([x, , , , y, , , , z]) => ({
+          block: id(x),
+          second: id(y),
+          third: id(z)
+        }) },
+    {"name": "set_node_stroke$macrocall$3", "symbols": ["set_node_stroke$macrocall$3$macrocall$1"]},
+    {"name": "set_node_stroke$macrocall$1", "symbols": ["wordL", "dot", "set_node_stroke$macrocall$2", "lparen", "_", "set_node_stroke$macrocall$3", "_", "rparen"], "postprocess": ([wordL, dot, , , , args]) => ({ args: id(args), ...wordL })},
+    {"name": "set_node_stroke", "symbols": ["set_node_stroke$macrocall$1"], "postprocess": (details) => ({ type: "set_node_stroke", ...id(details) })},
+    {"name": "hide_node$macrocall$2", "symbols": [{"literal":"hideNode"}]},
+    {"name": "hide_node$macrocall$3$macrocall$2", "symbols": ["word"]},
+    {"name": "hide_node$macrocall$3$macrocall$3", "symbols": ["word"]},
+    {"name": "hide_node$macrocall$3$macrocall$1", "symbols": ["hide_node$macrocall$3$macrocall$2", "_", "comma", "_", "hide_node$macrocall$3$macrocall$3"], "postprocess": ([x, , , , y]) => ({ index: id(x), value: id(y) })},
+    {"name": "hide_node$macrocall$3", "symbols": ["hide_node$macrocall$3$macrocall$1"]},
+    {"name": "hide_node$macrocall$1", "symbols": ["wordL", "dot", "hide_node$macrocall$2", "lparen", "_", "hide_node$macrocall$3", "_", "rparen"], "postprocess": ([wordL, dot, , , , args]) => ({ args: id(args), ...wordL })},
+    {"name": "hide_node", "symbols": ["hide_node$macrocall$1"], "postprocess": (details) => ({ type: "hide_node", ...id(details) })},
+    {"name": "show_node$macrocall$2", "symbols": [{"literal":"showNode"}]},
+    {"name": "show_node$macrocall$3$macrocall$2", "symbols": ["word"]},
+    {"name": "show_node$macrocall$3$macrocall$3", "symbols": ["word"]},
+    {"name": "show_node$macrocall$3$macrocall$1", "symbols": ["show_node$macrocall$3$macrocall$2", "_", "comma", "_", "show_node$macrocall$3$macrocall$3"], "postprocess": ([x, , , , y]) => ({ index: id(x), value: id(y) })},
+    {"name": "show_node$macrocall$3", "symbols": ["show_node$macrocall$3$macrocall$1"]},
+    {"name": "show_node$macrocall$1", "symbols": ["wordL", "dot", "show_node$macrocall$2", "lparen", "_", "show_node$macrocall$3", "_", "rparen"], "postprocess": ([wordL, dot, , , , args]) => ({ args: id(args), ...wordL })},
+    {"name": "show_node", "symbols": ["show_node$macrocall$1"], "postprocess": (details) => ({ type: "show_node", ...id(details) })},
+    {"name": "hide_edge$macrocall$2", "symbols": [{"literal":"hideEdge"}]},
+    {"name": "hide_edge$macrocall$3$macrocall$2", "symbols": ["word"]},
+    {"name": "hide_edge$macrocall$3$macrocall$3", "symbols": ["word"]},
+    {"name": "hide_edge$macrocall$3$macrocall$1", "symbols": ["hide_edge$macrocall$3$macrocall$2", "_", "comma", "_", "hide_edge$macrocall$3$macrocall$3"], "postprocess": ([x, , , , y]) => ({ index: id(x), value: id(y) })},
+    {"name": "hide_edge$macrocall$3", "symbols": ["hide_edge$macrocall$3$macrocall$1"]},
+    {"name": "hide_edge$macrocall$1", "symbols": ["wordL", "dot", "hide_edge$macrocall$2", "lparen", "_", "hide_edge$macrocall$3", "_", "rparen"], "postprocess": ([wordL, dot, , , , args]) => ({ args: id(args), ...wordL })},
+    {"name": "hide_edge", "symbols": ["hide_edge$macrocall$1"], "postprocess": (details) => ({ type: "hide_edge", ...id(details) })},
+    {"name": "show_edge$macrocall$2", "symbols": [{"literal":"showEdge"}]},
+    {"name": "show_edge$macrocall$3$macrocall$2", "symbols": ["word"]},
+    {"name": "show_edge$macrocall$3$macrocall$3", "symbols": ["word"]},
+    {"name": "show_edge$macrocall$3$macrocall$1", "symbols": ["show_edge$macrocall$3$macrocall$2", "_", "comma", "_", "show_edge$macrocall$3$macrocall$3"], "postprocess": ([x, , , , y]) => ({ index: id(x), value: id(y) })},
+    {"name": "show_edge$macrocall$3", "symbols": ["show_edge$macrocall$3$macrocall$1"]},
+    {"name": "show_edge$macrocall$1", "symbols": ["wordL", "dot", "show_edge$macrocall$2", "lparen", "_", "show_edge$macrocall$3", "_", "rparen"], "postprocess": ([wordL, dot, , , , args]) => ({ args: id(args), ...wordL })},
+    {"name": "show_edge", "symbols": ["show_edge$macrocall$1"], "postprocess": (details) => ({ type: "show_edge", ...id(details) })},
+    {"name": "hide_block$macrocall$2", "symbols": [{"literal":"hideBlock"}]},
+    {"name": "hide_block$macrocall$3", "symbols": ["word"]},
+    {"name": "hide_block$macrocall$1", "symbols": ["wordL", "dot", "hide_block$macrocall$2", "lparen", "_", "hide_block$macrocall$3", "_", "rparen"], "postprocess": ([wordL, dot, , , , args]) => ({ args: id(args), ...wordL })},
+    {"name": "hide_block", "symbols": ["hide_block$macrocall$1"], "postprocess": (details) => ({ type: "hide_block", ...id(details) })},
+    {"name": "show_block$macrocall$2", "symbols": [{"literal":"showBlock"}]},
+    {"name": "show_block$macrocall$3", "symbols": ["word"]},
+    {"name": "show_block$macrocall$1", "symbols": ["wordL", "dot", "show_block$macrocall$2", "lparen", "_", "show_block$macrocall$3", "_", "rparen"], "postprocess": ([wordL, dot, , , , args]) => ({ args: id(args), ...wordL })},
+    {"name": "show_block", "symbols": ["show_block$macrocall$1"], "postprocess": (details) => ({ type: "show_block", ...id(details) })},
+    {"name": "set_block_color$macrocall$2", "symbols": [{"literal":"setBlockColor"}]},
+    {"name": "set_block_color$macrocall$3$macrocall$2", "symbols": ["word"]},
+    {"name": "set_block_color$macrocall$3$macrocall$3$subexpression$1", "symbols": ["string"]},
+    {"name": "set_block_color$macrocall$3$macrocall$3$subexpression$1", "symbols": ["nullT"]},
+    {"name": "set_block_color$macrocall$3$macrocall$3", "symbols": ["set_block_color$macrocall$3$macrocall$3$subexpression$1"]},
+    {"name": "set_block_color$macrocall$3$macrocall$1", "symbols": ["set_block_color$macrocall$3$macrocall$2", "_", "comma", "_", "set_block_color$macrocall$3$macrocall$3"], "postprocess": ([x, , , , y]) => ({ index: id(x), value: id(y) })},
+    {"name": "set_block_color$macrocall$3", "symbols": ["set_block_color$macrocall$3$macrocall$1"]},
+    {"name": "set_block_color$macrocall$1", "symbols": ["wordL", "dot", "set_block_color$macrocall$2", "lparen", "_", "set_block_color$macrocall$3", "_", "rparen"], "postprocess": ([wordL, dot, , , , args]) => ({ args: id(args), ...wordL })},
+    {"name": "set_block_color", "symbols": ["set_block_color$macrocall$1"], "postprocess": (details) => ({ type: "set_block_color", ...id(details) })},
+    {"name": "set_block_layout$macrocall$2", "symbols": [{"literal":"setBlockLayout"}]},
+    {"name": "set_block_layout$macrocall$3$macrocall$2", "symbols": ["word"]},
+    {"name": "set_block_layout$macrocall$3$macrocall$3", "symbols": ["layout_literal"]},
+    {"name": "set_block_layout$macrocall$3$macrocall$1", "symbols": ["set_block_layout$macrocall$3$macrocall$2", "_", "comma", "_", "set_block_layout$macrocall$3$macrocall$3"], "postprocess": ([x, , , , y]) => ({ index: id(x), value: id(y) })},
+    {"name": "set_block_layout$macrocall$3", "symbols": ["set_block_layout$macrocall$3$macrocall$1"]},
+    {"name": "set_block_layout$macrocall$1", "symbols": ["wordL", "dot", "set_block_layout$macrocall$2", "lparen", "_", "set_block_layout$macrocall$3", "_", "rparen"], "postprocess": ([wordL, dot, , , , args]) => ({ args: id(args), ...wordL })},
+    {"name": "set_block_layout", "symbols": ["set_block_layout$macrocall$1"], "postprocess": (details) => ({ type: "set_block_layout", ...id(details) })},
+    {"name": "set_block_annotation$macrocall$2", "symbols": [{"literal":"setBlockAnnotation"}]},
+    {"name": "set_block_annotation$macrocall$3$macrocall$2", "symbols": ["word"]},
+    {"name": "set_block_annotation$macrocall$3$macrocall$3", "symbols": ["side_literal"]},
+    {"name": "set_block_annotation$macrocall$3$macrocall$4$subexpression$1", "symbols": ["string"]},
+    {"name": "set_block_annotation$macrocall$3$macrocall$4$subexpression$1", "symbols": ["nullT"]},
+    {"name": "set_block_annotation$macrocall$3$macrocall$4", "symbols": ["set_block_annotation$macrocall$3$macrocall$4$subexpression$1"]},
+    {"name": "set_block_annotation$macrocall$3$macrocall$1", "symbols": ["set_block_annotation$macrocall$3$macrocall$2", "_", "comma", "_", "set_block_annotation$macrocall$3$macrocall$3", "_", "comma", "_", "set_block_annotation$macrocall$3$macrocall$4"], "postprocess":  ([x, , , , y, , , , z]) => ({
+          block: id(x),
+          second: id(y),
+          third: id(z)
+        }) },
+    {"name": "set_block_annotation$macrocall$3", "symbols": ["set_block_annotation$macrocall$3$macrocall$1"]},
+    {"name": "set_block_annotation$macrocall$1", "symbols": ["wordL", "dot", "set_block_annotation$macrocall$2", "lparen", "_", "set_block_annotation$macrocall$3", "_", "rparen"], "postprocess": ([wordL, dot, , , , args]) => ({ args: id(args), ...wordL })},
+    {"name": "set_block_annotation", "symbols": ["set_block_annotation$macrocall$1"], "postprocess": (details) => ({ type: "set_block_annotation", ...id(details) })},
+    {"name": "set_group_color$macrocall$2", "symbols": [{"literal":"setGroupColor"}]},
+    {"name": "set_group_color$macrocall$3$macrocall$2", "symbols": ["word"]},
+    {"name": "set_group_color$macrocall$3$macrocall$3", "symbols": ["word"]},
+    {"name": "set_group_color$macrocall$3$macrocall$4$subexpression$1", "symbols": ["string"]},
+    {"name": "set_group_color$macrocall$3$macrocall$4$subexpression$1", "symbols": ["nullT"]},
+    {"name": "set_group_color$macrocall$3$macrocall$4", "symbols": ["set_group_color$macrocall$3$macrocall$4$subexpression$1"]},
+    {"name": "set_group_color$macrocall$3$macrocall$1", "symbols": ["set_group_color$macrocall$3$macrocall$2", "_", "comma", "_", "set_group_color$macrocall$3$macrocall$3", "_", "comma", "_", "set_group_color$macrocall$3$macrocall$4"], "postprocess":  ([x, , , , y, , , , z]) => ({
+          block: id(x),
+          second: id(y),
+          third: id(z)
+        }) },
+    {"name": "set_group_color$macrocall$3", "symbols": ["set_group_color$macrocall$3$macrocall$1"]},
+    {"name": "set_group_color$macrocall$1", "symbols": ["wordL", "dot", "set_group_color$macrocall$2", "lparen", "_", "set_group_color$macrocall$3", "_", "rparen"], "postprocess": ([wordL, dot, , , , args]) => ({ args: id(args), ...wordL })},
+    {"name": "set_group_color", "symbols": ["set_group_color$macrocall$1"], "postprocess": (details) => ({ type: "set_group_color", ...id(details) })},
+    {"name": "set_group_layout$macrocall$2", "symbols": [{"literal":"setGroupLayout"}]},
+    {"name": "set_group_layout$macrocall$3$macrocall$2", "symbols": ["word"]},
+    {"name": "set_group_layout$macrocall$3$macrocall$3", "symbols": ["word"]},
+    {"name": "set_group_layout$macrocall$3$macrocall$4", "symbols": ["layout_literal"]},
+    {"name": "set_group_layout$macrocall$3$macrocall$1", "symbols": ["set_group_layout$macrocall$3$macrocall$2", "_", "comma", "_", "set_group_layout$macrocall$3$macrocall$3", "_", "comma", "_", "set_group_layout$macrocall$3$macrocall$4"], "postprocess":  ([x, , , , y, , , , z]) => ({
+          block: id(x),
+          second: id(y),
+          third: id(z)
+        }) },
+    {"name": "set_group_layout$macrocall$3", "symbols": ["set_group_layout$macrocall$3$macrocall$1"]},
+    {"name": "set_group_layout$macrocall$1", "symbols": ["wordL", "dot", "set_group_layout$macrocall$2", "lparen", "_", "set_group_layout$macrocall$3", "_", "rparen"], "postprocess": ([wordL, dot, , , , args]) => ({ args: id(args), ...wordL })},
+    {"name": "set_group_layout", "symbols": ["set_group_layout$macrocall$1"], "postprocess": (details) => ({ type: "set_group_layout", ...id(details) })},
+    {"name": "set_group_annotation$macrocall$2", "symbols": [{"literal":"setGroupAnnotation"}]},
+    {"name": "set_group_annotation$macrocall$3$macrocall$2", "symbols": ["word"]},
+    {"name": "set_group_annotation$macrocall$3$macrocall$3", "symbols": ["word"]},
+    {"name": "set_group_annotation$macrocall$3$macrocall$4", "symbols": ["side_literal"]},
+    {"name": "set_group_annotation$macrocall$3$macrocall$5$subexpression$1", "symbols": ["string"]},
+    {"name": "set_group_annotation$macrocall$3$macrocall$5$subexpression$1", "symbols": ["nullT"]},
+    {"name": "set_group_annotation$macrocall$3$macrocall$5", "symbols": ["set_group_annotation$macrocall$3$macrocall$5$subexpression$1"]},
+    {"name": "set_group_annotation$macrocall$3$macrocall$1", "symbols": ["set_group_annotation$macrocall$3$macrocall$2", "_", "comma", "_", "set_group_annotation$macrocall$3$macrocall$3", "_", "comma", "_", "set_group_annotation$macrocall$3$macrocall$4", "_", "comma", "_", "set_group_annotation$macrocall$3$macrocall$5"], "postprocess":  ([a, , , , b, , , , c, , , , d]) => ({
+          block: id(a),
+          second: id(b),
+          third: id(c),
+          fourth: id(d)
+        }) },
+    {"name": "set_group_annotation$macrocall$3", "symbols": ["set_group_annotation$macrocall$3$macrocall$1"]},
+    {"name": "set_group_annotation$macrocall$1", "symbols": ["wordL", "dot", "set_group_annotation$macrocall$2", "lparen", "_", "set_group_annotation$macrocall$3", "_", "rparen"], "postprocess": ([wordL, dot, , , , args]) => ({ args: id(args), ...wordL })},
+    {"name": "set_group_annotation", "symbols": ["set_group_annotation$macrocall$1"], "postprocess": (details) => ({ type: "set_group_annotation", ...id(details) })},
+    {"name": "set_node_annotation$macrocall$2", "symbols": [{"literal":"setNodeAnnotation"}]},
+    {"name": "set_node_annotation$macrocall$3$macrocall$2", "symbols": ["word"]},
+    {"name": "set_node_annotation$macrocall$3$macrocall$3", "symbols": ["word"]},
+    {"name": "set_node_annotation$macrocall$3$macrocall$4", "symbols": ["side_literal"]},
+    {"name": "set_node_annotation$macrocall$3$macrocall$5$subexpression$1", "symbols": ["string"]},
+    {"name": "set_node_annotation$macrocall$3$macrocall$5$subexpression$1", "symbols": ["nullT"]},
+    {"name": "set_node_annotation$macrocall$3$macrocall$5", "symbols": ["set_node_annotation$macrocall$3$macrocall$5$subexpression$1"]},
+    {"name": "set_node_annotation$macrocall$3$macrocall$1", "symbols": ["set_node_annotation$macrocall$3$macrocall$2", "_", "comma", "_", "set_node_annotation$macrocall$3$macrocall$3", "_", "comma", "_", "set_node_annotation$macrocall$3$macrocall$4", "_", "comma", "_", "set_node_annotation$macrocall$3$macrocall$5"], "postprocess":  ([a, , , , b, , , , c, , , , d]) => ({
+          block: id(a),
+          second: id(b),
+          third: id(c),
+          fourth: id(d)
+        }) },
+    {"name": "set_node_annotation$macrocall$3", "symbols": ["set_node_annotation$macrocall$3$macrocall$1"]},
+    {"name": "set_node_annotation$macrocall$1", "symbols": ["wordL", "dot", "set_node_annotation$macrocall$2", "lparen", "_", "set_node_annotation$macrocall$3", "_", "rparen"], "postprocess": ([wordL, dot, , , , args]) => ({ args: id(args), ...wordL })},
+    {"name": "set_node_annotation", "symbols": ["set_node_annotation$macrocall$1"], "postprocess": (details) => ({ type: "set_node_annotation", ...id(details) })},
     {"name": "set_value$macrocall$2", "symbols": [{"literal":"setValue"}]},
     {"name": "set_value$macrocall$3$macrocall$2$subexpression$1", "symbols": ["number"]},
     {"name": "set_value$macrocall$3$macrocall$2$subexpression$1", "symbols": ["word"]},
@@ -1528,6 +2641,7 @@ var grammar = {
     {"name": "add_layer_with_neurons$macrocall$2", "symbols": [{"literal":"addLayer"}]},
     {"name": "add_layer_with_neurons$macrocall$3$macrocall$2$subexpression$1", "symbols": ["number"]},
     {"name": "add_layer_with_neurons$macrocall$3$macrocall$2$subexpression$1", "symbols": ["string"]},
+    {"name": "add_layer_with_neurons$macrocall$3$macrocall$2$subexpression$1", "symbols": ["nullT"]},
     {"name": "add_layer_with_neurons$macrocall$3$macrocall$2", "symbols": ["add_layer_with_neurons$macrocall$3$macrocall$2$subexpression$1"]},
     {"name": "add_layer_with_neurons$macrocall$3$macrocall$3", "symbols": ["nns_list"]},
     {"name": "add_layer_with_neurons$macrocall$3$macrocall$1", "symbols": ["add_layer_with_neurons$macrocall$3$macrocall$2", "_", "comma", "_", "add_layer_with_neurons$macrocall$3$macrocall$3"], "postprocess": ([x, , , , y]) => ({ index: id(x), value: id(y) })},
@@ -1661,6 +2775,22 @@ var grammar = {
     {"name": "s_list$macrocall$1$macrocall$1", "symbols": ["s_list$macrocall$1$macrocall$1$macrocall$1", "s_list$macrocall$1$macrocall$1$ebnf$1"], "postprocess": (([first, rest]) => [...first, ...rest.flat()])},
     {"name": "s_list$macrocall$1", "symbols": ["lbrac", "s_list$macrocall$1$macrocall$1", "rbrac"], "postprocess": ([, content]) => content.flat()},
     {"name": "s_list", "symbols": ["s_list$macrocall$1"], "postprocess": id},
+    {"name": "number_only_list$macrocall$2", "symbols": ["number"], "postprocess": id},
+    {"name": "number_only_list$macrocall$1$ebnf$1", "symbols": ["nlow"], "postprocess": id},
+    {"name": "number_only_list$macrocall$1$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "number_only_list$macrocall$1", "symbols": ["lbrac", "number_only_list$macrocall$1$ebnf$1", "rbrac"], "postprocess": () => []},
+    {"name": "number_only_list$macrocall$1$macrocall$2", "symbols": ["number_only_list$macrocall$2"]},
+    {"name": "number_only_list$macrocall$1$macrocall$1$macrocall$2", "symbols": ["number_only_list$macrocall$1$macrocall$2"]},
+    {"name": "number_only_list$macrocall$1$macrocall$1$macrocall$1", "symbols": ["_", "number_only_list$macrocall$1$macrocall$1$macrocall$2", "_"], "postprocess": ([, value, ]) => id(value)},
+    {"name": "number_only_list$macrocall$1$macrocall$1$ebnf$1", "symbols": []},
+    {"name": "number_only_list$macrocall$1$macrocall$1$ebnf$1$macrocall$2", "symbols": ["number_only_list$macrocall$1$macrocall$2"]},
+    {"name": "number_only_list$macrocall$1$macrocall$1$ebnf$1$macrocall$1$macrocall$2", "symbols": ["number_only_list$macrocall$1$macrocall$1$ebnf$1$macrocall$2"]},
+    {"name": "number_only_list$macrocall$1$macrocall$1$ebnf$1$macrocall$1$macrocall$1", "symbols": ["_", "number_only_list$macrocall$1$macrocall$1$ebnf$1$macrocall$1$macrocall$2", "_"], "postprocess": ([, value, ]) => id(value)},
+    {"name": "number_only_list$macrocall$1$macrocall$1$ebnf$1$macrocall$1", "symbols": ["comma", "number_only_list$macrocall$1$macrocall$1$ebnf$1$macrocall$1$macrocall$1"], "postprocess": ([, value]) => id(value)},
+    {"name": "number_only_list$macrocall$1$macrocall$1$ebnf$1", "symbols": ["number_only_list$macrocall$1$macrocall$1$ebnf$1", "number_only_list$macrocall$1$macrocall$1$ebnf$1$macrocall$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "number_only_list$macrocall$1$macrocall$1", "symbols": ["number_only_list$macrocall$1$macrocall$1$macrocall$1", "number_only_list$macrocall$1$macrocall$1$ebnf$1"], "postprocess": (([first, rest]) => [...first, ...rest.flat()])},
+    {"name": "number_only_list$macrocall$1", "symbols": ["lbrac", "number_only_list$macrocall$1$macrocall$1", "rbrac"], "postprocess": ([, content]) => content.flat()},
+    {"name": "number_only_list", "symbols": ["number_only_list$macrocall$1"], "postprocess": id},
     {"name": "w_list$macrocall$2", "symbols": ["word"], "postprocess": id},
     {"name": "w_list$macrocall$1$ebnf$1", "symbols": ["nlow"], "postprocess": id},
     {"name": "w_list$macrocall$1$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
@@ -1721,16 +2851,19 @@ var grammar = {
     {"name": "nns_mlist$macrocall$1$macrocall$2", "symbols": ["nns_mlist$macrocall$2"]},
     {"name": "nns_mlist$macrocall$1$macrocall$1$ebnf$1", "symbols": ["nlow"], "postprocess": id},
     {"name": "nns_mlist$macrocall$1$macrocall$1$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
-    {"name": "nns_mlist$macrocall$1$macrocall$1$ebnf$2", "symbols": []},
-    {"name": "nns_mlist$macrocall$1$macrocall$1$ebnf$2$subexpression$1$ebnf$1", "symbols": ["nlow"], "postprocess": id},
-    {"name": "nns_mlist$macrocall$1$macrocall$1$ebnf$2$subexpression$1$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
-    {"name": "nns_mlist$macrocall$1$macrocall$1$ebnf$2$subexpression$1$ebnf$2", "symbols": ["nlow"], "postprocess": id},
-    {"name": "nns_mlist$macrocall$1$macrocall$1$ebnf$2$subexpression$1$ebnf$2", "symbols": [], "postprocess": function(d) {return null;}},
-    {"name": "nns_mlist$macrocall$1$macrocall$1$ebnf$2$subexpression$1", "symbols": ["nns_mlist$macrocall$1$macrocall$1$ebnf$2$subexpression$1$ebnf$1", "comma", "nns_mlist$macrocall$1$macrocall$1$ebnf$2$subexpression$1$ebnf$2", "nns_mlist$macrocall$1$macrocall$2"]},
-    {"name": "nns_mlist$macrocall$1$macrocall$1$ebnf$2", "symbols": ["nns_mlist$macrocall$1$macrocall$1$ebnf$2", "nns_mlist$macrocall$1$macrocall$1$ebnf$2$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
-    {"name": "nns_mlist$macrocall$1$macrocall$1$ebnf$3", "symbols": ["nlow"], "postprocess": id},
-    {"name": "nns_mlist$macrocall$1$macrocall$1$ebnf$3", "symbols": [], "postprocess": function(d) {return null;}},
-    {"name": "nns_mlist$macrocall$1$macrocall$1", "symbols": ["lbrac", "nns_mlist$macrocall$1$macrocall$1$ebnf$1", "nns_mlist$macrocall$1$macrocall$2", "nns_mlist$macrocall$1$macrocall$1$ebnf$2", "nns_mlist$macrocall$1$macrocall$1$ebnf$3", "rbrac"], "postprocess":  ([, , first, rest]) => {
+    {"name": "nns_mlist$macrocall$1$macrocall$1", "symbols": ["lbrac", "nns_mlist$macrocall$1$macrocall$1$ebnf$1", "rbrac"], "postprocess": () => []},
+    {"name": "nns_mlist$macrocall$1$macrocall$1$ebnf$2", "symbols": ["nlow"], "postprocess": id},
+    {"name": "nns_mlist$macrocall$1$macrocall$1$ebnf$2", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "nns_mlist$macrocall$1$macrocall$1$ebnf$3", "symbols": []},
+    {"name": "nns_mlist$macrocall$1$macrocall$1$ebnf$3$subexpression$1$ebnf$1", "symbols": ["nlow"], "postprocess": id},
+    {"name": "nns_mlist$macrocall$1$macrocall$1$ebnf$3$subexpression$1$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "nns_mlist$macrocall$1$macrocall$1$ebnf$3$subexpression$1$ebnf$2", "symbols": ["nlow"], "postprocess": id},
+    {"name": "nns_mlist$macrocall$1$macrocall$1$ebnf$3$subexpression$1$ebnf$2", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "nns_mlist$macrocall$1$macrocall$1$ebnf$3$subexpression$1", "symbols": ["nns_mlist$macrocall$1$macrocall$1$ebnf$3$subexpression$1$ebnf$1", "comma", "nns_mlist$macrocall$1$macrocall$1$ebnf$3$subexpression$1$ebnf$2", "nns_mlist$macrocall$1$macrocall$2"]},
+    {"name": "nns_mlist$macrocall$1$macrocall$1$ebnf$3", "symbols": ["nns_mlist$macrocall$1$macrocall$1$ebnf$3", "nns_mlist$macrocall$1$macrocall$1$ebnf$3$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "nns_mlist$macrocall$1$macrocall$1$ebnf$4", "symbols": ["nlow"], "postprocess": id},
+    {"name": "nns_mlist$macrocall$1$macrocall$1$ebnf$4", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "nns_mlist$macrocall$1$macrocall$1", "symbols": ["lbrac", "nns_mlist$macrocall$1$macrocall$1$ebnf$2", "nns_mlist$macrocall$1$macrocall$2", "nns_mlist$macrocall$1$macrocall$1$ebnf$3", "nns_mlist$macrocall$1$macrocall$1$ebnf$4", "rbrac"], "postprocess":  ([, , first, rest]) => {
             const row = [first[0]];
             if (rest) {
                 rest.forEach(([, , , item]) => row.push(item[0]));
@@ -1745,16 +2878,19 @@ var grammar = {
     {"name": "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$2", "symbols": ["nns_mlist$macrocall$2"]},
     {"name": "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$1", "symbols": ["nlow"], "postprocess": id},
     {"name": "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
-    {"name": "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$2", "symbols": []},
-    {"name": "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$2$subexpression$1$ebnf$1", "symbols": ["nlow"], "postprocess": id},
-    {"name": "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$2$subexpression$1$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
-    {"name": "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$2$subexpression$1$ebnf$2", "symbols": ["nlow"], "postprocess": id},
-    {"name": "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$2$subexpression$1$ebnf$2", "symbols": [], "postprocess": function(d) {return null;}},
-    {"name": "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$2$subexpression$1", "symbols": ["nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$2$subexpression$1$ebnf$1", "comma", "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$2$subexpression$1$ebnf$2", "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$2"]},
-    {"name": "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$2", "symbols": ["nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$2", "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$2$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
-    {"name": "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$3", "symbols": ["nlow"], "postprocess": id},
-    {"name": "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$3", "symbols": [], "postprocess": function(d) {return null;}},
-    {"name": "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1", "symbols": ["lbrac", "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$1", "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$2", "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$2", "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$3", "rbrac"], "postprocess":  ([, , first, rest]) => {
+    {"name": "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1", "symbols": ["lbrac", "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$1", "rbrac"], "postprocess": () => []},
+    {"name": "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$2", "symbols": ["nlow"], "postprocess": id},
+    {"name": "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$2", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$3", "symbols": []},
+    {"name": "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$3$subexpression$1$ebnf$1", "symbols": ["nlow"], "postprocess": id},
+    {"name": "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$3$subexpression$1$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$3$subexpression$1$ebnf$2", "symbols": ["nlow"], "postprocess": id},
+    {"name": "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$3$subexpression$1$ebnf$2", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$3$subexpression$1", "symbols": ["nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$3$subexpression$1$ebnf$1", "comma", "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$3$subexpression$1$ebnf$2", "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$2"]},
+    {"name": "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$3", "symbols": ["nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$3", "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$3$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$4", "symbols": ["nlow"], "postprocess": id},
+    {"name": "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$4", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1", "symbols": ["lbrac", "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$2", "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$2", "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$3", "nns_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$4", "rbrac"], "postprocess":  ([, , first, rest]) => {
             const row = [first[0]];
             if (rest) {
                 rest.forEach(([, , , item]) => row.push(item[0]));
@@ -1786,16 +2922,19 @@ var grammar = {
     {"name": "nnsp_mlist$macrocall$1$macrocall$2", "symbols": ["nnsp_mlist$macrocall$2"]},
     {"name": "nnsp_mlist$macrocall$1$macrocall$1$ebnf$1", "symbols": ["nlow"], "postprocess": id},
     {"name": "nnsp_mlist$macrocall$1$macrocall$1$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
-    {"name": "nnsp_mlist$macrocall$1$macrocall$1$ebnf$2", "symbols": []},
-    {"name": "nnsp_mlist$macrocall$1$macrocall$1$ebnf$2$subexpression$1$ebnf$1", "symbols": ["nlow"], "postprocess": id},
-    {"name": "nnsp_mlist$macrocall$1$macrocall$1$ebnf$2$subexpression$1$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
-    {"name": "nnsp_mlist$macrocall$1$macrocall$1$ebnf$2$subexpression$1$ebnf$2", "symbols": ["nlow"], "postprocess": id},
-    {"name": "nnsp_mlist$macrocall$1$macrocall$1$ebnf$2$subexpression$1$ebnf$2", "symbols": [], "postprocess": function(d) {return null;}},
-    {"name": "nnsp_mlist$macrocall$1$macrocall$1$ebnf$2$subexpression$1", "symbols": ["nnsp_mlist$macrocall$1$macrocall$1$ebnf$2$subexpression$1$ebnf$1", "comma", "nnsp_mlist$macrocall$1$macrocall$1$ebnf$2$subexpression$1$ebnf$2", "nnsp_mlist$macrocall$1$macrocall$2"]},
-    {"name": "nnsp_mlist$macrocall$1$macrocall$1$ebnf$2", "symbols": ["nnsp_mlist$macrocall$1$macrocall$1$ebnf$2", "nnsp_mlist$macrocall$1$macrocall$1$ebnf$2$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
-    {"name": "nnsp_mlist$macrocall$1$macrocall$1$ebnf$3", "symbols": ["nlow"], "postprocess": id},
-    {"name": "nnsp_mlist$macrocall$1$macrocall$1$ebnf$3", "symbols": [], "postprocess": function(d) {return null;}},
-    {"name": "nnsp_mlist$macrocall$1$macrocall$1", "symbols": ["lbrac", "nnsp_mlist$macrocall$1$macrocall$1$ebnf$1", "nnsp_mlist$macrocall$1$macrocall$2", "nnsp_mlist$macrocall$1$macrocall$1$ebnf$2", "nnsp_mlist$macrocall$1$macrocall$1$ebnf$3", "rbrac"], "postprocess":  ([, , first, rest]) => {
+    {"name": "nnsp_mlist$macrocall$1$macrocall$1", "symbols": ["lbrac", "nnsp_mlist$macrocall$1$macrocall$1$ebnf$1", "rbrac"], "postprocess": () => []},
+    {"name": "nnsp_mlist$macrocall$1$macrocall$1$ebnf$2", "symbols": ["nlow"], "postprocess": id},
+    {"name": "nnsp_mlist$macrocall$1$macrocall$1$ebnf$2", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "nnsp_mlist$macrocall$1$macrocall$1$ebnf$3", "symbols": []},
+    {"name": "nnsp_mlist$macrocall$1$macrocall$1$ebnf$3$subexpression$1$ebnf$1", "symbols": ["nlow"], "postprocess": id},
+    {"name": "nnsp_mlist$macrocall$1$macrocall$1$ebnf$3$subexpression$1$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "nnsp_mlist$macrocall$1$macrocall$1$ebnf$3$subexpression$1$ebnf$2", "symbols": ["nlow"], "postprocess": id},
+    {"name": "nnsp_mlist$macrocall$1$macrocall$1$ebnf$3$subexpression$1$ebnf$2", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "nnsp_mlist$macrocall$1$macrocall$1$ebnf$3$subexpression$1", "symbols": ["nnsp_mlist$macrocall$1$macrocall$1$ebnf$3$subexpression$1$ebnf$1", "comma", "nnsp_mlist$macrocall$1$macrocall$1$ebnf$3$subexpression$1$ebnf$2", "nnsp_mlist$macrocall$1$macrocall$2"]},
+    {"name": "nnsp_mlist$macrocall$1$macrocall$1$ebnf$3", "symbols": ["nnsp_mlist$macrocall$1$macrocall$1$ebnf$3", "nnsp_mlist$macrocall$1$macrocall$1$ebnf$3$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "nnsp_mlist$macrocall$1$macrocall$1$ebnf$4", "symbols": ["nlow"], "postprocess": id},
+    {"name": "nnsp_mlist$macrocall$1$macrocall$1$ebnf$4", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "nnsp_mlist$macrocall$1$macrocall$1", "symbols": ["lbrac", "nnsp_mlist$macrocall$1$macrocall$1$ebnf$2", "nnsp_mlist$macrocall$1$macrocall$2", "nnsp_mlist$macrocall$1$macrocall$1$ebnf$3", "nnsp_mlist$macrocall$1$macrocall$1$ebnf$4", "rbrac"], "postprocess":  ([, , first, rest]) => {
             const row = [first[0]];
             if (rest) {
                 rest.forEach(([, , , item]) => row.push(item[0]));
@@ -1810,16 +2949,19 @@ var grammar = {
     {"name": "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$2", "symbols": ["nnsp_mlist$macrocall$2"]},
     {"name": "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$1", "symbols": ["nlow"], "postprocess": id},
     {"name": "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
-    {"name": "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$2", "symbols": []},
-    {"name": "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$2$subexpression$1$ebnf$1", "symbols": ["nlow"], "postprocess": id},
-    {"name": "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$2$subexpression$1$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
-    {"name": "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$2$subexpression$1$ebnf$2", "symbols": ["nlow"], "postprocess": id},
-    {"name": "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$2$subexpression$1$ebnf$2", "symbols": [], "postprocess": function(d) {return null;}},
-    {"name": "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$2$subexpression$1", "symbols": ["nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$2$subexpression$1$ebnf$1", "comma", "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$2$subexpression$1$ebnf$2", "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$2"]},
-    {"name": "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$2", "symbols": ["nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$2", "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$2$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
-    {"name": "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$3", "symbols": ["nlow"], "postprocess": id},
-    {"name": "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$3", "symbols": [], "postprocess": function(d) {return null;}},
-    {"name": "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1", "symbols": ["lbrac", "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$1", "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$2", "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$2", "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$3", "rbrac"], "postprocess":  ([, , first, rest]) => {
+    {"name": "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1", "symbols": ["lbrac", "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$1", "rbrac"], "postprocess": () => []},
+    {"name": "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$2", "symbols": ["nlow"], "postprocess": id},
+    {"name": "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$2", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$3", "symbols": []},
+    {"name": "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$3$subexpression$1$ebnf$1", "symbols": ["nlow"], "postprocess": id},
+    {"name": "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$3$subexpression$1$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$3$subexpression$1$ebnf$2", "symbols": ["nlow"], "postprocess": id},
+    {"name": "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$3$subexpression$1$ebnf$2", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$3$subexpression$1", "symbols": ["nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$3$subexpression$1$ebnf$1", "comma", "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$3$subexpression$1$ebnf$2", "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$2"]},
+    {"name": "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$3", "symbols": ["nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$3", "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$3$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$4", "symbols": ["nlow"], "postprocess": id},
+    {"name": "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$4", "symbols": [], "postprocess": function(d) {return null;}},
+    {"name": "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1", "symbols": ["lbrac", "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$2", "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$2", "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$3", "nnsp_mlist$macrocall$1$ebnf$3$subexpression$1$macrocall$1$ebnf$4", "rbrac"], "postprocess":  ([, , first, rest]) => {
             const row = [first[0]];
             if (rest) {
                 rest.forEach(([, , , item]) => row.push(item[0]));
@@ -1846,7 +2988,10 @@ var grammar = {
     {"name": "wordL", "symbols": [(lexer.has("word") ? {type: "word"} : word)], "postprocess": ([value]) => ({name: value.value, line: value.line, col: value.col})},
     {"name": "nullT", "symbols": [(lexer.has("nullT") ? {type: "nullT"} : nullT)], "postprocess": () => null},
     {"name": "pass", "symbols": [(lexer.has("pass") ? {type: "pass"} : pass)], "postprocess": () => "_"},
-    {"name": "layout", "symbols": ["number", (lexer.has("x") ? {type: "x"} : x), "number"], "postprocess": ([a, , b]) => [a, b]},
+    {"name": "layout", "symbols": [(lexer.has("layoutspec") ? {type: "layoutspec"} : layoutspec)], "postprocess":  ([t]) => {
+            const [a, b] = t.value.split("x");
+            return [Number(a), Number(b)];
+        } },
     {"name": "positionLabelsLiteral", "symbols": [(lexer.has("string") ? {type: "string"} : string)], "postprocess": 
         ([t]) => {
           if (t.value === "top" || t.value === "bottom") {
@@ -1899,6 +3044,17 @@ var grammar = {
     {"name": "comma_nlow$subexpression$1", "symbols": ["comma_nlow$subexpression$1$subexpression$1"]},
     {"name": "comma_nlow$subexpression$1", "symbols": ["nlw"]},
     {"name": "comma_nlow", "symbols": ["comma_nlow$subexpression$1"], "postprocess": () => null},
+    {"name": "wsn$ebnf$1", "symbols": []},
+    {"name": "wsn$ebnf$1$subexpression$1", "symbols": [(lexer.has("ws") ? {type: "ws"} : ws)]},
+    {"name": "wsn$ebnf$1$subexpression$1", "symbols": [(lexer.has("nlw") ? {type: "nlw"} : nlw)]},
+    {"name": "wsn$ebnf$1", "symbols": ["wsn$ebnf$1", "wsn$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "wsn", "symbols": ["wsn$ebnf$1"], "postprocess": () => null},
+    {"name": "nlw1$ebnf$1", "symbols": [(lexer.has("nlw") ? {type: "nlw"} : nlw)]},
+    {"name": "nlw1$ebnf$1", "symbols": ["nlw1$ebnf$1", (lexer.has("nlw") ? {type: "nlw"} : nlw)], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
+    {"name": "nlw1", "symbols": ["nlw1$ebnf$1"], "postprocess": () => null},
+    {"name": "comma_nlow_new$subexpression$1", "symbols": ["wsn", "comma", "wsn"]},
+    {"name": "comma_nlow_new$subexpression$1", "symbols": ["nlw1"]},
+    {"name": "comma_nlow_new", "symbols": ["comma_nlow_new$subexpression$1"], "postprocess": () => null},
     {"name": "comment", "symbols": [(lexer.has("comment") ? {type: "comment"} : comment)], "postprocess": ([value]) => ({ type: "comment", content: value.value, line: value.line, col: value.col })},
     {"name": "lbracket", "symbols": [(lexer.has("lbracket") ? {type: "lbracket"} : lbracket)], "postprocess": () => null},
     {"name": "rbracket", "symbols": [(lexer.has("rbracket") ? {type: "rbracket"} : rbracket)], "postprocess": () => null},

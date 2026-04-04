@@ -29,6 +29,7 @@ export default function reconstructDSL(parsedDSL) {
         lines.push(`// ${cmd.content}`);
       } else {
         const reconstructed = reconstructCommand(cmd);
+     //   console.log(reconstructed);
         if (reconstructed) {
           lines.push(reconstructed);
         }
@@ -49,6 +50,270 @@ function shouldAddEmptyLine(lines) {
   );
 }
 
+function reconstructArchitectureBody(body) {
+  let result = "";
+
+  const bodyEntries = Object.entries(body);
+
+  for (const [bodyIndex, [key, value]] of bodyEntries.entries()) {
+    const isLastBodyEntry = bodyIndex === bodyEntries.length - 1;
+
+    if (key === "blocks") {
+      for (const [blockIndex, block] of body.blocks.entries()) {
+        const isLastBlock = blockIndex === body.blocks.length - 1;
+
+        result += `\tblock ${block.id.name}: [\n`;
+
+        const blockEntries = Object.entries(block);
+
+        for (const [index2, [key2, value2]] of blockEntries.entries()) {
+          const isLastBlockEntry = index2 === blockEntries.length - 1;
+
+          if (key2 === "id") {
+            continue;
+          } else if (key2 === "nodes") {
+            result += `\t\tnodes: [\n`;
+
+            for (const [nodeIndex, node] of value2.entries()) {
+              const isLastNode = nodeIndex === value2.length - 1;
+
+              result += `\t\t\t${node.id} = type: ${node.type}`;
+
+              if (node.label) {
+                result += ` label: ${JSON.stringify(node.label.length === 1 ? node.label[0] : node.label)}`;
+              }
+
+              if (node.labelOrientation) {
+                result += ` label.orientation: ${node.labelOrientation}`;
+              }
+
+              if (node.color) {
+                result += ` color: ${JSON.stringify(node.color.length === 1 ? node.color[0] : node.color)}`;
+              }
+
+              if (!isLastNode) {
+                result += `,`;
+              }
+
+              result += `\n`;
+            }
+
+            result += `\t\t]`;
+            if (!isLastBlockEntry) result += `,`;
+            result += `\n`;
+          } else if (key2 === "edges") {
+            result += `\t\tedges: [\n`;
+
+            for (const [edgeIndex, edge] of value2.entries()) {
+              const isLastEdge = edgeIndex === value2.length - 1;
+
+              result += `\t\t\t${edge.id} = `;
+
+              if (edge.from.node) {
+                result += `${edge.from.node.name}.${edge.from.nodeAnchor}`;
+                if (edge.from.portIndex != null) {
+                  result += `[${edge.from.portIndex}]`;
+                }
+              } else if (edge.from.edge) {
+                result += `${edge.from.edge.name}.${edge.from.edgeAnchor}`;
+              }
+
+              result += ` -> `;
+
+              if (edge.to.node) {
+                result += `${edge.to.node.name}.${edge.to.nodeAnchor}`;
+                if (edge.to.portIndex != null) {
+                  result += `[${edge.to.portIndex}]`;
+                }
+              } else if (edge.to.edge) {
+                result += `${edge.to.edge.name}.${edge.to.edgeAnchor}`;
+              }
+
+              if (edge.style) {
+                result += ` style: ${edge.style}`;
+              }
+
+              if (edge.color) {
+                result += ` color: ${JSON.stringify(edge.color.length === 1 ? edge.color[0] : edge.color)}`;
+              }
+
+              if (edge.arrowheads != null) {
+                result += ` arrowheads: ${edge.arrowheads}`;
+              }
+
+              if (!isLastEdge) {
+                result += `,`;
+              }
+
+              result += `\n`;
+            }
+
+            result += `\t\t]`;
+            if (!isLastBlockEntry) result += `,`;
+            result += `\n`;
+          } else if (key2 === "groups") {
+            result += `\t\tgroups: [\n`;
+
+            for (const [groupIndex, group] of value2.entries()) {
+              const isLastGroup = groupIndex === value2.length - 1;
+
+              result += `\t\t\t${group.id.name} = members: [`;
+
+              for (const [memberIndex, member] of group.members.entries()) {
+                result += member.name;
+                if (memberIndex !== group.members.length - 1) {
+                  result += `, `;
+                }
+              }
+
+              result += `]`;
+
+              if (group.layout) {
+                result += ` layout: ${group.layout}`;
+              }
+
+              if (group.gap != null) {
+                result += ` gap: ${group.gap}`;
+              }
+
+              if (group.color) {
+                result += ` color: ${JSON.stringify(group.color.length === 1 ? group.color[0] : group.color)}`;
+              }
+
+              if (group.anchor) {
+                result += ` anchor: ${group.anchor.name}`;
+              }
+
+              if (group.annotations) {
+                for (const ann of group.annotations) {
+                  result += ` annotation.${ann.side}: ${JSON.stringify(ann.value.length === 1 ? ann.value[0] : ann.value)}`;
+                }
+              }
+
+              if (!isLastGroup) {
+                result += `,`;
+              }
+
+              result += `\n`;
+            }
+
+            result += `\t\t]`;
+            if (!isLastBlockEntry) result += `,`;
+            result += `\n`;
+          } else if (key2 === "annotations") {
+            for (const ann of value2) {
+              result += `\t\tannotation.${ann.side}: ${JSON.stringify(ann.value.length === 1 ? ann.value[0] : ann.value)},\n`;
+            }
+          } else {
+            result += `\t\t${key2}: `;
+
+            if (Array.isArray(value2)) {
+              if (value2.length === 1) {
+                result += `${JSON.stringify(value2[0])}`;
+              } else {
+                result += `${JSON.stringify(value2)}`;
+              }
+            } else {
+              const bool = key2 === "layout" || key2 === "style";
+              result += `${bool ? value2 : JSON.stringify(value2)}`;
+            }
+
+            if (!isLastBlockEntry) {
+              result += `,`;
+            }
+
+            result += `\n`;
+          }
+        }
+
+        result += `\t]`;
+        if (!isLastBlock || !isLastBodyEntry) {
+          result += `,`;
+        }
+        result += `\n`;
+      }
+    } else if (key === "diagram") {
+      result += `\tdiagram: [\n`;
+
+      const diagramEntries = Object.entries(value);
+
+      for (const [diagramIndex, [key2, value2]] of diagramEntries.entries()) {
+        const isLastDiagramEntry = diagramIndex === diagramEntries.length - 1;
+
+        if (key2 === "uses") {
+          result += `\t\tuses: [`;
+
+          for (const [useIndex, use] of value2.entries()) {
+            result += `${use.id.name} = ${use.block.name}`;
+            if (useIndex !== value2.length - 1) {
+              result += `, `;
+            }
+          }
+
+          result += `]`;
+          if (!isLastDiagramEntry) result += `,`;
+          result += `\n`;
+        } else if (key2 === "connects") {
+          result += `\t\tconnects: [\n`;
+
+          for (const [connectIndex, connect] of value2.entries()) {
+            const isLastConnect = connectIndex === value2.length - 1;
+
+            result += `\t\t\t`;
+            result += `${connect.from.block.name}.${connect.from.node.name}.${connect.from.nodeAnchor}`;
+
+            if (connect.from.portIndex != null) {
+              result += `[${connect.from.portIndex}]`;
+            }
+
+            result += ` -> `;
+
+            result += `${connect.to.block.name}.${connect.to.node.name}.${connect.to.nodeAnchor}`;
+
+            if (connect.to.portIndex != null) {
+              result += `[${connect.to.portIndex}]`;
+            }
+
+            if (connect.style) {
+              result += ` style: ${connect.style}`;
+            }
+
+            if (connect.arrowheads != null) {
+              result += ` arrowheads: ${connect.arrowheads}`;
+            }
+
+            if (!isLastConnect) {
+              result += `,`;
+            }
+
+            result += `\n`;
+          }
+
+          result += `\t\t]`;
+          if (!isLastDiagramEntry) result += `,`;
+          result += `\n`;
+        } else {
+          result += `\t\t${key2}: ${value2}`;
+          if (!isLastDiagramEntry) result += `,`;
+          result += `\n`;
+        }
+      }
+
+      result += `\t]`;
+      if (!isLastBodyEntry) result += `,`;
+      result += `\n`;
+    } else {
+      result += `\t${key}: ${JSON.stringify(value)}`;
+      if (!isLastBodyEntry) {
+        result += `,`;
+      }
+      result += `\n`;
+    }
+  }
+
+  return result;
+}
+
 function reconstructDefinition(def) {
   const { type, name, body } = def;
   if (!body) {
@@ -58,8 +323,12 @@ function reconstructDefinition(def) {
 
   let result = `${type} ${name} = {\n`;
 
-  for (const [key, value] of Object.entries(body)) {
-    result += `\t${key}: ${formatValues(key, value)}\n`;
+  if (type !== "architecture") {
+    for (const [key, value] of Object.entries(body)) {
+      result += `\t${key}: ${formatValues(key, value)}\n`;
+    }
+  } else {
+    result += reconstructArchitectureBody(body);
   }
 
   result += "}";
@@ -196,7 +465,6 @@ function isTextComponent(cmd) {
 }
 
 function reconstructCommand(cmd) {
-  console.log(cmd.type);
   switch (cmd.type) {
     case "page":
       if (cmd.layout && Array.isArray(cmd.layout) && cmd.layout.length === 2) {
@@ -224,7 +492,7 @@ function reconstructCommand(cmd) {
           const value = formatValue(cmd.args.value, cmd.target);
           return `${cmd.name}.${methodName}(${index}, ${value})`;
         } else {
-          console.log(cmd);
+          //    console.log(cmd);
           // Direct property setting (no index)
           const methodName = getMethodNameFromCommand(cmd);
           const value = formatValue(cmd.args, cmd.target);
@@ -416,21 +684,106 @@ function reconstructCommand(cmd) {
       }
     }
 
-    case "set_neuralnetwork_neuron": {
-      const methodName =
-        cmd.target === "neurons" ? "setNeuron" : "setNeuronColor";
+    case "set_block_annotation": {
+      const { block, second, third } = cmd.args;
+      return `${cmd.name}.setBlockAnnotation(${block}, ${second}, "${third}")`;
+    }
 
+    case "set_block_color": {
+      //console.log(cmd.args);
+      const { index, value } = cmd.args;
+      return `${cmd.name}.setBlockColor(${index}, "${value}")`;
+    }
+
+    case "set_block_layout": {
+    //  console.log(cmd.args);
+      const { index, value } = cmd.args;
+      return `${cmd.name}.setBlockLayout(${index}, ${value})`;
+    }
+
+    case "block_remove_block": {
+      return `${cmd.name}.removeBlock(${cmd.args})`;
+    }
+
+    case "set_group_annotation": {
+      const { block, second, third, fourth } = cmd.args;
+      return `${cmd.name}.setGroupAnnotation(${block}, ${second}, ${third}, "${fourth}")`;
+    }
+
+    case "set_group_color": {
+      const { block, second, third } = cmd.args;
+      return `${cmd.name}.setGroupColor(${block}, ${second}, "${third}")`;
+    }
+
+    case "set_group_layout": {
+      const { block, second, third } = cmd.args;
+      return `${cmd.name}.setGroupLayout(${block}, ${second}, ${third})`;
+    }
+
+    case "set_node_annotation": {
+      const { block, second, third, fourth } = cmd.args;
+      return `${cmd.name}.setNodeAnnotation(${block}, ${second}, ${third}, "${fourth}")`;
+    }
+
+    case "set_node_stroke": {
+      const { block, second, third } = cmd.args;
+      return `${cmd.name}.setNodeStroke(${block}, ${second}, "${third}")`;
+    }
+
+    case "set_node_color": {
+      const { block, second, third } = cmd.args;
+      return `${cmd.name}.setNodeColor(${block}, ${second}, "${third}")`;
+    }
+    case "set_edge_color": {
+      const { block, second, third } = cmd.args;
+      return `${cmd.name}.setEdgeColor(${block}, ${second}, "${third}")`;
+    }
+
+    case "set_node_label": {
+      const { block, second, third } = cmd.args;
+      return `${cmd.name}.setNodeLabel(${block}, ${second}, "${third}")`;
+    }
+    case "set_edge_label": {
+      const { block, second, third } = cmd.args;
+      return `${cmd.name}.setEdgeLabel(${block}, ${second}, "${third}")`;
+    }
+
+    case "set_edge_style": {
+      const { block, second, third } = cmd.args;
+      return `${cmd.name}.setEdgeStyle(${block}, ${second}, ${third})`;
+    }
+
+    case "block_remove_edge": {
+    //  console.log(cmd.args);
+      const { index, value } = cmd.args;
+      return `${cmd.name}.removeEdge(${index}, ${value})`;
+    }
+    case "block_remove_node": {
+      //  console.log(cmd.args);
+      const { index, value } = cmd.args;
+      return `${cmd.name}.removeNode(${index}, ${value})`;
+    }
+
+    case "block_remove_group": {
+      //  console.log(cmd.args);
+      const { index, value } = cmd.args;
+      return `${cmd.name}.removeGroup(${index}, ${value})`;
+    }
+
+    case "set_neuralnetwork_neuron_setNeuron": {
       const { row, col, value } = cmd.args;
-      const formattedValue = formatValue(value, "");
+      return `${cmd.name}.setNeuron(${row}, ${col}, ${formatValue(value, "")})`;
+    }
 
-      return `${cmd.name}.${methodName}(${row}, ${col}, ${formattedValue})`;
+    case "set_neuralnetwork_neuron_setNeuronColor": {
+      const { row, col, value } = cmd.args;
+      return `${cmd.name}.setNeuronColor(${row}, ${col}, ${formatValue(value, "")})`;
     }
 
     case "set_neuralnetwork_layer": {
-      const methodName =
-        cmd.target === "layers" ? "setLayer" : "setLayerColor";
+      const methodName = cmd.target === "layers" ? "setLayer" : "setLayerColor";
 
-      console.log(`cmd: ${JSON.stringify(cmd)},`)
+      //console.log(`cmd: ${JSON.stringify(cmd)},`);
 
       const formattedValue = formatValue(cmd.args.value, "");
 
@@ -469,20 +822,21 @@ function reconstructCommand(cmd) {
 
     case "insert_neuralnetwork_addLayer": {
       const methodName = "addLayer";
-      const layerName = cmd.args.index[0]
+      const layerName = cmd.args.index[0];
 
-      console.log(`cmd: ${JSON.stringify(cmd)},`);
+      // console.log(`cmd: ${JSON.stringify(cmd)},`);
 
       const formatted = formatValue(cmd.args.value, "");
 
       return `${cmd.name}.${methodName}(${formatValue(layerName, "")}, ${formatted})`;
     }
 
-    case "remove_neuralnetwork_removeLayer": {
+    case "remove_neuralnetwork_removeLayerAt": {
+    //  console.log(cmd);
       const methodName = "removeLayerAt";
       const index = cmd.args;
 
-     // console.log(`cmd: ${JSON.stringify(cmd)},`);
+      // console.log(`cmd: ${JSON.stringify(cmd)},`);
 
       const formatted = formatValue(index, "");
 

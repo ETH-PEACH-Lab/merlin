@@ -1,7 +1,7 @@
 // DSL utilities for handling matrix coordinates and component operations
 // This file handles all DSL-specific parsing and coordinate transformation
 
-import { formatPosition } from '../parser/reconstructor.mjs';
+import { formatPosition } from "../parser/reconstructor.mjs";
 
 /**
  * Parses the inspectorIndex to extract component and unit information
@@ -13,27 +13,61 @@ export function parseInspectorIndex(inspectorIndex, pages, currentPage) {
   const pageIdx = currentPage - 1; // Convert to zero-based index
   const componentIdx = parseInt(inspectorIndex.componentID.slice(10));
   const component = pages[pageIdx]?.[componentIdx];
-  
+
   if (!component) return null;
 
   const unitIdPart = inspectorIndex.unitID.slice(5); // Remove "unit_" prefix
-  
+
   let coordinates;
-  
+
   // Check if matrix coordinate format (row,col)
   const matrixMatch = unitIdPart.match(/^\((\d+),(\d+)\)$/);
   if (matrixMatch) {
     // Matrix format: unit_(0,1)
     const row = parseInt(matrixMatch[1]);
     const col = parseInt(matrixMatch[2]);
-    coordinates = { row, col, isMatrix: true };
+    const edgesLength = component.body?.blocks?.[row]?.edges?.length ?? 0;
+    const nodesLength = component.body?.blocks?.[row]?.nodes?.length ?? 0;
+    coordinates =
+      component.type === "neuralnetwork"
+        ? { row, col, isNeuralMatrix: true }
+        : component.type === "architecture"
+          ? {
+              row,
+              col,
+              isArchitectureMatrix: true,
+              type: component.body?.blocks?.[row]?.nodes[col]?.type,
+              isNode: col < nodesLength,
+              isEdge: nodesLength <= col && col < edgesLength + nodesLength,
+              isGroup: col >= nodesLength + edgesLength,
+            }
+          : { row, col, isMatrix: true };
+
+    /*  console.log("isNode");
+    console.log(col < nodesLength);
+    console.log("isEdge");
+    console.log(nodesLength <= col && col < edgesLength + nodesLength);
+    console.log("isGroup");
+    console.log(col >= nodesLength + edgesLength);*/
   } else if (unitIdPart === "component") {
     // Component-level selection (for text components without array indices)
     coordinates = null;
   } else {
     // Array format: unit_5
     const index = parseInt(unitIdPart, 10);
-    coordinates = { index, isMatrix: false };
+    const blockLength = component.body?.blocks?.length ?? 0;
+    coordinates =
+      component.type === "neuralnetwork"
+        ? { index, isNeuralMatrix: false }
+        : component.type === "architecture"
+          ? {
+              index,
+              isArchitectureMatrix: false,
+              isBlock: index < blockLength,
+              isDiagram: index >= blockLength,
+            }
+          : { index, isMatrix: false };
+    //console.log(index >= blockLength);
   }
 
   return {
@@ -42,7 +76,7 @@ export function parseInspectorIndex(inspectorIndex, pages, currentPage) {
     component,
     coordinates,
     componentName: component.name,
-    componentType: component.type
+    componentType: component.type,
   };
 }
 
@@ -51,11 +85,15 @@ export function parseInspectorIndex(inspectorIndex, pages, currentPage) {
  */
 export function getFieldValue(component, fieldKey, coordinates) {
   if (!component.body?.[fieldKey]) return null;
-  
+
   // For text components, handle differently based on whether coordinates are provided
   if (component.type === "text") {
     // If coordinates are provided and the field is an array
-    if (coordinates && !coordinates.isMatrix && coordinates.index !== undefined) {
+    if (
+      coordinates &&
+      !coordinates.isMatrix &&
+      coordinates.index !== undefined
+    ) {
       const value = component.body[fieldKey];
       if (Array.isArray(value)) {
         return value[coordinates.index] ?? null;
@@ -68,7 +106,7 @@ export function getFieldValue(component, fieldKey, coordinates) {
       return component.body[fieldKey];
     }
   }
-  
+
   // Original logic for other component types
   if (coordinates.isMatrix) {
     const { row, col } = coordinates;
@@ -85,40 +123,40 @@ export function getFieldValue(component, fieldKey, coordinates) {
 export function getFieldDropdownOptions(fieldKey) {
   const dropdownOptions = {
     fontWeight: [
-      { value: '', label: 'Default (normal)' },
-      { value: 'normal', label: 'Normal' },
-      { value: 'bold', label: 'Bold' },
-      { value: 'bolder', label: 'Bolder' },
-      { value: 'lighter', label: 'Lighter' },
-      { value: '100', label: '100' },
-      { value: '200', label: '200' },
-      { value: '300', label: '300' },
-      { value: '400', label: '400' },
-      { value: '500', label: '500' },
-      { value: '600', label: '600' },
-      { value: '700', label: '700' },
-      { value: '800', label: '800' },
-      { value: '900', label: '900' },
+      { value: "", label: "Default (normal)" },
+      { value: "normal", label: "Normal" },
+      { value: "bold", label: "Bold" },
+      { value: "bolder", label: "Bolder" },
+      { value: "lighter", label: "Lighter" },
+      { value: "100", label: "100" },
+      { value: "200", label: "200" },
+      { value: "300", label: "300" },
+      { value: "400", label: "400" },
+      { value: "500", label: "500" },
+      { value: "600", label: "600" },
+      { value: "700", label: "700" },
+      { value: "800", label: "800" },
+      { value: "900", label: "900" },
     ],
     fontFamily: [
-      { value: '', label: 'Default (sans-serif)' },
-      { value: 'sans-serif', label: 'Sans-serif' },
-      { value: 'serif', label: 'Serif' },
-      { value: 'monospace', label: 'Monospace' },
-      { value: 'Arial', label: 'Arial' },
-      { value: 'Helvetica', label: 'Helvetica' },
-      { value: 'Times New Roman', label: 'Times New Roman' },
-      { value: 'Times', label: 'Times' },
-      { value: 'Courier New', label: 'Courier New' },
-      { value: 'Courier', label: 'Courier' },
-      { value: 'Georgia', label: 'Georgia' },
-      { value: 'Verdana', label: 'Verdana' },
+      { value: "", label: "Default (sans-serif)" },
+      { value: "sans-serif", label: "Sans-serif" },
+      { value: "serif", label: "Serif" },
+      { value: "monospace", label: "Monospace" },
+      { value: "Arial", label: "Arial" },
+      { value: "Helvetica", label: "Helvetica" },
+      { value: "Times New Roman", label: "Times New Roman" },
+      { value: "Times", label: "Times" },
+      { value: "Courier New", label: "Courier New" },
+      { value: "Courier", label: "Courier" },
+      { value: "Georgia", label: "Georgia" },
+      { value: "Verdana", label: "Verdana" },
     ],
     align: [
-      { value: '', label: 'Default (left)' },
-      { value: 'left', label: 'Left' },
-      { value: 'center', label: 'Center' },
-      { value: 'right', label: 'Right' },
+      { value: "", label: "Default (left)" },
+      { value: "left", label: "Left" },
+      { value: "center", label: "Center" },
+      { value: "right", label: "Right" },
     ],
   };
 
@@ -127,24 +165,24 @@ export function getFieldDropdownOptions(fieldKey) {
 
 export function getColors() {
   return [
-          '#f44336',
-          '#e91e63',
-          '#9c27b0',
-          '#673ab7',
-          '#3f51b5',
-          '#2196f3',
-          '#03a9f4',
-          '#00bcd4',
-          '#009688',
-          '#4caf50',
-          '#8bc34a',
-          '#cddc39',
-          '#ffeb3b',
-          '#ffc107',
-          '#ff9800',
-          '#ff5722',
-          '#795548',
-          '#607d8b',
+    "#f44336",
+    "#e91e63",
+    "#9c27b0",
+    "#673ab7",
+    "#3f51b5",
+    "#2196f3",
+    "#03a9f4",
+    "#00bcd4",
+    "#009688",
+    "#4caf50",
+    "#8bc34a",
+    "#cddc39",
+    "#ffeb3b",
+    "#ffc107",
+    "#ff9800",
+    "#ff5722",
+    "#795548",
+    "#607d8b",
   ];
 }
 
@@ -153,10 +191,23 @@ export function getColors() {
  */
 export function getComponentFields(componentType) {
   const fieldDefinitions = {
-     neuralnetwork: {
+    architecture: {
       remove: "Remove Unit",
       value: "Edit Value",
       color: "Edit Color",
+      stroke: "Edit Stroke Color",
+      annotation: "Edit Annotation",
+      styleEdge: "Edit Edge Style",
+      layout: "Edit Group layout",
+    },
+    neuralnetwork: {
+      remove: "Remove Unit",
+      value: "Edit Value",
+      color: "Edit Color",
+      layers: "Edit Layers",
+      layerColors: "Edit Layer Colors",
+      neurons: "Edit Neurons",
+      neuronColors: "Edit Neuron Colors",
     },
     array: {
       add: "Add Unit",
@@ -232,32 +283,54 @@ export function getComponentFields(componentType) {
 export function createComponentData(parsedInfo) {
   if (!parsedInfo) return null;
 
-  const { pageIdx, componentIdx, component, coordinates, componentName, componentType } = parsedInfo;
+  const {
+    pageIdx,
+    componentIdx,
+    component,
+    coordinates,
+    componentName,
+    componentType,
+  } = parsedInfo;
 
   const componentData = {
     component: componentIdx,
     name: componentName,
     page: pageIdx,
     type: componentType,
-    body: component.body
+    body: component.body,
   };
 
   const fields = getComponentFields(componentType);
-  Object.keys(fields).forEach(fieldKey => {
-    if (["nodes", "edges", "value", "color", "arrow"].includes(fieldKey)){
-          componentData[fieldKey] = component.body[fieldKey] ?? "null"
+  Object.keys(fields).forEach((fieldKey) => {
+    if (
+      [
+        "nodes",
+        "edges",
+        "value",
+        "color",
+        "arrow",
+        "neurons",
+        "layers",
+        "neuronColors",
+        "layerColors",
+      ].includes(fieldKey)
+    ) {
+      componentData[fieldKey] = component.body[fieldKey];
     }
+
     // exception for trees where the edges are called children
-    if (fieldKey === "edges" && componentType === "tree"){
-      componentData[fieldKey] = component.body["children"] ?? "null"
+    if (fieldKey === "edges" && componentType === "tree") {
+      componentData[fieldKey] = component.body["children"] ?? "null";
     }
   });
-  ["text_above", "text_below", "text_left", "text_right", "position"].forEach(fieldKey => {
-    componentData[fieldKey] = component.body[fieldKey] ?? ""
-  })
+
+  ["text_above", "text_below", "text_left", "text_right", "position"].forEach(
+    (fieldKey) => {
+      componentData[fieldKey] = component.body[fieldKey] ?? "";
+    },
+  );
 
   return componentData;
-
 }
 
 /**
@@ -266,8 +339,15 @@ export function createComponentData(parsedInfo) {
 export function createUnitData(parsedInfo) {
   if (!parsedInfo) return null;
 
-  const { pageIdx, componentIdx, component, coordinates, componentName, componentType } = parsedInfo;
-  
+  const {
+    pageIdx,
+    componentIdx,
+    component,
+    coordinates,
+    componentName,
+    componentType,
+  } = parsedInfo;
+
   const unitData = {
     coordinates,
     component: componentIdx,
@@ -276,26 +356,28 @@ export function createUnitData(parsedInfo) {
     type: componentType,
   };
 
-  if (componentType === "graph"){
-    unitData["allNodes"] =  component.body.nodes;
+  if (componentType === "graph") {
+    unitData["allNodes"] = component.body.nodes;
   }
 
   // Add fields based on type definition
   const fields = getComponentFields(componentType);
-  Object.keys(fields).forEach(fieldKey => {
+  Object.keys(fields).forEach((fieldKey) => {
     let value = null;
-    
+
     // Skip position field for auto-generated placement text components
     // These are text components with names ending in _above, _below, _left, _right
     // These components are auto-positioned relative to their parent and shouldn't be manually positioned
     if (fieldKey === "position" && componentType === "text") {
-      const placementSuffixes = ['_above', '_below', '_left', '_right'];
-      const isPlacementText = placementSuffixes.some(suffix => componentName.endsWith(suffix));
+      const placementSuffixes = ["_above", "_below", "_left", "_right"];
+      const isPlacementText = placementSuffixes.some((suffix) =>
+        componentName.endsWith(suffix),
+      );
       if (isPlacementText) {
         return; // Skip this field entirely - these components are auto-positioned
       }
     }
-    
+
     // For text components, handle field values specially
     if (componentType === "text") {
       // Global properties should always show their actual value regardless of line selection
@@ -318,69 +400,74 @@ export function createUnitData(parsedInfo) {
         // Position is stored at component level for all component types
         // Format position object to readable string
         value = component.position ? formatPosition(component.position) : null;
-      } else if (fieldKey === "color" || fieldKey === "arrow" || fieldKey === "value" || fieldKey === "nodes" ) {
+      } else if (
+        fieldKey === "color" ||
+        fieldKey === "arrow" ||
+        fieldKey === "value" ||
+        fieldKey === "nodes"
+      ) {
         value = getFieldValue(component, fieldKey, coordinates);
       }
     }
-    
+
     unitData[fieldKey] = value ?? "null";
   });
   return unitData;
 }
 
-
 /**
  * Generate a new unique node name
  */
 export function generateNodeName(nodes, componentType) {
-    if (!nodes || nodes.length === 0) {
-        // If no nodes exist, start with the first one based on component type
-        switch (componentType) {
-            case "linkedlist":
-            case "graph":
-                return "n0";
-            case "tree":
-                return "A";
-            default:
-                return "n0";
-        }
+  if (!nodes || nodes.length === 0) {
+    // If no nodes exist, start with the first one based on component type
+    switch (componentType) {
+      case "linkedlist":
+      case "graph":
+        return "n0";
+      case "tree":
+        return "A";
+      default:
+        return "n0";
     }
+  }
 
-    // Find the highest numbered node and increment
-    let maxNum = -1;
-    let prefix = "";
+  // Find the highest numbered node and increment
+  let maxNum = -1;
+  let prefix = "";
 
-    // Determine the naming pattern from existing nodes
-    for (const node of nodes) {
-        if (typeof node === 'string') {
-            if (node.match(/^n\d+$/)) {
-                // Pattern: n0, n1, n2, etc.
-                prefix = "n";
-                const num = parseInt(node.substring(1));
-                if (!isNaN(num)) {
-                    maxNum = Math.max(maxNum, num);
-                }
-            } else if (node.match(/^[A-Z]$/)) {
-                // Pattern: A, B, C, etc.
-                prefix = "letter";
-                const charCode = node.charCodeAt(0);
-                const num = charCode - 65; // A=0, B=1, C=2, etc.
-                maxNum = Math.max(maxNum, num);
-            }
+  // Determine the naming pattern from existing nodes
+  for (const node of nodes) {
+    if (typeof node === "string") {
+      if (node.match(/^n\d+$/)) {
+        // Pattern: n0, n1, n2, etc.
+        prefix = "n";
+        const num = parseInt(node.substring(1));
+        if (!isNaN(num)) {
+          maxNum = Math.max(maxNum, num);
         }
+      } else if (node.match(/^[A-Z]$/)) {
+        // Pattern: A, B, C, etc.
+        prefix = "letter";
+        const charCode = node.charCodeAt(0);
+        const num = charCode - 65; // A=0, B=1, C=2, etc.
+        maxNum = Math.max(maxNum, num);
+      }
     }
+  }
 
-    // Generate the next node name
-    if (prefix === "letter") {
-        const nextCharCode = 65 + maxNum + 1; // Next letter
-        if (nextCharCode <= 90) { // Z is 90
-            return String.fromCharCode(nextCharCode);
-        } else {
-            // Fall back to n pattern if we run out of letters
-            return "n" + (maxNum + 1);
-        }
+  // Generate the next node name
+  if (prefix === "letter") {
+    const nextCharCode = 65 + maxNum + 1; // Next letter
+    if (nextCharCode <= 90) {
+      // Z is 90
+      return String.fromCharCode(nextCharCode);
     } else {
-        // Default to n pattern
-        return "n" + (maxNum + 1);
+      // Fall back to n pattern if we run out of letters
+      return "n" + (maxNum + 1);
     }
+  } else {
+    // Default to n pattern
+    return "n" + (maxNum + 1);
+  }
 }

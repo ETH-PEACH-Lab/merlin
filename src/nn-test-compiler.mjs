@@ -1,22 +1,24 @@
 import parseText from "./parser/parseText.mjs";
 import compiler from "./compiler/compiler.mjs";
+import util from "node:util";
 
 const dsl = `
 neuralnetwork nn = {
-  layers: [1, 2]
+	layers: ["layer1", "hidden", "output"]
+	neurons: [["null", "x1"], ["x2", "x3"], ["x4", "x5"]]
+	neuronColors: [["blue", "blue"], [null, "blue"], ["blue", "red"]]
+	showBias: true
 	showLabels: true
 	labelPosition: "bottom"
 	showWeights: true
 	showArrowheads: true
 }
 
-
 page
 show nn
-
 page
-nn.addNeurons(0, ["x", "y"])
-nn.addNeurons(3, ["x", "y"])
+nn.setLayerColors(["blue"])
+
 
 
 
@@ -29,12 +31,18 @@ nn.addNeurons(3, ["x", "y"])
 
 const parsed = parseText(dsl);
 
+//console.log("PARSED:")
+//console.log(parsed);
+//console.log(parsed.defs[0].body);
+
+console.log(util.inspect(parsed, { depth: null, colors: true }));
 const result = compiler(parsed);
 
-//console.log(result);
+
 
 /*
-
+page
+nn.setNeurons([[null, "x1"], ["x2", "x3"], ["x4", "x5"], ["x1", "x1", "x1"]])
 
 nn.removeLayerAt(0)
 nn.addLayer("colorsLayer", ["a", "b"])

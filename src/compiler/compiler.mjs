@@ -12,9 +12,12 @@ import { generateTree } from "./types/generateTree.mjs";
 import { generateMatrix } from "./types/generateMatrix.mjs";
 import { generateGraph } from "./types/generateGraph.mjs";
 import { generateNeuralNetwork } from "./types/generateNeuralNetwork.mjs";
+import { generateBlock } from "./types/generateBlock.mjs";
 import { generateText } from "./types/generateText.mjs";
 import { getMermaidContainerSize } from "../utils/positionUtils.mjs";
 import { generateNodeName } from "../utils/dslUtils.mjs";
+
+const INHERIT_LAYER_COLOR = "layerColor";
 
 // Helper function to maintain consistency across array properties when modifying arrays
 function maintainArrayPropertyConsistency(
@@ -642,6 +645,31 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
         "remove_neuralnetwork_removeLayerAt",
         "remove_neuralnetwork_removeNeuronsFromLayer",
         "insert_neuralnetwork_insertNeurons",
+        "block_remove_nodes",
+        "block_remove_node",
+        "block_remove_block",
+        "block_remove_edges",
+        "block_remove_edge",
+        "block_remove_group",
+        "set_node_label",
+        "set_node_color",
+        "set_node_stroke",
+        "set_edge_label",
+        "set_edge_color",
+        "set_edge_style",
+        "hide_node",
+        "show_node",
+        "hide_edge",
+        "show_edge",
+        "hide_block",
+        "show_block",
+        "set_block_color",
+        "set_block_annotation",
+        "set_group_color",
+        "set_group_layout",
+        "set_block_layout",
+        "set_group_annotation",
+        "set_node_annotation",
       ].includes(command.type)
     ) {
       const targetObject =
@@ -1136,9 +1164,1622 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
         break;
       }
 
-      case "remove_neuralnetwork_removeNeuronsFromLayer": {
-        //console.log("COMMAND");
+      /*  case "show_group": {
+        const name = command.name;
+        const targetObject = pages[pages.length - 1].find(
+          (comp) => comp.name === name,
+        );
+        //  console.log(command);
+        if (targetObject) {
+          const firstArg = command.args.index;
+          const blocks = targetObject.body.blocks;
+          const secondArg = command.args.value;
+          for (const block of blocks) {
+            if (block.id.name === firstArg) {
+              for (const group of block.groups ?? []) {
+                if (group.id.name === secondArg) {
+                  if (group.hidden) {
+                    delete group.hidden;
+                  }
+                }
+
+                for (const member of group.members ?? []) {
+                  if (member.name === secondArg) {
+                    if (member.hidden) {
+                      delete member.hidden;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        } else {
+          causeCompileError(
+            `Component "${name}" not found on the current page.`,
+            command,
+          );
+        }
+        break;
+      }*/
+
+      /*case "hide_group": {
+        const name = command.name;
+        const targetObject = pages[pages.length - 1].find(
+          (comp) => comp.name === name,
+        );
+        //  console.log(command);
+        if (targetObject) {
+          const firstArg = command.args.index;
+          const blocks = targetObject.body.blocks;
+          const secondArg = command.args.value;
+          for (const block of blocks) {
+            if (block.id.name === firstArg) {
+              for (const group of block.groups ?? []) {
+                if (group.id.name === secondArg) {
+                  group.hidden = true;
+                }
+
+                for (const member of group.members ?? []) {
+                  if (member.name === secondArg) {
+                    member.hidden = true;
+                  }
+                }
+              }
+            }
+          }
+        } else {
+          causeCompileError(
+            `Component "${name}" not found on the current page.`,
+            command,
+          );
+        }
+        break;
+      }*/
+
+      case "show_edge": {
+        const name = command.name;
+        const targetObject = pages[pages.length - 1].find(
+          (comp) => comp.name === name,
+        );
+        //  console.log(command);
+        if (targetObject) {
+          const firstArg = command.args.index;
+          const blocks = targetObject.body.blocks;
+          const diagram = targetObject.body?.diagram;
+          const secondArg = command.args.value;
+          const relatedIds = new Set([command.args.value]);
+          for (const block of blocks) {
+            if (block.id.name === firstArg) {
+              let changed = true;
+
+              if (block.edges) {
+                while (changed) {
+                  changed = false;
+
+                  for (const edge of block.edges) {
+                    const from = edge.from?.node?.name ?? edge.from?.edge?.name;
+                    const to = edge.to?.node?.name ?? edge.to?.edge?.name;
+
+                    if (relatedIds.has(from) || relatedIds.has(to)) {
+                      if (!relatedIds.has(edge.id)) {
+                        relatedIds.add(edge.id);
+                        changed = true;
+                      }
+                    }
+                  }
+                }
+
+                for (const edge of block.edges) {
+                  if (relatedIds.has(edge.id)) {
+                    if (edge.hidden) {
+                      delete edge.hidden;
+                    }
+                  }
+                }
+              }
+            }
+          }
+
+          const useIds = new Set();
+
+          if (diagram) {
+            for (const use of diagram.uses ?? []) {
+              if (use.block.name === firstArg) {
+                useIds.add(use.id.name);
+              }
+            }
+
+            for (const connect of diagram.connects ?? []) {
+              if (
+                (useIds.has(connect.from.block.name) &&
+                  connect.from.edge?.name === secondArg) ||
+                (useIds.has(connect.to.block.name) &&
+                  connect.to.edge?.name === secondArg)
+              ) {
+                if (connect.hidden) {
+                  delete connect.hidden;
+                }
+              }
+            }
+          }
+        } else {
+          causeCompileError(
+            `Component "${name}" not found on the current page.`,
+            command,
+          );
+        }
+        break;
+      }
+
+      case "hide_edge": {
+        const name = command.name;
+        const targetObject = pages[pages.length - 1].find(
+          (comp) => comp.name === name,
+        );
+        //  console.log(command);
+        if (targetObject) {
+          const firstArg = command.args.index;
+          const blocks = targetObject.body.blocks;
+          const diagram = targetObject.body?.diagram;
+          const secondArg = command.args.value;
+          const relatedIds = new Set([command.args.value]);
+          for (const block of blocks) {
+            if (block.id.name === firstArg) {
+              let changed = true;
+
+              if (block.edges) {
+                while (changed) {
+                  changed = false;
+
+                  for (const edge of block.edges) {
+                    const from = edge.from?.node?.name ?? edge.from?.edge?.name;
+                    const to = edge.to?.node?.name ?? edge.to?.edge?.name;
+
+                    if (relatedIds.has(from) || relatedIds.has(to)) {
+                      if (!relatedIds.has(edge.id)) {
+                        relatedIds.add(edge.id);
+                        changed = true;
+                      }
+                    }
+                  }
+                }
+
+                for (const edge of block.edges) {
+                  if (relatedIds.has(edge.id)) {
+                    edge.hidden = true;
+                  }
+                }
+              }
+            }
+          }
+
+          const useIds = new Set();
+
+          if (diagram) {
+            for (const use of diagram.uses ?? []) {
+              if (use.block.name === firstArg) {
+                useIds.add(use.id.name);
+              }
+            }
+
+            for (const connect of diagram.connects ?? []) {
+              if (
+                (useIds.has(connect.from.block.name) &&
+                  connect.from.edge?.name === secondArg) ||
+                (useIds.has(connect.to.block.name) &&
+                  connect.to.edge?.name === secondArg)
+              ) {
+                connect.hidden = true;
+              }
+            }
+          }
+        } else {
+          causeCompileError(
+            `Component "${name}" not found on the current page.`,
+            command,
+          );
+        }
+        break;
+      }
+
+      case "show_node": {
+        const name = command.name;
+        const targetObject = pages[pages.length - 1].find(
+          (comp) => comp.name === name,
+        );
+        //console.log(command);
+        if (targetObject) {
+          const firstArg = command.args.index;
+          const secondArg = command.args.value;
+          const blocks = targetObject.body.blocks;
+          const diagram = targetObject.body?.diagram;
+          const relatedIds = new Set([command.args.value]);
+          for (const block of blocks) {
+            if (block.id.name === firstArg) {
+              let changed = true;
+
+              if (block.edges) {
+                while (changed) {
+                  changed = false;
+
+                  for (const edge of block.edges) {
+                    const from = edge.from?.node?.name ?? edge.from?.edge?.name;
+                    const to = edge.to?.node?.name ?? edge.to?.edge?.name;
+
+                    if (relatedIds.has(from) || relatedIds.has(to)) {
+                      if (!relatedIds.has(edge.id)) {
+                        relatedIds.add(edge.id);
+                        changed = true;
+                      }
+                    }
+                  }
+                }
+
+                for (const edge of block.edges) {
+                  if (relatedIds.has(edge.id)) {
+                    if (edge.hidden) {
+                      delete edge.hidden;
+                    }
+                  }
+                }
+              }
+
+              if (block.nodes) {
+                for (const node of block.nodes) {
+                  if (relatedIds.has(node.id)) {
+                    if (node.hidden) {
+                      delete node.hidden;
+                    }
+                  }
+                }
+              }
+
+              if (block.groups) {
+                for (const group of block.groups) {
+                  for (const member of group.members ?? []) {
+                    if (relatedIds.has(member.name)) {
+                      if (member.hidden) {
+                        delete member.hidden;
+                      }
+                    }
+                  }
+
+                  if (
+                    group.anchor?.name !== undefined &&
+                    relatedIds.has(group.anchor.name)
+                  ) {
+                    if (group.anchor.hidden) {
+                      delete group.anchor.hidden;
+                    }
+                  }
+                }
+              }
+            }
+          }
+
+          const useIds = new Set();
+
+          if (diagram) {
+            for (const use of diagram.uses ?? []) {
+              if (use.block.name === firstArg) {
+                useIds.add(use.id.name);
+              }
+            }
+
+            for (const connect of diagram.connects ?? []) {
+              if (
+                (useIds.has(connect.from.block.name) &&
+                  connect.from.node?.name === secondArg) ||
+                (useIds.has(connect.to.block.name) &&
+                  connect.to.node?.name === secondArg)
+              ) {
+                if (connect.hidden) {
+                  delete connect.hidden;
+                }
+              }
+            }
+          }
+        } else {
+          causeCompileError(
+            `Component "${name}" not found on the current page.`,
+            command,
+          );
+        }
+        break;
+      }
+
+      case "hide_node": {
+        const name = command.name;
+        const targetObject = pages[pages.length - 1].find(
+          (comp) => comp.name === name,
+        );
         // console.log(command);
+        if (targetObject) {
+          const firstArg = command.args.index;
+          const blocks = targetObject.body.blocks;
+          const diagram = targetObject.body?.diagram;
+          const secondArg = command.args.value;
+          const relatedIds = new Set([command.args.value]);
+          for (const block of blocks) {
+            if (block.id.name === firstArg) {
+              let changed = true;
+
+              if (block.edges) {
+                while (changed) {
+                  changed = false;
+
+                  for (const edge of block.edges) {
+                    const from = edge.from?.node?.name ?? edge.from?.edge?.name;
+                    const to = edge.to?.node?.name ?? edge.to?.edge?.name;
+
+                    if (relatedIds.has(from) || relatedIds.has(to)) {
+                      if (!relatedIds.has(edge.id)) {
+                        relatedIds.add(edge.id);
+                        changed = true;
+                      }
+                    }
+                  }
+                }
+
+                for (const edge of block.edges) {
+                  if (relatedIds.has(edge.id)) {
+                    edge.hidden = true;
+                  }
+                }
+              }
+
+              if (block.nodes) {
+                for (const node of block.nodes) {
+                  if (relatedIds.has(node.id)) {
+                    node.hidden = true;
+                  }
+                }
+              }
+
+              if (block.groups) {
+                for (const group of block.groups) {
+                  for (const member of group.members ?? []) {
+                    if (relatedIds.has(member.name)) {
+                      member.hidden = true;
+                    }
+                  }
+
+                  if (
+                    group.anchor?.name !== undefined &&
+                    relatedIds.has(group.anchor.name)
+                  ) {
+                    group.anchor.hidden = true;
+                  }
+                }
+              }
+            }
+          }
+
+          const useIds = new Set();
+
+          if (diagram) {
+            for (const use of diagram.uses ?? []) {
+              if (use.block.name === firstArg) {
+                useIds.add(use.id.name);
+              }
+            }
+
+            for (const connect of diagram.connects ?? []) {
+              if (
+                (useIds.has(connect.from.block.name) &&
+                  connect.from.node?.name === secondArg) ||
+                (useIds.has(connect.to.block.name) &&
+                  connect.to.node?.name === secondArg)
+              ) {
+                connect.hidden = true;
+              }
+            }
+          }
+        } else {
+          causeCompileError(
+            `Component "${name}" not found on the current page.`,
+            command,
+          );
+        }
+        break;
+      }
+
+      case "show_block": {
+        const name = command.name;
+        const targetObject = pages[pages.length - 1].find(
+          (comp) => comp.name === name,
+        );
+
+        if (targetObject) {
+          const firstArg = command.args;
+          const blocks = targetObject.body.blocks;
+          const diagram = targetObject.body.diagram;
+          for (const block of blocks) {
+            if (block.id.name === firstArg) {
+              if (block.hidden) {
+                delete block.hidden;
+              }
+            }
+          }
+
+          const useIds = new Map();
+
+          if (diagram) {
+            for (const use of diagram.uses ?? []) {
+              if (!useIds.has(use.id.name)) {
+                useIds.set(use.id.name, use.block.name);
+              }
+              if (use.block.name === firstArg) {
+                if (use.hidden) {
+                  delete use.hidden;
+                }
+              }
+            }
+
+            for (const connect of diagram.connects ?? []) {
+              const toBoolean = blocks.find(
+                (block) => block.id.name === useIds.get(connect.to.block.name),
+              ).hidden;
+
+              const fromBoolean = blocks.find(
+                (block) =>
+                  block.id.name === useIds.get(connect.from.block.name),
+              ).hidden;
+
+              if (
+                (useIds.get(connect.from.block.name) === firstArg &&
+                  toBoolean === undefined) ||
+                (useIds.has(connect.to.block.name) === firstArg &&
+                  fromBoolean === undefined)
+              ) {
+                if (connect.hidden) {
+                  delete connect.hidden;
+                }
+              }
+            }
+          }
+
+          //  console.log(diagram.connects);
+        } else {
+          causeCompileError(
+            `Component "${name}" not found on the current page.`,
+            command,
+          );
+        }
+        break;
+      }
+
+      case "hide_block": {
+        const name = command.name;
+        const targetObject = pages[pages.length - 1].find(
+          (comp) => comp.name === name,
+        );
+
+        if (targetObject) {
+          const firstArg = command.args;
+          const blocks = targetObject.body.blocks;
+          const diagram = targetObject.body.diagram;
+          for (const block of blocks) {
+            if (block.id.name === firstArg) {
+              block.hidden = true;
+            }
+          }
+
+          const useIds = new Set();
+
+          if (diagram) {
+            for (const use of diagram.uses ?? []) {
+              if (use.block.name === firstArg) {
+                useIds.add(use.id.name);
+                use.hidden = true;
+              }
+            }
+
+            for (const connect of diagram.connects ?? []) {
+              if (
+                useIds.has(connect.from.block.name) ||
+                useIds.has(connect.to.block.name)
+              ) {
+                connect.hidden = true;
+              }
+            }
+          }
+
+          //  console.log(diagram.connects);
+        } else {
+          causeCompileError(
+            `Component "${name}" not found on the current page.`,
+            command,
+          );
+        }
+        break;
+      }
+
+      case "set_node_annotation": {
+        const name = command.name;
+        const targetObject = pages[pages.length - 1].find(
+          (comp) => comp.name === name,
+        );
+
+        if (targetObject) {
+          const firstArg = command.args.block;
+          const secondArg = command.args.second;
+          const thirdArg = command.args.third;
+          const fourthArg =
+            command.args.fourth[0] === null ? "" : command.args.fourth[0];
+          const blocks = targetObject.body.blocks;
+          for (const block of blocks) {
+            if (block.id.name === firstArg) {
+              for (const node of block.nodes ?? []) {
+                if (node.id === secondArg) {
+                  if (!node.annotations) {
+                    node.annotations = [{ side: thirdArg, value: fourthArg }];
+                  } else {
+                    let found = false;
+
+                    for (const annotation of node.annotations) {
+                      if (annotation.side === thirdArg) {
+                        annotation.value = fourthArg;
+                        found = true;
+                      }
+                    }
+
+                    if (!found) {
+                      node.annotations.push({
+                        side: thirdArg,
+                        value: fourthArg,
+                      });
+                    }
+                  }
+                }
+                // console.log(node.annotations);
+              }
+            }
+          }
+        } else {
+          causeCompileError(
+            `Component "${name}" not found on the current page.`,
+            command,
+          );
+        }
+        break;
+      }
+
+      case "set_group_annotation": {
+        const name = command.name;
+        const targetObject = pages[pages.length - 1].find(
+          (comp) => comp.name === name,
+        );
+
+        if (targetObject) {
+          const firstArg = command.args.block;
+          const secondArg = command.args.second;
+          const thirdArg = command.args.third;
+          const fourthArg =
+            command.args.fourth[0] === null ? "" : command.args.fourth[0];
+
+          const blocks = targetObject.body.blocks;
+          for (const block of blocks) {
+            if (block.id.name === firstArg) {
+              for (const group of block.groups ?? []) {
+                if (group.id.name === secondArg) {
+                  if (!group.annotations) {
+                    group.annotations = [{ side: thirdArg, value: fourthArg }];
+                  } else {
+                    let found = false;
+
+                    for (const annotation of group.annotations) {
+                      if (annotation.side === thirdArg) {
+                        annotation.value = fourthArg;
+                        found = true;
+                      }
+                    }
+
+                    if (!found) {
+                      group.annotations.push({
+                        side: thirdArg,
+                        value: fourthArg,
+                      });
+                    }
+                  }
+                }
+              }
+            }
+          }
+        } else {
+          causeCompileError(
+            `Component "${name}" not found on the current page.`,
+            command,
+          );
+        }
+        break;
+      }
+
+      case "block_remove_group": {
+        const name = command.name;
+        const targetObject = pages[pages.length - 1].find(
+          (comp) => comp.name === name,
+        );
+        if (targetObject) {
+          const firstArg = command.args.index;
+          const secondArg = command.args.value;
+
+          const blocks = targetObject.body.blocks;
+          for (const block of blocks) {
+            if (block.id.name === firstArg) {
+              if (block.groups) {
+                block.groups = block.groups.filter(
+                  (group) => group.id.name !== secondArg,
+                );
+              }
+            }
+          }
+        } else {
+          causeCompileError(
+            `Component "${name}" not found on the current page.`,
+            command,
+          );
+        }
+        break;
+      }
+
+      case "set_group_color": {
+        const name = command.name;
+        const targetObject = pages[pages.length - 1].find(
+          (comp) => comp.name === name,
+        );
+        if (targetObject) {
+          const firstArg = command.args.block;
+          const secondArg = command.args.second;
+          const thirdArg =
+            command.args.third[0] === null ? "" : command.args.third[0];
+
+          const blocks = targetObject.body.blocks;
+          for (const block of blocks) {
+            if (block.id.name === firstArg) {
+              for (const group of block.groups ?? []) {
+                if (group.id.name === secondArg) {
+                  group.color = thirdArg;
+                }
+              }
+            }
+          }
+        } else {
+          causeCompileError(
+            `Component "${name}" not found on the current page.`,
+            command,
+          );
+        }
+        break;
+      }
+
+      case "block_remove_block": {
+        const name = command.name;
+        const targetObject = pages[pages.length - 1].find(
+          (comp) => comp.name === name,
+        );
+        if (targetObject) {
+          const firstArg = command.args;
+          const diagram = targetObject.body.diagram;
+
+          if (targetObject.body.blocks) {
+            targetObject.body.blocks = targetObject.body.blocks.filter(
+              (block) => block.id.name !== firstArg,
+            );
+          }
+
+          const usedIds = new Set();
+          for (const use of diagram.uses ?? []) {
+            if (use.block.name === firstArg) {
+              usedIds.add(use.id.name);
+            }
+          }
+
+          if (targetObject.body.diagram.uses) {
+            targetObject.body.diagram.uses =
+              targetObject.body.diagram.uses.filter(
+                (use) => use.block.name !== firstArg,
+              );
+          }
+
+          if (targetObject.body.diagram.connects) {
+            targetObject.body.diagram.connects =
+              targetObject.body.diagram.connects.filter(
+                (connect) =>
+                  !usedIds.has(connect.from.block.name) &&
+                  !usedIds.has(connect.to.block.name),
+              );
+          }
+        } else {
+          causeCompileError(
+            `Component "${name}" not found on the current page.`,
+            command,
+          );
+        }
+        break;
+      }
+
+      case "set_block_layout": {
+        const name = command.name;
+        const targetObject = pages[pages.length - 1].find(
+          (comp) => comp.name === name,
+        );
+        if (targetObject) {
+          const firstArg = command.args.index;
+          const secondArg = command.args.value;
+          const blocks = targetObject.body.blocks;
+          for (const block of blocks) {
+            if (block.id.name === firstArg) {
+              block.layout = secondArg;
+            }
+          }
+        } else {
+          causeCompileError(
+            `Component "${name}" not found on the current page.`,
+            command,
+          );
+        }
+        break;
+      }
+
+      case "set_group_layout": {
+        const name = command.name;
+        const targetObject = pages[pages.length - 1].find(
+          (comp) => comp.name === name,
+        );
+        if (targetObject) {
+          const firstArg = command.args.block;
+          const secondArg = command.args.second;
+          const thirdArg =
+            command.args.third === null ? "" : command.args.third;
+
+          const blocks = targetObject.body.blocks;
+          for (const block of blocks) {
+            if (block.id.name === firstArg) {
+              for (const group of block.groups ?? []) {
+                if (group.id.name === secondArg) {
+                  group.layout = thirdArg;
+                }
+              }
+            }
+          }
+        } else {
+          causeCompileError(
+            `Component "${name}" not found on the current page.`,
+            command,
+          );
+        }
+        break;
+      }
+
+      case "set_block_annotation": {
+        const name = command.name;
+        const targetObject = pages[pages.length - 1].find(
+          (comp) => comp.name === name,
+        );
+
+        if (targetObject) {
+          const firstArg = command.args.block;
+          const secondArg = command.args.second;
+          const thirdArg =
+            command.args.third[0] === null ? "" : command.args.third[0];
+
+          const blocks = targetObject.body.blocks;
+          for (const block of blocks) {
+            if (block.id.name === firstArg) {
+              if (!block.annotations) {
+                block.annotations = [{ side: secondArg, value: thirdArg }];
+              } else {
+                let found = false;
+
+                for (const annotation of block.annotations) {
+                  if (annotation.side === secondArg) {
+                    annotation.value = thirdArg;
+                    found = true;
+                  }
+                }
+
+                if (!found) {
+                  block.annotations.push({ side: secondArg, value: thirdArg });
+                }
+              }
+            }
+            //console.log(block.annotations);
+          }
+        } else {
+          causeCompileError(
+            `Component "${name}" not found on the current page.`,
+            command,
+          );
+        }
+        break;
+      }
+
+      case "set_block_color": {
+        const name = command.name;
+        const targetObject = pages[pages.length - 1].find(
+          (comp) => comp.name === name,
+        );
+
+        if (targetObject) {
+          const firstArg = command.args.index;
+          const secondArg =
+            command.args.value[0] === null ? "" : command.args.value[0];
+
+          const blocks = targetObject.body.blocks;
+          for (const block of blocks) {
+            if (block.id.name === firstArg) {
+              block.color = secondArg;
+            }
+          }
+        } else {
+          causeCompileError(
+            `Component "${name}" not found on the current page.`,
+            command,
+          );
+        }
+        break;
+      }
+
+      case "set_node_stroke": {
+        const name = command.name;
+        const targetObject = pages[pages.length - 1].find(
+          (comp) => comp.name === name,
+        );
+
+        if (targetObject) {
+          const firstArg = command.args.block;
+          const secondArg = command.args.second;
+          const thirdArg =
+            command.args.third[0] === null
+              ? "transparent"
+              : command.args.third[0];
+
+          const blocks = targetObject.body.blocks;
+          for (const block of blocks) {
+            if (block.id.name === firstArg) {
+              if (block.nodes) {
+                for (const node of block.nodes) {
+                  if (node.id === secondArg) {
+                    if (node.type === "text") {
+                      causeCompileError(
+                        `${secondArg} is of type "text". Text does not have stroke property`,
+                        command,
+                      );
+                    } else {
+                      node.stroke = thirdArg;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        } else {
+          causeCompileError(
+            `Component "${name}" not found on the current page.`,
+            command,
+          );
+        }
+        break;
+      }
+
+      case "block_remove_edges": {
+        const name = command.name;
+        const targetObject = pages[pages.length - 1].find(
+          (comp) => comp.name === name,
+        );
+        //console.log(command);
+        if (targetObject) {
+          if (command.args.index !== "diagram") {
+            const firstArg = command.args.index;
+            const blocks = targetObject.body.blocks;
+            const diagram = targetObject.body?.diagram;
+            const idsToRemove = new Set(command.args.value);
+            for (const block of blocks) {
+              if (block.id.name === firstArg) {
+                if (block.edges) {
+                  let changed = true;
+
+                  while (changed) {
+                    changed = false;
+
+                    for (const edge of block.edges) {
+                      const from =
+                        edge.from?.node?.name ?? edge.from?.edge?.name;
+                      const to = edge.to?.node?.name ?? edge.to?.edge?.name;
+
+                      if (idsToRemove.has(from) || idsToRemove.has(to)) {
+                        if (!idsToRemove.has(edge.id)) {
+                          idsToRemove.add(edge.id);
+                          changed = true;
+                        }
+                      }
+                    }
+                  }
+
+                  block.edges = block.edges.filter(
+                    (edge) => !idsToRemove.has(edge.id),
+                  );
+                }
+              }
+            }
+
+            if (!diagram?.uses || !diagram?.connects) return;
+
+            const idsofBlockInUse = new Set();
+            for (const use of diagram.uses) {
+              if (use.block.name === firstArg) {
+                idsofBlockInUse.add(use.id.name);
+              }
+            }
+
+            diagram.connects = diagram.connects.filter((item) => {
+              if (idsofBlockInUse.has(item.from?.block.name)) {
+                if (
+                  item.from?.edge !== undefined &&
+                  idsToRemove.has(item.from?.edge.name)
+                ) {
+                  return false;
+                }
+
+                if (
+                  item.from?.node !== undefined &&
+                  idsToRemove.has(item.from?.node.name)
+                ) {
+                  return false;
+                }
+              }
+              if (idsofBlockInUse.has(item.to?.block.name)) {
+                if (
+                  item.to?.edge !== undefined &&
+                  idsToRemove.has(item.to?.edge.name)
+                ) {
+                  return false;
+                }
+
+                if (
+                  item.to?.node !== undefined &&
+                  idsToRemove.has(item.to?.node.name)
+                )
+                  return false;
+              }
+
+              return true;
+            });
+          } else {
+            if (targetObject.body?.diagram !== undefined) {
+              const diagram = targetObject.body.diagram;
+              const secondArg = command.args.value[0];
+              const connects = diagram.connects;
+
+              for (const x of secondArg) {
+                if (x < 0 || x > connects.length - 1) {
+                  causeCompileError(`OutofIndex\n\nName: ${name}`, command);
+                }
+              }
+
+              diagram.connects = connects.filter(
+                (_, index) => !secondArg.includes(index),
+              );
+            }
+          }
+        } else {
+          causeCompileError(
+            `Component "${name}" not found on the current page.`,
+            command,
+          );
+        }
+        break;
+      }
+
+      case "block_remove_edge": {
+        const name = command.name;
+        const targetObject = pages[pages.length - 1].find(
+          (comp) => comp.name === name,
+        );
+        //console.log(command);
+        if (targetObject) {
+          if (command.args.index !== "diagram") {
+            const firstArg = command.args.index;
+            const secondArg = command.args.value[0];
+            const blocks = targetObject.body.blocks;
+            const diagram = targetObject.body?.diagram;
+
+            const idsToRemove = new Set();
+            for (const block of blocks) {
+              if (block.id.name === firstArg) {
+                if (block.edges) {
+                  if (typeof secondArg === "number") {
+                    if (secondArg < 0 || secondArg > block.edges.length - 1) {
+                      causeCompileError(`OutofIndex\n\nName: ${name}`, command);
+                    }
+                    idsToRemove.add(block.edges[secondArg].id);
+                  } else {
+                    idsToRemove.add(secondArg);
+                  }
+
+                  let changed = true;
+
+                  while (changed) {
+                    changed = false;
+
+                    for (const edge of block.edges) {
+                      const from =
+                        edge.from?.node?.name ?? edge.from?.edge?.name;
+                      const to = edge.to?.node?.name ?? edge.to?.edge?.name;
+
+                      if (idsToRemove.has(from) || idsToRemove.has(to)) {
+                        if (!idsToRemove.has(edge.id)) {
+                          idsToRemove.add(edge.id);
+                          changed = true;
+                        }
+                      }
+                    }
+                  }
+
+                  block.edges = block.edges.filter(
+                    (edge) => !idsToRemove.has(edge.id),
+                  );
+                }
+              }
+            }
+
+            if (!diagram?.uses || !diagram?.connects) return;
+
+            const idsofBlockInUse = new Set();
+            for (const use of diagram.uses) {
+              if (use.block.name === firstArg) {
+                idsofBlockInUse.add(use.id.name);
+              }
+            }
+
+            diagram.connects = diagram.connects.filter((item) => {
+              if (idsofBlockInUse.has(item.from?.block.name)) {
+                if (
+                  item.from?.edge !== undefined &&
+                  idsToRemove.has(item.from?.edge.name)
+                ) {
+                  return false;
+                }
+
+                if (
+                  item.from?.node !== undefined &&
+                  idsToRemove.has(item.from?.node.name)
+                ) {
+                  return false;
+                }
+              }
+              if (idsofBlockInUse.has(item.to?.block.name)) {
+                if (
+                  item.to?.edge !== undefined &&
+                  idsToRemove.has(item.to?.edge.name)
+                ) {
+                  return false;
+                }
+
+                if (
+                  item.to?.node !== undefined &&
+                  idsToRemove.has(item.to?.node.name)
+                )
+                  return false;
+              }
+
+              return true;
+            });
+          } else {
+            if (targetObject.body?.diagram !== undefined) {
+              const diagram = targetObject.body.diagram;
+              const secondArg = command.args.value[0];
+
+              const connects = diagram.connects;
+              if (secondArg < 0 || secondArg > connects.length - 1) {
+                causeCompileError(`OutofIndex\n\nName: ${name}`, command);
+              }
+
+              if (typeof secondArg === "string") {
+                causeCompileError(
+                  `Invalid second argument
+
+When the first argument is diagram, the second argument must be a number.
+Example: ${name}.setEdgeColor(diagram, 0, "blue")`,
+                  command,
+                );
+              }
+              diagram.connects.splice(secondArg, 1);
+            } else {
+              causeCompileError(
+                `diagram not present\n\nName: ${name}`,
+                command,
+              );
+            }
+          }
+        } else {
+          causeCompileError(
+            `Component "${name}" not found on the current page.`,
+            command,
+          );
+        }
+        break;
+      }
+
+      case "set_edge_style": {
+        const name = command.name;
+        const targetObject = pages[pages.length - 1].find(
+          (comp) => comp.name === name,
+        );
+
+        if (targetObject) {
+          if (command.args.block !== "diagram") {
+            const firstArg = command.args.block;
+            const secondArg = command.args.second[0];
+            const thirdArg = command.args.third;
+
+            const blocks = targetObject.body.blocks;
+            for (const block of blocks) {
+              if (block.id.name === firstArg) {
+                if (block.edges) {
+                  if (typeof secondArg === "number") {
+                    if (secondArg < 0 || secondArg > block.edges.length - 1) {
+                      causeCompileError(`OutofIndex\n\nName: ${name}`, command);
+                    }
+                    block.edges[secondArg].style = thirdArg;
+                  } else {
+                    for (const edge of block.edges) {
+                      if (edge.id === secondArg) {
+                        edge.style = thirdArg;
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          } else {
+            if (targetObject.body?.diagram !== undefined) {
+              const diagram = targetObject.body.diagram;
+              const secondArg = command.args.second[0];
+              const thirdArg = command.args.third;
+              const connects = diagram.connects;
+              if (secondArg < 0 || secondArg > connects.length - 1) {
+                causeCompileError(`OutofIndex\n\nName: ${name}`, command);
+              }
+
+              diagram.connects[secondArg].style = thirdArg;
+            } else {
+              causeCompileError(
+                `diagram not present\n\nName: ${name}`,
+                command,
+              );
+            }
+          }
+        } else {
+          causeCompileError(
+            `Component "${name}" not found on the current page.`,
+            command,
+          );
+        }
+        break;
+      }
+
+      case "set_edge_color": {
+        const name = command.name;
+        const targetObject = pages[pages.length - 1].find(
+          (comp) => comp.name === name,
+        );
+
+        if (targetObject) {
+          if (command.args.block !== "diagram") {
+            const firstArg = command.args.block;
+            const secondArg = command.args.second[0];
+            const thirdArg =
+              command.args.third[0] === null
+                ? "transparent"
+                : command.args.third[0];
+
+            const blocks = targetObject.body.blocks;
+            for (const block of blocks) {
+              if (block.id.name === firstArg) {
+                if (block.edges) {
+                  if (typeof secondArg === "number") {
+                    if (secondArg < 0 || secondArg > block.edges.length - 1) {
+                      causeCompileError(`OutofIndex\n\nName: ${name}`, command);
+                    }
+                    block.edges[secondArg].color = thirdArg;
+                  } else {
+                    for (const edge of block.edges) {
+                      if (edge.id === secondArg) {
+                        edge.color = thirdArg;
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          } else {
+            if (targetObject.body?.diagram !== undefined) {
+              const diagram = targetObject.body.diagram;
+              const secondArg = command.args.second[0];
+              const thirdArg =
+                command.args.third[0] === null ? "" : command.args.third[0];
+              const connects = diagram.connects;
+              if (secondArg < 0 || secondArg > connects.length - 1) {
+                causeCompileError(`OutofIndex\n\nName: ${name}`, command);
+              }
+
+              diagram.connects[secondArg].color = thirdArg;
+            } else {
+              causeCompileError(
+                `diagram not present\n\nName: ${name}`,
+                command,
+              );
+            }
+          }
+        } else {
+          causeCompileError(
+            `Component "${name}" not found on the current page.`,
+            command,
+          );
+        }
+        break;
+      }
+
+      case "set_edge_label": {
+        const name = command.name;
+        const targetObject = pages[pages.length - 1].find(
+          (comp) => comp.name === name,
+        );
+
+        if (targetObject) {
+          if (command.args.block !== "diagram") {
+            const firstArg = command.args.block;
+            const secondArg = command.args.second[0];
+            const thirdArg =
+              command.args.third[0] === null ? "" : command.args.third[0];
+            const blocks = targetObject.body.blocks;
+            for (const block of blocks) {
+              if (block.id.name === firstArg) {
+                if (block.edges) {
+                  if (typeof secondArg === "number") {
+                    if (secondArg < 0 || secondArg > block.edges.length - 1) {
+                      causeCompileError(`OutofIndex\n\nName: ${name}`, command);
+                    }
+                    block.edges[secondArg].label = thirdArg;
+                  } else {
+                    for (const edge of block.edges) {
+                      if (edge.id === secondArg) {
+                        edge.label = thirdArg;
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          } else {
+            if (targetObject.body?.diagram !== undefined) {
+              const diagram = targetObject.body.diagram;
+              const secondArg = command.args.second[0];
+              const thirdArg =
+                command.args.third[0] === null ? "" : command.args.third[0];
+              const connects = diagram.connects;
+              if (secondArg < 0 || secondArg > connects.length - 1) {
+                causeCompileError(`OutofIndex\n\nName: ${name}`, command);
+              }
+
+              diagram.connects[secondArg].label = thirdArg;
+            } else {
+              causeCompileError(
+                `diagram not present\n\nName: ${name}`,
+                command,
+              );
+            }
+          }
+        } else {
+          causeCompileError(
+            `Component "${name}" not found on the current page.`,
+            command,
+          );
+        }
+        break;
+      }
+
+      case "set_node_color": {
+        const name = command.name;
+        const targetObject = pages[pages.length - 1].find(
+          (comp) => comp.name === name,
+        );
+
+        if (targetObject) {
+          const firstArg = command.args.block;
+          const secondArg = command.args.second;
+          const thirdArg =
+            command.args.third[0] === null
+              ? "transparent"
+              : command.args.third[0];
+
+          const blocks = targetObject.body.blocks;
+          for (const block of blocks) {
+            if (block.id.name === firstArg) {
+              if (block.nodes) {
+                for (const node of block.nodes) {
+                  if (node.id === secondArg) {
+                    node.color = thirdArg;
+                  }
+                }
+              }
+            }
+          }
+        } else {
+          causeCompileError(
+            `Component "${name}" not found on the current page.`,
+            command,
+          );
+        }
+        break;
+      }
+
+      case "set_node_label": {
+        const name = command.name;
+        const targetObject = pages[pages.length - 1].find(
+          (comp) => comp.name === name,
+        );
+
+        if (targetObject) {
+          const firstArg = command.args.block;
+          const secondArg = command.args.second;
+          const thirdArg =
+            command.args.third[0] === null ? "" : command.args.third[0];
+
+          const blocks = targetObject.body.blocks;
+          for (const block of blocks) {
+            if (block.id.name === firstArg) {
+              if (block.nodes) {
+                for (const node of block.nodes) {
+                  if (node.id === secondArg) {
+                    node.label = thirdArg;
+                  }
+                }
+              }
+            }
+            //console.log(block.nodes);
+          }
+        } else {
+          causeCompileError(
+            `Component "${name}" not found on the current page.`,
+            command,
+          );
+        }
+        break;
+      }
+
+      case "block_remove_nodes": {
+        const name = command.name;
+        const targetObject = pages[pages.length - 1].find(
+          (comp) => comp.name === name,
+        );
+
+        // console.log(command);
+
+        if (targetObject) {
+          const firstArg = command.args.index;
+          const blocks = targetObject.body.blocks;
+          const diagram = targetObject.body?.diagram;
+          const idsToRemove = new Set(command.args.value);
+          for (const block of blocks) {
+            if (block.id.name === firstArg) {
+              if (block.edges) {
+                let changed = true;
+
+                while (changed) {
+                  changed = false;
+
+                  for (const edge of block.edges) {
+                    const from = edge.from?.node?.name ?? edge.from?.edge?.name;
+                    const to = edge.to?.node?.name ?? edge.to?.edge?.name;
+
+                    if (idsToRemove.has(from) || idsToRemove.has(to)) {
+                      if (!idsToRemove.has(edge.id)) {
+                        idsToRemove.add(edge.id);
+                        changed = true;
+                      }
+                    }
+                  }
+                }
+
+                block.edges = block.edges.filter(
+                  (edge) => !idsToRemove.has(edge.id),
+                );
+              }
+
+              if (block.nodes) {
+                block.nodes = block.nodes.filter(
+                  (node) => !idsToRemove.has(node.id),
+                );
+              }
+
+              for (const group of block.groups ?? []) {
+                group.members = group.members.filter(
+                  (member) => !idsToRemove.has(member.name),
+                );
+                if (
+                  group.anchor !== undefined &&
+                  idsToRemove.has(group.anchor.name)
+                ) {
+                  delete group.anchor;
+                }
+              }
+            }
+          }
+
+          if (!diagram?.uses || !diagram?.connects) return;
+
+          const idsofBlockInUse = new Set();
+          for (const use of diagram.uses) {
+            if (use.block.name === firstArg) {
+              idsofBlockInUse.add(use.id.name);
+            }
+          }
+
+          diagram.connects = diagram.connects.filter((item) => {
+            if (idsofBlockInUse.has(item.from?.block.name)) {
+              if (
+                item.from?.edge !== undefined &&
+                idsToRemove.has(item.from?.edge.name)
+              ) {
+                return false;
+              }
+
+              if (
+                item.from?.node !== undefined &&
+                idsToRemove.has(item.from?.node.name)
+              ) {
+                return false;
+              }
+            }
+            if (idsofBlockInUse.has(item.to?.block.name)) {
+              if (
+                item.to?.edge !== undefined &&
+                idsToRemove.has(item.to?.edge.name)
+              ) {
+                return false;
+              }
+
+              if (
+                item.to?.node !== undefined &&
+                idsToRemove.has(item.to?.node.name)
+              )
+                return false;
+            }
+
+            return true;
+          });
+        } else {
+          causeCompileError(
+            `Component "${name}" not found on the current page.`,
+            command,
+          );
+        }
+        break;
+      }
+
+      case "block_remove_node": {
+        const name = command.name;
+        const targetObject = pages[pages.length - 1].find(
+          (comp) => comp.name === name,
+        );
+
+        //  console.log(command);
+        if (targetObject) {
+          const firstArg = command.args.index;
+          const blocks = targetObject.body.blocks;
+
+          /*const allowedBlocks = blocks.map((block) => block.id.name);
+
+          if (!allowedBlocks.includes(command.args.index)) {
+            causeCompileError(
+              `${command.args.index} is not a valid block.\nAvailable blocks: ${allowedBlocks.length === 0 ? "" : [...allowedBlocks].join(", ")}`,
+              command,
+            );
+          }*/
+
+          const diagram = targetObject.body?.diagram;
+          const idsToRemove = new Set([command.args.value]);
+          for (const block of blocks) {
+            if (block.id.name === firstArg) {
+              let changed = true;
+
+              if (block.edges) {
+                while (changed) {
+                  changed = false;
+
+                  for (const edge of block.edges) {
+                    const from = edge.from?.node?.name ?? edge.from?.edge?.name;
+                    const to = edge.to?.node?.name ?? edge.to?.edge?.name;
+
+                    if (idsToRemove.has(from) || idsToRemove.has(to)) {
+                      if (!idsToRemove.has(edge.id)) {
+                        idsToRemove.add(edge.id);
+                        changed = true;
+                      }
+                    }
+                  }
+                }
+
+                block.edges = block.edges.filter(
+                  (edge) => !idsToRemove.has(edge.id),
+                );
+              }
+
+              if (block.nodes) {
+                block.nodes = block.nodes.filter(
+                  (node) => !idsToRemove.has(node.id),
+                );
+              }
+
+              for (const group of block.groups ?? []) {
+                group.members = group.members.filter(
+                  (member) => !idsToRemove.has(member.name),
+                );
+                if (
+                  group.anchor !== undefined &&
+                  idsToRemove.has(group.anchor.name)
+                ) {
+                  delete group.anchor;
+                }
+              }
+            }
+          }
+
+          if (!diagram?.uses || !diagram?.connects) return;
+
+          const idsofBlockInUse = new Set();
+          for (const use of diagram.uses) {
+            if (use.block.name === firstArg) {
+              idsofBlockInUse.add(use.id.name);
+            }
+          }
+
+          diagram.connects = diagram.connects.filter((item) => {
+            if (idsofBlockInUse.has(item.from?.block.name)) {
+              if (
+                item.from?.edge !== undefined &&
+                idsToRemove.has(item.from?.edge.name)
+              ) {
+                return false;
+              }
+
+              if (
+                item.from?.node !== undefined &&
+                idsToRemove.has(item.from?.node.name)
+              ) {
+                return false;
+              }
+            }
+            if (idsofBlockInUse.has(item.to?.block.name)) {
+              if (
+                item.to?.edge !== undefined &&
+                idsToRemove.has(item.to?.edge.name)
+              ) {
+                return false;
+              }
+
+              if (
+                item.to?.node !== undefined &&
+                idsToRemove.has(item.to?.node.name)
+              )
+                return false;
+            }
+
+            return true;
+          });
+        } else {
+          causeCompileError(
+            `Component "${name}" not found on the current page.`,
+            command,
+          );
+        }
+        break;
+      }
+
+      case "remove_neuralnetwork_removeNeuronsFromLayer": {
         const name = command.name;
         const targetObject = pages[pages.length - 1].find(
           (comp) => comp.name === name,
@@ -1218,12 +2859,6 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
           });
 
           body[neuronColors][command.args.index] = result2;
-
-          console.log("removeNeuronsFromLayer");
-          console.log(body["layers"]);
-          console.log(body["neurons"]);
-          console.log(body["neuronColors"]);
-          console.log(body["layerColors"]);
         } else {
           causeCompileError(
             `Component "${name}" not found on the current page.`,
@@ -1297,11 +2932,14 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
 
           body[neuronColors].splice(command.args, 1);
 
-          console.log("remove_neuralnetwork_removeLayerAt");
-          console.log(body["layers"]);
-          console.log(body["neurons"]);
-          console.log(body["neuronColors"]);
-          console.log(body["layerColors"]);
+          /* console.log("layers");
+          console.log(body[layers]);
+          console.log("neurons");
+          console.log(body[neurons]);
+          console.log("layerColors");
+          console.log(body[layerColors]);
+          console.log("neuronColors");
+          console.log(body[neuronColors]);*/
         } else {
           causeCompileError(
             `Component "${name}" not found on the current page.`,
@@ -1312,8 +2950,6 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
       }
 
       case "insert_neuralnetwork_addLayer": {
-        //console.log("CMD");
-        //  console.log(command);
         const name = command.name;
         const args = command.args;
         const targetObject = pages[pages.length - 1].find(
@@ -1321,8 +2957,6 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
         );
 
         if (targetObject) {
-          // console.log("TARGET");
-          //  console.log(targetObject);
           const body = targetObject.body;
           const layers = command.target1;
           const neurons = command.target2;
@@ -1374,11 +3008,6 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
 
           body[layers].push(layerName);
           body[neurons].push(command.args.value);
-          console.log("insert_neuralnetwork_addLayer");
-          console.log(body["layers"]);
-          console.log(body["neurons"]);
-          console.log(body["neuronColors"]);
-          console.log(body["layerColors"]);
         } else {
           causeCompileError(
             `Component "${name}" not found on the current page.`,
@@ -1389,8 +3018,6 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
       }
 
       case "insert_neuralnetwork_addNeurons": {
-        // console.log("CMD");
-        //  console.log(command);
         const name = command.name;
         const args = command.args;
         const targetObject = pages[pages.length - 1].find(
@@ -1398,8 +3025,6 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
         );
 
         if (targetObject) {
-          // console.log("TARGET");
-          //  console.log(targetObject);
           const body = targetObject.body;
           const target = "neurons";
 
@@ -1440,12 +3065,6 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
           while (body["neuronColors"].length <= args.index) {
             body["neuronColors"].push([]);
           }
-
-          console.log("insert_neuralnetwork_addNeurons");
-          console.log(body["layers"]);
-          console.log(body["neurons"]);
-          console.log(body["neuronColors"]);
-          console.log(body["layerColors"]);
         } else {
           causeCompileError(
             `Component "${name}" not found on the current page.`,
@@ -1458,73 +3077,84 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
       case "set_neuralnetwork_layer_multiple": {
         const name = command.name;
         const property = command.target;
-        const args = command.args;
+        const newArray = command.args;
         const targetObject = pages[pages.length - 1].find(
           (comp) => comp.name === name,
         );
-        // Check if in bounds
 
         if (targetObject) {
           const body = targetObject.body;
 
-          if (!body[property]) {
-            if (body["neurons"]) {
-              const neuronsLength = body["neurons"].length;
-              body[property] = Array(neuronsLength).fill(null);
-            } else {
-              causeCompileError(
-                `neurons not defined\n\nName: ${name}`,
-                command,
-              );
-            }
+          if (!body["neurons"]) {
+            body["neurons"] = [];
           }
 
-          // Special handling for text components
-          if (targetObject.type === "text") {
-            // If property does not exist, create array of null of length args
+          if (!body["neuronColors"]) {
+            body["neuronColors"] = [];
+          }
 
-            // Iterate over args and set the values
-            for (let i = 0; i < args.length; i++) {
-              const value = args[i];
-              const isValidIndex = Number.isInteger(i) && i >= 0;
-              if (value !== "_") {
-                if (isValidIndex) {
-                  // Ensure array is long enough
-                  while (body[property].length <= i) {
-                    body[property].push(null);
-                  }
-                  body[property][i] = value;
-                } else {
-                  causeCompileError(
-                    `Index out of bounds\n\nIndex: ${i}\nProperty: ${property}\nComponent: ${name}`,
-                    command,
-                  );
-                }
+          if (!body["layers"]) {
+            body["layers"] = [];
+          }
+
+          if (!body["layerColors"]) {
+            body["layerColors"] = [];
+          }
+
+          /*  console.log("property");
+          console.log(property);
+          console.log("newArray");
+          console.log(newArray);*/
+
+          let resultArray;
+
+          if (newArray.length <= body[property].length) {
+            resultArray = Array.from(body[property].length);
+            for (let i = 0; i < newArray.length; i++) {
+              if (newArray[i] === "_") {
+                resultArray[i] = body[property][i]
+              } else {
+                resultArray[i] = newArray[i];
               }
+            }
+            for (let i = newArray.length; i < body[property].length; i++) {
+              resultArray[i] = body[property][i];
             }
           } else {
-            // Original handling for other components
-            const currentArray = body[property];
-            // If property does not exist, create array of null of length args
-            if (!currentArray) {
-              body[property] = Array(args.length).fill(null);
-            }
-            // Iterate over args and set the values
-            for (let i = 0; i < args.length; i++) {
-              const value = args[i];
-              const isValidIndex = Number.isInteger(i) && i >= 0;
-              if (value !== "_") {
-                if (isValidIndex) {
-                  body[property][i] = value;
-                } else {
-                  causeCompileError(
-                    `Index out of bounds\n\nIndex: ${i}\nProperty: ${property}\nComponent: ${name}`,
-                    command,
-                  );
-                }
+            resultArray = Array.from(newArray.length);
+            for (let i = 0; i < newArray.length; i++) {
+              if (newArray[i] === "_") {
+                resultArray[i] = body[property][i] ?? null;
+              } else {
+                resultArray[i] = newArray[i];
               }
             }
           }
+
+          body[property] = resultArray;
+
+          if (property === "layers") {
+            while (body["neurons"].length < body["layers"].length) {
+              body["neurons"].push([]);
+            }
+
+            while (body["neuronColors"].length < body["layers"].length) {
+              body["neuronColors"].push([]);
+            }
+
+            while (body["layerColors"].length < body["layers"].length) {
+              body["layerColors"].push(null);
+            }
+          }
+          /*console.log("set_neuralnetwork_layer_multiple");
+          console.log("body[layers]");
+          console.log(body["layers"]);
+          console.log("body[neurons]");
+          console.log(body["neurons"]);
+          console.log("body[layerColors]");
+          console.log(body["layerColors"]);
+          console.log("body[neuronColors]");
+          console.log(body["neuronColors"]);*/
         } else {
           causeCompileError(`Component not on page\n\nName: ${name}`, command);
         }
@@ -1543,11 +3173,9 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
           const body = targetObject.body;
 
           if (!body[property]) {
-            const array = command.args.map((row) =>
-              row.map((v) => (v === "_" ? null : v)),
+            body[property] = newMatrix.map((row) =>
+              Array.isArray(row) ? row.map((v) => (v === "_" ? null : v)) : [],
             );
-
-            body[property] = array;
 
             if (!body["layers"]) {
               body["layers"] = [];
@@ -1563,15 +3191,20 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
           }
 
           for (let row = 0; row < newMatrix.length; row++) {
-            if (!Array.isArray(body[property][row])) {
-              body[property][row] = [];
-            }
-
             if (!Array.isArray(newMatrix[row])) {
               continue;
             }
 
+            if (!Array.isArray(body[property][row])) {
+              body[property][row] = [];
+            }
+
             const rowData = newMatrix[row];
+
+            if (rowData.length === 0) {
+              body[property][row] = [];
+              continue;
+            }
 
             if (rowData.length === 1 && rowData[0] === "_") {
               continue;
@@ -1586,11 +3219,9 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
 
               while (body[property][row].length <= col) {
                 if (property === "neuronColors") {
-                  if (body["layerColors"]) {
-                    body[property][row].push(body["layerColors"][row]);
-                  } else {
-                    body[property][row].push(null);
-                  }
+                  body[property][row].push(
+                    body["layerColors"] ? INHERIT_LAYER_COLOR : null,
+                  );
                 } else {
                   body[property][row].push(null);
                 }
@@ -1598,12 +3229,97 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
 
               body[property][row][col] = value;
             }
+
+            body[property][row] = body[property][row].slice(0, rowData.length);
           }
-          console.log("set_neuralnetwork_neurons_multiple");
+
+          if (property === "neurons") {
+            if (!body["neuronColors"]) {
+              body["neuronColors"] = [];
+            }
+
+            while (body["neuronColors"].length < body["neurons"].length) {
+              body["neuronColors"].push([]);
+            }
+
+            body["neuronColors"] = body["neuronColors"].slice(
+              0,
+              body["neurons"].length,
+            );
+
+            for (let row = 0; row < body["neurons"].length; row++) {
+              if (!Array.isArray(body["neurons"][row])) {
+                body["neurons"][row] = [];
+              }
+
+              if (!Array.isArray(body["neuronColors"][row])) {
+                body["neuronColors"][row] = [];
+              }
+
+              const neuronCount = body["neurons"][row].length;
+
+              while (body["neuronColors"][row].length < neuronCount) {
+                body["neuronColors"][row].push(
+                  body["layerColors"] ? INHERIT_LAYER_COLOR : null,
+                );
+              }
+
+              body["neuronColors"][row] = body["neuronColors"][row].slice(
+                0,
+                neuronCount,
+              );
+            }
+          }
+
+          if (property === "neuronColors") {
+            if (!body["neurons"]) {
+              causeCompileError(
+                `neurons not defined\n\nName: ${name}`,
+                command,
+              );
+            }
+
+            while (body["neuronColors"].length < body["neurons"].length) {
+              body["neuronColors"].push([]);
+            }
+
+            body["neuronColors"] = body["neuronColors"].slice(
+              0,
+              body["neurons"].length,
+            );
+
+            for (let row = 0; row < body["neurons"].length; row++) {
+              if (!Array.isArray(body["neurons"][row])) {
+                body["neurons"][row] = [];
+              }
+
+              if (!Array.isArray(body["neuronColors"][row])) {
+                body["neuronColors"][row] = [];
+              }
+
+              const neuronCount = body["neurons"][row].length;
+
+              while (body["neuronColors"][row].length < neuronCount) {
+                body["neuronColors"][row].push(
+                  body["layerColors"] ? INHERIT_LAYER_COLOR : null,
+                );
+              }
+
+              body["neuronColors"][row] = body["neuronColors"][row].slice(
+                0,
+                neuronCount,
+              );
+            }
+          }
+        /*  console.log("set_neuralnetwork_neurons_multiple");
+          console.log("layers");
           console.log(body["layers"]);
+          console.log("neurons");
           console.log(body["neurons"]);
-          console.log(body["neuronColors"]);
+          console.log("layerColors");
           console.log(body["layerColors"]);
+          console.log("neuronColors");
+          console.log(body["neuronColors"]);*/
         } else {
           causeCompileError(`Component not on page\n\nName: ${name}`, command);
         }
@@ -1676,12 +3392,6 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
           }
 
           body[target][row][col] = newValue;
-
-          console.log("setNeuronColor");
-          console.log(body["layers"]);
-          console.log(body["neurons"]);
-          console.log(body["neuronColors"]);
-          console.log(body["layerColors"]);
         } else {
           causeCompileError(`Component not on page\n\nName: ${name}`, command);
         }
@@ -1720,12 +3430,6 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
               body[target][index] = newValue;
             }
           }
-
-          console.log("set_neuralnetwork_layer");
-          console.log(body["layers"]);
-          console.log(body["neurons"]);
-          console.log(body["neuronColors"]);
-          console.log(body["layerColors"]);
         } else {
           causeCompileError(`Component not on page\n\nName: ${name}`, command);
         }
@@ -3127,6 +4831,9 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
           case "neuralnetwork":
             mermaidString += generateNeuralNetwork(component, currentLayout);
             break;
+          case "architecture":
+            mermaidString += generateBlock(component, currentLayout);
+            break;
           case "linkedlist":
             mermaidString += generateLinkedlist(component, currentLayout);
             break;
@@ -3252,6 +4959,31 @@ function preCheck(parsedDSL) {
         "remove_neuralnetwork_removeLayerAt",
         "remove_neuralnetwork_removeNeuronsFromLayer",
         "insert_neuralnetwork_insertNeurons",
+        "block_remove_nodes",
+        "block_remove_node",
+        "block_remove_block",
+        "block_remove_edges",
+        "block_remove_edge",
+        "block_remove_group",
+        "set_node_label",
+        "set_node_color",
+        "set_node_stroke",
+        "set_edge_label",
+        "set_edge_color",
+        "set_edge_style",
+        "hide_node",
+        "show_node",
+        "hide_edge",
+        "show_edge",
+        "hide_block",
+        "show_block",
+        "set_block_color",
+        "set_block_annotation",
+        "set_group_color",
+        "set_group_layout",
+        "set_block_layout",
+        "set_group_annotation",
+        "set_node_annotation",
       ].includes(cmd.type)
     ) {
       throw createPreCheckError(`Unknown command\n\nType: ${cmd.type}`, cmd);

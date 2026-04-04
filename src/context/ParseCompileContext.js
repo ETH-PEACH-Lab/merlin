@@ -278,11 +278,11 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
       pastActions.push(structuredClone(unparsedCode));
       const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
       // In case node name is needed and not defined or not valid, change node name
-      console.log(`coordinates: ${JSON.stringify(coordinates)}`);
+      /*  console.log(`coordinates: ${JSON.stringify(coordinates)}`);
       console.log(`parsedcode.cmds: ${JSON.stringify(parsedCode.cmds)}`);
       console.log(`componentName: ${componentName}`);
       console.log(`componentType: ${componentType}`);
-      console.log(`val: ${val}`);
+      console.log(`val: ${val}`);*/
 
       if (
         ["tree", "graph", "linkedlist"].includes(componentType) &&
@@ -326,6 +326,21 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
       }
       // For matrices
       else if (componentType === "matrix") {
+        const addType =
+          addCommand === "addRow"
+            ? "insert_matrix_row"
+            : "insert_matrix_column";
+        const coord =
+          addCommand === "addRow" ? coordinates.row + 1 : coordinates.col + 1;
+        const values =
+          val === null ? [null] : val.split(",").map((value) => value.trim());
+        parsedCode.cmds.splice(pageEndIndex, 0, {
+          name: componentName,
+          target: "value",
+          type: addType,
+          args: { index: coord, value: values },
+        });
+      } else if (componentType === "neuralnetwork") {
         const addType =
           addCommand === "addRow"
             ? "insert_matrix_row"
@@ -418,9 +433,24 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
       coordinates = null,
       nodeName = null,
       removeCommand = "",
+      fieldKey,
     ) => {
       pastActions.push(structuredClone(unparsedCode));
       const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
+      /* console.log("PAGE");
+      console.log(page);
+      console.log("componentName");
+      console.log(componentName);
+      console.log("componentType");
+      console.log(componentType);
+      console.log("nodeName");
+      console.log(nodeName);
+      console.log("removeCommand");
+      console.log(removeCommand);
+      console.log("fieldKey");
+      console.log(fieldKey);
+      console.log("coordinates");
+      console.log(coordinates);*/
 
       if (componentType === "tree" || componentType === "graph") {
         const removeType =
@@ -445,21 +475,135 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
           type: removeType,
           args: coord,
         });
+      } else if (componentType === "architecture") {
+        if (
+          coordinates.row !== undefined &&
+          coordinates.col != undefined &&
+          coordinates.isArchitectureMatrix
+        ) {
+          let row = coordinates.row;
+          let col = coordinates.col;
+          const comp = pages?.[page]?.find((c) => c.name === componentName);
+          // console.log(comp);
+          const blockId = comp.body.blocks[row].id.name;
+
+          const nodesLength = comp.body?.blocks?.[row]?.nodes.length ?? 0;
+
+          const edgesLength = comp.body?.blocks?.[row]?.edges.length ?? 0;
+
+          let id;
+          let type;
+
+          if (col < nodesLength) {
+            id = comp.body.blocks[row].nodes[col].id;
+            type = "block_remove_node";
+          } else if (nodesLength <= col && col < edgesLength + nodesLength) {
+            id = comp.body.blocks[row].edges[col - nodesLength].id;
+            type = "block_remove_edge";
+          } else if (col >= nodesLength + edgesLength) {
+            id =
+              comp.body.blocks[row].groups[col - nodesLength - edgesLength].id
+                .name;
+            type = "block_remove_group";
+          }
+
+          parsedCode.cmds.splice(pageEndIndex, 0, {
+            type,
+            name: componentName,
+            args: {
+              index: blockId,
+              value: id,
+            },
+          });
+        }
+
+        if (
+          coordinates.index !== undefined &&
+          !coordinates.isArchitectureMatrix
+        ) {
+          const comp = pages?.[page]?.find((c) => c.name === componentName);
+          const blockLength = comp.body?.blocks.length ?? 0;
+          console.log("coordinates");
+          console.log(coordinates);
+          coordinates.index < blockLength
+            ? parsedCode.cmds.splice(pageEndIndex, 0, {
+                type: "block_remove_block",
+                name: componentName,
+                args: comp.body?.blocks[coordinates.index].id.name,
+              })
+            : parsedCode.cmds.splice(pageEndIndex, 0, {
+                type: "block_remove_edge",
+                name: componentName,
+                args: {
+                  index: "diagram",
+                  value: coordinates.index - blockLength,
+                },
+              });
+        }
       } else if (componentType === "neuralnetwork") {
-        const comp = pages?.[page]?.find((c) => c.name === componentName);
-        parsedCode.cmds.splice(pageEndIndex, 0, {
-          type: "remove_neuralnetwork_removeNeuronsFromLayer",
-          name: componentName,
-          target1: "layers",
-          target2: "neurons",
-          target3: "neuronColors",
-          target4: "layerColors",
-          args: {
-            index: coordinates.row,
-            value: [comp.body.neurons[coordinates.row][coordinates.col]],
-          },
-          name: componentName,
-        });
+        if (fieldKey === "layers") {
+          const comp = pages?.[page]?.find((c) => c.name === componentName);
+
+          parsedCode.cmds.splice(pageEndIndex, 0, {
+            type: "remove_neuralnetwork_removeLayerAt",
+            name: componentName,
+            target1: "layers",
+            target2: "neurons",
+            target3: "layerColors",
+            target4: "neuronColors",
+            args: coordinates.index,
+          });
+        } else if (fieldKey === "neurons") {
+          const comp = pages?.[page]?.find((c) => c.name === componentName);
+          parsedCode.cmds.splice(pageEndIndex, 0, {
+            type: "remove_neuralnetwork_removeNeuronsFromLayer",
+            name: componentName,
+            target1: "layers",
+            target2: "neurons",
+            target3: "neuronColors",
+            target4: "layerColors",
+            args: {
+              index: coordinates.row,
+              value: coordinates.items,
+            },
+          });
+        }
+
+        if (
+          coordinates.row !== undefined &&
+          coordinates.col != undefined &&
+          coordinates.isNeuralMatrix
+        ) {
+          const comp = pages?.[page]?.find((c) => c.name === componentName);
+          parsedCode.cmds.splice(pageEndIndex, 0, {
+            type: "remove_neuralnetwork_removeNeuronsFromLayer",
+            name: componentName,
+            target1: "layers",
+            target2: "neurons",
+            target3: "neuronColors",
+            target4: "layerColors",
+            args: {
+              index: coordinates.row,
+              value: [comp.body.neurons[coordinates.row][coordinates.col]],
+            },
+            name: componentName,
+          });
+        }
+
+        if (coordinates.index !== undefined && !coordinates.isNeuralMatrix) {
+          const comp = pages?.[page]?.find((c) => c.name === componentName);
+          console.log(JSON.stringify(pages));
+          parsedCode.cmds.splice(pageEndIndex, 0, {
+            type: "remove_neuralnetwork_removeLayerAt",
+            name: componentName,
+            target1: "layers",
+            target2: "neurons",
+            target3: "layerColors",
+            target4: "neuronColors",
+            args: coordinates.index,
+            name: componentName,
+          });
+        }
       } else {
         parsedCode.cmds.splice(pageEndIndex, 0, {
           name: componentName,
@@ -502,10 +646,15 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
 
   const updateValue = useCallback(
     (page, componentName, coordinates, fieldKey, value) => {
+      console.log("coordinates");
+      console.log(coordinates);
+      console.log("fieldKey");
+      console.log(fieldKey);
+      console.log("value");
+      console.log(value);
       if (!parsedCode) return;
       pastActions.push(structuredClone(unparsedCode));
 
-      console.log("EDIT STYLES CALLS THIS");
       // Handle position field updates (no coordinates needed)
       if (fieldKey === "position") {
         // No need to check current value for position fields - they're simple replacements
@@ -532,6 +681,10 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
 
       const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
 
+      const currentComponent = pages[page]?.find(
+        (comp) => comp.name === componentName,
+      );
+
       // Use unified command optimization for both arrays and matrices
       const { relevantCommands, commandsToRemove } = findRelevantCommands(
         parsedCode.cmds,
@@ -540,15 +693,12 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         componentName,
         fieldKey,
         coordinates?.isMatrix || false,
+        coordinates?.isNeuralMatrix || false,
         coordinates, // Pass coordinates to distinguish global vs per-element properties
+        currentComponent,
       );
 
-      const currentComponent = pages[page]?.find(
-        (comp) => comp.name === componentName,
-      );
-       
-
-      const newCommand = createOptimizedCommand(
+      const newCommands = createOptimizedCommand(
         relevantCommands,
         componentName,
         fieldKey,
@@ -557,40 +707,46 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         currentComponent,
       );
 
+      const newCommandsArrayOrNot = Array.isArray(newCommands)
+        ? newCommands
+        : [newCommands];
+
       // Remove old commands (in reverse order to maintain indices)
       commandsToRemove.reverse().forEach((index) => {
         parsedCode.cmds.splice(index, 1);
       });
 
       // Add the new command at appropriate position
-      if (newCommand) {
-        let insertIndex;
+      for (const newCommand of newCommandsArrayOrNot) {
+        if (newCommand) {
+          let insertIndex;
 
-        // For show commands, insert before any other commands
-        // that reference the same component to avoid "Component not on page" errors
-        if (newCommand.type === "show") {
-          // Find the earliest command in the page that references this component
-          let earliestCommandIndex = pageEndIndex - commandsToRemove.length;
+          // For show commands, insert before any other commands
+          // that reference the same component to avoid "Component not on page" errors
+          if (newCommand.type === "show") {
+            // Find the earliest command in the page that references this component
+            let earliestCommandIndex = pageEndIndex - commandsToRemove.length;
 
-          for (
-            let i = pageStartIndex;
-            i < pageEndIndex - commandsToRemove.length;
-            i++
-          ) {
-            const cmd = parsedCode.cmds[i];
-            if (cmd && cmd.name === componentName && cmd.type !== "show") {
-              earliestCommandIndex = i;
-              break;
+            for (
+              let i = pageStartIndex;
+              i < pageEndIndex - commandsToRemove.length;
+              i++
+            ) {
+              const cmd = parsedCode.cmds[i];
+              if (cmd && cmd.name === componentName && cmd.type !== "show") {
+                earliestCommandIndex = i;
+                break;
+              }
             }
+
+            insertIndex = earliestCommandIndex;
+          } else {
+            // For other commands, insert at the end of the page
+            insertIndex = pageEndIndex - commandsToRemove.length;
           }
 
-          insertIndex = earliestCommandIndex;
-        } else {
-          // For other commands, insert at the end of the page
-          insertIndex = pageEndIndex - commandsToRemove.length;
+          parsedCode.cmds.splice(insertIndex, 0, newCommand);
         }
-
-        parsedCode.cmds.splice(insertIndex, 0, newCommand);
       }
 
       // Trigger reconstruction and recompilation
@@ -692,11 +848,122 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
       } else if (["array", "stack", "linkedlist"].includes(componentType)) {
         updateValues = true;
         for (let i = newValues.length; i < prevValues.length; i++) {
-          removeUnit(page, componentName, componentType, { index: 1 });
+          removeUnit(
+            page,
+            componentName,
+            componentType,
+            { index: 1 },
+            fieldKey,
+          );
         }
+
         if (["linkedlist"].includes(componentType)) {
           for (let i = prevValues.length; i < newValues.length; i++) {
             addUnit(page, componentName, componentType, { index: 1 }, null);
+          }
+        }
+      } else if (componentType === "neuralnetwork") {
+        updateValues = true;
+        if (fieldKey === "layers") {
+          function getRemovedTailItems(prevValues, newValues) {
+            const removed = [];
+
+            for (let i = 0; i < prevValues.length; i++) {
+              const prev = prevValues[i];
+              const next = newValues[i];
+
+              // only count as removed if the new array has no item at this index anymore
+              if (i >= newValues.length) {
+                removed.push({
+                  originalIndex: i,
+                  adjustedIndex: i - removed.length,
+                  value: prev,
+                });
+              }
+            }
+
+            return removed;
+          }
+
+          for (const item of getRemovedTailItems(
+            prevValues ?? [],
+            newValues ?? [],
+          )) {
+            removeUnit(
+              page,
+              componentName,
+              componentType,
+              { index: item.adjustedIndex },
+              null,
+              "",
+              fieldKey,
+            );
+          }
+        }
+
+        if (fieldKey === "neurons") {
+          function findRemovedItems(prevValues, newValues) {
+            const removed = [];
+            const maxRows = Math.max(prevValues.length, newValues.length);
+
+            for (let row = 0; row < maxRows; row++) {
+              const prevRow = prevValues[row] || [];
+              const newRow = newValues[row] || [];
+
+              const removedItems = [];
+
+              if (row >= newValues.length) {
+                removed.push({
+                  row,
+                  items: [...prevRow],
+                });
+                continue;
+              }
+
+              const maxCols = Math.max(prevRow.length, newRow.length);
+
+              for (let col = 0; col < maxCols; col++) {
+                const prevExists = col < prevRow.length;
+                const newExists = col < newRow.length;
+
+                if (prevExists && !newExists) {
+                  removedItems.push(prevRow[col]);
+                }
+              }
+
+              if (removedItems.length > 0) {
+                removed.push({
+                  row,
+                  items: removedItems,
+                });
+              }
+            }
+
+            return removed;
+          }
+          /*
+          console.log("UPDATE VALUES");
+          console.log("newValues");
+          console.log(newValues);
+          console.log("prevValues");
+          console.log(prevValues);
+          console.log("FIELDKEY");
+          console.log(fieldKey);
+          console.log(newValues.length);*/
+
+          for (const item of findRemovedItems(
+            prevValues ?? [],
+            newValues ?? [],
+          )) {
+            removeUnit(
+              page,
+              componentName,
+              componentType,
+              { row: item.row, items: item.items },
+              null,
+              "",
+              "neurons",
+            );
           }
         }
       } else if (["matrix"].includes(componentType)) {
@@ -749,7 +1016,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         }
       }
 
-      if (updateValues) {
+      if (updateValues && componentType !== "neuralnetwork") {
         const [newPageStartIndex, newPageEndIndex] =
           findPageBeginningAndEnd(page);
         parsedCode.cmds.splice(newPageEndIndex, 0, {
@@ -758,6 +1025,54 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
           type: "set_multiple",
           args: newValues,
         });
+        reconstructMerlinLite();
+      }
+
+      if (updateValues && componentType === "neuralnetwork") {
+        const [newPageStartIndex, newPageEndIndex] =
+          findPageBeginningAndEnd(page);
+
+        if (fieldKey === "layers" || fieldKey === "layerColors") {
+          parsedCode.cmds.splice(newPageEndIndex, 0, {
+            name: componentName,
+            target: fieldKey,
+            type: "set_neuralnetwork_layer_multiple",
+            args: newValues,
+          });
+        }
+
+        if (fieldKey === "neurons") {
+          const formatted = newValues.map((row) =>
+            row.length === 1 && row[0] === "" ? [] : row,
+          );
+
+          parsedCode.cmds.splice(newPageEndIndex, 0, {
+            name: componentName,
+            target: fieldKey,
+            type: "set_neuralnetwork_neurons_multiple",
+            args: formatted,
+          });
+        }
+
+        if (fieldKey === "neuronColors") {
+          const formattedNewValues = newValues.map((row) =>
+            row.length === 1 && row[0] === "" ? [] : row,
+          );
+
+          /*console.log("prevValues");
+          console.log(prevValues);
+
+          console.log("formattedNewValues");
+          console.log(formattedNewValues);*/
+
+          parsedCode.cmds.splice(newPageEndIndex, 0, {
+            name: componentName,
+            target: fieldKey,
+            type: "set_neuralnetwork_neurons_multiple",
+            args: formattedNewValues,
+          });
+        }
+
         reconstructMerlinLite();
       }
     },
@@ -769,6 +1084,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
     (page, componentName, fieldKey, newValues) => {
       pastActions.push(structuredClone(unparsedCode));
       const [pageStartIndex, pageEndIndex] = findPageBeginningAndEnd(page);
+
       parsedCode.cmds.splice(pageEndIndex, 0, {
         name: componentName,
         target: fieldKey,

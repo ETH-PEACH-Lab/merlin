@@ -1,6 +1,6 @@
 import { createTheme } from "@mui/material/styles";
 
-export const defaultTheme = createTheme()
+export const defaultTheme = createTheme();
 
 const colorTheme = createTheme({
   palette: {
@@ -9,11 +9,24 @@ const colorTheme = createTheme({
     highlight: "#a94fd8",
     borderHighlight: "2px solid #a94fd8",
     border: "1px solid #606770",
-    secondaryColor: "#ffffff"
-  }
+    secondaryColor: "#ffffff",
+  },
 });
 
 export const themeConfig = {
+  rules: [
+    { token: "definition-name", foreground: "FFD700", fontStyle: "bold" },
+    { token: "property-name", foreground: "C586C0" },
+    { token: "variable", foreground: "50C1F9" },
+    { token: "number", foreground: "b5cea8" },
+    { token: "keyword", foreground: "8477FD" },
+    { token: "symbol", foreground: "ffffff" },
+    { token: "string", foreground: "3AE1FF", fontStyle: "bold" },
+    { token: "component", foreground: "21FFD6" },
+    { token: "attributes", foreground: "black" },
+    { token: "positional", foreground: "21FFD6" },
+    { token: "dot-command", foreground: "21FFD6" },
+  ],
   palette: {
     mode: "dark",
     sectionHeaderColor: "#1c1e21",
@@ -31,8 +44,8 @@ export const themeConfig = {
         root: {
           backgroundColor: colorTheme.palette.navbarColor,
           backgroundImage: "none",
-          borderBottom: colorTheme.palette.border
-        }
+          borderBottom: colorTheme.palette.border,
+        },
       },
     },
     MuiButton: {
@@ -44,7 +57,7 @@ export const themeConfig = {
           color: colorTheme.palette.secondaryColor,
           "&:hover": {
             color: colorTheme.palette.highlight,
-            backgroundColor: 'transparent',
+            backgroundColor: "transparent",
           },
         },
       },
@@ -59,14 +72,14 @@ export const themeConfig = {
         paper: {
           backgroundColor: colorTheme.palette.sidebarColor,
         },
-      }
+      },
     },
     MuiPopover: {
       styleOverrides: {
         paper: {
           backgroundColor: "#121212",
         },
-      }
+      },
     },
     MuiListItemButton: {
       styleOverrides: {
@@ -75,25 +88,24 @@ export const themeConfig = {
             borderLeft: colorTheme.palette.borderHighlight,
             color: colorTheme.palette.highlight,
           },
-        }
-      }
+        },
+      },
     },
     MuiListItemText: {
       styleOverrides: {
         root: {
-          fontSize: '5px',
-        }
-      }
+          fontSize: "5px",
+        },
+      },
     },
   },
 
   typography: {
     fontSize: 15,
     fontFamily: "sans-serif",
-    textTransform: "none"
+    textTransform: "none",
   },
-}
+};
 
 const theme = createTheme(themeConfig);
 export default theme;
-

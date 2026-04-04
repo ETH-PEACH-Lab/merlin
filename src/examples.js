@@ -185,7 +185,7 @@ orgChart.removeSubtree(Intern)`,
         id: "linkedlist",
         title: "Example - Linked List",
         userCode: `linkedlist traverse = {
-  nodes: [start, mid1, mid2, end]
+  nodes: [x1, x2, x3, x4]
   value: ["first", "second", "third", "last"]
   color: [null, null, null, null]
 }
@@ -275,12 +275,12 @@ show randomTextToo (1, 0)
 	neurons: [["null", "x1"], ["x2", "x3"], ["x4", "x5"]]
 	layerColors: ["blue", null, "red"]
 	neuronColors: [["blue", "blue"],[null, "blue"], ["blue", "red"]]
-  	showBias: true
-  	showLabels: true
-  	labelPosition: "bottom"
-  	showWeights: true
-  	showArrowheads: true
-	}
+    showBias: true
+    showLabels: true
+    labelPosition: "bottom"
+    showWeights: true
+    showArrowheads: true
+}
 page
 show nn
 
@@ -326,11 +326,6 @@ nn.setNeurons([["x1", "x2"], [null, "x3"], ["x4", "x3x"]])
 page
 nn.setNeurons([["a", "b", "c"], ["d"], ["e", "f"]])
 
-page
-nn.setNeuronColors([["blue", null], [null, null], [null, "red"]])
-
-page
-nn.setNeuronColors([[null, null], [null, "blue"], ["red", "red"]])
 `,
       },
 
@@ -338,32 +333,192 @@ nn.setNeuronColors([[null, null], [null, "blue"], ["red", "red"]])
         id: "neuralNetworkExampleTestEnv",
         title: "Test - MLP Neural-Network",
         userCode: `neuralnetwork nn = {
-	layers: ["layer"]
-	neurons: [["x"]]
-	layerColors: ["red", "blue"]
-	showLabels: true
-	labelPosition: "bottom"
-	showWeights: true
-	showArrowheads: true
+	layers: ["layer1", "hidden", "output"]
+	neurons: [["null", "x1"], ["x2", "x3"], ["x4", "x5"]]
+	layerColors: ["blue", null, "red"]
+	neuronColors: [["blue", "blue"],[null, "blue"], ["blue", "red"]]
+    showBias: true
+    showLabels: true
+    labelPosition: "bottom"
+    showWeights: true
+    showArrowheads: true
 }
-
-
 page
 show nn
 
+
+
+
+
+
+
+
+`,
+      },
+
+      {
+        id: "blockExample3",
+        title: "Test - Autocomplete Block Test",
+        userCode: `architecture a = {
+    block Velo: [
+        layout: vertical,
+        gap: 10,
+        style: box,
+        nodes: [
+            add_norm1 = type: rect label: "CNN" style: box color: "red" stroke: "gray",
+            plus = type: circle label: "+" color: "blue" size: (40, 40)
+        ],
+        edges: [
+            e1 = add_norm1.bottom -> plus.top style: straight color: "yellow" arrowheads: 1 label: "text"
+            
+        ]
+        groups: [
+            row1 = members: [add_norm1]
+        ]
+        
+    ]
+    diagram: [
+        gap: 10,
+        layout: horizontal,
+        uses: [v = Velo]
+        connects: [
+            v.add_norm1.top -> v.add_norm1.top 
+        ]
+    ]
+}
+  
 page
-nn.addLayer("colorsLayer", ["a", "b"])
-nn.addLayer("colorsLayer", ["a", "b"])
-nn.removeNeuronsFromLayer(1, ["a"])
-nn.removeNeuronsFromLayer(1, ["b"])
-nn.setNeurons([[_], [_], ["5000", "5000"]])
+show a
 
 
 
 
+`,
+      },
 
+      {
+        id: "blockExample2",
+        title: "Test - Block Architecture",
+        userCode: `architecture a = {
+	title: "Hello",
+	block Encoder: [
+		layout: vertical,
+		gap: 40,
+		color: "yellow",
+		style: box,
+		annotation.top: "hello",
+		nodes: [
+			add_norm1 = type: rect label: "Add & Norm" label.orientation: vertical color: "yellow",
+			feed_forward = type: rect label: "Feed Forward" color: "blue",
+			add_norm2 = type: rect label: "Add & Norm" color: "yellow",
+			multi_head_attention = type: rect label: "Multi-Head Attention" color: "green",
+			plus = type: circle label: "+",
+			input_embedding = type: rect label: "Input Embedding",
+			inputs = type: text label: "inputs",
+			positional_encoding = type: circle label: "PE"
+		],
+		edges: [
+			e1 = multi_head_attention.top -> add_norm2.bottom arrowheads: 0,
+			e2 = add_norm2.top -> feed_forward.bottom,
+			e3 = e2.mid -> add_norm1.left style: bow,
+			e4 = feed_forward.top -> add_norm1.bottom style: straight arrowheads: 0,
+			e5 = input_embedding.top -> plus.bottom,
+			e6 = plus.top -> multi_head_attention.bottom arrowheads: 2,
+			e7 = inputs.top -> input_embedding.bottom,
+			e8 = e6.mid -> add_norm2.left style: bow
+		],
+		groups: [
+			row1 = members: [add_norm1, feed_forward] layout: vertical gap: 10,
+			row2 = members: [add_norm2, multi_head_attention] layout: vertical gap: 10,
+			row3 = members: [row1, row2] layout: vertical gap: 40 color: "grey" annotation.top: "Nx" annotation.left: "Nx",
+			row4 = members: [positional_encoding, plus] anchor: plus
+		]
+	]
+}
 
+page
+show a
 
+`,
+      },
+
+      {
+        id: "blockExample",
+        title: "Example - Block Architecture",
+        userCode: `architecture a = {
+	title: "Hello",
+	block Encoder: [
+		layout: vertical,
+		gap: 40,
+		color: "yellow",
+		style: box,
+		annotation.top: "hello",
+		nodes: [
+			add_norm1 = type: rect label: "Add & Norm" label.orientation: vertical color: "yellow",
+			feed_forward = type: rect label: "Feed Forward" color: "blue",
+			add_norm2 = type: rect label: "Add & Norm" color: "yellow",
+			multi_head_attention = type: rect label: "Multi-Head Attention" color: "green",
+			plus = type: circle label: "+",
+			input_embedding = type: rect label: "Input Embedding",
+			inputs = type: text label: "inputs",
+			positional_encoding = type: circle label: "PE"
+		],
+		edges: [
+			e1 = multi_head_attention.top -> add_norm2.bottom arrowheads: 0,
+			e2 = add_norm2.top -> feed_forward.bottom,
+			e3 = e2.mid -> add_norm1.left style: bow,
+			e4 = feed_forward.top -> add_norm1.bottom style: straight arrowheads: 0,
+			e5 = input_embedding.top -> plus.bottom,
+			e6 = plus.top -> multi_head_attention.bottom arrowheads: 2,
+			e7 = inputs.top -> input_embedding.bottom,
+			e8 = e6.mid -> add_norm2.left style: bow
+		],
+		groups: [
+			row1 = members: [add_norm1, feed_forward] layout: vertical gap: 10,
+			row2 = members: [add_norm2, multi_head_attention] layout: vertical gap: 10,
+			row3 = members: [row1, row2] layout: vertical gap: 40 color: "grey" annotation.top: "Nx" annotation.left: "Nx",
+			row4 = members: [positional_encoding, plus] anchor: plus
+		]
+	],
+	block Decoder: [
+		layout: vertical,
+		gap: 40,
+		color: "yellow",
+		style: box,
+		nodes: [
+			add_norm0 = type: rect label: "Add & Norm" color: "yellow",
+			feed_forward = type: rect label: "Feed Forward" color: "blue",
+			add_norm1 = type: rect label: "Add & Norm" color: "yellow",
+			multi_head_attention = type: rect label: "Multi-Head Attention" color: "green",
+			add_norm2 = type: rect label: "Add & Norm" color: "yellow",
+			masked_multi_head_attention = type: rect label: "Masked Multi-Head Attention" label.orientation: vertical color: "green"
+		],
+		edges: [
+			e1 = feed_forward.top -> add_norm0.bottom color: "yellow" arrowheads: 0,
+			e2 = multi_head_attention.top -> add_norm1.bottom arrowheads: 0,
+			e3 = masked_multi_head_attention.top -> add_norm2.bottom arrowheads: 0,
+			e4 = add_norm1.top -> feed_forward.bottom,
+			e5 = e4.mid -> add_norm0.right style: bow,
+			e6 = add_norm2.top -> multi_head_attention.bottom[2],
+			e7 = e6.mid -> add_norm1.right style: bow
+		],
+		groups: [
+			row1 = members: [add_norm0, feed_forward] layout: vertical gap: 10 color: "grey",
+			row2 = members: [add_norm1, multi_head_attention] layout: vertical gap: 10 color: "grey",
+			row3 = members: [add_norm2, masked_multi_head_attention] layout: vertical gap: 10 color: "grey"
+		]
+	],
+	diagram: [
+		gap: 15,
+		uses: [e = Encoder, d = Decoder],
+		connects: [
+			e.add_norm1.top -> d.multi_head_attention.bottom[1] style: bow arrowheads: 2
+		]
+	]
+}
+
+page
+show a
 
 `,
       },
