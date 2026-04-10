@@ -1,4 +1,4 @@
-import { formatNodeName, formatNullValue } from "../compiler.mjs";
+import { formatNullValue } from "../compiler.mjs";
 import { formatPositionForOutput } from "../../utils/positionUtils.mjs";
 const INHERIT_LAYER_COLOR = "layerColor";
 export function generateNeuralNetwork(neuralNetworkComponent, layout = [3, 3]) {

@@ -143,7 +143,7 @@ const lexer = moo.compile({
   nlw: { match: /[ \t]*\r?\n[ \t]*/, lineBreaks: true },
   ws: /[ \t]+/,
   nullT: { match: /null/, value: () => null },
-  layoutspec: /-?(?:[0-9]*\.[0-9]+|[0-9]+)x-?(?:[0-9]*\.[0-9]+|[0-9]+)/, 
+  layoutspec: /-?(?:[0-9]*\.[0-9]+|[0-9]+)x-?(?:[0-9]*\.[0-9]+|[0-9]+)(?:x-?(?:[0-9]*\.[0-9]+|[0-9]+))?/, 
   number: /-?(?:[0-9]*\.[0-9]+|[0-9]+)/,
   boolean: { match: /true|false/, value: s => s === "true" },
   times:  /\*/,
@@ -327,7 +327,7 @@ node_list -> lbrac wsn (node_entry (comma_nlow_new node_entry):*):? wsn rbrac {%
     return result;
 } %}
 
-node_entry -> word _ equals wsn node_body {% ([id, , , , body]) => ({
+node_entry -> wordL _ equals wsn node_body {% ([id, , , , body]) => ({
   id,
   ...body
 }) %}
@@ -338,17 +338,6 @@ node_body -> node_field (nlow node_field):* {% ([first, rest]) => {
     let result = {};
     let annotations = [];
 
-    let seen = {
-        type: 0,
-        label: 0,
-        labelOrientation: 0,
-        subtext: 0,
-        size: 0,
-        style: 0,
-        color: 0,
-        stroke: 0,
-    };
-
     for (const entry of fields) {
         if (!entry || typeof entry !== "object") continue;
 
@@ -358,52 +347,30 @@ node_body -> node_field (nlow node_field):* {% ([first, rest]) => {
         }
 
         for (const key of Object.keys(entry)) {
-            if (seen[key] !== undefined) {
-                seen[key] += 1;
-                if (seen[key] > 1) {
-                    throw new Error(`Duplicate node field: ${key}`);
-                }
-            }
             result[key] = entry[key];
         }
-    }
-
-    if (!result.type) {
-        throw new Error("Node must have a type");
     }
 
     if (annotations.length > 0) {
         result.annotations = annotations;
     }
 
-    const allowedByType = {
-        text: new Set(["type", "label", "labelOrientation", "color", "annotations"]),
-        rect: new Set(["type", "label", "labelOrientation", "subtext", "size", "style", "color", "stroke", "annotations"]),
-        circle: new Set(["type", "label", "labelOrientation", "subtext", "size", "style", "color", "stroke", "annotations"]),
-    };
-
-    const allowed = allowedByType[result.type];
-    if (!allowed) {
-        throw new Error(`Unsupported node type: ${result.type}`);
-    }
-
-    for (const key of Object.keys(result)) {
-        if (!allowed.has(key)) {
-            throw new Error(`Field "${key}" is not allowed for node type "${result.type}"`);
-        }
-    }
-
     return result;
 } %}
 
 node_field -> (pair["type", node_type_literal] 
+            | pair["shape", (shape_literal | number_only_list)] 
+            | pair["kernelSize", kernel_size_literal] 
             | pair["label", (string | nullT)] 
+            | pair["labelSubtext", (string | nullT)] 
+            | pair["opLabel", (string | nullT)] 
+            | pair["opLabelSubtext", (string | nullT)] 
             | label_orientation
-            | pair["subtext", string] 
             | pair["size", size_tuple] 
             | pair["style", style_literal] 
-            | pair["color", (string | nullT)] 
+            | pair["color", (string | nullT | ns_list)]
             | pair["stroke", (string | nullT)] 
+            | pair["outputLabels", ns_list]
             | node_annotation)
 {% iid %}
 
@@ -423,7 +390,7 @@ edge_list -> lbrac wsn (edge_entry (comma_nlow_new edge_entry):*):? wsn rbrac {%
     return result;
 } %}
 
-edge_entry -> word _ equals wsn endpoint _ %arrow _ endpoint (__ edge_field (nlow edge_field):*):? {% ([id, , , , from, , , , to, fields]) => {
+edge_entry -> wordL _ equals wsn endpoint _ %arrow _ endpoint (__ edge_field (nlow edge_field):*):? {% ([id, , , , from, , , , to, fields]) => {
 
     let result = {
         id,
@@ -451,8 +418,10 @@ edge_entry -> word _ equals wsn endpoint _ %arrow _ endpoint (__ edge_field (nlo
 
 edge_field -> (pair["label", (string | nullT)]
             | pair["style", edge_style_literal] 
+            | pair["transition", edge_transition_literal]
             | pair["color", (string | nullT)]
-            | pair["arrowheads", arrowheads_literal])
+            | pair["arrowheads", numberL]
+            | pair["gap", number])
 {% iid %}
 
 endpoint -> wordL anchor_with_index {% ([name, s]) => {
@@ -481,7 +450,7 @@ anchor_with_index -> dot node_edge_literals index_opt:? {% ([, anchor, index]) =
 
 } %}
 
-index_opt -> lbrac _ ports_literal _ rbrac {% ([, , n, ,]) => n %}
+index_opt -> lbrac _ numberL _ rbrac {% ([, , n, ,]) => n %}
 
 
 group_list -> lbrac wsn (group_entry (comma_nlow_new group_entry):*):? wsn rbrac {% ([, , items, ,]) => {
@@ -530,6 +499,9 @@ group_field -> (pair["members", member_list]
           | pair["anchor", wordL]
           | pair["gap", number]
           | pair["color", (string | nullT)] 
+          | pair["markerType", marker_type_literal]
+          | pair["markerLabel", (string | nullT)]
+          | pair["markerPosition", marker_position_literal]
           | group_annotation)
           {% iid %}
 
@@ -620,10 +592,12 @@ endpoint_connect -> wordL dot wordL anchor_with_index {% ([blockName, ,node_or_e
     };
 } %}
 
-connect_field -> (pair["label", string]
+connect_field -> (pair["label", (string | nullT)]
             | pair["style", edge_style_literal] 
-            | pair["color", string]
-            | pair["arrowheads", arrowheads_literal])
+            | pair["transition", edge_transition_literal]
+            | pair["color", (string | nullT)]
+            | pair["arrowheads", numberL]
+            | pair["gap", number])
 {% iid %}
 
 
@@ -636,13 +610,47 @@ use_list -> lbrac wsn (use_entry (comma_nlow_new use_entry):*):? wsn rbrac {% ([
 } %}
 
 
-use_entry -> wordL _ equals _ wordL  {% ([alias, , , ,blockName]) => ({
+use_entry -> wordL _ equals _ wordL {% ([alias, , , ,blockName]) => ({
   id: alias,
   block: blockName
 
 }) %}
 
+shape_literal -> %layoutspec {% ([t]) => {
+  const parts = t.value.split("x").map(Number);
+
+  if (!(parts.length === 2 || parts.length === 3)) {
+    throw new Error("shape must be NUMBERxNUMBER or NUMBERxNUMBERxNUMBER");
+  }
+
+  if (parts.some(n => !Number.isInteger(n) || n < 0)) {
+    throw new Error("shape values must be non-negative integers");
+  }
+
+  return parts;
+} %}
+
+kernel_size_literal -> %layoutspec {% ([t]) => {
+  const parts = t.value.split("x").map(Number);
+
+  if (parts.length !== 2) {
+    throw new Error("kernelSize must be NUMBERxNUMBER");
+  }
+
+  if (parts.some(n => !Number.isInteger(n) || n < 0)) {
+    throw new Error("kernelSize values must be non-negative integers");
+  }
+
+  return parts;
+} %}
+
 # Literals of blocks
+marker_position_literal -> "bottom" {% () => "bottom" %}
+                   | "top" {% () => "top" %}
+
+marker_type_literal -> "bracket" {% () => "bracket" %}
+                   | "brace" {% () => "brace" %}
+
 label_orientation_literal -> "horizontal" {% () => "horizontal" %}
                    | "vertical" {% () => "vertical" %}
 
@@ -651,19 +659,13 @@ node_edge_literals -> side_literal {% id %}
                 | "start" {% () => "start" %}
                 | "end" {% () => "end" %}
 
-
-ports_literal -> number {% ([n]) => {
-  if (![0,1,2,3,4].includes(n)) throw new Error("port index must be 0..4");
-  return n;
-} %}
-
-arrowheads_literal -> number {% ([n]) => {
-  if (![0,1,2,3].includes(n)) throw new Error("arrowheads must be 0..3");
-  return n;
-} %}
-
 edge_style_literal -> "straight" {% () => "straight" %}
                    | "bow" {% () => "bow" %}    
+
+edge_transition_literal -> "default" {% () => "default" %}
+                   | "featureMap" {% () => "featureMap" %} 
+                   | "flatten" {% () => "flatten" %} 
+                   | "fullyConnected" {% () => "fullyConnected" %} 
 
 annotation_key -> "annotation" dot side_literal {% ([, , side]) => {
   return { side };
@@ -678,6 +680,9 @@ size_tuple -> tuple[number, number] {%id %}
 node_type_literal -> "text" {% () => "text" %}
                    | "rect" {% () => "rect" %}
                    | "circle" {% () => "circle" %}
+                   | "stacked" {% () => "stacked" %}
+                   | "flatten" {% () => "flatten" %}
+                   | "fullyConnected" {% () => "fullyConnected" %}
 
 style_literal -> "rounded" {% () => "rounded" %}
                    | "box" {% () => "box" %}                  
@@ -702,7 +707,7 @@ neuralNetwork_pair -> (
             | pair["neuronColors", nns_mlist]
             | pair["showBias", boolean]
             | pair["showLabels", boolean]
-            | pair["labelPosition", positionLabelsLiteral]
+            | pair["labelPosition", position_labels_literal]
             | pair["showWeights", boolean]
             | pair["showArrowheads", boolean]
             | pair["above", (string | word) {% id %}]
@@ -827,6 +832,7 @@ commands -> (comment
           | set_group_layout
           | set_group_annotation
           | set_node_annotation
+          | set_node_shape
           | set_neuralnetwork_neuron
           | set_neuralnetwork_neuron_color
           | set_neuralnetwork_layer
@@ -932,6 +938,7 @@ set_group_color -> cmd["setGroupColor", comma_sep3[word, word, (string | nullT)]
 set_group_layout -> cmd["setGroupLayout", comma_sep3[word, word, layout_literal]] {% (details) => ({ type: "set_group_layout", ...id(details) }) %}
 set_group_annotation -> cmd["setGroupAnnotation", comma_sep4[word, word, side_literal, (string | nullT)]] {% (details) => ({ type: "set_group_annotation", ...id(details) }) %}
 set_node_annotation -> cmd["setNodeAnnotation", comma_sep4[word, word, side_literal, (string | nullT)]] {% (details) => ({ type: "set_node_annotation", ...id(details) }) %}
+set_node_shape -> cmd["setNodeShape", comma_sep3[word, word, shape_literal]] {% (details) => ({ type: "set_node_shape", ...id(details) }) %}
 
 # Set a value in an array (or by node name for graphs/trees)
 set_value -> cmd["setValue", comma_sep[(number | word) {% id %}, (number | string | nullT) {% id %}]] {% (details) => ({ type: "set", target: "value", ...id(details) }) %}
@@ -1069,27 +1076,24 @@ nnsp_mlist -> matrix_2d_list[(nullT | number | string | pass) {% iid %}] {% id %
 
 # - Literals - #
 number -> %number {% ([value]) => Number(value.value) %}
+numberL -> %number {% ([value]) => ({number: Number(value.value), line: value.line, col: value.col}) %}
 string -> %string {% ([value]) => value.value %}
 boolean -> %boolean {% ([value]) => value.value %}
 edge -> wordL %dash wordL {% ([start, , end]) => ({ start: start.name, end: end.name }) %}
 word -> %word {% ([value]) => value.value %}
+layoutspec -> %layoutspec {% ([value]) => value.value %}
 wordL -> %word {% ([value]) => ({name: value.value, line: value.line, col: value.col}) %}
 nullT -> %nullT {% () => null %}
 pass -> %pass {% () => "_" %}
 
 layout -> %layoutspec {% ([t]) => {
-    const [a, b] = t.value.split("x");
-    return [Number(a), Number(b)];
+    const parts = t.value.split("x").map(Number);
+    if (parts.length !== 2) throw new Error("layout must be NUMBERxNUMBER");
+    return parts
 } %}
 
-positionLabelsLiteral -> %string {%
-  ([t]) => {
-    if (t.value === "top" || t.value === "bottom") {
-      return t.value;
-    }
-    throw new Error("labelPosition must be \"top\" or \"bottom\"");
-  }
-%}
+position_labels_literal -> "bottom" {% () => "bottom" %}
+                   | "top" {% () => "top" %}
 
 # Range values, e.g. 0..1
 range_value -> number dotdot number {% ([start, , end]) => ({ type: "range", start: start, end: end }) %}

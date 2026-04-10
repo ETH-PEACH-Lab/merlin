@@ -285,7 +285,7 @@ function createOptimizedArchitectureCommand1d(
         }
       }
     } else if (index >= blockLength) {
-      console.log("CALLED")
+      console.log("CALLED");
       console.log(index);
       console.log(blockLength);
       let type;
@@ -322,7 +322,7 @@ function createOptimizedArchitectureCommand2d(
   value,
   componentDefinition,
 ) {
-  /* console.log("createOptimizedArchitectureCommandBlock");
+  /*console.log("createOptimizedArchitectureCommandBlock");
   console.log("relevantCommands");
   console.log(relevantCommands);
   console.log("componentName");
@@ -345,7 +345,9 @@ function createOptimizedArchitectureCommand2d(
     fieldKey === "stroke" ||
     fieldKey === "annotation" ||
     fieldKey === "styleEdge" ||
-    fieldKey === "layout"
+    fieldKey === "layout" ||
+    fieldKey === "shapeStacked" ||
+    fieldKey === "shapeFlatten"
   ) {
     const blockId = componentDefinition.body.blocks[row].id.name;
     const nodesLength =
@@ -356,7 +358,7 @@ function createOptimizedArchitectureCommand2d(
     let type;
 
     if (col < nodesLength) {
-      id = componentDefinition.body.blocks[row].nodes[col].id;
+      id = componentDefinition.body.blocks[row].nodes[col].id.name;
       if (fieldKey === "value") {
         type = "set_node_label";
       } else if (fieldKey === "color") {
@@ -365,9 +367,12 @@ function createOptimizedArchitectureCommand2d(
         type = "set_node_stroke";
       } else if (fieldKey === "annotation") {
         type = "set_node_annotation";
+      } else if (fieldKey === "shapeStacked" || fieldKey === "shapeFlatten") {
+        type = "set_node_shape";
       }
     } else if (nodesLength <= col && col < edgesLength + nodesLength) {
-      id = componentDefinition.body.blocks[row].edges[col - nodesLength].id;
+      id =
+        componentDefinition.body.blocks[row].edges[col - nodesLength].id.name;
       if (fieldKey === "value") {
         type = "set_edge_label";
       } else if (fieldKey === "color") {
@@ -392,6 +397,7 @@ function createOptimizedArchitectureCommand2d(
     if (fieldKey === "annotation") {
       if (
         value.value !== undefined &&
+        value.value !== null &&
         value.side !== undefined &&
         value.side !== null
       ) {
@@ -402,6 +408,51 @@ function createOptimizedArchitectureCommand2d(
             second: id,
             third: value.side,
             fourth: value.value,
+          },
+          name: componentName,
+          line: 0,
+          col: 0,
+        });
+      }
+    } else if (fieldKey === "shapeStacked") {
+      if (
+        value.depth !== undefined &&
+        value.depth !== null &&
+        value.height !== undefined &&
+        value.height !== null &&
+        value.width !== undefined &&
+        value.width !== null &&
+        value.depth >= 0 &&
+        value.height >= 0 &&
+        value.width >= 0
+      ) {
+        result.push({
+          type,
+          args: {
+            block: blockId,
+            second: id,
+            third: value,
+          },
+          name: componentName,
+          line: 0,
+          col: 0,
+        });
+      }
+    } else if (fieldKey === "shapeFlatten") {
+      if (
+        value.rows !== undefined &&
+        value.rows !== null &&
+        value.columns !== undefined &&
+        value.columns !== null &&
+        value.rows >= 0 &&
+        value.columns >= 0
+      ) {
+        result.push({
+          type,
+          args: {
+            block: blockId,
+            second: id,
+            third: value,
           },
           name: componentName,
           line: 0,

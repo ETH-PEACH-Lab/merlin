@@ -29,7 +29,7 @@ export default function reconstructDSL(parsedDSL) {
         lines.push(`// ${cmd.content}`);
       } else {
         const reconstructed = reconstructCommand(cmd);
-     //   console.log(reconstructed);
+        //   console.log(reconstructed);
         if (reconstructed) {
           lines.push(reconstructed);
         }
@@ -77,18 +77,210 @@ function reconstructArchitectureBody(body) {
             for (const [nodeIndex, node] of value2.entries()) {
               const isLastNode = nodeIndex === value2.length - 1;
 
-              result += `\t\t\t${node.id} = type: ${node.type}`;
+              result += `\t\t\t${node.id.name} = type: ${node.type}`;
 
-              if (node.label) {
-                result += ` label: ${JSON.stringify(node.label.length === 1 ? node.label[0] : node.label)}`;
-              }
+              if (node.type === "text") {
+                if (node.label) {
+                  result += ` label: "${node.label[0]}"`;
+                }
+                if (node.labelOrientation) {
+                  result += ` label.orientation: ${node.labelOrientation}`;
+                }
 
-              if (node.labelOrientation) {
-                result += ` label.orientation: ${node.labelOrientation}`;
-              }
+                if (node.opLabel) {
+                  result += ` opLabel: "${node.opLabel[0]}"`;
+                }
 
-              if (node.color) {
-                result += ` color: ${JSON.stringify(node.color.length === 1 ? node.color[0] : node.color)}`;
+                if (node.opLabelSubtext) {
+                  result += ` opLabelSubtext: "${node.opLabelSubtext[0]}"`;
+                }
+
+                if (node.annotations) {
+                  for (const ann of node.annotations) {
+                    result += ` annotation.${ann.side}: "${ann.value.length === 1 ? ann.value[0] : ann.value}"`;
+                  }
+                }
+
+                if (node.color) {
+                  result += ` color: "${node.color[0]}"`;
+                }
+              } else if (node.type === "rect" || node.type === "circle") {
+                if (node.label) {
+                  result += ` label: "${node.label[0]}"`;
+                }
+                if (node.labelOrientation) {
+                  result += ` label.orientation: ${node.labelOrientation}`;
+                }
+
+                if (node.labelSubtext) {
+                  result += ` labelSubtext: "${node.labelSubtext[0]}"`;
+                }
+
+                if (node.opLabel) {
+                  result += ` opLabel: "${node.opLabel[0]}"`;
+                }
+
+                if (node.opLabelSubtext) {
+                  result += ` opLabelSubtext: "${node.opLabelSubtext[0]}"`;
+                }
+
+                if (node.annotations) {
+                  for (const ann of node.annotations) {
+                    result += ` annotation.${ann.side}: "${ann.value.length === 1 ? ann.value[0] : ann.value}"`;
+                  }
+                }
+
+                if (node.size) {
+                  result += ` size: (${node.size[0]}, ${node.size[1]})`;
+                }
+
+                if (node.style) {
+                  result += ` style: ${node.style}`;
+                }
+
+                if (node.color) {
+                  result += ` color: "${node.color[0]}"`;
+                }
+
+                if (node.stroke) {
+                  result += ` stroke: "${node.stroke[0]}"`;
+                }
+              } else if (node.type === "stacked") {
+                if (node.shape) {
+                  result += ` shape: ${node.shape[0][0]}x${node.shape[0][1]}x${node.shape[0][2]}`;
+                }
+
+                if (node.kernelSize) {
+                  result += ` kernelSize: ${node.kernelSize[0]}x${node.kernelSize[0]}`;
+                }
+
+                if (node.label) {
+                  result += ` label: "${node.label.length === 1 ? node.label[0] : node.label}"`;
+                }
+
+                if (node.labelSubtext) {
+                  result += ` labelSubtext: "${node.labelSubtext[0]}"`;
+                }
+
+                if (node.opLabel) {
+                  result += ` opLabel: "${node.opLabel[0]}"`;
+                }
+
+                if (node.opLabelSubtext) {
+                  result += ` opLabelSubtext: "${node.opLabelSubtext[0]}"`;
+                }
+
+                if (node.annotations) {
+                  for (const ann of node.annotations) {
+                    result += ` annotation.${ann.side}: "${ann.value.length === 1 ? ann.value[0] : ann.value}"`;
+                  }
+                }
+
+                if (node.size) {
+                  result += ` size: (${node.size[0]}, ${node.size[1]})`;
+                }
+
+                if (node.color) {
+                  result += ` color: "${node.color[0]}"`;
+                }
+              } else if (node.type === "flatten") {
+                if (node.shape) {
+                  result += ` shape: ${node.shape[0][0]}x${node.shape[0][1]}`;
+                }
+
+                if (node.label) {
+                  result += ` label: "${node.label.length === 1 ? node.label[0] : node.label}"`;
+                }
+
+                if (node.labelSubtext) {
+                  result += ` labelSubtext: "${node.labelSubtext[0]}"`;
+                }
+
+                if (node.opLabel) {
+                  result += ` opLabel: "${node.opLabel[0]}"`;
+                }
+
+                if (node.opLabelSubtext) {
+                  result += ` opLabelSubtext: "${node.opLabelSubtext[0]}"`;
+                }
+
+                if (node.annotations) {
+                  for (const ann of node.annotations) {
+                    result += ` annotation.${ann.side}: "${ann.value.length === 1 ? ann.value[0] : ann.value}"`;
+                  }
+                }
+
+                if (node.size) {
+                  result += ` size: (${node.size[0]}, ${node.size[1]})`;
+                }
+
+                if (node.color) {
+                  result += ` color: "${node.color[0]}"`;
+                }
+              } else if (node.type === "fullyConnected") {
+                if (node.shape) {
+                  result += ` shape: [`;
+
+                  for (let i = 0; i < node.shape[0].length; i++) {
+                    result += `${node.shape[0][i]}`;
+                    if (i !== node.shape[0].length - 1) {
+                      result += `, `;
+                    }
+                  }
+
+                  result += `]`;
+                }
+                if (node.label) {
+                  result += ` label: "${node.label.length === 1 ? node.label[0] : node.label}"`;
+                }
+
+                if (node.labelSubtext) {
+                  result += ` labelSubtext: "${node.labelSubtext[0]}"`;
+                }
+
+                if (node.opLabel) {
+                  result += ` opLabel: "${node.opLabel[0]}"`;
+                }
+
+                if (node.opLabelSubtext) {
+                  result += ` opLabelSubtext: "${node.opLabelSubtext[0]}"`;
+                }
+
+                if (node.outputLabels) {
+                  result += ` outputLabels: [`;
+
+                  for (let i = 0; i < node.outputLabels.length; i++) {
+                    result += `"${node.outputLabels[i]}"`;
+                    if (i !== node.outputLabels.length - 1) {
+                      result += `, `;
+                    }
+                  }
+
+                  result += `]`;
+                }
+
+                if (node.annotations) {
+                  for (const ann of node.annotations) {
+                    result += ` annotation.${ann.side}: "${ann.value.length === 1 ? ann.value[0] : ann.value}"`;
+                  }
+                }
+
+                if (node.size) {
+                  result += ` size: (${node.size[0]}, ${node.size[1]})`;
+                }
+
+                if (node.color) {
+                  result += ` color: [`;
+
+                  for (let i = 0; i < node.color[0].length; i++) {
+                    result += `"${node.color[0][i]}"`;
+                    if (i !== node.color[0].length - 1) {
+                      result += `, `;
+                    }
+                  }
+
+                  result += `]`;
+                }
               }
 
               if (!isLastNode) {
@@ -107,12 +299,12 @@ function reconstructArchitectureBody(body) {
             for (const [edgeIndex, edge] of value2.entries()) {
               const isLastEdge = edgeIndex === value2.length - 1;
 
-              result += `\t\t\t${edge.id} = `;
+              result += `\t\t\t${edge.id.name} = `;
 
               if (edge.from.node) {
                 result += `${edge.from.node.name}.${edge.from.nodeAnchor}`;
-                if (edge.from.portIndex != null) {
-                  result += `[${edge.from.portIndex}]`;
+                if (edge.from.portIndex) {
+                  result += `[${edge.from.portIndex.number}]`;
                 }
               } else if (edge.from.edge) {
                 result += `${edge.from.edge.name}.${edge.from.edgeAnchor}`;
@@ -122,8 +314,8 @@ function reconstructArchitectureBody(body) {
 
               if (edge.to.node) {
                 result += `${edge.to.node.name}.${edge.to.nodeAnchor}`;
-                if (edge.to.portIndex != null) {
-                  result += `[${edge.to.portIndex}]`;
+                if (edge.to.portIndex) {
+                  result += `[${edge.to.portIndex.number}]`;
                 }
               } else if (edge.to.edge) {
                 result += `${edge.to.edge.name}.${edge.to.edgeAnchor}`;
@@ -133,12 +325,20 @@ function reconstructArchitectureBody(body) {
                 result += ` style: ${edge.style}`;
               }
 
-              if (edge.color) {
-                result += ` color: ${JSON.stringify(edge.color.length === 1 ? edge.color[0] : edge.color)}`;
+              if (edge.gap) {
+                result += ` gap: ${edge.gap}`;
               }
 
-              if (edge.arrowheads != null) {
-                result += ` arrowheads: ${edge.arrowheads}`;
+              if (edge.transition) {
+                result += ` transition: ${edge.transition}`;
+              }
+
+              if (edge.arrowheads) {
+                result += ` arrowheads: ${edge.arrowheads.number}`;
+              }
+
+              if (edge.color) {
+                result += ` color: ${JSON.stringify(edge.color.length === 1 ? edge.color[0] : edge.color)}`;
               }
 
               if (!isLastEdge) {
@@ -172,7 +372,7 @@ function reconstructArchitectureBody(body) {
                 result += ` layout: ${group.layout}`;
               }
 
-              if (group.gap != null) {
+              if (group.gap) {
                 result += ` gap: ${group.gap}`;
               }
 
@@ -188,6 +388,18 @@ function reconstructArchitectureBody(body) {
                 for (const ann of group.annotations) {
                   result += ` annotation.${ann.side}: ${JSON.stringify(ann.value.length === 1 ? ann.value[0] : ann.value)}`;
                 }
+              }
+
+              if (group.markerType) {
+                result += ` markerType: ${group.markerType}`;
+              }
+
+              if (group.markerLabel) {
+                result += ` markerLabel: "${group.markerLabel}"`;
+              }
+
+              if (group.markerPosition) {
+                result += ` markerPosition: ${group.markerPosition}`;
               }
 
               if (!isLastGroup) {
@@ -262,24 +474,28 @@ function reconstructArchitectureBody(body) {
             result += `\t\t\t`;
             result += `${connect.from.block.name}.${connect.from.node.name}.${connect.from.nodeAnchor}`;
 
-            if (connect.from.portIndex != null) {
-              result += `[${connect.from.portIndex}]`;
+            if (connect.from.portIndex) {
+              result += `[${connect.from.portIndex.number}]`;
             }
 
             result += ` -> `;
 
             result += `${connect.to.block.name}.${connect.to.node.name}.${connect.to.nodeAnchor}`;
 
-            if (connect.to.portIndex != null) {
-              result += `[${connect.to.portIndex}]`;
+            if (connect.to.portIndex) {
+              result += `[${connect.to.portIndex.number}]`;
             }
 
             if (connect.style) {
               result += ` style: ${connect.style}`;
             }
 
-            if (connect.arrowheads != null) {
-              result += ` arrowheads: ${connect.arrowheads}`;
+            if (connect.arrowheads) {
+              result += ` arrowheads: ${connect.arrowheads.number}`;
+            }
+
+            if (connect.transition) {
+              result += ` transition: ${connect.transition}`;
             }
 
             if (!isLastConnect) {
@@ -696,7 +912,7 @@ function reconstructCommand(cmd) {
     }
 
     case "set_block_layout": {
-    //  console.log(cmd.args);
+      //  console.log(cmd.args);
       const { index, value } = cmd.args;
       return `${cmd.name}.setBlockLayout(${index}, ${value})`;
     }
@@ -739,6 +955,22 @@ function reconstructCommand(cmd) {
       return `${cmd.name}.setEdgeColor(${block}, ${second}, "${third}")`;
     }
 
+    case "set_node_shape": {
+      const { block, second, third } = cmd.args;
+      if (
+        (third.depth !== undefined &&
+          third.height !== undefined &&
+          third.width !== undefined) ||
+        (third[0] !== undefined &&
+          third[1] !== undefined &&
+          third[2] !== undefined)
+      ) {
+        return `${cmd.name}.setNodeShape(${block}, ${second}, ${third.depth ?? third[0]}x${third.height ?? third[1]}x${third.width ?? third[2]})`;
+      } else {
+        return `${cmd.name}.setNodeShape(${block}, ${second}, ${third.rows ?? third[0]}x${third.columns ?? third[1]})`;
+      }
+    }
+
     case "set_node_label": {
       const { block, second, third } = cmd.args;
       return `${cmd.name}.setNodeLabel(${block}, ${second}, "${third}")`;
@@ -754,7 +986,7 @@ function reconstructCommand(cmd) {
     }
 
     case "block_remove_edge": {
-    //  console.log(cmd.args);
+      //  console.log(cmd.args);
       const { index, value } = cmd.args;
       return `${cmd.name}.removeEdge(${index}, ${value})`;
     }
@@ -832,7 +1064,7 @@ function reconstructCommand(cmd) {
     }
 
     case "remove_neuralnetwork_removeLayerAt": {
-    //  console.log(cmd);
+      //  console.log(cmd);
       const methodName = "removeLayerAt";
       const index = cmd.args;
 

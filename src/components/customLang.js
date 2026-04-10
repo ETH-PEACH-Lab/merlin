@@ -1796,6 +1796,15 @@ export function registerCustomLanguage(monaco) {
         [keywordPattern, "keyword"],
 
         [
+          /(\.)(setNodeShape)(\s*\()/,
+          [
+            "symbol",
+            "external-method-call",
+            { token: "symbol", next: "@setNodeShapeArgs" },
+          ],
+        ],
+
+        [
           /(\.)([a-zA-Z_][a-zA-Z0-9_]*)(?=\s*\()/,
           ["symbol", "external-method-call"],
         ],
@@ -1809,6 +1818,16 @@ export function registerCustomLanguage(monaco) {
         [/\b\d+(\.\d+)?\b/, "number"],
         [/("([^"\\]|\\.)*")|('([^'\\]|\\.)*')/, "string"],
         [symbolPattern, "symbol"],
+      ],
+      setNodeShapeArgs: [
+        [/\/\/.*$/, "comment"],
+        [/\)/, { token: "symbol", next: "@pop" }],
+        [/,/, "symbol"],
+        [/\b\d+(?:x\d+)+\b/, "variable"],
+        [/("([^"\\]|\\.)*")|('([^'\\]|\\.)*')/, "string"],
+        [/\b\d+(\.\d+)?\b/, "number"],
+        [/\b[a-zA-Z_][a-zA-Z0-9_]*\b/, "variable"],
+        [/\s+/, ""],
       ],
 
       architecture: [
@@ -1888,7 +1907,10 @@ export function registerCustomLanguage(monaco) {
           ["", "arch-item-name", "symbol"],
         ],
 
-        [/\b(style|color|label|arrowheads)(?=\s*:)/, "arch-inline-prop"],
+        [
+          /\b(style|color|label|arrowheads|transition|gap)(?=\s*:)/,
+          "arch-inline-prop",
+        ],
 
         [positionPattern, "positional"],
         [/\b(straight|bow)\b/, "variable"],
@@ -1910,10 +1932,11 @@ export function registerCustomLanguage(monaco) {
         ],
 
         [
-          /\b(type|label|label\.orientation|subtext|size|style|color|stroke|annotation\.(?:top|bottom|left|right))(?=\s*:)/,
+          /\b(type|label|label\.orientation|labelSubtext|size|style|color|stroke|shape|kernelSize|opLabel|opLabelSubtext|outputLabels|annotation\.(?:top|bottom|left|right))(?=\s*:)/,
           "arch-inline-prop",
         ],
 
+        [/\b\d+(?:x\d+)+\b/, "variable"],
         [positionPattern, "positional"],
         [/\b(rect|circle|text|box|rounded|horizontal|vertical)\b/, "variable"],
         [/\b\d+(\.\d+)?\b/, "number"],
@@ -1932,7 +1955,10 @@ export function registerCustomLanguage(monaco) {
           ["", "arch-item-name", "symbol"],
         ],
 
-        [/\b(label|style|color|arrowheads)(?=\s*:)/, "arch-inline-prop"],
+        [
+          /\b(label|style|color|arrowheads|transition|gap)(?=\s*:)/,
+          "arch-inline-prop",
+        ],
 
         [positionPattern, "positional"],
         [/\b(straight|bow|start|mid|end)\b/, "variable"],
@@ -1954,12 +1980,12 @@ export function registerCustomLanguage(monaco) {
         ],
 
         [
-          /\b(members|layout|anchor|gap|color|annotation\.(?:top|bottom|left|right))(?=\s*:)/,
+          /\b(members|layout|anchor|markerType|markerLabel|markerPosition|gap|color|annotation\.(?:top|bottom|left|right))(?=\s*:)/,
           "arch-inline-prop",
         ],
 
+        [/\b(horizontal|vertical|grid|top|bottom)\b/, "variable"],
         [positionPattern, "positional"],
-        [/\b(horizontal|vertical|grid)\b/, "variable"],
         [/\b\d+(\.\d+)?\b/, "number"],
         [/("([^"\\]|\\.)*")|('([^'\\]|\\.)*')/, "string"],
         [symbolPattern, "symbol"],
@@ -2271,6 +2297,8 @@ export function registerCustomLanguage(monaco) {
       "style",
       "color",
       "arrowheads",
+      "gap",
+      "transition",
     ]);
     const hasArrow = /\s*->\s*/.test(text);
 
@@ -2693,6 +2721,8 @@ export function registerCustomLanguage(monaco) {
       "color",
       "label",
       "arrowheads",
+      "gap",
+      "transition",
     ]);
 
     const hasArrow = /\s*->\s*/.test(text);
@@ -3621,6 +3651,19 @@ export function registerCustomLanguage(monaco) {
               insertText: "arrowheads: ",
               documentation: "Set arrowheads count",
             },
+            {
+              key: "gap",
+              label: "gap",
+              insertText: "gap: ${1:10}",
+              documentation: "Set edge gap",
+              isSnippet: true,
+            },
+            {
+              key: "transition",
+              label: "transition",
+              insertText: "transition: ",
+              documentation: "Set edge transition type",
+            },
           ]
             .filter((item) => !usedProps.has(item.key))
             .forEach((item, index) => {
@@ -3712,6 +3755,19 @@ export function registerCustomLanguage(monaco) {
               label: "arrowheads",
               insertText: "arrowheads: ",
               documentation: "Set number of arrowheads",
+            },
+            {
+              key: "gap",
+              label: "gap",
+              insertText: "gap: ${1:10}",
+              documentation: "Set edge gap",
+              isSnippet: true,
+            },
+            {
+              key: "transition",
+              label: "transition",
+              insertText: "transition: ",
+              documentation: "Set edge transition type",
             },
           ];
 
@@ -3885,6 +3941,15 @@ export function registerCustomLanguage(monaco) {
               return value === "0" || value === "1" || value === "2";
             }
 
+            if (attributeName === "transition") {
+              return (
+                value === "default" ||
+                value === "featureMap" ||
+                value === "flatten" ||
+                value === "fullyConnected"
+              );
+            }
+
             if (attributeName === "color") {
               return value === "null" || isCompletedQuotedString(value);
             }
@@ -3907,6 +3972,24 @@ export function registerCustomLanguage(monaco) {
               )
             ) {
               return { suggestions: [] };
+            }
+
+            if (attributeName === "transition") {
+              ["default", "featureMap", "flatten", "fullyConnected"].forEach(
+                (value, index) => {
+                  suggestions.push({
+                    label: value,
+                    kind: monaco.languages.CompletionItemKind.EnumMember,
+                    insertText: value,
+                    detail: "Diagram connection transition",
+                    documentation: `Set connection transition to ${value}`,
+                    range,
+                    sortText: `0diagram_transition_${index}`,
+                  });
+                },
+              );
+
+              return { suggestions };
             }
 
             if (attributeName === "style") {
@@ -4660,6 +4743,9 @@ export function registerCustomLanguage(monaco) {
               "members",
               "layout",
               "anchor",
+              "markerType",
+              "markerLabel",
+              "markerPosition",
               "gap",
               "color",
               "annotation.top",
@@ -4686,6 +4772,24 @@ export function registerCustomLanguage(monaco) {
                 label: "anchor",
                 insertText: "anchor: ",
                 documentation: "Set group anchor",
+              },
+              {
+                key: "markerType",
+                label: "markerType",
+                insertText: "markerType: ",
+                documentation: "Set group marker type",
+              },
+              {
+                key: "markerLabel",
+                label: "markerLabel",
+                insertText: 'markerLabel: "${1:text}"',
+                documentation: "Set group marker label",
+              },
+              {
+                key: "markerPosition",
+                label: "markerPosition",
+                insertText: "markerPosition: ",
+                documentation: "Set group marker position",
               },
               {
                 key: "gap",
@@ -5016,6 +5120,9 @@ export function registerCustomLanguage(monaco) {
             "members",
             "layout",
             "anchor",
+            "markerType",
+            "markerLabel",
+            "markerPosition",
             "gap",
             "color",
             "annotation.top",
@@ -5023,7 +5130,6 @@ export function registerCustomLanguage(monaco) {
             "annotation.left",
             "annotation.right",
           ]);
-
           const groupInlineItems = [
             {
               key: "members",
@@ -5042,6 +5148,24 @@ export function registerCustomLanguage(monaco) {
               label: "anchor",
               insertText: "anchor: ",
               documentation: "Set group anchor",
+            },
+            {
+              key: "markerType",
+              label: "markerType",
+              insertText: "markerType: ",
+              documentation: "Set group marker type",
+            },
+            {
+              key: "markerLabel",
+              label: "markerLabel",
+              insertText: 'markerLabel: "${1:text}"',
+              documentation: "Set group marker label",
+            },
+            {
+              key: "markerPosition",
+              label: "markerPosition",
+              insertText: "markerPosition: ",
+              documentation: "Set group marker position",
             },
             {
               key: "gap",
@@ -5341,18 +5465,24 @@ export function registerCustomLanguage(monaco) {
             }
           }
         }
-
-        function pushNodeInlinePropertySuggestions(
-          suggestions,
-          monaco,
-          range,
-          afterEqualsText = "",
-        ) {
-          const used = getUsedInlineProps(afterEqualsText, [
+        const allowedByType = {
+          text: new Set([
             "type",
             "label",
             "label.orientation",
-            "subtext",
+            "color",
+            "annotation.top",
+            "annotation.bottom",
+            "annotation.left",
+            "annotation.right",
+            "opLabel",
+            "opLabelSubtext",
+          ]),
+          rect: new Set([
+            "type",
+            "label",
+            "label.orientation",
+            "labelSubtext",
             "size",
             "style",
             "color",
@@ -5361,8 +5491,82 @@ export function registerCustomLanguage(monaco) {
             "annotation.bottom",
             "annotation.left",
             "annotation.right",
-          ]);
-          const nodeInlineItems = [
+            "opLabel",
+            "opLabelSubtext",
+          ]),
+          circle: new Set([
+            "type",
+            "label",
+            "label.orientation",
+            "labelSubtext",
+            "size",
+            "style",
+            "color",
+            "stroke",
+            "annotation.top",
+            "annotation.bottom",
+            "annotation.left",
+            "annotation.right",
+            "opLabel",
+            "opLabelSubtext",
+          ]),
+          stacked: new Set([
+            "type",
+            "shape",
+            "kernelSize",
+            "label",
+            "labelSubtext",
+            "opLabel",
+            "opLabelSubtext",
+            "color",
+            "annotation.top",
+            "annotation.bottom",
+            "annotation.left",
+            "annotation.right",
+            "size",
+          ]),
+          flatten: new Set([
+            "type",
+            "shape",
+            "label",
+            "labelSubtext",
+            "opLabel",
+            "opLabelSubtext",
+            "color",
+            "annotation.top",
+            "annotation.bottom",
+            "annotation.left",
+            "annotation.right",
+            "size",
+          ]),
+          fullyConnected: new Set([
+            "type",
+            "shape",
+            "label",
+            "labelSubtext",
+            "opLabel",
+            "opLabelSubtext",
+            "color",
+            "outputLabels",
+            "annotation.top",
+            "annotation.bottom",
+            "annotation.left",
+            "annotation.right",
+            "size",
+          ]),
+        };
+        function pushNodeInlinePropertySuggestions(
+          suggestions,
+          monaco,
+          range,
+          afterEqualsText = "",
+        ) {
+          const detectedTypeMatch = afterEqualsText.match(
+            /\btype\s*:\s*([a-zA-Z_][a-zA-Z0-9_]*)/,
+          );
+          const detectedType = detectedTypeMatch?.[1] ?? null;
+
+          const allNodeInlineItems = [
             {
               key: "type",
               label: "type",
@@ -5382,9 +5586,9 @@ export function registerCustomLanguage(monaco) {
               documentation: "Set label orientation",
             },
             {
-              key: "subtext",
-              label: "subtext",
-              insertText: 'subtext: "${1:Subtext}"',
+              key: "labelSubtext",
+              label: "labelSubtext",
+              insertText: 'labelSubtext: "${1:subtext}"',
               documentation: "Set node subtext",
             },
             {
@@ -5412,6 +5616,36 @@ export function registerCustomLanguage(monaco) {
               documentation: "Set node stroke",
             },
             {
+              key: "shape",
+              label: "shape",
+              insertText: "shape: ",
+              documentation: "Set node shape",
+            },
+            {
+              key: "kernelSize",
+              label: "kernelSize",
+              insertText: "kernelSize: ",
+              documentation: "Set kernel size",
+            },
+            {
+              key: "opLabel",
+              label: "opLabel",
+              insertText: 'opLabel: "${1:Conv}"',
+              documentation: "Set operation label",
+            },
+            {
+              key: "opLabelSubtext",
+              label: "opLabelSubtext",
+              insertText: 'opLabelSubtext: "${1:subtext}"',
+              documentation: "Set operation label subtext",
+            },
+            {
+              key: "outputLabels",
+              label: "outputLabels",
+              insertText: 'outputLabels: ["${1:y1}", "${2:y2}", "${3:y3}"]',
+              documentation: "Set output labels",
+            },
+            {
               key: "annotation.top",
               label: "annotation.top",
               insertText: 'annotation.top: "${1:text}"',
@@ -5436,14 +5670,29 @@ export function registerCustomLanguage(monaco) {
               documentation: "Right annotation",
             },
           ];
-          nodeInlineItems
+
+          const used = getUsedInlineProps(
+            afterEqualsText,
+            allNodeInlineItems.map((item) => item.key),
+          );
+
+          // Before type is defined: only suggest type
+          // If you want a few shared props before type, replace this Set with more keys.
+          const allowedKeys = detectedType
+            ? allowedByType[detectedType] || new Set(["type"])
+            : new Set(["type"]);
+
+          allNodeInlineItems
+            .filter((item) => allowedKeys.has(item.key))
             .filter((item) => !used.has(item.key))
             .forEach((item, index) => {
               suggestions.push({
                 ...createPropertyOnlySuggestion(monaco, range, {
                   label: item.label,
                   insertText: item.insertText,
-                  detail: "node inline property",
+                  detail: detectedType
+                    ? `${detectedType} node property`
+                    : "node property",
                   documentation: item.documentation,
                   sortText: `0node_inline_${index}`,
                 }),
@@ -6040,9 +6289,19 @@ export function registerCustomLanguage(monaco) {
           const value = String(valueText ?? "");
 
           if (section === "nodes") {
+            if (attributeName === "kernelSize") {
+              return /^\d+x\d+$/.test(String(valueText ?? "").trim());
+            }
             if (attributeName === "type") {
               return isCompletedScalarValue(value, {
-                allowedBareWords: ["rect", "circle", "text"],
+                allowedBareWords: [
+                  "rect",
+                  "circle",
+                  "text",
+                  "stacked",
+                  "flatten",
+                  "fullyConnected",
+                ],
               });
             }
 
@@ -6086,12 +6345,34 @@ export function registerCustomLanguage(monaco) {
                 allowQuotedString: true,
               });
             }
+
+            if (attributeName === "transition") {
+              return isCompletedScalarValue(value, {
+                allowedBareWords: [
+                  "default",
+                  "featureMap",
+                  "flatten",
+                  "fullyConnected",
+                ],
+              });
+            }
           }
 
           if (section === "groups") {
             if (attributeName === "layout") {
               return isCompletedScalarValue(value, {
                 allowedBareWords: ["horizontal", "vertical", "grid"],
+              });
+            }
+            if (attributeName === "markerType") {
+              return isCompletedScalarValue(value, {
+                allowedBareWords: ["bracket", "brace"],
+              });
+            }
+
+            if (attributeName === "markerPosition") {
+              return isCompletedScalarValue(value, {
+                allowedBareWords: ["top", "bottom"],
               });
             }
 
@@ -6156,6 +6437,20 @@ export function registerCustomLanguage(monaco) {
               currentSegment.length - trimmedSegment.length,
           };
         }
+        function isCompletedColorArrayItemForNodeColor(linePrefix) {
+          const colorArrayMatch = linePrefix.match(/\bcolor\s*:\s*\[([^\]]*)$/);
+          if (!colorArrayMatch) return false;
+
+          const innerText = colorArrayMatch[1];
+          const itemCtx = getArrayItemCompletionContext(innerText);
+          const current = itemCtx.currentSegment.trim();
+
+          return (
+            current !== "" &&
+            (isCompletedQuotedString(current) || current === "null") &&
+            !/,\s*$/.test(innerText)
+          );
+        }
 
         if (context.isInAttributeValue) {
           const [, attributeName, arrayContent] = context.attributeValueMatch;
@@ -6179,12 +6474,17 @@ export function registerCustomLanguage(monaco) {
           const noSuggestStringAttributes = new Set([
             "title",
             "label",
-            "subtext",
+            "labelSubtext",
+            "opLabel",
+            "opLabelSubtext",
             "annotation.top",
             "annotation.bottom",
             "annotation.left",
             "annotation.right",
             "gap",
+            "size",
+            "markerLabel",
+            "outputLabels",
           ]);
           if (noSuggestStringAttributes.has(attributeName)) {
             return { suggestions: [] };
@@ -6209,6 +6509,23 @@ export function registerCustomLanguage(monaco) {
           }
 
           if (diagramSectionContext.insideDiagramConnects) {
+            if (attributeName === "transition") {
+              ["default", "featureMap", "flatten", "fullyConnected"].forEach(
+                (value, index) => {
+                  suggestions.push({
+                    label: value,
+                    kind: monaco.languages.CompletionItemKind.EnumMember,
+                    insertText: value,
+                    detail: "Diagram connection transition",
+                    documentation: `Set connection transition to ${value}`,
+                    range,
+                    sortText: `0diagram_transition_${index}`,
+                  });
+                },
+              );
+
+              return { suggestions };
+            }
             if (attributeName === "style") {
               ["straight", "bow"].forEach((value, index) => {
                 suggestions.push({
@@ -6263,6 +6580,24 @@ export function registerCustomLanguage(monaco) {
                   sortText: `1diagram_color_${index}`,
                 });
               });
+
+              return { suggestions };
+            }
+
+            if (attributeName === "transition") {
+              ["default", "featureMap", "flatten", "fullyConnected"].forEach(
+                (value, index) => {
+                  suggestions.push({
+                    label: value,
+                    kind: monaco.languages.CompletionItemKind.EnumMember,
+                    insertText: value,
+                    detail: "Edge transition",
+                    documentation: `Set edge transition to ${value}`,
+                    range,
+                    sortText: `0edgetransition${index}`,
+                  });
+                },
+              );
 
               return { suggestions };
             }
@@ -6432,6 +6767,38 @@ export function registerCustomLanguage(monaco) {
               return { suggestions };
             }
 
+            if (attributeName === "markerType") {
+              ["bracket", "brace"].forEach((value, index) => {
+                suggestions.push({
+                  label: value,
+                  kind: monaco.languages.CompletionItemKind.EnumMember,
+                  insertText: value,
+                  detail: "Group marker type",
+                  documentation: `Set markerType to ${value}`,
+                  range,
+                  sortText: `0groupmarkertype${index}`,
+                });
+              });
+
+              return { suggestions };
+            }
+
+            if (attributeName === "markerPosition") {
+              ["top", "bottom"].forEach((value, index) => {
+                suggestions.push({
+                  label: value,
+                  kind: monaco.languages.CompletionItemKind.EnumMember,
+                  insertText: value,
+                  detail: "Group marker position",
+                  documentation: `Set markerPosition to ${value}`,
+                  range,
+                  sortText: `0groupmarkerposition${index}`,
+                });
+              });
+
+              return { suggestions };
+            }
+
             if (attributeName === "anchor") {
               const groupText =
                 architectureInlineItemContext.afterEqualsText || "";
@@ -6464,7 +6831,99 @@ export function registerCustomLanguage(monaco) {
             architectureSectionContext.insideNodes ||
             architectureInlineItemContext.section === "nodes"
           ) {
-            if (attributeName === "color" || attributeName === "stroke") {
+            const afterEqualsText =
+              architectureInlineItemContext.afterEqualsText || "";
+            const detectedTypeMatch = afterEqualsText.match(
+              /\btype\s*:\s*([a-zA-Z_][a-zA-Z0-9_]*)/,
+            );
+            const detectedType = detectedTypeMatch?.[1] ?? null;
+
+            if (attributeName === "shape") {
+              const linePrefix = model
+                .getLineContent(position.lineNumber)
+                .substring(0, position.column - 1);
+
+              if (detectedType === "flatten") {
+                suggestions.push({
+                  label: "rows x columns",
+                  kind: monaco.languages.CompletionItemKind.Snippet,
+                  insertText: "${1:10}x${2:10}",
+                  insertTextRules:
+                    monaco.languages.CompletionItemInsertTextRule
+                      .InsertAsSnippet,
+                  detail: "2D shape",
+                  documentation: "Flatten shape in the form height x width",
+                  range,
+                  sortText: "0shape_snippet",
+                });
+
+                return { suggestions };
+              }
+
+              if (detectedType === "stacked") {
+                suggestions.push({
+                  label: "depth x height x width",
+                  kind: monaco.languages.CompletionItemKind.Snippet,
+                  insertText: "${1:10}x${2:10}x${3:10}",
+                  insertTextRules:
+                    monaco.languages.CompletionItemInsertTextRule
+                      .InsertAsSnippet,
+                  detail: "3D shape",
+                  documentation:
+                    "Stacked shape in the form depth x height x width",
+                  range,
+                  sortText: "0shape_snippet",
+                });
+
+                return { suggestions };
+              }
+
+              if (detectedType === "fullyConnected") {
+                const shapeArrayOpenMatch = linePrefix.match(
+                  /\bshape\s*:\s*\[[^\]]*$/,
+                );
+
+                // Once the user is already inside the array, don't keep re-suggesting
+                // the full snippet.
+                if (shapeArrayOpenMatch) {
+                  return { suggestions: [] };
+                }
+
+                suggestions.push({
+                  label:
+                    "[neurons_layer1, neurons_layer2, neurons_layer3, ...]",
+                  kind: monaco.languages.CompletionItemKind.Snippet,
+                  insertText: "[${1:24}, ${2:12}, ${3:6}, ${4:3}]",
+                  insertTextRules:
+                    monaco.languages.CompletionItemInsertTextRule
+                      .InsertAsSnippet,
+                  detail: "Layer sizes",
+                  documentation:
+                    "Fully connected shape as layer sizes: layer 1 neurons, layer 2 neurons, etc.",
+                  range,
+                  sortText: "0shape_snippet",
+                });
+
+                return { suggestions };
+              }
+            }
+
+            if (attributeName === "color") {
+              if (detectedType === "fullyConnected") {
+                suggestions.push({
+                  label: "[FirstLayerColor, SecondLayerColor, ...]",
+                  kind: monaco.languages.CompletionItemKind.Snippet,
+                  insertText: '["${1:blue}", "${2:red}", "${3:yellow}"]',
+                  insertTextRules:
+                    monaco.languages.CompletionItemInsertTextRule
+                      .InsertAsSnippet,
+                  detail: "layer color",
+                  range,
+                  sortText: "0shape_snippet",
+                });
+
+                return { suggestions };
+              }
               suggestions.push({
                 label: "null",
                 kind: monaco.languages.CompletionItemKind.Constant,
@@ -6483,7 +6942,33 @@ export function registerCustomLanguage(monaco) {
                   detail: "Named color",
                   documentation: `Use ${color} color`,
                   range,
-                  sortText: `1edgecolor${index}`,
+                  sortText: `1nodecolor${index}`,
+                });
+              });
+
+              return { suggestions };
+            }
+
+            if (attributeName === "stroke") {
+              suggestions.push({
+                label: "null",
+                kind: monaco.languages.CompletionItemKind.Constant,
+                insertText: "null",
+                detail: "Default color",
+                documentation: "Use default color",
+                range,
+                sortText: "0null",
+              });
+
+              languageConfig.namedColors.forEach((color, index) => {
+                suggestions.push({
+                  label: color,
+                  kind: monaco.languages.CompletionItemKind.Color,
+                  insertText: `"${color}"`,
+                  detail: "Named color",
+                  documentation: `Use ${color} color`,
+                  range,
+                  sortText: `1strokecolor${index}`,
                 });
               });
 
@@ -6491,7 +6976,14 @@ export function registerCustomLanguage(monaco) {
             }
 
             if (attributeName === "type") {
-              ["rect", "circle", "text"].forEach((value, index) => {
+              [
+                "rect",
+                "circle",
+                "text",
+                "stacked",
+                "flatten",
+                "fullyConnected",
+              ].forEach((value, index) => {
                 suggestions.push({
                   label: value,
                   kind: monaco.languages.CompletionItemKind.EnumMember,
@@ -6537,12 +7029,45 @@ export function registerCustomLanguage(monaco) {
 
               return { suggestions };
             }
+
+            if (attributeName === "kernelSize") {
+              suggestions.push({
+                label: "filter height x filter width",
+                kind: monaco.languages.CompletionItemKind.Snippet,
+                insertText: "${1:10}x${2:10}",
+                insertTextRules:
+                  monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                detail: "2D shape",
+                documentation: "filter shape in the form height x width",
+                range,
+                sortText: "0shape_snippet",
+              });
+              return { suggestions };
+            }
           }
 
           if (
             architectureSectionContext.insideEdges ||
             architectureInlineItemContext.section === "edges"
           ) {
+            if (attributeName === "transition") {
+              ["default", "featureMap", "flatten", "fullyConnected"].forEach(
+                (value, index) => {
+                  suggestions.push({
+                    label: value,
+                    kind: monaco.languages.CompletionItemKind.EnumMember,
+                    insertText: value,
+                    detail: "Edge transition",
+                    documentation: `Set edge transition to ${value}`,
+                    range,
+                    sortText: `0edgetransition${index}`,
+                  });
+                },
+              );
+
+              return { suggestions };
+            }
+
             if (attributeName === "style") {
               ["straight", "bow"].forEach((value, index) => {
                 suggestions.push({
@@ -6650,7 +7175,7 @@ export function registerCustomLanguage(monaco) {
                 suggestions.push({
                   label: color,
                   kind: monaco.languages.CompletionItemKind.Color,
-                  insertText: `"${color}",`,
+                  insertText: `"${color}"`,
                   detail: "Block color",
                   documentation: `Set block color to ${color}`,
                   range,
@@ -6752,7 +7277,7 @@ export function registerCustomLanguage(monaco) {
               {
                 label: "bottom",
                 kind: monaco.languages.CompletionItemKind.Keyword,
-                insertText: '"bottom"',
+                insertText: "bottom",
                 detail: "Label position",
                 documentation: 'Set labelPosition to "bottom"',
                 range,
@@ -6761,7 +7286,7 @@ export function registerCustomLanguage(monaco) {
               {
                 label: "top",
                 kind: monaco.languages.CompletionItemKind.Keyword,
-                insertText: '"top"',
+                insertText: "top",
                 detail: "Label position",
                 documentation: 'Set labelPosition to "top"',
                 range,
@@ -6997,31 +7522,60 @@ export function registerCustomLanguage(monaco) {
           }
 
           if (attributeName === "layerColors") {
-            // Add null first
+            const linePrefix = model
+              .getLineContent(position.lineNumber)
+              .substring(0, position.column - 1);
+
+            const match = linePrefix.match(/\blayerColors\s*:\s*\[([^\]]*)$/);
+            if (!match) {
+              return { suggestions: [] };
+            }
+
+            const innerText = match[1];
+            const itemCtx = getArrayItemCompletionContext(innerText);
+
+            const itemRange = {
+              startLineNumber: position.lineNumber,
+              endLineNumber: position.lineNumber,
+              startColumn:
+                position.column -
+                itemCtx.currentSegment.length +
+                itemCtx.replaceCurrentSegmentStartOffset,
+              endColumn: position.column,
+            };
+
             suggestions.push({
               label: "null",
               kind: monaco.languages.CompletionItemKind.Constant,
               insertText: "null",
               detail: "Default color",
               documentation: "Use default color for this element",
-              range: range,
+              range: itemRange,
               sortText: "0null",
             });
 
-            // Add color suggestions
-            languageConfig.namedColors.forEach((color, index) => {
-              suggestions.push({
-                label: color,
-                kind: monaco.languages.CompletionItemKind.Color,
-                insertText: `"${color}"`,
-                detail: "Named color",
-                documentation: `Use ${color} color`,
-                range: range,
-                sortText: `1color${index.toString().padStart(3, "0")}`,
+            languageConfig.namedColors
+              .filter(
+                (color) =>
+                  !itemCtx.currentPrefix ||
+                  color
+                    .toLowerCase()
+                    .startsWith(itemCtx.currentPrefix.toLowerCase()),
+              )
+              .forEach((color, index) => {
+                suggestions.push({
+                  label: color,
+                  kind: monaco.languages.CompletionItemKind.Color,
+                  insertText: `"${color}"`,
+                  detail: "Named color",
+                  documentation: `Use ${color} color`,
+                  range: itemRange,
+                  sortText: `1color${index.toString().padStart(3, "0")}`,
+                });
               });
-            });
-          }
 
+            return { suggestions };
+          }
           if (attributeName === "color") {
             // Add null first
             suggestions.push({
@@ -7548,6 +8102,12 @@ export function registerCustomLanguage(monaco) {
           !(
             methodName === "setNodeLabel" &&
             (parameterIndex === 0 || parameterIndex === 1)
+          ) &&
+          !(
+            methodName === "setNodeShape" &&
+            (parameterIndex === 0 ||
+              parameterIndex === 1 ||
+              parameterIndex === 2)
           ) &&
           !(
             methodName === "removeNodes" &&
@@ -8653,6 +9213,73 @@ export function registerCustomLanguage(monaco) {
                 documentation: `Use ${color} color`,
                 range: range,
                 sortText: `1color${index}`,
+              });
+            });
+          }
+
+          return { suggestions };
+        }
+
+        if (methodName === "setNodeShape") {
+          const a = context.architectureData?.[variableName];
+
+          if (parameterIndex === 0) {
+            const allBlocks = a?.blockOrder || [];
+            allBlocks.forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: num,
+                detail: "Block name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          if (parameterIndex === 1) {
+            const args = splitTopLevelArgs(
+              context.methodCallContext.paramsText,
+            );
+            const selectedBlock = args[0];
+
+            const allNodes =
+              a?.blocks?.[selectedBlock].nodes.filter(
+                (node) =>
+                  a?.blocks?.[selectedBlock].nodeTypes[node] === "flatten" ||
+                  a?.blocks?.[selectedBlock].nodeTypes[node] === "stacked",
+              ) || [];
+
+            allNodes.forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: num,
+                detail: "Node name",
+                range: range,
+                sortText: `1index${index}`,
+              });
+            });
+          }
+
+          if (parameterIndex === 2) {
+            const args = splitTopLevelArgs(
+              context.methodCallContext.paramsText,
+            );
+
+            const arr =
+              a?.blocks?.[args[0]].nodeTypes[args[1]] === "flatten"
+                ? ["1x1", "10x10"]
+                : ["1x1x1", "10x10x10"];
+
+            arr.forEach((num, index) => {
+              suggestions.push({
+                label: num,
+                kind: monaco.languages.CompletionItemKind.Value,
+                insertText: `${num}`,
+                detail: "Label",
+                range: range,
+                sortText: `1index${index}`,
               });
             });
           }
@@ -10693,6 +11320,18 @@ export function registerCustomLanguage(monaco) {
     return /(?:^|,)\s*\[$/.test(neuronsMatch[1]);
   }
 
+  function shouldAutoSuggestInsideNeuronColors(editor, position) {
+    const model = editor.getModel();
+    if (!model) return false;
+
+    const line = model.getLineContent(position.lineNumber);
+    const linePrefix = line.substring(0, position.column - 1);
+
+    const neuronColorsMatch = linePrefix.match(/\bneuronColors\s*:\s*\[(.*)$/);
+    if (!neuronColorsMatch) return false;
+
+    return /(?:^|,)\s*\[$/.test(neuronColorsMatch[1]);
+  }
   function shouldAutoSuggestInsideArchitectureItems(editor, position) {
     const model = editor.getModel();
     if (!model) return false;
@@ -10765,6 +11404,7 @@ export function registerCustomLanguage(monaco) {
       shouldAutoSuggestInsideEmptyBlockBody(editor, position) ||
       shouldAutoSuggestInsideDiagramUses(editor, position) ||
       shouldAutoSuggestInsideNeurons(editor, position) ||
+      shouldAutoSuggestInsideNeuronColors(editor, position) ||
       shouldAutoSuggestInsideArchitectureItems(editor, position);
 
     if (!shouldTrigger) return;

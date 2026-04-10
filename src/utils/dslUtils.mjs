@@ -64,7 +64,7 @@ export function parseInspectorIndex(inspectorIndex, pages, currentPage) {
               index,
               isArchitectureMatrix: false,
               isBlock: index < blockLength,
-              isDiagram: index >= blockLength,
+              isDiagramEdge: index >= blockLength,
             }
           : { index, isMatrix: false };
     //console.log(index >= blockLength);
@@ -193,12 +193,14 @@ export function getComponentFields(componentType) {
   const fieldDefinitions = {
     architecture: {
       remove: "Remove Unit",
-      value: "Edit Value",
+      value: "Edit Label",
       color: "Edit Color",
       stroke: "Edit Stroke Color",
       annotation: "Edit Annotation",
       styleEdge: "Edit Edge Style",
-      layout: "Edit Group layout",
+      layout: "Edit Group Layout",
+      shapeStacked: "Edit Stacked Shape",
+      shapeFlatten: "Edit Flatten Shape",
     },
     neuralnetwork: {
       remove: "Remove Unit",

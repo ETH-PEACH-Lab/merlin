@@ -372,6 +372,7 @@ export const typeMethodsMap = {
       "setNodeColor",
       "setNodeStroke",
       "setNodeAnnotation",
+      "setNodeShape",
       "hideNode",
       "showNode",
     ],
@@ -564,7 +565,7 @@ export const methodSignatures = {
   setWidth: () => "setWidth(${1:width})",
   setHeight: () => "setHeight(${1:height})",
   setText: () => 'setText(${1:"text"}, ${2:"position"})',
-
+  setNodeShape: () => "setNodeShape(${1:blockName}, ${2:nodeName}, ${3:shape})",
   setNeuronColor: () =>
     "setNeuronColor(${1:layerIndex}, ${2:neuronIndex}, ${3:color})",
   setNeuron: () => "setNeuron(${1:layerIndex}, ${2:neuronIndex}, ${3:value})",
@@ -669,6 +670,22 @@ export const methodDocumentation = {
         "label: `string|null` - Label text to display (null clears the label)",
       ],
       example: 'a.setNodeLabel(Stem, conv1, "HERE")',
+    },
+  },
+
+  setNodeShape: {
+    default: {
+      signature: "setNodeShape(blockName, nodeName, shape)",
+      description:
+        "Set the shape of a node inside a specific block. Shape must be a 2D or 3D shape string.",
+      parameters: [
+        "blockName: `identifier` - Block name",
+        "nodeName: `identifier` - Node name",
+        "shape: 1x1x1/ 1x1 - Shape for stacked/flatten-style nodes",
+      ],
+      example:
+        "a.setNodeShape(Stem, conv1, 3x32x32) or a.setNodeShape(Stem, conv1, 32x1) ",
+      note: 'Use a 3D shape like "depth x height x width" or a 2D shape like "rows x columns".',
     },
   },
 
@@ -1723,6 +1740,7 @@ export const methodDescriptions = {
   removeNodes: "Remove multiple nodes from a specific block",
   setNodeLabel: "Set the label of a node inside a specific block",
   setNodeColor: "Set the fill color of a node inside a specific block",
+  setNodeShape: "Set the shape of a node inside a specific block",
   setNodeStroke:
     "Set the stroke/border color of a node inside a specific block",
   setNodeAnnotation: "Set an annotation for a node at a specific position",

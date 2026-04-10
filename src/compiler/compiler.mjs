@@ -652,6 +652,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
         "block_remove_edge",
         "block_remove_group",
         "set_node_label",
+        "set_node_shape",
         "set_node_color",
         "set_node_stroke",
         "set_edge_label",
@@ -1261,8 +1262,8 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                     const to = edge.to?.node?.name ?? edge.to?.edge?.name;
 
                     if (relatedIds.has(from) || relatedIds.has(to)) {
-                      if (!relatedIds.has(edge.id)) {
-                        relatedIds.add(edge.id);
+                      if (!relatedIds.has(edge.id.name)) {
+                        relatedIds.add(edge.id.name);
                         changed = true;
                       }
                     }
@@ -1270,7 +1271,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                 }
 
                 for (const edge of block.edges) {
-                  if (relatedIds.has(edge.id)) {
+                  if (relatedIds.has(edge.id.name)) {
                     if (edge.hidden) {
                       delete edge.hidden;
                     }
@@ -1283,13 +1284,13 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
           const useIds = new Set();
 
           if (diagram) {
-            for (const use of diagram.uses ?? []) {
+            for (const use of diagram?.uses ?? []) {
               if (use.block.name === firstArg) {
                 useIds.add(use.id.name);
               }
             }
 
-            for (const connect of diagram.connects ?? []) {
+            for (const connect of diagram?.connects ?? []) {
               if (
                 (useIds.has(connect.from.block.name) &&
                   connect.from.edge?.name === secondArg) ||
@@ -1336,8 +1337,8 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                     const to = edge.to?.node?.name ?? edge.to?.edge?.name;
 
                     if (relatedIds.has(from) || relatedIds.has(to)) {
-                      if (!relatedIds.has(edge.id)) {
-                        relatedIds.add(edge.id);
+                      if (!relatedIds.has(edge.id.name)) {
+                        relatedIds.add(edge.id.name);
                         changed = true;
                       }
                     }
@@ -1345,7 +1346,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                 }
 
                 for (const edge of block.edges) {
-                  if (relatedIds.has(edge.id)) {
+                  if (relatedIds.has(edge.id.name)) {
                     edge.hidden = true;
                   }
                 }
@@ -1356,13 +1357,13 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
           const useIds = new Set();
 
           if (diagram) {
-            for (const use of diagram.uses ?? []) {
+            for (const use of diagram?.uses ?? []) {
               if (use.block.name === firstArg) {
                 useIds.add(use.id.name);
               }
             }
 
-            for (const connect of diagram.connects ?? []) {
+            for (const connect of diagram?.connects ?? []) {
               if (
                 (useIds.has(connect.from.block.name) &&
                   connect.from.edge?.name === secondArg) ||
@@ -1407,8 +1408,8 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                     const to = edge.to?.node?.name ?? edge.to?.edge?.name;
 
                     if (relatedIds.has(from) || relatedIds.has(to)) {
-                      if (!relatedIds.has(edge.id)) {
-                        relatedIds.add(edge.id);
+                      if (!relatedIds.has(edge.id.name)) {
+                        relatedIds.add(edge.id.name);
                         changed = true;
                       }
                     }
@@ -1416,7 +1417,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                 }
 
                 for (const edge of block.edges) {
-                  if (relatedIds.has(edge.id)) {
+                  if (relatedIds.has(edge.id.name)) {
                     if (edge.hidden) {
                       delete edge.hidden;
                     }
@@ -1426,7 +1427,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
 
               if (block.nodes) {
                 for (const node of block.nodes) {
-                  if (relatedIds.has(node.id)) {
+                  if (relatedIds.has(node.id.name)) {
                     if (node.hidden) {
                       delete node.hidden;
                     }
@@ -1460,13 +1461,13 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
           const useIds = new Set();
 
           if (diagram) {
-            for (const use of diagram.uses ?? []) {
+            for (const use of diagram?.uses ?? []) {
               if (use.block.name === firstArg) {
                 useIds.add(use.id.name);
               }
             }
 
-            for (const connect of diagram.connects ?? []) {
+            for (const connect of diagram?.connects ?? []) {
               if (
                 (useIds.has(connect.from.block.name) &&
                   connect.from.node?.name === secondArg) ||
@@ -1513,7 +1514,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                     const to = edge.to?.node?.name ?? edge.to?.edge?.name;
 
                     if (relatedIds.has(from) || relatedIds.has(to)) {
-                      if (!relatedIds.has(edge.id)) {
+                      if (!relatedIds.has(edge.id.name)) {
                         relatedIds.add(edge.id);
                         changed = true;
                       }
@@ -1522,7 +1523,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                 }
 
                 for (const edge of block.edges) {
-                  if (relatedIds.has(edge.id)) {
+                  if (relatedIds.has(edge.id.name)) {
                     edge.hidden = true;
                   }
                 }
@@ -1530,7 +1531,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
 
               if (block.nodes) {
                 for (const node of block.nodes) {
-                  if (relatedIds.has(node.id)) {
+                  if (relatedIds.has(node.id.name)) {
                     node.hidden = true;
                   }
                 }
@@ -1558,13 +1559,13 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
           const useIds = new Set();
 
           if (diagram) {
-            for (const use of diagram.uses ?? []) {
+            for (const use of diagram?.uses ?? []) {
               if (use.block.name === firstArg) {
                 useIds.add(use.id.name);
               }
             }
 
-            for (const connect of diagram.connects ?? []) {
+            for (const connect of diagram?.connects ?? []) {
               if (
                 (useIds.has(connect.from.block.name) &&
                   connect.from.node?.name === secondArg) ||
@@ -1605,7 +1606,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
           const useIds = new Map();
 
           if (diagram) {
-            for (const use of diagram.uses ?? []) {
+            for (const use of diagram?.uses ?? []) {
               if (!useIds.has(use.id.name)) {
                 useIds.set(use.id.name, use.block.name);
               }
@@ -1616,7 +1617,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
               }
             }
 
-            for (const connect of diagram.connects ?? []) {
+            for (const connect of diagram?.connects ?? []) {
               const toBoolean = blocks.find(
                 (block) => block.id.name === useIds.get(connect.to.block.name),
               ).hidden;
@@ -1668,14 +1669,14 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
           const useIds = new Set();
 
           if (diagram) {
-            for (const use of diagram.uses ?? []) {
+            for (const use of diagram?.uses ?? []) {
               if (use.block.name === firstArg) {
                 useIds.add(use.id.name);
                 use.hidden = true;
               }
             }
 
-            for (const connect of diagram.connects ?? []) {
+            for (const connect of diagram?.connects ?? []) {
               if (
                 useIds.has(connect.from.block.name) ||
                 useIds.has(connect.to.block.name)
@@ -1711,7 +1712,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
           for (const block of blocks) {
             if (block.id.name === firstArg) {
               for (const node of block.nodes ?? []) {
-                if (node.id === secondArg) {
+                if (node.id.name === secondArg) {
                   if (!node.annotations) {
                     node.annotations = [{ side: thirdArg, value: fourthArg }];
                   } else {
@@ -1869,20 +1870,20 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
           }
 
           const usedIds = new Set();
-          for (const use of diagram.uses ?? []) {
+          for (const use of diagram?.uses ?? []) {
             if (use.block.name === firstArg) {
               usedIds.add(use.id.name);
             }
           }
 
-          if (targetObject.body.diagram.uses) {
+          if (targetObject.body?.diagram?.uses) {
             targetObject.body.diagram.uses =
               targetObject.body.diagram.uses.filter(
                 (use) => use.block.name !== firstArg,
               );
           }
 
-          if (targetObject.body.diagram.connects) {
+          if (targetObject.body?.diagram?.connects) {
             targetObject.body.diagram.connects =
               targetObject.body.diagram.connects.filter(
                 (connect) =>
@@ -2040,14 +2041,14 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
             if (block.id.name === firstArg) {
               if (block.nodes) {
                 for (const node of block.nodes) {
-                  if (node.id === secondArg) {
+                  if (node.id.name === secondArg) {
                     if (node.type === "text") {
                       causeCompileError(
                         `${secondArg} is of type "text". Text does not have stroke property`,
                         command,
                       );
                     } else {
-                      node.stroke = thirdArg;
+                      node.stroke = [thirdArg];
                     }
                   }
                 }
@@ -2089,8 +2090,8 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                       const to = edge.to?.node?.name ?? edge.to?.edge?.name;
 
                       if (idsToRemove.has(from) || idsToRemove.has(to)) {
-                        if (!idsToRemove.has(edge.id)) {
-                          idsToRemove.add(edge.id);
+                        if (!idsToRemove.has(edge.id.name)) {
+                          idsToRemove.add(edge.id.name);
                           changed = true;
                         }
                       }
@@ -2098,7 +2099,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                   }
 
                   block.edges = block.edges.filter(
-                    (edge) => !idsToRemove.has(edge.id),
+                    (edge) => !idsToRemove.has(edge.id.name),
                   );
                 }
               }
@@ -2107,7 +2108,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
             if (!diagram?.uses || !diagram?.connects) return;
 
             const idsofBlockInUse = new Set();
-            for (const use of diagram.uses) {
+            for (const use of diagram?.uses ?? []) {
               if (use.block.name === firstArg) {
                 idsofBlockInUse.add(use.id.name);
               }
@@ -2158,9 +2159,11 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                 }
               }
 
-              diagram.connects = connects.filter(
-                (_, index) => !secondArg.includes(index),
-              );
+              if (connects) {
+                diagram.connects = connects.filter(
+                  (_, index) => !secondArg.includes(index),
+                );
+              }
             }
           }
         } else {
@@ -2209,8 +2212,8 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                       const to = edge.to?.node?.name ?? edge.to?.edge?.name;
 
                       if (idsToRemove.has(from) || idsToRemove.has(to)) {
-                        if (!idsToRemove.has(edge.id)) {
-                          idsToRemove.add(edge.id);
+                        if (!idsToRemove.has(edge.id.name)) {
+                          idsToRemove.add(edge.id.name);
                           changed = true;
                         }
                       }
@@ -2218,7 +2221,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                   }
 
                   block.edges = block.edges.filter(
-                    (edge) => !idsToRemove.has(edge.id),
+                    (edge) => !idsToRemove.has(edge.id.name),
                   );
                 }
               }
@@ -2227,7 +2230,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
             if (!diagram?.uses || !diagram?.connects) return;
 
             const idsofBlockInUse = new Set();
-            for (const use of diagram.uses) {
+            for (const use of diagram?.uses ?? []) {
               if (use.block.name === firstArg) {
                 idsofBlockInUse.add(use.id.name);
               }
@@ -2271,11 +2274,6 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
               const diagram = targetObject.body.diagram;
               const secondArg = command.args.value[0];
 
-              const connects = diagram.connects;
-              if (secondArg < 0 || secondArg > connects.length - 1) {
-                causeCompileError(`OutofIndex\n\nName: ${name}`, command);
-              }
-
               if (typeof secondArg === "string") {
                 causeCompileError(
                   `Invalid second argument
@@ -2285,7 +2283,13 @@ Example: ${name}.setEdgeColor(diagram, 0, "blue")`,
                   command,
                 );
               }
-              diagram.connects.splice(secondArg, 1);
+              if (diagram.connects) {
+                if (secondArg < 0 || secondArg > diagram.connects.length - 1) {
+                  causeCompileError(`OutofIndex\n\nName: ${name}`, command);
+                }
+
+                diagram.connects.splice(secondArg, 1);
+              }
             } else {
               causeCompileError(
                 `diagram not present\n\nName: ${name}`,
@@ -2325,7 +2329,7 @@ Example: ${name}.setEdgeColor(diagram, 0, "blue")`,
                     block.edges[secondArg].style = thirdArg;
                   } else {
                     for (const edge of block.edges) {
-                      if (edge.id === secondArg) {
+                      if (edge.id.name === secondArg) {
                         edge.style = thirdArg;
                       }
                     }
@@ -2338,12 +2342,14 @@ Example: ${name}.setEdgeColor(diagram, 0, "blue")`,
               const diagram = targetObject.body.diagram;
               const secondArg = command.args.second[0];
               const thirdArg = command.args.third;
-              const connects = diagram.connects;
-              if (secondArg < 0 || secondArg > connects.length - 1) {
-                causeCompileError(`OutofIndex\n\nName: ${name}`, command);
-              }
 
-              diagram.connects[secondArg].style = thirdArg;
+              if (diagram.connects) {
+                if (secondArg < 0 || secondArg > diagram.connects.length - 1) {
+                  causeCompileError(`OutofIndex\n\nName: ${name}`, command);
+                }
+
+                diagram.connects[secondArg].style = thirdArg;
+              }
             } else {
               causeCompileError(
                 `diagram not present\n\nName: ${name}`,
@@ -2386,7 +2392,7 @@ Example: ${name}.setEdgeColor(diagram, 0, "blue")`,
                     block.edges[secondArg].color = thirdArg;
                   } else {
                     for (const edge of block.edges) {
-                      if (edge.id === secondArg) {
+                      if (edge.id.name === secondArg) {
                         edge.color = thirdArg;
                       }
                     }
@@ -2400,12 +2406,13 @@ Example: ${name}.setEdgeColor(diagram, 0, "blue")`,
               const secondArg = command.args.second[0];
               const thirdArg =
                 command.args.third[0] === null ? "" : command.args.third[0];
-              const connects = diagram.connects;
-              if (secondArg < 0 || secondArg > connects.length - 1) {
-                causeCompileError(`OutofIndex\n\nName: ${name}`, command);
-              }
+              if (diagram.connects) {
+                if (secondArg < 0 || secondArg > diagram.connects.length - 1) {
+                  causeCompileError(`OutofIndex\n\nName: ${name}`, command);
+                }
 
-              diagram.connects[secondArg].color = thirdArg;
+                diagram.connects[secondArg].color = thirdArg;
+              }
             } else {
               causeCompileError(
                 `diagram not present\n\nName: ${name}`,
@@ -2445,7 +2452,7 @@ Example: ${name}.setEdgeColor(diagram, 0, "blue")`,
                     block.edges[secondArg].label = thirdArg;
                   } else {
                     for (const edge of block.edges) {
-                      if (edge.id === secondArg) {
+                      if (edge.id.name === secondArg) {
                         edge.label = thirdArg;
                       }
                     }
@@ -2459,12 +2466,13 @@ Example: ${name}.setEdgeColor(diagram, 0, "blue")`,
               const secondArg = command.args.second[0];
               const thirdArg =
                 command.args.third[0] === null ? "" : command.args.third[0];
-              const connects = diagram.connects;
-              if (secondArg < 0 || secondArg > connects.length - 1) {
-                causeCompileError(`OutofIndex\n\nName: ${name}`, command);
-              }
+              if (diagram.connects) {
+                if (secondArg < 0 || secondArg > diagram.connects.length - 1) {
+                  causeCompileError(`OutofIndex\n\nName: ${name}`, command);
+                }
 
-              diagram.connects[secondArg].label = thirdArg;
+                diagram.connects[secondArg].label = thirdArg;
+              }
             } else {
               causeCompileError(
                 `diagram not present\n\nName: ${name}`,
@@ -2500,8 +2508,8 @@ Example: ${name}.setEdgeColor(diagram, 0, "blue")`,
             if (block.id.name === firstArg) {
               if (block.nodes) {
                 for (const node of block.nodes) {
-                  if (node.id === secondArg) {
-                    node.color = thirdArg;
+                  if (node.id.name === secondArg) {
+                    node.color = [thirdArg];
                   }
                 }
               }
@@ -2533,8 +2541,41 @@ Example: ${name}.setEdgeColor(diagram, 0, "blue")`,
             if (block.id.name === firstArg) {
               if (block.nodes) {
                 for (const node of block.nodes) {
-                  if (node.id === secondArg) {
-                    node.label = thirdArg;
+                  if (node.id.name === secondArg) {
+                    node.label = [thirdArg];
+                  }
+                }
+              }
+            }
+            //console.log(block.nodes);
+          }
+        } else {
+          causeCompileError(
+            `Component "${name}" not found on the current page.`,
+            command,
+          );
+        }
+        break;
+      }
+
+      case "set_node_shape": {
+        const name = command.name;
+        const targetObject = pages[pages.length - 1].find(
+          (comp) => comp.name === name,
+        );
+
+        if (targetObject) {
+          const firstArg = command.args.block;
+          const secondArg = command.args.second;
+          const thirdArg = command.args.third;
+
+          const blocks = targetObject.body.blocks;
+          for (const block of blocks) {
+            if (block.id.name === firstArg) {
+              if (block.nodes) {
+                for (const node of block.nodes) {
+                  if (node.id.name === secondArg) {
+                    node.shape = [thirdArg];
                   }
                 }
               }
@@ -2576,8 +2617,8 @@ Example: ${name}.setEdgeColor(diagram, 0, "blue")`,
                     const to = edge.to?.node?.name ?? edge.to?.edge?.name;
 
                     if (idsToRemove.has(from) || idsToRemove.has(to)) {
-                      if (!idsToRemove.has(edge.id)) {
-                        idsToRemove.add(edge.id);
+                      if (!idsToRemove.has(edge.id.name)) {
+                        idsToRemove.add(edge.id.name);
                         changed = true;
                       }
                     }
@@ -2585,13 +2626,13 @@ Example: ${name}.setEdgeColor(diagram, 0, "blue")`,
                 }
 
                 block.edges = block.edges.filter(
-                  (edge) => !idsToRemove.has(edge.id),
+                  (edge) => !idsToRemove.has(edge.id.name),
                 );
               }
 
               if (block.nodes) {
                 block.nodes = block.nodes.filter(
-                  (node) => !idsToRemove.has(node.id),
+                  (node) => !idsToRemove.has(node.id.name),
                 );
               }
 
@@ -2612,7 +2653,7 @@ Example: ${name}.setEdgeColor(diagram, 0, "blue")`,
           if (!diagram?.uses || !diagram?.connects) return;
 
           const idsofBlockInUse = new Set();
-          for (const use of diagram.uses) {
+          for (const use of diagram?.uses ?? []) {
             if (use.block.name === firstArg) {
               idsofBlockInUse.add(use.id.name);
             }
@@ -2695,8 +2736,8 @@ Example: ${name}.setEdgeColor(diagram, 0, "blue")`,
                     const to = edge.to?.node?.name ?? edge.to?.edge?.name;
 
                     if (idsToRemove.has(from) || idsToRemove.has(to)) {
-                      if (!idsToRemove.has(edge.id)) {
-                        idsToRemove.add(edge.id);
+                      if (!idsToRemove.has(edge.id.name)) {
+                        idsToRemove.add(edge.id.name);
                         changed = true;
                       }
                     }
@@ -2704,13 +2745,13 @@ Example: ${name}.setEdgeColor(diagram, 0, "blue")`,
                 }
 
                 block.edges = block.edges.filter(
-                  (edge) => !idsToRemove.has(edge.id),
+                  (edge) => !idsToRemove.has(edge.id.name),
                 );
               }
 
               if (block.nodes) {
                 block.nodes = block.nodes.filter(
-                  (node) => !idsToRemove.has(node.id),
+                  (node) => !idsToRemove.has(node.id.name),
                 );
               }
 
@@ -2731,7 +2772,7 @@ Example: ${name}.setEdgeColor(diagram, 0, "blue")`,
           if (!diagram?.uses || !diagram?.connects) return;
 
           const idsofBlockInUse = new Set();
-          for (const use of diagram.uses) {
+          for (const use of diagram?.uses ?? []) {
             if (use.block.name === firstArg) {
               idsofBlockInUse.add(use.id.name);
             }
@@ -3112,7 +3153,7 @@ Example: ${name}.setEdgeColor(diagram, 0, "blue")`,
             resultArray = Array.from(body[property].length);
             for (let i = 0; i < newArray.length; i++) {
               if (newArray[i] === "_") {
-                resultArray[i] = body[property][i]
+                resultArray[i] = body[property][i];
               } else {
                 resultArray[i] = newArray[i];
               }
@@ -3311,7 +3352,7 @@ Example: ${name}.setEdgeColor(diagram, 0, "blue")`,
               );
             }
           }
-        /*  console.log("set_neuralnetwork_neurons_multiple");
+          /*  console.log("set_neuralnetwork_neurons_multiple");
           console.log("layers");
           console.log(body["layers"]);
           console.log("neurons");
@@ -4966,6 +5007,7 @@ function preCheck(parsedDSL) {
         "block_remove_edge",
         "block_remove_group",
         "set_node_label",
+        "set_node_shape",
         "set_node_color",
         "set_node_stroke",
         "set_edge_label",

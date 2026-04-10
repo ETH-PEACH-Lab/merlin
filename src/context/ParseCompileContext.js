@@ -4,6 +4,8 @@ import React, {
   useState,
   useCallback,
   useMemo,
+  useEffect,
+  useRef,
 } from "react";
 import parseText from "../parser/parseText.mjs";
 import reconstructor from "../parser/reconstructor.mjs";
@@ -27,6 +29,7 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
   const [error, setError] = useState(null);
   const [currentCursorLine, setCurrentCursorLine] = useState(1);
   const [errorTimeoutId, setErrorTimeoutId] = useState(null);
+  const parseTimeoutRef = useRef(null);
 
   // Set a delay, will wait specified milliseconds before showing an error on current line
   const DELAY = 1000;
@@ -495,10 +498,10 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
           let type;
 
           if (col < nodesLength) {
-            id = comp.body.blocks[row].nodes[col].id;
+            id = comp.body.blocks[row].nodes[col].id.name;
             type = "block_remove_node";
           } else if (nodesLength <= col && col < edgesLength + nodesLength) {
-            id = comp.body.blocks[row].edges[col - nodesLength].id;
+            id = comp.body.blocks[row].edges[col - nodesLength].id.name;
             type = "block_remove_edge";
           } else if (col >= nodesLength + edgesLength) {
             id =
@@ -523,8 +526,6 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
         ) {
           const comp = pages?.[page]?.find((c) => c.name === componentName);
           const blockLength = comp.body?.blocks.length ?? 0;
-          console.log("coordinates");
-          console.log(coordinates);
           coordinates.index < blockLength
             ? parsedCode.cmds.splice(pageEndIndex, 0, {
                 type: "block_remove_block",

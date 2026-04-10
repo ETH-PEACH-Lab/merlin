@@ -10,6 +10,8 @@ import {
   InputLabel,
   MenuItem,
   FormControl,
+  Stack,
+  Typography,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import ClearIcon from "@mui/icons-material/Clear";
@@ -23,6 +25,7 @@ import { useParseCompile } from "../context/ParseCompileContext";
 import LineStyleIcon from "@mui/icons-material/LineStyle";
 import ViewStreamIcon from "@mui/icons-material/ViewStream";
 import GpsFixedIcon from "@mui/icons-material/GpsFixed";
+import ViewInArIcon from "@mui/icons-material/ViewInAr";
 import {
   parseInspectorIndex,
   createUnitData,
@@ -56,6 +59,17 @@ const DynamicInput = ({
     value: null,
   });
 
+  const [shapeStacked, setShapeStacked] = React.useState({
+    depth: null,
+    height: null,
+    width: null,
+  });
+
+  const [shapeFlatten, setShapeFlatten] = React.useState({
+    rows: null,
+    columns: null,
+  });
+
   const handleOpenPopup = (event) => {
     setAnchorEl(event.currentTarget);
   };
@@ -80,6 +94,10 @@ const DynamicInput = ({
         );
       case "styleEdge":
         return <LineStyleIcon />;
+      case "shapeStacked":
+        return <ViewInArIcon />;
+      case "shapeFlatten":
+        return <ViewInArIcon />;
       case "layout":
         return <ViewStreamIcon />;
       case "anchorGroup":
@@ -155,6 +173,182 @@ const DynamicInput = ({
           </IconButton>
         </span>
       </Tooltip>
+    );
+  }
+
+  if (["shapeStacked", "shapeFlatten"].includes(fieldKey)) {
+    return (
+      <React.Fragment>
+        <Tooltip title={label} sx={{ mr: 5 }}>
+          <span style={{ marginLeft: "10px", marginRight: "10px" }}>
+            <IconButton
+              disabled={error !== null}
+              aria-describedby={id}
+              onClick={handleOpenPopup}
+              sx={{ fill: error !== null ? "gray" : "white" }}
+            >
+              {getIcon(fieldKey)}
+            </IconButton>
+          </span>
+        </Tooltip>
+        <Popover
+          id={id}
+          open={open}
+          anchorEl={anchorEl}
+          anchorOrigin={{
+            vertical: "top",
+            horizontal: "center",
+          }}
+          transformOrigin={{
+            vertical: "bottom",
+            horizontal: "center",
+          }}
+          slotProps={{ paper: { sx: { pointerEvents: "auto" } } }}
+          sx={{ pointerEvents: "none" }}
+        >
+          <>
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 1.5,
+                p: "15px 10px 10px 10px",
+                minWidth: 220,
+              }}
+            >
+              <Stack direction="row" spacing={1} alignItems="center">
+                {fieldKey === "shapeStacked" && (
+                  <>
+                    <TextField
+                      size="small"
+                      type="number"
+                      label="D"
+                      value={shapeStacked.depth}
+                      onChange={(e) => {
+                        const nextShapeStacked = {
+                          ...shapeStacked,
+                          depth: e.target.value,
+                        };
+                        setShapeStacked(nextShapeStacked);
+                        onChange(fieldKey, nextShapeStacked);
+                      }}
+                      onKeyDown={(e) => {
+                        if (["e", "E", "+", "-", "."].includes(e.key)) {
+                          e.preventDefault();
+                        }
+                        handleKeyDown;
+                      }}
+                      sx={{
+                        width: 72,
+                        '& input[type="number"]::-webkit-inner-spin-button, & input[type="number"]::-webkit-outer-spin-button':
+                          {
+                            WebkitAppearance: "none",
+                            MozAppearance: "textfield",
+                            margin: 0,
+                          },
+                      }}
+                    />
+                    <Typography variant="body2">×</Typography>
+                  </>
+                )}
+
+                <TextField
+                  size="small"
+                  type="number"
+                  label="H"
+                  value={
+                    fieldKey === "shapeStacked"
+                      ? shapeStacked.height
+                      : shapeFlatten.rows
+                  }
+                  slotProps={{
+                    htmlInput: {
+                      min: 0,
+                      step: 1, // optional: whole numbers only
+                    },
+                  }}
+                  onChange={(e) => {
+                    if (fieldKey === "shapeStacked") {
+                      const nextShapeStacked = {
+                        ...shapeStacked,
+                        height: e.target.value,
+                      };
+                      setShapeStacked(nextShapeStacked);
+                      onChange(fieldKey, nextShapeStacked);
+                    } else {
+                      const nextShapeFlatten = {
+                        ...shapeFlatten,
+                        rows: e.target.value,
+                      };
+                      setShapeFlatten(nextShapeFlatten);
+                      onChange(fieldKey, nextShapeFlatten);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (["e", "E", "+", "-", "."].includes(e.key)) {
+                      e.preventDefault();
+                    }
+                    handleKeyDown;
+                  }}
+                  sx={{
+                    width: 72,
+                    '& input[type="number"]::-webkit-inner-spin-button, & input[type="number"]::-webkit-outer-spin-button':
+                      {
+                        WebkitAppearance: "none",
+                        MozAppearance: "textfield",
+                        margin: 0,
+                      },
+                  }}
+                />
+                <Typography variant="body2">×</Typography>
+
+                <TextField
+                  size="small"
+                  type="number"
+                  label="W"
+                  value={
+                    fieldKey === "shapeStacked"
+                      ? shapeStacked.width
+                      : shapeFlatten.columns
+                  }
+                  onChange={(e) => {
+                    if (fieldKey === "shapeStacked") {
+                      const nextShapeStacked = {
+                        ...shapeStacked,
+                        width: e.target.value,
+                      };
+                      setShapeStacked(nextShapeStacked);
+                      onChange(fieldKey, nextShapeStacked);
+                    } else {
+                      const nextShapeFlatten = {
+                        ...shapeFlatten,
+                        columns: e.target.value,
+                      };
+                      setShapeFlatten(nextShapeFlatten);
+                      onChange(fieldKey, nextShapeFlatten);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (["e", "E", "+", "-", "."].includes(e.key)) {
+                      e.preventDefault();
+                    }
+                    handleKeyDown;
+                  }}
+                  sx={{
+                    width: 72,
+                    '& input[type="number"]::-webkit-inner-spin-button, & input[type="number"]::-webkit-outer-spin-button':
+                      {
+                        WebkitAppearance: "none",
+                        MozAppearance: "textfield",
+                        margin: 0,
+                      },
+                  }}
+                />
+              </Stack>
+            </Box>
+          </>
+        </Popover>
+      </React.Fragment>
     );
   }
 
@@ -496,6 +690,37 @@ export const UnitEditor = ({
                   !currentUnitData.coordinates.isGroup &&
                   !currentUnitData.coordinates.isBlock
                 ) {
+                  return false;
+                }
+              }
+
+              if (
+                currentUnitData.coordinates.type === "flatten" ||
+                currentUnitData.coordinates.type === "fullyConnected" ||
+                currentUnitData.coordinates.type === "stacked"
+              ) {
+                if (fieldKey === "stroke") {
+                  return false;
+                }
+                if (fieldKey === "value") {
+                  return false;
+                }
+              }
+
+              if (fieldKey === "shapeStacked") {
+                if (currentUnitData.coordinates.type !== "stacked") {
+                  return false;
+                }
+              }
+
+              if (fieldKey === "shapeFlatten") {
+                if (currentUnitData.coordinates.type !== "flatten") {
+                  return false;
+                }
+              }
+
+              if (currentUnitData.coordinates.type === "fullyConnected") {
+                if (fieldKey === "color") {
                   return false;
                 }
               }

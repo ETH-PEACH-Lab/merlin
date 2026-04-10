@@ -9,7 +9,7 @@ const lexer = moo.compile({
   nlw: { match: /[ \t]*\r?\n[ \t]*/, lineBreaks: true },
   ws: /[ \t]+/,
   nullT: { match: /null/, value: () => null },
-  layoutspec: /-?(?:[0-9]*\.[0-9]+|[0-9]+)x-?(?:[0-9]*\.[0-9]+|[0-9]+)/, 
+  layoutspec: /-?(?:[0-9]*\.[0-9]+|[0-9]+)x-?(?:[0-9]*\.[0-9]+|[0-9]+)(?:x-?(?:[0-9]*\.[0-9]+|[0-9]+))?/, 
   number: /-?(?:[0-9]*\.[0-9]+|[0-9]+)/,
   boolean: { match: /true|false/, value: s => s === "true" },
   times:  /\*/,
@@ -387,7 +387,7 @@ var grammar = {
             if (rest) rest.forEach(x => result.push(x[1]));
             return result;
         } },
-    {"name": "node_entry", "symbols": ["word", "_", "equals", "wsn", "node_body"], "postprocess":  ([id, , , , body]) => ({
+    {"name": "node_entry", "symbols": ["wordL", "_", "equals", "wsn", "node_body"], "postprocess":  ([id, , , , body]) => ({
           id,
           ...body
         }) },
@@ -400,17 +400,6 @@ var grammar = {
             let result = {};
             let annotations = [];
         
-            let seen = {
-                type: 0,
-                label: 0,
-                labelOrientation: 0,
-                subtext: 0,
-                size: 0,
-                style: 0,
-                color: 0,
-                stroke: 0,
-            };
-        
             for (const entry of fields) {
                 if (!entry || typeof entry !== "object") continue;
         
@@ -420,39 +409,12 @@ var grammar = {
                 }
         
                 for (const key of Object.keys(entry)) {
-                    if (seen[key] !== undefined) {
-                        seen[key] += 1;
-                        if (seen[key] > 1) {
-                            throw new Error(`Duplicate node field: ${key}`);
-                        }
-                    }
                     result[key] = entry[key];
                 }
             }
         
-            if (!result.type) {
-                throw new Error("Node must have a type");
-            }
-        
             if (annotations.length > 0) {
                 result.annotations = annotations;
-            }
-        
-            const allowedByType = {
-                text: new Set(["type", "label", "labelOrientation", "color", "annotations"]),
-                rect: new Set(["type", "label", "labelOrientation", "subtext", "size", "style", "color", "stroke", "annotations"]),
-                circle: new Set(["type", "label", "labelOrientation", "subtext", "size", "style", "color", "stroke", "annotations"]),
-            };
-        
-            const allowed = allowedByType[result.type];
-            if (!allowed) {
-                throw new Error(`Unsupported node type: ${result.type}`);
-            }
-        
-            for (const key of Object.keys(result)) {
-                if (!allowed.has(key)) {
-                    throw new Error(`Field "${key}" is not allowed for node type "${result.type}"`);
-                }
             }
         
             return result;
@@ -461,37 +423,66 @@ var grammar = {
     {"name": "node_field$subexpression$1$macrocall$3", "symbols": ["node_type_literal"]},
     {"name": "node_field$subexpression$1$macrocall$1", "symbols": ["node_field$subexpression$1$macrocall$2", "colon", "_", "node_field$subexpression$1$macrocall$3"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
     {"name": "node_field$subexpression$1", "symbols": ["node_field$subexpression$1$macrocall$1"]},
-    {"name": "node_field$subexpression$1$macrocall$5", "symbols": [{"literal":"label"}]},
-    {"name": "node_field$subexpression$1$macrocall$6$subexpression$1", "symbols": ["string"]},
-    {"name": "node_field$subexpression$1$macrocall$6$subexpression$1", "symbols": ["nullT"]},
+    {"name": "node_field$subexpression$1$macrocall$5", "symbols": [{"literal":"shape"}]},
+    {"name": "node_field$subexpression$1$macrocall$6$subexpression$1", "symbols": ["shape_literal"]},
+    {"name": "node_field$subexpression$1$macrocall$6$subexpression$1", "symbols": ["number_only_list"]},
     {"name": "node_field$subexpression$1$macrocall$6", "symbols": ["node_field$subexpression$1$macrocall$6$subexpression$1"]},
     {"name": "node_field$subexpression$1$macrocall$4", "symbols": ["node_field$subexpression$1$macrocall$5", "colon", "_", "node_field$subexpression$1$macrocall$6"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
     {"name": "node_field$subexpression$1", "symbols": ["node_field$subexpression$1$macrocall$4"]},
-    {"name": "node_field$subexpression$1", "symbols": ["label_orientation"]},
-    {"name": "node_field$subexpression$1$macrocall$8", "symbols": [{"literal":"subtext"}]},
-    {"name": "node_field$subexpression$1$macrocall$9", "symbols": ["string"]},
+    {"name": "node_field$subexpression$1$macrocall$8", "symbols": [{"literal":"kernelSize"}]},
+    {"name": "node_field$subexpression$1$macrocall$9", "symbols": ["kernel_size_literal"]},
     {"name": "node_field$subexpression$1$macrocall$7", "symbols": ["node_field$subexpression$1$macrocall$8", "colon", "_", "node_field$subexpression$1$macrocall$9"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
     {"name": "node_field$subexpression$1", "symbols": ["node_field$subexpression$1$macrocall$7"]},
-    {"name": "node_field$subexpression$1$macrocall$11", "symbols": [{"literal":"size"}]},
-    {"name": "node_field$subexpression$1$macrocall$12", "symbols": ["size_tuple"]},
+    {"name": "node_field$subexpression$1$macrocall$11", "symbols": [{"literal":"label"}]},
+    {"name": "node_field$subexpression$1$macrocall$12$subexpression$1", "symbols": ["string"]},
+    {"name": "node_field$subexpression$1$macrocall$12$subexpression$1", "symbols": ["nullT"]},
+    {"name": "node_field$subexpression$1$macrocall$12", "symbols": ["node_field$subexpression$1$macrocall$12$subexpression$1"]},
     {"name": "node_field$subexpression$1$macrocall$10", "symbols": ["node_field$subexpression$1$macrocall$11", "colon", "_", "node_field$subexpression$1$macrocall$12"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
     {"name": "node_field$subexpression$1", "symbols": ["node_field$subexpression$1$macrocall$10"]},
-    {"name": "node_field$subexpression$1$macrocall$14", "symbols": [{"literal":"style"}]},
-    {"name": "node_field$subexpression$1$macrocall$15", "symbols": ["style_literal"]},
+    {"name": "node_field$subexpression$1$macrocall$14", "symbols": [{"literal":"labelSubtext"}]},
+    {"name": "node_field$subexpression$1$macrocall$15$subexpression$1", "symbols": ["string"]},
+    {"name": "node_field$subexpression$1$macrocall$15$subexpression$1", "symbols": ["nullT"]},
+    {"name": "node_field$subexpression$1$macrocall$15", "symbols": ["node_field$subexpression$1$macrocall$15$subexpression$1"]},
     {"name": "node_field$subexpression$1$macrocall$13", "symbols": ["node_field$subexpression$1$macrocall$14", "colon", "_", "node_field$subexpression$1$macrocall$15"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
     {"name": "node_field$subexpression$1", "symbols": ["node_field$subexpression$1$macrocall$13"]},
-    {"name": "node_field$subexpression$1$macrocall$17", "symbols": [{"literal":"color"}]},
+    {"name": "node_field$subexpression$1$macrocall$17", "symbols": [{"literal":"opLabel"}]},
     {"name": "node_field$subexpression$1$macrocall$18$subexpression$1", "symbols": ["string"]},
     {"name": "node_field$subexpression$1$macrocall$18$subexpression$1", "symbols": ["nullT"]},
     {"name": "node_field$subexpression$1$macrocall$18", "symbols": ["node_field$subexpression$1$macrocall$18$subexpression$1"]},
     {"name": "node_field$subexpression$1$macrocall$16", "symbols": ["node_field$subexpression$1$macrocall$17", "colon", "_", "node_field$subexpression$1$macrocall$18"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
     {"name": "node_field$subexpression$1", "symbols": ["node_field$subexpression$1$macrocall$16"]},
-    {"name": "node_field$subexpression$1$macrocall$20", "symbols": [{"literal":"stroke"}]},
+    {"name": "node_field$subexpression$1$macrocall$20", "symbols": [{"literal":"opLabelSubtext"}]},
     {"name": "node_field$subexpression$1$macrocall$21$subexpression$1", "symbols": ["string"]},
     {"name": "node_field$subexpression$1$macrocall$21$subexpression$1", "symbols": ["nullT"]},
     {"name": "node_field$subexpression$1$macrocall$21", "symbols": ["node_field$subexpression$1$macrocall$21$subexpression$1"]},
     {"name": "node_field$subexpression$1$macrocall$19", "symbols": ["node_field$subexpression$1$macrocall$20", "colon", "_", "node_field$subexpression$1$macrocall$21"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
     {"name": "node_field$subexpression$1", "symbols": ["node_field$subexpression$1$macrocall$19"]},
+    {"name": "node_field$subexpression$1", "symbols": ["label_orientation"]},
+    {"name": "node_field$subexpression$1$macrocall$23", "symbols": [{"literal":"size"}]},
+    {"name": "node_field$subexpression$1$macrocall$24", "symbols": ["size_tuple"]},
+    {"name": "node_field$subexpression$1$macrocall$22", "symbols": ["node_field$subexpression$1$macrocall$23", "colon", "_", "node_field$subexpression$1$macrocall$24"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "node_field$subexpression$1", "symbols": ["node_field$subexpression$1$macrocall$22"]},
+    {"name": "node_field$subexpression$1$macrocall$26", "symbols": [{"literal":"style"}]},
+    {"name": "node_field$subexpression$1$macrocall$27", "symbols": ["style_literal"]},
+    {"name": "node_field$subexpression$1$macrocall$25", "symbols": ["node_field$subexpression$1$macrocall$26", "colon", "_", "node_field$subexpression$1$macrocall$27"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "node_field$subexpression$1", "symbols": ["node_field$subexpression$1$macrocall$25"]},
+    {"name": "node_field$subexpression$1$macrocall$29", "symbols": [{"literal":"color"}]},
+    {"name": "node_field$subexpression$1$macrocall$30$subexpression$1", "symbols": ["string"]},
+    {"name": "node_field$subexpression$1$macrocall$30$subexpression$1", "symbols": ["nullT"]},
+    {"name": "node_field$subexpression$1$macrocall$30$subexpression$1", "symbols": ["ns_list"]},
+    {"name": "node_field$subexpression$1$macrocall$30", "symbols": ["node_field$subexpression$1$macrocall$30$subexpression$1"]},
+    {"name": "node_field$subexpression$1$macrocall$28", "symbols": ["node_field$subexpression$1$macrocall$29", "colon", "_", "node_field$subexpression$1$macrocall$30"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "node_field$subexpression$1", "symbols": ["node_field$subexpression$1$macrocall$28"]},
+    {"name": "node_field$subexpression$1$macrocall$32", "symbols": [{"literal":"stroke"}]},
+    {"name": "node_field$subexpression$1$macrocall$33$subexpression$1", "symbols": ["string"]},
+    {"name": "node_field$subexpression$1$macrocall$33$subexpression$1", "symbols": ["nullT"]},
+    {"name": "node_field$subexpression$1$macrocall$33", "symbols": ["node_field$subexpression$1$macrocall$33$subexpression$1"]},
+    {"name": "node_field$subexpression$1$macrocall$31", "symbols": ["node_field$subexpression$1$macrocall$32", "colon", "_", "node_field$subexpression$1$macrocall$33"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "node_field$subexpression$1", "symbols": ["node_field$subexpression$1$macrocall$31"]},
+    {"name": "node_field$subexpression$1$macrocall$35", "symbols": [{"literal":"outputLabels"}]},
+    {"name": "node_field$subexpression$1$macrocall$36", "symbols": ["ns_list"]},
+    {"name": "node_field$subexpression$1$macrocall$34", "symbols": ["node_field$subexpression$1$macrocall$35", "colon", "_", "node_field$subexpression$1$macrocall$36"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "node_field$subexpression$1", "symbols": ["node_field$subexpression$1$macrocall$34"]},
     {"name": "node_field$subexpression$1", "symbols": ["node_annotation"]},
     {"name": "node_field", "symbols": ["node_field$subexpression$1"], "postprocess": iid},
     {"name": "label_orientation", "symbols": [{"literal":"label"}, "dot", {"literal":"orientation"}, "colon", "_", "label_orientation_literal"], "postprocess":  ([ , , , , , orientation]) => ({
@@ -521,7 +512,7 @@ var grammar = {
     {"name": "edge_entry$ebnf$1$subexpression$1", "symbols": ["__", "edge_field", "edge_entry$ebnf$1$subexpression$1$ebnf$1"]},
     {"name": "edge_entry$ebnf$1", "symbols": ["edge_entry$ebnf$1$subexpression$1"], "postprocess": id},
     {"name": "edge_entry$ebnf$1", "symbols": [], "postprocess": function(d) {return null;}},
-    {"name": "edge_entry", "symbols": ["word", "_", "equals", "wsn", "endpoint", "_", (lexer.has("arrow") ? {type: "arrow"} : arrow), "_", "endpoint", "edge_entry$ebnf$1"], "postprocess":  ([id, , , , from, , , , to, fields]) => {
+    {"name": "edge_entry", "symbols": ["wordL", "_", "equals", "wsn", "endpoint", "_", (lexer.has("arrow") ? {type: "arrow"} : arrow), "_", "endpoint", "edge_entry$ebnf$1"], "postprocess":  ([id, , , , from, , , , to, fields]) => {
         
             let result = {
                 id,
@@ -556,16 +547,24 @@ var grammar = {
     {"name": "edge_field$subexpression$1$macrocall$6", "symbols": ["edge_style_literal"]},
     {"name": "edge_field$subexpression$1$macrocall$4", "symbols": ["edge_field$subexpression$1$macrocall$5", "colon", "_", "edge_field$subexpression$1$macrocall$6"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
     {"name": "edge_field$subexpression$1", "symbols": ["edge_field$subexpression$1$macrocall$4"]},
-    {"name": "edge_field$subexpression$1$macrocall$8", "symbols": [{"literal":"color"}]},
-    {"name": "edge_field$subexpression$1$macrocall$9$subexpression$1", "symbols": ["string"]},
-    {"name": "edge_field$subexpression$1$macrocall$9$subexpression$1", "symbols": ["nullT"]},
-    {"name": "edge_field$subexpression$1$macrocall$9", "symbols": ["edge_field$subexpression$1$macrocall$9$subexpression$1"]},
+    {"name": "edge_field$subexpression$1$macrocall$8", "symbols": [{"literal":"transition"}]},
+    {"name": "edge_field$subexpression$1$macrocall$9", "symbols": ["edge_transition_literal"]},
     {"name": "edge_field$subexpression$1$macrocall$7", "symbols": ["edge_field$subexpression$1$macrocall$8", "colon", "_", "edge_field$subexpression$1$macrocall$9"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
     {"name": "edge_field$subexpression$1", "symbols": ["edge_field$subexpression$1$macrocall$7"]},
-    {"name": "edge_field$subexpression$1$macrocall$11", "symbols": [{"literal":"arrowheads"}]},
-    {"name": "edge_field$subexpression$1$macrocall$12", "symbols": ["arrowheads_literal"]},
+    {"name": "edge_field$subexpression$1$macrocall$11", "symbols": [{"literal":"color"}]},
+    {"name": "edge_field$subexpression$1$macrocall$12$subexpression$1", "symbols": ["string"]},
+    {"name": "edge_field$subexpression$1$macrocall$12$subexpression$1", "symbols": ["nullT"]},
+    {"name": "edge_field$subexpression$1$macrocall$12", "symbols": ["edge_field$subexpression$1$macrocall$12$subexpression$1"]},
     {"name": "edge_field$subexpression$1$macrocall$10", "symbols": ["edge_field$subexpression$1$macrocall$11", "colon", "_", "edge_field$subexpression$1$macrocall$12"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
     {"name": "edge_field$subexpression$1", "symbols": ["edge_field$subexpression$1$macrocall$10"]},
+    {"name": "edge_field$subexpression$1$macrocall$14", "symbols": [{"literal":"arrowheads"}]},
+    {"name": "edge_field$subexpression$1$macrocall$15", "symbols": ["numberL"]},
+    {"name": "edge_field$subexpression$1$macrocall$13", "symbols": ["edge_field$subexpression$1$macrocall$14", "colon", "_", "edge_field$subexpression$1$macrocall$15"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "edge_field$subexpression$1", "symbols": ["edge_field$subexpression$1$macrocall$13"]},
+    {"name": "edge_field$subexpression$1$macrocall$17", "symbols": [{"literal":"gap"}]},
+    {"name": "edge_field$subexpression$1$macrocall$18", "symbols": ["number"]},
+    {"name": "edge_field$subexpression$1$macrocall$16", "symbols": ["edge_field$subexpression$1$macrocall$17", "colon", "_", "edge_field$subexpression$1$macrocall$18"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "edge_field$subexpression$1", "symbols": ["edge_field$subexpression$1$macrocall$16"]},
     {"name": "edge_field", "symbols": ["edge_field$subexpression$1"], "postprocess": iid},
     {"name": "endpoint", "symbols": ["wordL", "anchor_with_index"], "postprocess":  ([name, s]) => {
             if (s.edgeAnchor) {
@@ -593,7 +592,7 @@ var grammar = {
             }
         
         } },
-    {"name": "index_opt", "symbols": ["lbrac", "_", "ports_literal", "_", "rbrac"], "postprocess": ([, , n, ,]) => n},
+    {"name": "index_opt", "symbols": ["lbrac", "_", "numberL", "_", "rbrac"], "postprocess": ([, , n, ,]) => n},
     {"name": "group_list$ebnf$1$subexpression$1$ebnf$1", "symbols": []},
     {"name": "group_list$ebnf$1$subexpression$1$ebnf$1$subexpression$1", "symbols": ["comma_nlow_new", "group_entry"]},
     {"name": "group_list$ebnf$1$subexpression$1$ebnf$1", "symbols": ["group_list$ebnf$1$subexpression$1$ebnf$1", "group_list$ebnf$1$subexpression$1$ebnf$1$subexpression$1"], "postprocess": function arrpush(d) {return d[0].concat([d[1]]);}},
@@ -661,6 +660,20 @@ var grammar = {
     {"name": "group_field$subexpression$1$macrocall$15", "symbols": ["group_field$subexpression$1$macrocall$15$subexpression$1"]},
     {"name": "group_field$subexpression$1$macrocall$13", "symbols": ["group_field$subexpression$1$macrocall$14", "colon", "_", "group_field$subexpression$1$macrocall$15"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
     {"name": "group_field$subexpression$1", "symbols": ["group_field$subexpression$1$macrocall$13"]},
+    {"name": "group_field$subexpression$1$macrocall$17", "symbols": [{"literal":"markerType"}]},
+    {"name": "group_field$subexpression$1$macrocall$18", "symbols": ["marker_type_literal"]},
+    {"name": "group_field$subexpression$1$macrocall$16", "symbols": ["group_field$subexpression$1$macrocall$17", "colon", "_", "group_field$subexpression$1$macrocall$18"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "group_field$subexpression$1", "symbols": ["group_field$subexpression$1$macrocall$16"]},
+    {"name": "group_field$subexpression$1$macrocall$20", "symbols": [{"literal":"markerLabel"}]},
+    {"name": "group_field$subexpression$1$macrocall$21$subexpression$1", "symbols": ["string"]},
+    {"name": "group_field$subexpression$1$macrocall$21$subexpression$1", "symbols": ["nullT"]},
+    {"name": "group_field$subexpression$1$macrocall$21", "symbols": ["group_field$subexpression$1$macrocall$21$subexpression$1"]},
+    {"name": "group_field$subexpression$1$macrocall$19", "symbols": ["group_field$subexpression$1$macrocall$20", "colon", "_", "group_field$subexpression$1$macrocall$21"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "group_field$subexpression$1", "symbols": ["group_field$subexpression$1$macrocall$19"]},
+    {"name": "group_field$subexpression$1$macrocall$23", "symbols": [{"literal":"markerPosition"}]},
+    {"name": "group_field$subexpression$1$macrocall$24", "symbols": ["marker_position_literal"]},
+    {"name": "group_field$subexpression$1$macrocall$22", "symbols": ["group_field$subexpression$1$macrocall$23", "colon", "_", "group_field$subexpression$1$macrocall$24"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "group_field$subexpression$1", "symbols": ["group_field$subexpression$1$macrocall$22"]},
     {"name": "group_field$subexpression$1", "symbols": ["group_annotation"]},
     {"name": "group_field", "symbols": ["group_field$subexpression$1"], "postprocess": iid},
     {"name": "group_annotation$subexpression$1", "symbols": ["string"]},
@@ -780,21 +793,33 @@ var grammar = {
             };
         } },
     {"name": "connect_field$subexpression$1$macrocall$2", "symbols": [{"literal":"label"}]},
-    {"name": "connect_field$subexpression$1$macrocall$3", "symbols": ["string"]},
+    {"name": "connect_field$subexpression$1$macrocall$3$subexpression$1", "symbols": ["string"]},
+    {"name": "connect_field$subexpression$1$macrocall$3$subexpression$1", "symbols": ["nullT"]},
+    {"name": "connect_field$subexpression$1$macrocall$3", "symbols": ["connect_field$subexpression$1$macrocall$3$subexpression$1"]},
     {"name": "connect_field$subexpression$1$macrocall$1", "symbols": ["connect_field$subexpression$1$macrocall$2", "colon", "_", "connect_field$subexpression$1$macrocall$3"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
     {"name": "connect_field$subexpression$1", "symbols": ["connect_field$subexpression$1$macrocall$1"]},
     {"name": "connect_field$subexpression$1$macrocall$5", "symbols": [{"literal":"style"}]},
     {"name": "connect_field$subexpression$1$macrocall$6", "symbols": ["edge_style_literal"]},
     {"name": "connect_field$subexpression$1$macrocall$4", "symbols": ["connect_field$subexpression$1$macrocall$5", "colon", "_", "connect_field$subexpression$1$macrocall$6"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
     {"name": "connect_field$subexpression$1", "symbols": ["connect_field$subexpression$1$macrocall$4"]},
-    {"name": "connect_field$subexpression$1$macrocall$8", "symbols": [{"literal":"color"}]},
-    {"name": "connect_field$subexpression$1$macrocall$9", "symbols": ["string"]},
+    {"name": "connect_field$subexpression$1$macrocall$8", "symbols": [{"literal":"transition"}]},
+    {"name": "connect_field$subexpression$1$macrocall$9", "symbols": ["edge_transition_literal"]},
     {"name": "connect_field$subexpression$1$macrocall$7", "symbols": ["connect_field$subexpression$1$macrocall$8", "colon", "_", "connect_field$subexpression$1$macrocall$9"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
     {"name": "connect_field$subexpression$1", "symbols": ["connect_field$subexpression$1$macrocall$7"]},
-    {"name": "connect_field$subexpression$1$macrocall$11", "symbols": [{"literal":"arrowheads"}]},
-    {"name": "connect_field$subexpression$1$macrocall$12", "symbols": ["arrowheads_literal"]},
+    {"name": "connect_field$subexpression$1$macrocall$11", "symbols": [{"literal":"color"}]},
+    {"name": "connect_field$subexpression$1$macrocall$12$subexpression$1", "symbols": ["string"]},
+    {"name": "connect_field$subexpression$1$macrocall$12$subexpression$1", "symbols": ["nullT"]},
+    {"name": "connect_field$subexpression$1$macrocall$12", "symbols": ["connect_field$subexpression$1$macrocall$12$subexpression$1"]},
     {"name": "connect_field$subexpression$1$macrocall$10", "symbols": ["connect_field$subexpression$1$macrocall$11", "colon", "_", "connect_field$subexpression$1$macrocall$12"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
     {"name": "connect_field$subexpression$1", "symbols": ["connect_field$subexpression$1$macrocall$10"]},
+    {"name": "connect_field$subexpression$1$macrocall$14", "symbols": [{"literal":"arrowheads"}]},
+    {"name": "connect_field$subexpression$1$macrocall$15", "symbols": ["numberL"]},
+    {"name": "connect_field$subexpression$1$macrocall$13", "symbols": ["connect_field$subexpression$1$macrocall$14", "colon", "_", "connect_field$subexpression$1$macrocall$15"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "connect_field$subexpression$1", "symbols": ["connect_field$subexpression$1$macrocall$13"]},
+    {"name": "connect_field$subexpression$1$macrocall$17", "symbols": [{"literal":"gap"}]},
+    {"name": "connect_field$subexpression$1$macrocall$18", "symbols": ["number"]},
+    {"name": "connect_field$subexpression$1$macrocall$16", "symbols": ["connect_field$subexpression$1$macrocall$17", "colon", "_", "connect_field$subexpression$1$macrocall$18"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "connect_field$subexpression$1", "symbols": ["connect_field$subexpression$1$macrocall$16"]},
     {"name": "connect_field", "symbols": ["connect_field$subexpression$1"], "postprocess": iid},
     {"name": "use_list$ebnf$1$subexpression$1$ebnf$1", "symbols": []},
     {"name": "use_list$ebnf$1$subexpression$1$ebnf$1$subexpression$1", "symbols": ["comma_nlow_new", "use_entry"]},
@@ -814,22 +839,48 @@ var grammar = {
           block: blockName
         
         }) },
+    {"name": "shape_literal", "symbols": [(lexer.has("layoutspec") ? {type: "layoutspec"} : layoutspec)], "postprocess":  ([t]) => {
+          const parts = t.value.split("x").map(Number);
+        
+          if (!(parts.length === 2 || parts.length === 3)) {
+            throw new Error("shape must be NUMBERxNUMBER or NUMBERxNUMBERxNUMBER");
+          }
+        
+          if (parts.some(n => !Number.isInteger(n) || n < 0)) {
+            throw new Error("shape values must be non-negative integers");
+          }
+        
+          return parts;
+        } },
+    {"name": "kernel_size_literal", "symbols": [(lexer.has("layoutspec") ? {type: "layoutspec"} : layoutspec)], "postprocess":  ([t]) => {
+          const parts = t.value.split("x").map(Number);
+        
+          if (parts.length !== 2) {
+            throw new Error("kernelSize must be NUMBERxNUMBER");
+          }
+        
+          if (parts.some(n => !Number.isInteger(n) || n < 0)) {
+            throw new Error("kernelSize values must be non-negative integers");
+          }
+        
+          return parts;
+        } },
+    {"name": "marker_position_literal", "symbols": [{"literal":"bottom"}], "postprocess": () => "bottom"},
+    {"name": "marker_position_literal", "symbols": [{"literal":"top"}], "postprocess": () => "top"},
+    {"name": "marker_type_literal", "symbols": [{"literal":"bracket"}], "postprocess": () => "bracket"},
+    {"name": "marker_type_literal", "symbols": [{"literal":"brace"}], "postprocess": () => "brace"},
     {"name": "label_orientation_literal", "symbols": [{"literal":"horizontal"}], "postprocess": () => "horizontal"},
     {"name": "label_orientation_literal", "symbols": [{"literal":"vertical"}], "postprocess": () => "vertical"},
     {"name": "node_edge_literals", "symbols": ["side_literal"], "postprocess": id},
     {"name": "node_edge_literals", "symbols": [{"literal":"mid"}], "postprocess": () => "mid"},
     {"name": "node_edge_literals", "symbols": [{"literal":"start"}], "postprocess": () => "start"},
     {"name": "node_edge_literals", "symbols": [{"literal":"end"}], "postprocess": () => "end"},
-    {"name": "ports_literal", "symbols": ["number"], "postprocess":  ([n]) => {
-          if (![0,1,2,3,4].includes(n)) throw new Error("port index must be 0..4");
-          return n;
-        } },
-    {"name": "arrowheads_literal", "symbols": ["number"], "postprocess":  ([n]) => {
-          if (![0,1,2,3].includes(n)) throw new Error("arrowheads must be 0..3");
-          return n;
-        } },
     {"name": "edge_style_literal", "symbols": [{"literal":"straight"}], "postprocess": () => "straight"},
     {"name": "edge_style_literal", "symbols": [{"literal":"bow"}], "postprocess": () => "bow"},
+    {"name": "edge_transition_literal", "symbols": [{"literal":"default"}], "postprocess": () => "default"},
+    {"name": "edge_transition_literal", "symbols": [{"literal":"featureMap"}], "postprocess": () => "featureMap"},
+    {"name": "edge_transition_literal", "symbols": [{"literal":"flatten"}], "postprocess": () => "flatten"},
+    {"name": "edge_transition_literal", "symbols": [{"literal":"fullyConnected"}], "postprocess": () => "fullyConnected"},
     {"name": "annotation_key", "symbols": [{"literal":"annotation"}, "dot", "side_literal"], "postprocess":  ([, , side]) => {
           return { side };
         } },
@@ -843,6 +894,9 @@ var grammar = {
     {"name": "node_type_literal", "symbols": [{"literal":"text"}], "postprocess": () => "text"},
     {"name": "node_type_literal", "symbols": [{"literal":"rect"}], "postprocess": () => "rect"},
     {"name": "node_type_literal", "symbols": [{"literal":"circle"}], "postprocess": () => "circle"},
+    {"name": "node_type_literal", "symbols": [{"literal":"stacked"}], "postprocess": () => "stacked"},
+    {"name": "node_type_literal", "symbols": [{"literal":"flatten"}], "postprocess": () => "flatten"},
+    {"name": "node_type_literal", "symbols": [{"literal":"fullyConnected"}], "postprocess": () => "fullyConnected"},
     {"name": "style_literal", "symbols": [{"literal":"rounded"}], "postprocess": () => "rounded"},
     {"name": "style_literal", "symbols": [{"literal":"box"}], "postprocess": () => "box"},
     {"name": "node_orientation_literal", "symbols": [{"literal":"vertical"}], "postprocess": () => "vertical"},
@@ -936,7 +990,7 @@ var grammar = {
     {"name": "neuralNetwork_pair$subexpression$1$macrocall$16", "symbols": ["neuralNetwork_pair$subexpression$1$macrocall$17", "colon", "_", "neuralNetwork_pair$subexpression$1$macrocall$18"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
     {"name": "neuralNetwork_pair$subexpression$1", "symbols": ["neuralNetwork_pair$subexpression$1$macrocall$16"]},
     {"name": "neuralNetwork_pair$subexpression$1$macrocall$20", "symbols": [{"literal":"labelPosition"}]},
-    {"name": "neuralNetwork_pair$subexpression$1$macrocall$21", "symbols": ["positionLabelsLiteral"]},
+    {"name": "neuralNetwork_pair$subexpression$1$macrocall$21", "symbols": ["position_labels_literal"]},
     {"name": "neuralNetwork_pair$subexpression$1$macrocall$19", "symbols": ["neuralNetwork_pair$subexpression$1$macrocall$20", "colon", "_", "neuralNetwork_pair$subexpression$1$macrocall$21"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
     {"name": "neuralNetwork_pair$subexpression$1", "symbols": ["neuralNetwork_pair$subexpression$1$macrocall$19"]},
     {"name": "neuralNetwork_pair$subexpression$1$macrocall$23", "symbols": [{"literal":"showWeights"}]},
@@ -1624,6 +1678,7 @@ var grammar = {
     {"name": "commands$subexpression$1", "symbols": ["set_group_layout"]},
     {"name": "commands$subexpression$1", "symbols": ["set_group_annotation"]},
     {"name": "commands$subexpression$1", "symbols": ["set_node_annotation"]},
+    {"name": "commands$subexpression$1", "symbols": ["set_node_shape"]},
     {"name": "commands$subexpression$1", "symbols": ["set_neuralnetwork_neuron"]},
     {"name": "commands$subexpression$1", "symbols": ["set_neuralnetwork_neuron_color"]},
     {"name": "commands$subexpression$1", "symbols": ["set_neuralnetwork_layer"]},
@@ -1961,6 +2016,18 @@ var grammar = {
     {"name": "set_node_annotation$macrocall$3", "symbols": ["set_node_annotation$macrocall$3$macrocall$1"]},
     {"name": "set_node_annotation$macrocall$1", "symbols": ["wordL", "dot", "set_node_annotation$macrocall$2", "lparen", "_", "set_node_annotation$macrocall$3", "_", "rparen"], "postprocess": ([wordL, dot, , , , args]) => ({ args: id(args), ...wordL })},
     {"name": "set_node_annotation", "symbols": ["set_node_annotation$macrocall$1"], "postprocess": (details) => ({ type: "set_node_annotation", ...id(details) })},
+    {"name": "set_node_shape$macrocall$2", "symbols": [{"literal":"setNodeShape"}]},
+    {"name": "set_node_shape$macrocall$3$macrocall$2", "symbols": ["word"]},
+    {"name": "set_node_shape$macrocall$3$macrocall$3", "symbols": ["word"]},
+    {"name": "set_node_shape$macrocall$3$macrocall$4", "symbols": ["shape_literal"]},
+    {"name": "set_node_shape$macrocall$3$macrocall$1", "symbols": ["set_node_shape$macrocall$3$macrocall$2", "_", "comma", "_", "set_node_shape$macrocall$3$macrocall$3", "_", "comma", "_", "set_node_shape$macrocall$3$macrocall$4"], "postprocess":  ([x, , , , y, , , , z]) => ({
+          block: id(x),
+          second: id(y),
+          third: id(z)
+        }) },
+    {"name": "set_node_shape$macrocall$3", "symbols": ["set_node_shape$macrocall$3$macrocall$1"]},
+    {"name": "set_node_shape$macrocall$1", "symbols": ["wordL", "dot", "set_node_shape$macrocall$2", "lparen", "_", "set_node_shape$macrocall$3", "_", "rparen"], "postprocess": ([wordL, dot, , , , args]) => ({ args: id(args), ...wordL })},
+    {"name": "set_node_shape", "symbols": ["set_node_shape$macrocall$1"], "postprocess": (details) => ({ type: "set_node_shape", ...id(details) })},
     {"name": "set_value$macrocall$2", "symbols": [{"literal":"setValue"}]},
     {"name": "set_value$macrocall$3$macrocall$2$subexpression$1", "symbols": ["number"]},
     {"name": "set_value$macrocall$3$macrocall$2$subexpression$1", "symbols": ["word"]},
@@ -2981,25 +3048,22 @@ var grammar = {
         } },
     {"name": "nnsp_mlist", "symbols": ["nnsp_mlist$macrocall$1"], "postprocess": id},
     {"name": "number", "symbols": [(lexer.has("number") ? {type: "number"} : number)], "postprocess": ([value]) => Number(value.value)},
+    {"name": "numberL", "symbols": [(lexer.has("number") ? {type: "number"} : number)], "postprocess": ([value]) => ({number: Number(value.value), line: value.line, col: value.col})},
     {"name": "string", "symbols": [(lexer.has("string") ? {type: "string"} : string)], "postprocess": ([value]) => value.value},
     {"name": "boolean", "symbols": [(lexer.has("boolean") ? {type: "boolean"} : boolean)], "postprocess": ([value]) => value.value},
     {"name": "edge", "symbols": ["wordL", (lexer.has("dash") ? {type: "dash"} : dash), "wordL"], "postprocess": ([start, , end]) => ({ start: start.name, end: end.name })},
     {"name": "word", "symbols": [(lexer.has("word") ? {type: "word"} : word)], "postprocess": ([value]) => value.value},
+    {"name": "layoutspec", "symbols": [(lexer.has("layoutspec") ? {type: "layoutspec"} : layoutspec)], "postprocess": ([value]) => value.value},
     {"name": "wordL", "symbols": [(lexer.has("word") ? {type: "word"} : word)], "postprocess": ([value]) => ({name: value.value, line: value.line, col: value.col})},
     {"name": "nullT", "symbols": [(lexer.has("nullT") ? {type: "nullT"} : nullT)], "postprocess": () => null},
     {"name": "pass", "symbols": [(lexer.has("pass") ? {type: "pass"} : pass)], "postprocess": () => "_"},
     {"name": "layout", "symbols": [(lexer.has("layoutspec") ? {type: "layoutspec"} : layoutspec)], "postprocess":  ([t]) => {
-            const [a, b] = t.value.split("x");
-            return [Number(a), Number(b)];
+            const parts = t.value.split("x").map(Number);
+            if (parts.length !== 2) throw new Error("layout must be NUMBERxNUMBER");
+            return parts
         } },
-    {"name": "positionLabelsLiteral", "symbols": [(lexer.has("string") ? {type: "string"} : string)], "postprocess": 
-        ([t]) => {
-          if (t.value === "top" || t.value === "bottom") {
-            return t.value;
-          }
-          throw new Error("labelPosition must be \"top\" or \"bottom\"");
-        }
-        },
+    {"name": "position_labels_literal", "symbols": [{"literal":"bottom"}], "postprocess": () => "bottom"},
+    {"name": "position_labels_literal", "symbols": [{"literal":"top"}], "postprocess": () => "top"},
     {"name": "range_value", "symbols": ["number", "dotdot", "number"], "postprocess": ([start, , end]) => ({ type: "range", start: start, end: end })},
     {"name": "position_value$subexpression$1", "symbols": ["range_value"]},
     {"name": "position_value$subexpression$1", "symbols": ["number"]},

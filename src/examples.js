@@ -277,7 +277,7 @@ show randomTextToo (1, 0)
 	neuronColors: [["blue", "blue"],[null, "blue"], ["blue", "red"]]
     showBias: true
     showLabels: true
-    labelPosition: "bottom"
+    labelPosition: bottom
     showWeights: true
     showArrowheads: true
 }
@@ -331,7 +331,7 @@ nn.setNeurons([["a", "b", "c"], ["d"], ["e", "f"]])
 
       {
         id: "neuralNetworkExampleTestEnv",
-        title: "Test - MLP Neural-Network",
+        title: "Example - MLP Neural-Network Without Methods",
         userCode: `neuralnetwork nn = {
 	layers: ["layer1", "hidden", "output"]
 	neurons: [["null", "x1"], ["x2", "x3"], ["x4", "x5"]]
@@ -339,105 +339,60 @@ nn.setNeurons([["a", "b", "c"], ["d"], ["e", "f"]])
 	neuronColors: [["blue", "blue"],[null, "blue"], ["blue", "red"]]
     showBias: true
     showLabels: true
-    labelPosition: "bottom"
+    labelPosition: bottom
     showWeights: true
     showArrowheads: true
 }
 page
 show nn
-
-
-
-
-
-
-
-
 `,
       },
 
       {
-        id: "blockExample3",
-        title: "Test - Autocomplete Block Test",
+        id: "blockExample12",
+        title: "Example - CNN",
         userCode: `architecture a = {
-    block Velo: [
-        layout: vertical,
-        gap: 10,
-        style: box,
-        nodes: [
-            add_norm1 = type: rect label: "CNN" style: box color: "red" stroke: "gray",
-            plus = type: circle label: "+" color: "blue" size: (40, 40)
-        ],
-        edges: [
-            e1 = add_norm1.bottom -> plus.top style: straight color: "yellow" arrowheads: 1 label: "text"
-            
-        ]
-        groups: [
-            row1 = members: [add_norm1]
-        ]
-        
+  title: "Hello"
+
+  block Encoder: [
+    layout: horizontal,
+    gap: 16,
+    style: rounded,
+    annotation.top: "hello",
+
+    nodes: [
+      in0 = type: text label: "Input Image" opLabel: "OPLABEL"  opLabelSubtext: "opLabelSubtext" color: "yellow",
+      s0 = type: stacked shape: 8x128x128 kernelSize: 10x10 color: "blue",
+      conv1 = type: rect label: "Conv1" label.orientation: vertical labelSubtext: "7x7 stride=2, 64ch" opLabel: "OPLABEL" opLabelSubtext: "OPLABEL SUBTEXT" annotation.top: "TOP" size: (180,70) style: rounded stroke: "black",
+      bn1 = type: rect label: "BatchNorm" labelSubtext: "normalize features"  stroke: "black",
+      relu1 = type: rect label: "ReLU" labelSubtext: "activation" opLabel: "OPLABEL" size: (110,40) stroke: "black",
+      s1 = type: stacked shape: 8x128x128 kernelSize: 10x10 label: "8@128x128" labelSubtext: "Hellod dsadasdad dasddasdasd dsadasdsa" color: "blue" size: (100, 100) annotation.top: "ANNOTATION.TOP"
+      s2 = type: stacked shape: 8x64x64 kernelSize: 16x16 label: "8@64x64" labelSubtext: " dsadasdad dasddasdasd dsadasdsa dsadasd ddsadasdaddd dasdsdsdsad" opLabel: "OPLABEL" opLabelSubtext: "opLabelSubtext" color: "red"
+      s3 = type: stacked shape: 24x48x48 label: "8@64x64" color: "white"
+      f1 = type: flatten shape: 24x1 label: "8@128x128" labelSubtext: "Hellod dsadasdad dasddasdasd dsadasdsa" opLabel: "OPLABEL" color: "blue"
+      fully1 = type: fullyConnected shape: [24, 12, 6, 3] outputLabels: ["label", "hello", "world"] label: "1x128" opLabel: "Dense" color: ["blue", "black", "red", "yellow"]
+      fully2 = type: fullyConnected shape: [24, 12, 6, 3] outputLabels: ["label", "hello", "world"] label: "1x128" opLabel: "Dense" color: ["blue", "black", "red", "yellow"]
+    ],
+
+    edges: [
+      e4 = conv1.right -> bn1.left transition: flatten gap: 50 color: "blue"
+      e3 = s1.top -> s2.left transition: featureMap
+      e0 = s2.right -> s3.left 
+      e1 = s3.right -> f1.left transition: flatten
+      e2 = f1.top -> fully1.left transition: fullyConnected
+      e5 = fully1.top -> fully2.left
+    ],
+
+    groups: [
+      row0 = members: [in0, s0, conv1, bn1, relu1],
+      row1 = members: [s1, s2, s3, f1, fully1] markerType: bracket markerLabel: "TESTING" markerPosition: bottom
     ]
-    diagram: [
-        gap: 10,
-        layout: horizontal,
-        uses: [v = Velo]
-        connects: [
-            v.add_norm1.top -> v.add_norm1.top 
-        ]
-    ]
-}
-  
-page
-show a
-
-
-
-
-`,
-      },
-
-      {
-        id: "blockExample2",
-        title: "Test - Block Architecture",
-        userCode: `architecture a = {
-	title: "Hello",
-	block Encoder: [
-		layout: vertical,
-		gap: 40,
-		color: "yellow",
-		style: box,
-		annotation.top: "hello",
-		nodes: [
-			add_norm1 = type: rect label: "Add & Norm" label.orientation: vertical color: "yellow",
-			feed_forward = type: rect label: "Feed Forward" color: "blue",
-			add_norm2 = type: rect label: "Add & Norm" color: "yellow",
-			multi_head_attention = type: rect label: "Multi-Head Attention" color: "green",
-			plus = type: circle label: "+",
-			input_embedding = type: rect label: "Input Embedding",
-			inputs = type: text label: "inputs",
-			positional_encoding = type: circle label: "PE"
-		],
-		edges: [
-			e1 = multi_head_attention.top -> add_norm2.bottom arrowheads: 0,
-			e2 = add_norm2.top -> feed_forward.bottom,
-			e3 = e2.mid -> add_norm1.left style: bow,
-			e4 = feed_forward.top -> add_norm1.bottom style: straight arrowheads: 0,
-			e5 = input_embedding.top -> plus.bottom,
-			e6 = plus.top -> multi_head_attention.bottom arrowheads: 2,
-			e7 = inputs.top -> input_embedding.bottom,
-			e8 = e6.mid -> add_norm2.left style: bow
-		],
-		groups: [
-			row1 = members: [add_norm1, feed_forward] layout: vertical gap: 10,
-			row2 = members: [add_norm2, multi_head_attention] layout: vertical gap: 10,
-			row3 = members: [row1, row2] layout: vertical gap: 40 color: "grey" annotation.top: "Nx" annotation.left: "Nx",
-			row4 = members: [positional_encoding, plus] anchor: plus
-		]
-	]
+  ]
 }
 
 page
 show a
+
 
 `,
       },
@@ -519,7 +474,6 @@ show a
 
 page
 show a
-
 `,
       },
     ],

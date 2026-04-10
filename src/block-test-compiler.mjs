@@ -3,92 +3,54 @@ import compiler from "./compiler/compiler.mjs";
 import util from "node:util";
 
 
+/*
+*/
 
 const dsl = `
 architecture a = {
   title: "Hello"
 
   block Encoder: [
-    layout: vertical,
-    gap: 40,
-    color: "yellow",
-    style: box,
+    layout: horizontal,
+    gap: 16,
+    style: rounded,
     annotation.top: "hello",
 
     nodes: [
-      add_norm1 = type: rect label: "Add & Norm" label.orientation: vertical color: "yellow",
-      feed_forward = type: rect label: "Feed Forward" color: "blue",
-      add_norm2 = type: rect label: "Add & Norm" color: "yellow",
-      multi_head_attention = type: rect label: "Multi-Head Attention" color: "green",
-      plus = type: circle label: "+",
-      input_embedding = type: rect label: "Input Embedding",
-      inputs = type: text label: "inputs",
-      positional_encoding = type: circle label: "PE"
+      in0 = type: text label: "Input Image" opLabel: "OPLABEL"  opLabelSubtext: "opLabelSubtext" color: "yellow",
+      s0 = type: stacked shape: 8x128x128 kernelSize: 10x10 color: "blue",
+      conv1 = type: rect label: "Conv1" label.orientation: vertical labelSubtext: "7x7 stride=2, 64ch" opLabel: "OPLABEL" opLabelSubtext: "OPLABEL SUBTEXT" annotation.top: "TOP" size: (180,70) style: rounded stroke: "black",
+      bn1 = type: rect label: "BatchNorm" labelSubtext: "normalize features"  stroke: "black",
+      relu1 = type: rect label: "ReLU" labelSubtext: "activation" opLabel: "OPLABEL" size: (110,40) stroke: "black",
+      s1 = type: stacked shape: 8x128x128 kernelSize: 10x10 label: "8@128x128" labelSubtext: "Hellod dsadasdad dasddasdasd dsadasdsa" color: "blue" size: (100, 100) annotation.top: "ANNOTATION.TOP"
+      s2 = type: stacked shape: 8x64x64 kernelSize: 16x16 label: "8@64x64" labelSubtext: " dsadasdad dasddasdasd dsadasdsa dsadasd ddsadasdaddd dasdsdsdsad" opLabel: "OPLABEL" opLabelSubtext: "opLabelSubtext" color: "red"
+      s3 = type: stacked shape: 24x48x48 label: "8@64x64" color: "white"
+      f1 = type: flatten shape: 24x1 label: "8@128x128" labelSubtext: "Hellod dsadasdad dasddasdasd dsadasdsa" opLabel: "OPLABEL" color: "blue"
+      fully1 = type: fullyConnected shape: [24, 12, 6, 3] outputLabels: ["label", "hello", "world"] label: "1x128" opLabel: "Dense" color: ["blue", "black", "red", "yellow"]
+      fully2 = type: fullyConnected shape: [24, 12, 6, 3] outputLabels: ["label", "hello", "world"] label: "1x128" opLabel: "Dense" color: ["blue", "black", "red", "yellow"]
     ],
 
     edges: [
-      e1 = multi_head_attention.top -> add_norm2.bottom arrowheads: 0,
-      e2 = add_norm2.top -> feed_forward.bottom,
-      e3 = e2.mid -> add_norm1.left style: bow,
-      e4 = feed_forward.top -> add_norm1.bottom style: straight arrowheads: 0,
-      e5 = input_embedding.top -> plus.bottom,
-      e6 = plus.top -> multi_head_attention.bottom arrowheads: 2,
-      e7 = inputs.top -> input_embedding.bottom,
-      e8 = e6.mid -> add_norm2.left style: bow
+      e4 = conv1.right -> bn1.left transition: flatten gap: 50 color: "blue"
+      e3 = s1.top -> s2.left transition: featureMap
+      e0 = s2.right -> s3.left 
+      e1 = s3.right -> f1.left transition: flatten
+      e2 = f1.top -> fully1.left transition: fullyConnected
+      e5 = fully1.top -> fully2.left
     ],
 
     groups: [
-      row1 = members: [add_norm1, feed_forward] layout: vertical gap: 10,
-      row2 = members: [add_norm2, multi_head_attention] layout: vertical gap: 10,
-      row3 = members: [row1, row2] layout: vertical gap: 40 color: "grey" annotation.top: "Nx" annotation.left: "Nx",
-      row4 = members: [positional_encoding, plus] anchor: plus
-    ]
-  ],
-
-  block Decoder: [
-    layout: vertical,
-    gap: 40,
-    color: "yellow",
-    style: box,
-
-    nodes: [
-      add_norm0 = type: rect label: "Add & Norm" color: "yellow",
-      feed_forward = type: rect label: "Feed Forward" color: "blue",
-      add_norm1 = type: rect label: "Add & Norm" color: "yellow",
-      multi_head_attention = type: rect label: "Multi-Head Attention" color: "green",
-      add_norm2 = type: rect label: "Add & Norm" color: "yellow",
-      masked_multi_head_attention = type: rect label: "Masked Multi-Head Attention" label.orientation: vertical color: "green"
-    ],
-
-    edges: [
-      e1 = feed_forward.top -> add_norm0.bottom color: "yellow" arrowheads: 0,
-      e2 = multi_head_attention.top -> add_norm1.bottom arrowheads: 0,
-      e3 = masked_multi_head_attention.top -> add_norm2.bottom arrowheads: 0,
-      e4 = add_norm1.top -> feed_forward.bottom,
-      e5 = e4.mid -> add_norm0.right style: bow,
-      e6 = add_norm2.top -> multi_head_attention.bottom[2],
-      e7 = e6.mid -> add_norm1.right style: bow
-    ],
-
-    groups: [
-      row1 = members: [add_norm0, feed_forward] layout: vertical gap: 10 color: "grey",
-      row2 = members: [add_norm1, multi_head_attention] layout: vertical gap: 10 color: "grey",
-      row3 = members: [add_norm2, masked_multi_head_attention] layout: vertical gap: 10 color: "grey"
-    ]
-  ],
-
-  diagram: [
-    gap: 15,
-    uses: [e = Encoder, d = Decoder],
-    connects: [
-      e.add_norm1.top -> d.multi_head_attention.bottom[1] style: bow arrowheads: 2
+      row0 = members: [in0, s0, conv1, bn1, relu1],
+      row1 = members: [s1, s2, s3, f1, fully1] markerType: bracket markerLabel: "TESTING" markerPosition: bottom
     ]
   ]
 }
 
 page
 show a
-a.removeBlock(Encoder)
+
+a.setNodeShape(Encoder, s1, 25x1x1)
+
 
 
 `;
