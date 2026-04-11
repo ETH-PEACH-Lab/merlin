@@ -87,6 +87,10 @@ function reconstructArchitectureBody(body) {
                   result += ` label.orientation: ${node.labelOrientation}`;
                 }
 
+                if (node.labelSubtext) {
+                  result += ` labelSubtext: "${node.labelSubtext[0]}"`;
+                }
+
                 if (node.opLabel) {
                   result += ` opLabel: "${node.opLabel[0]}"`;
                 }
@@ -380,6 +384,10 @@ function reconstructArchitectureBody(body) {
                 result += ` color: ${JSON.stringify(group.color.length === 1 ? group.color[0] : group.color)}`;
               }
 
+              if (group.stroke) {
+                result += ` stroke: ${JSON.stringify(group.stroke.length === 1 ? group.stroke[0] : group.stroke)}`;
+              }
+
               if (group.anchor) {
                 result += ` anchor: ${group.anchor.name}`;
               }
@@ -388,6 +396,10 @@ function reconstructArchitectureBody(body) {
                 for (const ann of group.annotations) {
                   result += ` annotation.${ann.side}: ${JSON.stringify(ann.value.length === 1 ? ann.value[0] : ann.value)}`;
                 }
+              }
+
+              if (group.colorBoxSize) {
+                result += ` colorBoxSize: (${group.colorBoxSize[0]}, ${group.colorBoxSize[1]})`;
               }
 
               if (group.markerType) {
@@ -457,6 +469,7 @@ function reconstructArchitectureBody(body) {
 
           for (const [useIndex, use] of value2.entries()) {
             result += `${use.id.name} = ${use.block.name}`;
+            result += use.anchor ? `anchor: ${use.anchor.name}` : "";
             if (useIndex !== value2.length - 1) {
               result += `, `;
             }

@@ -499,6 +499,8 @@ group_field -> (pair["members", member_list]
           | pair["anchor", wordL]
           | pair["gap", number]
           | pair["color", (string | nullT)] 
+          | pair["colorBoxSize", size_tuple]
+          | pair["stroke", (string | nullT)] 
           | pair["markerType", marker_type_literal]
           | pair["markerLabel", (string | nullT)]
           | pair["markerPosition", marker_position_literal]
@@ -610,9 +612,10 @@ use_list -> lbrac wsn (use_entry (comma_nlow_new use_entry):*):? wsn rbrac {% ([
 } %}
 
 
-use_entry -> wordL _ equals _ wordL {% ([alias, , , ,blockName]) => ({
+use_entry -> wordL _ equals _ wordL (_ pair["anchor", wordL]):? {% ([alias, , , ,blockName, field]) => ({
   id: alias,
-  block: blockName
+  block: blockName,
+   ...(field ? field[1] : null)
 
 }) %}
 

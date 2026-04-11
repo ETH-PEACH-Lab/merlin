@@ -216,10 +216,25 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
   const updateUnparsedCode = useCallback(
     (newCode) => {
       setUnparsedCode(newCode);
-      parseAndCompile(newCode, false, currentCursorLine);
+
+      if (parseTimeoutRef.current) {
+        clearTimeout(parseTimeoutRef.current);
+      }
+
+      parseTimeoutRef.current = setTimeout(() => {
+        parseAndCompile(newCode, false, currentCursorLine);
+        parseTimeoutRef.current = null;
+      }, 400);
     },
     [parseAndCompile, currentCursorLine],
   );
+  /*const updateUnparsedCode = useCallback(
+    (newCode) => {
+      setUnparsedCode(newCode);
+      parseAndCompile(newCode, false, currentCursorLine);
+    },
+    [parseAndCompile, currentCursorLine],
+  );*/
 
   // Update cursor line (called from Monaco editor)
   const updateCursorLine = useCallback((line) => {

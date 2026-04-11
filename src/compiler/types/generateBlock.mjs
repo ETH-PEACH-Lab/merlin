@@ -11,6 +11,7 @@ export function generateBlock(blockComponent, layout = [3, 3]) {
       "type",
       "label",
       "labelOrientation",
+      "labelSubtext",
       "color",
       "annotations",
       "opLabel",
@@ -186,7 +187,7 @@ export function generateBlock(blockComponent, layout = [3, 3]) {
             node.type === "circle"
           ) {
             result += `${node.type} ${node.id.name} `;
-            
+
             result += node.label
               ? `label: "${formatNullValue(node.label[0])}" `
               : "";
@@ -551,6 +552,9 @@ Anchor "${group.anchor.name}" must be one of the members: ${validMembers}.`,
           result += group.color
             ? `color: "${formatNullValue(group.color)}" `
             : "";
+          result += group.stroke
+            ? `stroke: "${formatNullValue(group.stroke)}" `
+            : "";
           result += group.markerType ? `markerType: ${group.markerType} ` : "";
           result += group.markerLabel
             ? `markerLabel: "${formatNullValue(group.markerLabel[0])}" `
@@ -567,6 +571,10 @@ Anchor "${group.anchor.name}" must be one of the members: ${validMembers}.`,
             }
           }
 
+          result += group.colorBoxSize
+            ? `colorBoxSize: (${group.colorBoxSize[0]},${group.colorBoxSize[1]}) `
+            : "";
+
           result += "\n";
         }
       }
@@ -581,7 +589,10 @@ Anchor "${group.anchor.name}" must be one of the members: ${validMembers}.`,
     const diagram = blockComponent.body.diagram;
     result += "diagram\n";
     result += diagram.layout ? `layout: ${diagram.layout}\n` : "";
-    result += diagram.gap ? `gap: ${diagram.gap}\n` : "";
+    result +=
+      diagram.gap !== undefined && diagram.gamp !== null
+        ? `gap: ${diagram.gap}\n`
+        : "";
     result += diagram.uses ? "use: " : "";
 
     if (diagram.uses) {
@@ -600,6 +611,7 @@ Anchor "${group.anchor.name}" must be one of the members: ${validMembers}.`,
 
         if (use.hidden === undefined) {
           result += `${use.id.name}: ${use.block.name} `;
+          result += use.anchor ? `anchor: ${use.anchor.name} ` : "";
         }
       }
     }

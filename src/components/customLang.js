@@ -47,7 +47,8 @@ export function registerCustomLanguage(monaco) {
     const usedBlocks = new Set(
       Object.entries(uses)
         .filter(([alias]) => alias !== currentAlias)
-        .map(([, blockName]) => blockName),
+        .map(([, useDef]) => useDef?.block)
+        .filter(Boolean),
     );
 
     return allBlocks.filter((blockName) => !usedBlocks.has(blockName));
@@ -524,6 +525,29 @@ export function registerCustomLanguage(monaco) {
     return splitTopLevelArgs(inner).map((part) => parseMerlinList(part));
   }
 
+  function parseDiagramUseEntry(text) {
+    const trimmed = String(text || "").trim();
+
+    const match = trimmed.match(
+      /^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([a-zA-Z_][a-zA-Z0-9_]*)(?:\s+anchor\s*:\s*([a-zA-Z_][a-zA-Z0-9_]*))?\s*$/,
+    );
+
+    if (!match) return null;
+
+    const [, alias, blockName, anchor] = match;
+
+    return {
+      alias,
+      block: blockName,
+      anchor: anchor || null,
+    };
+  }
+
+  function getAvailableAnchorsForDiagramUse(arch, blockName) {
+    if (!arch || !blockName) return [];
+    return arch?.blocks?.[blockName]?.nodes || [];
+  }
+
   function parseArchitecturesFromContext(model, position) {
     const architecturesByVariable = {};
     const lines = model.getValue().split("\n");
@@ -598,7 +622,7 @@ export function registerCustomLanguage(monaco) {
 
           const removedAliases = new Set(
             Object.entries(arch.diagram?.uses || {})
-              .filter(([, targetBlock]) => targetBlock === blockName)
+              .filter(([, useDef]) => useDef?.block === blockName)
               .map(([alias]) => alias),
           );
 
@@ -861,12 +885,10 @@ export function registerCustomLanguage(monaco) {
         if (match) {
           const items = splitTopLevelArgs(match[1]);
           items.forEach((item) => {
-            const useMatch = item.match(
-              /^\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*$/,
-            );
-            if (useMatch) {
-              const [, alias, blockName] = useMatch;
-              diagram.uses[alias] = blockName;
+            const parsedUse = parseDiagramUseEntry(item);
+            if (parsedUse) {
+              const { alias, block, anchor } = parsedUse;
+              diagram.uses[alias] = { block, anchor };
               diagram.useOrder = diagram.useOrder.filter((a) => a !== alias);
               diagram.useOrder.push(alias);
             }
@@ -913,15 +935,13 @@ export function registerCustomLanguage(monaco) {
         const trimmed = rawLine.trim().replace(/,\s*$/, "");
         if (!trimmed) continue;
 
-        const useMatch = trimmed.match(
-          /^\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*$/,
-        );
+        const parsedUse = parseDiagramUseEntry(trimmed);
 
-        if (useMatch) {
-          const [, alias, blockName] = useMatch;
+        if (parsedUse) {
+          const { alias, block, anchor } = parsedUse;
           const diagram = arch.diagram;
 
-          diagram.uses[alias] = blockName;
+          diagram.uses[alias] = { block, anchor };
           diagram.useOrder = diagram.useOrder.filter((a) => a !== alias);
           diagram.useOrder.push(alias);
         }
@@ -1908,7 +1928,7 @@ export function registerCustomLanguage(monaco) {
         ],
 
         [
-          /\b(style|color|label|arrowheads|transition|gap)(?=\s*:)/,
+          /\b(style|color|label|arrowheads|transition|gap|anchor)(?=\s*:)/,
           "arch-inline-prop",
         ],
 
@@ -2700,7 +2720,8 @@ export function registerCustomLanguage(monaco) {
   }
 
   function getDiagramMemberCandidates(arch, alias) {
-    const blockName = arch?.diagram?.uses?.[alias];
+    const useDef = arch?.diagram?.uses?.[alias];
+    const blockName = useDef?.block ?? null;
     const block = blockName ? arch?.blocks?.[blockName] : null;
 
     return {
@@ -3831,8 +3852,8 @@ export function registerCustomLanguage(monaco) {
                 label: alias,
                 kind: monaco.languages.CompletionItemKind.Variable,
                 insertText: alias,
-                detail: `Diagram alias for ${arch.diagram.uses[alias]}`,
-                documentation: `Use alias ${alias} for block ${arch.diagram.uses[alias]}`,
+                detail: `Diagram alias for ${arch.diagram.uses[alias]?.block}`,
+                documentation: `Use alias ${alias} for block ${arch.diagram.uses[alias]?.block}`,
                 range,
                 sortText: `0diagram_alias_${index}`,
               });
@@ -3938,7 +3959,9 @@ export function registerCustomLanguage(monaco) {
             }
 
             if (attributeName === "arrowheads") {
-              return value === "0" || value === "1" || value === "2";
+              return (
+                value === "0" || value === "1" || value === "2" || value === "3"
+              );
             }
 
             if (attributeName === "transition") {
@@ -4009,7 +4032,7 @@ export function registerCustomLanguage(monaco) {
             }
 
             if (attributeName === "arrowheads") {
-              ["0", "1", "2"].forEach((value, index) => {
+              ["0", "1", "2", "3"].forEach((value, index) => {
                 suggestions.push({
                   label: value,
                   kind: monaco.languages.CompletionItemKind.Value,
@@ -4518,6 +4541,18 @@ export function registerCustomLanguage(monaco) {
             const availableBlocks =
               getAvailableBlocksForDiagramUses(currentArchitecture);
 
+            const parsedUseAfterAnchorKeywordMatch = trimmedSegment.match(
+              /^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([a-zA-Z_][a-zA-Z0-9_]*)\s+anchor\s*:\s*$/,
+            );
+
+            const parsedUseWithAnchorMatch = trimmedSegment.match(
+              /^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([a-zA-Z_][a-zA-Z0-9_]*)\s+anchor\s*:\s*([a-zA-Z_][a-zA-Z0-9_]*)?$/,
+            );
+
+            const parsedUseNeedsAnchorKeywordMatch = trimmedSegment.match(
+              /^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([a-zA-Z_][a-zA-Z0-9_]*)\s+$/,
+            );
+
             if (trimmedSegment === "" || endsWithComma) {
               availableBlocks.forEach((blockName, index) => {
                 const defaultAlias = blockName[0].toLowerCase();
@@ -4536,9 +4571,130 @@ export function registerCustomLanguage(monaco) {
               return { suggestions };
             }
 
+            if (parsedUseAfterAnchorKeywordMatch) {
+              const [, alias, blockName] = parsedUseAfterAnchorKeywordMatch;
+              const anchors = getAvailableAnchorsForDiagramUse(
+                currentArchitecture,
+                blockName,
+              );
+
+              anchors.forEach((nodeName, index) => {
+                suggestions.push({
+                  label: nodeName,
+                  kind: monaco.languages.CompletionItemKind.Variable,
+                  insertText: nodeName,
+                  detail: `Anchor node in ${blockName}`,
+                  documentation: `Use node ${nodeName} as anchor for alias ${alias}`,
+                  range,
+                  sortText: `0diagram_use_anchor_${index}`,
+                });
+              });
+
+              return { suggestions };
+            }
+
+            if (parsedUseWithAnchorMatch) {
+              const [, alias, blockName, anchorPrefix = ""] =
+                parsedUseWithAnchorMatch;
+              const anchors = getAvailableAnchorsForDiagramUse(
+                currentArchitecture,
+                blockName,
+              );
+
+              if (anchors.includes(anchorPrefix)) {
+                return { suggestions: [] };
+              }
+
+              anchors
+                .filter(
+                  (nodeName) =>
+                    !anchorPrefix || nodeName.startsWith(anchorPrefix),
+                )
+                .forEach((nodeName, index) => {
+                  suggestions.push({
+                    label: nodeName,
+                    kind: monaco.languages.CompletionItemKind.Variable,
+                    insertText: nodeName,
+                    detail: `Anchor node in ${blockName}`,
+                    documentation: `Use node ${nodeName} as anchor for alias ${alias}`,
+                    range,
+                    sortText: `0diagram_use_anchor_${index}`,
+                  });
+                });
+
+              return { suggestions };
+            }
+
+            if (parsedUseNeedsAnchorKeywordMatch) {
+              const [, alias, blockName] = parsedUseNeedsAnchorKeywordMatch;
+              const availableForAlias = getAvailableBlocksForDiagramUses(
+                currentArchitecture,
+                alias,
+              );
+
+              if (availableForAlias.includes(blockName)) {
+                suggestions.push({
+                  label: "anchor",
+                  kind: monaco.languages.CompletionItemKind.Property,
+                  insertText: "anchor: ",
+                  detail: "Use anchor property",
+                  documentation: `Choose an anchor node from block ${blockName}`,
+                  range: {
+                    startLineNumber: position.lineNumber,
+                    endLineNumber: position.lineNumber,
+                    startColumn: position.column,
+                    endColumn: position.column,
+                  },
+                  sortText: "0diagram_use_anchor_keyword",
+                  command: {
+                    id: "editor.action.triggerSuggest",
+                    title: "Trigger suggest",
+                  },
+                });
+
+                return { suggestions };
+              }
+            }
+
+            const aliasBlockThenSpaceMatch = rawSegment.match(
+              /^\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([a-zA-Z_][a-zA-Z0-9_]*)\s+$/,
+            );
+
             const aliasEqualsMatch = trimmedSegment.match(
               /^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([a-zA-Z_][a-zA-Z0-9_]*)$/,
             );
+
+            if (aliasBlockThenSpaceMatch) {
+              const [, currentAlias, blockName] = aliasBlockThenSpaceMatch;
+
+              const availableForAlias = getAvailableBlocksForDiagramUses(
+                currentArchitecture,
+                currentAlias,
+              );
+
+              if (availableForAlias.includes(blockName)) {
+                suggestions.push({
+                  label: "anchor",
+                  kind: monaco.languages.CompletionItemKind.Property,
+                  insertText: "anchor: ",
+                  detail: "diagram use property",
+                  documentation: `Choose an anchor node from block ${blockName}`,
+                  range: {
+                    startLineNumber: position.lineNumber,
+                    endLineNumber: position.lineNumber,
+                    startColumn: position.column,
+                    endColumn: position.column,
+                  },
+                  sortText: "0diagram_use_anchor",
+                  command: {
+                    id: "editor.action.triggerSuggest",
+                    title: "Trigger suggest",
+                  },
+                });
+
+                return { suggestions };
+              }
+            }
 
             if (aliasEqualsMatch) {
               const currentAlias = aliasEqualsMatch[1];
@@ -4596,7 +4752,6 @@ export function registerCustomLanguage(monaco) {
             }
           }
         }
-
         if (
           diagramTopLevelContext.insideDiagramTopLevel &&
           !diagramSectionContext.insideDiagramConnects &&
@@ -4748,6 +4903,8 @@ export function registerCustomLanguage(monaco) {
               "markerPosition",
               "gap",
               "color",
+              "stroke",
+              "colorBoxSize",
               "annotation.top",
               "annotation.bottom",
               "annotation.left",
@@ -4802,6 +4959,18 @@ export function registerCustomLanguage(monaco) {
                 label: "color",
                 insertText: "color: ",
                 documentation: "Set group color",
+              },
+              {
+                key: "stroke",
+                label: "stroke",
+                insertText: "stroke: ",
+                documentation: "Set group stroke",
+              },
+              {
+                key: "colorBoxSize",
+                label: "colorBoxSize",
+                insertText: "colorBoxSize: (${1:120}, ${2:48})",
+                documentation: "Set group colorBoxSize",
               },
               {
                 key: "annotation.top",
@@ -5125,6 +5294,8 @@ export function registerCustomLanguage(monaco) {
             "markerPosition",
             "gap",
             "color",
+            "stroke",
+            "colorBoxSize",
             "annotation.top",
             "annotation.bottom",
             "annotation.left",
@@ -5178,6 +5349,18 @@ export function registerCustomLanguage(monaco) {
               label: "color",
               insertText: "color: ",
               documentation: "Set group color",
+            },
+            {
+              key: "stroke",
+              label: "stroke",
+              insertText: "stroke: ",
+              documentation: "Set group stroke",
+            },
+            {
+              key: "colorBoxSize",
+              label: "colorBoxSize",
+              insertText: "colorBoxSize: (${1:120}, ${2:48})",
+              documentation: "Set group colorBoxSize",
             },
             {
               key: "annotation.top",
@@ -5470,6 +5653,7 @@ export function registerCustomLanguage(monaco) {
             "type",
             "label",
             "label.orientation",
+            "labelSubtext",
             "color",
             "annotation.top",
             "annotation.bottom",
@@ -6334,7 +6518,7 @@ export function registerCustomLanguage(monaco) {
 
             if (attributeName === "arrowheads") {
               return isCompletedScalarValue(value, {
-                allowedBareWords: ["0", "1", "2"],
+                allowedBareWords: ["0", "1", "2", "3"],
                 allowNumber: true,
               });
             }
@@ -6379,6 +6563,13 @@ export function registerCustomLanguage(monaco) {
             if (attributeName === "anchor") {
               return isCompletedScalarValue(value, {
                 allowBareIdentifier: true,
+              });
+            }
+
+            if (attributeName === "stroke") {
+              return isCompletedScalarValue(value, {
+                allowNull: true,
+                allowQuotedString: true,
               });
             }
 
@@ -6485,6 +6676,7 @@ export function registerCustomLanguage(monaco) {
             "size",
             "markerLabel",
             "outputLabels",
+            "colorBoxSize",
           ]);
           if (noSuggestStringAttributes.has(attributeName)) {
             return { suggestions: [] };
@@ -6543,7 +6735,7 @@ export function registerCustomLanguage(monaco) {
             }
 
             if (attributeName === "arrowheads") {
-              ["0", "1", "2"].forEach((value, index) => {
+              ["0", "1", "2", "3"].forEach((value, index) => {
                 suggestions.push({
                   label: value,
                   kind: monaco.languages.CompletionItemKind.Value,
@@ -6609,6 +6801,9 @@ export function registerCustomLanguage(monaco) {
             attributeName === "uses"
           ) {
             const usesText = getCurrentDiagramUsesText(model, position);
+            const currentArchitecture = currentArchitectureName
+              ? context.architectureData?.[currentArchitectureName]
+              : null;
 
             if (currentArchitecture) {
               const rawSegment = getTrailingTopLevelSegment(usesText);
@@ -6618,7 +6813,18 @@ export function registerCustomLanguage(monaco) {
               const availableBlocks =
                 getAvailableBlocksForDiagramUses(currentArchitecture);
 
-              // empty slot or right after comma -> show full alias suggestions
+              const parsedUseAfterAnchorKeywordMatch = trimmedSegment.match(
+                /^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([a-zA-Z_][a-zA-Z0-9_]*)\s+anchor\s*:\s*$/,
+              );
+
+              const parsedUseWithAnchorMatch = trimmedSegment.match(
+                /^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([a-zA-Z_][a-zA-Z0-9_]*)\s+anchor\s*:\s*([a-zA-Z_][a-zA-Z0-9_]*)?$/,
+              );
+
+              const parsedUseNeedsAnchorKeywordMatch = trimmedSegment.match(
+                /^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([a-zA-Z_][a-zA-Z0-9_]*)\s+$/,
+              );
+
               if (trimmedSegment === "" || endsWithComma) {
                 availableBlocks.forEach((blockName, index) => {
                   const defaultAlias = blockName[0].toLowerCase();
@@ -6637,10 +6843,130 @@ export function registerCustomLanguage(monaco) {
                 return { suggestions };
               }
 
-              // alias = partialBlock
+              if (parsedUseAfterAnchorKeywordMatch) {
+                const [, alias, blockName] = parsedUseAfterAnchorKeywordMatch;
+                const anchors = getAvailableAnchorsForDiagramUse(
+                  currentArchitecture,
+                  blockName,
+                );
+
+                anchors.forEach((nodeName, index) => {
+                  suggestions.push({
+                    label: nodeName,
+                    kind: monaco.languages.CompletionItemKind.Variable,
+                    insertText: nodeName,
+                    detail: `Anchor node in ${blockName}`,
+                    documentation: `Use node ${nodeName} as anchor for alias ${alias}`,
+                    range,
+                    sortText: `0diagram_use_anchor_${index}`,
+                  });
+                });
+
+                return { suggestions };
+              }
+
+              if (parsedUseWithAnchorMatch) {
+                const [, alias, blockName, anchorPrefix = ""] =
+                  parsedUseWithAnchorMatch;
+                const anchors = getAvailableAnchorsForDiagramUse(
+                  currentArchitecture,
+                  blockName,
+                );
+
+                if (anchors.includes(anchorPrefix)) {
+                  return { suggestions: [] };
+                }
+
+                anchors
+                  .filter(
+                    (nodeName) =>
+                      !anchorPrefix || nodeName.startsWith(anchorPrefix),
+                  )
+                  .forEach((nodeName, index) => {
+                    suggestions.push({
+                      label: nodeName,
+                      kind: monaco.languages.CompletionItemKind.Variable,
+                      insertText: nodeName,
+                      detail: `Anchor node in ${blockName}`,
+                      documentation: `Use node ${nodeName} as anchor for alias ${alias}`,
+                      range,
+                      sortText: `0diagram_use_anchor_${index}`,
+                    });
+                  });
+
+                return { suggestions };
+              }
+
+              if (parsedUseNeedsAnchorKeywordMatch) {
+                const [, alias, blockName] = parsedUseNeedsAnchorKeywordMatch;
+                const availableForAlias = getAvailableBlocksForDiagramUses(
+                  currentArchitecture,
+                  alias,
+                );
+
+                if (availableForAlias.includes(blockName)) {
+                  suggestions.push({
+                    label: "anchor",
+                    kind: monaco.languages.CompletionItemKind.Property,
+                    insertText: "anchor: ",
+                    detail: "Use anchor property",
+                    documentation: `Choose an anchor node from block ${blockName}`,
+                    range: {
+                      startLineNumber: position.lineNumber,
+                      endLineNumber: position.lineNumber,
+                      startColumn: position.column,
+                      endColumn: position.column,
+                    },
+                    sortText: "0diagram_use_anchor_keyword",
+                    command: {
+                      id: "editor.action.triggerSuggest",
+                      title: "Trigger suggest",
+                    },
+                  });
+
+                  return { suggestions };
+                }
+              }
+
+              const aliasBlockThenSpaceMatch = rawSegment.match(
+                /^\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([a-zA-Z_][a-zA-Z0-9_]*)\s+$/,
+              );
+
               const aliasEqualsMatch = trimmedSegment.match(
                 /^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([a-zA-Z_][a-zA-Z0-9_]*)$/,
               );
+
+              if (aliasBlockThenSpaceMatch) {
+                const [, currentAlias, blockName] = aliasBlockThenSpaceMatch;
+
+                const availableForAlias = getAvailableBlocksForDiagramUses(
+                  currentArchitecture,
+                  currentAlias,
+                );
+
+                if (availableForAlias.includes(blockName)) {
+                  suggestions.push({
+                    label: "anchor",
+                    kind: monaco.languages.CompletionItemKind.Property,
+                    insertText: "anchor: ",
+                    detail: "diagram use property",
+                    documentation: `Choose an anchor node from block ${blockName}`,
+                    range: {
+                      startLineNumber: position.lineNumber,
+                      endLineNumber: position.lineNumber,
+                      startColumn: position.column,
+                      endColumn: position.column,
+                    },
+                    sortText: "0diagram_use_anchor",
+                    command: {
+                      id: "editor.action.triggerSuggest",
+                      title: "Trigger suggest",
+                    },
+                  });
+
+                  return { suggestions };
+                }
+              }
 
               if (aliasEqualsMatch) {
                 const currentAlias = aliasEqualsMatch[1];
@@ -6651,7 +6977,6 @@ export function registerCustomLanguage(monaco) {
                   currentAlias,
                 );
 
-                // fully completed item -> stop suggestions
                 if (availableForAlias.includes(blockPrefix)) {
                   return { suggestions: [] };
                 }
@@ -6673,26 +6998,6 @@ export function registerCustomLanguage(monaco) {
                 return { suggestions };
               }
 
-              // typing alias only, before "="
-              if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(trimmedSegment)) {
-                availableBlocks.forEach((blockName, index) => {
-                  const defaultAlias = blockName[0].toLowerCase();
-
-                  suggestions.push({
-                    label: `${defaultAlias} = ${blockName}`,
-                    kind: monaco.languages.CompletionItemKind.Variable,
-                    insertText: `${defaultAlias} = ${blockName}`,
-                    detail: "diagram use alias",
-                    documentation: `Alias block ${blockName}`,
-                    range,
-                    sortText: `0diagram_use_tpl_${index}`,
-                  });
-                });
-
-                return { suggestions };
-              }
-
-              // alias =   -> still selecting block
               const aliasWaitingForBlockMatch = trimmedSegment.match(
                 /^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*$/,
               );
@@ -6717,8 +7022,6 @@ export function registerCustomLanguage(monaco) {
 
                 return { suggestions };
               }
-
-              return { suggestions: [] };
             }
           }
           if (
@@ -6735,6 +7038,32 @@ export function registerCustomLanguage(monaco) {
                   documentation: `Set group layout to ${value}`,
                   range,
                   sortText: `0grouplayout${index}`,
+                });
+              });
+
+              return { suggestions };
+            }
+
+            if (attributeName === "stroke") {
+              suggestions.push({
+                label: "null",
+                kind: monaco.languages.CompletionItemKind.Constant,
+                insertText: "null",
+                detail: "Default stroke",
+                documentation: "Use default stroke",
+                range,
+                sortText: "0null",
+              });
+
+              languageConfig.namedColors.forEach((color, index) => {
+                suggestions.push({
+                  label: color,
+                  kind: monaco.languages.CompletionItemKind.Color,
+                  insertText: `"${color}"`,
+                  detail: "Named color",
+                  documentation: `Use ${color} stroke`,
+                  range,
+                  sortText: `1groupcolor${index}`,
                 });
               });
 
@@ -7085,7 +7414,7 @@ export function registerCustomLanguage(monaco) {
             }
 
             if (attributeName === "arrowheads") {
-              ["0", "1", "2"].forEach((value, index) => {
+              ["0", "1", "2", "3"].forEach((value, index) => {
                 suggestions.push({
                   label: value,
                   kind: monaco.languages.CompletionItemKind.Value,
@@ -11264,25 +11593,33 @@ export function registerCustomLanguage(monaco) {
     const linePrefix = line.substring(0, position.column - 1);
 
     const usesText = getCurrentDiagramUsesText(model, position);
-    const currentSegment = getTrailingTopLevelSegment(usesText);
+    const currentSegment = getTrailingTopLevelSegment(usesText).trimEnd();
 
-    // uses: [|
     const justOpenedUsesInline = /^\s*uses\s*:\s*\[$/.test(linePrefix);
 
-    // same line after comma + space
-    // works for both:
-    // uses: [e = Encoder, |
-    //   e = Encoder, |
-    const afterCommaAndSpaceSameLine = /,\s*$/.test(currentSegment);
+    const afterCommaAndSpaceSameLine = /,\s*$/.test(
+      getTrailingTopLevelSegment(usesText),
+    );
 
-    // next line after comma
-    // e = Encoder,
-    // |
     const afterCommaAndEnter =
       /^\s*$/.test(linePrefix) && /,\s*$/.test(prevLine);
 
+    const afterCompletedUseBlockAndSpace =
+      /^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([a-zA-Z_][a-zA-Z0-9_]*)\s+$/.test(
+        getTrailingTopLevelSegment(usesText),
+      );
+
+    const afterAnchorColon =
+      /^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*([a-zA-Z_][a-zA-Z0-9_]*)\s+anchor\s*:\s*$/.test(
+        getTrailingTopLevelSegment(usesText),
+      );
+
     return (
-      justOpenedUsesInline || afterCommaAndSpaceSameLine || afterCommaAndEnter
+      justOpenedUsesInline ||
+      afterCommaAndSpaceSameLine ||
+      afterCommaAndEnter ||
+      afterCompletedUseBlockAndSpace ||
+      afterAnchorColon
     );
   }
   function shouldAutoSuggestInsideEmptyBlockBody(editor, position) {
