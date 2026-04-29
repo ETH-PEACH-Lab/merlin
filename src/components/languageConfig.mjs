@@ -49,6 +49,11 @@ export const languageConfig = {
     "labelPosition",
     "showWeights",
     "showArrowheads",
+    "edgeWidth",
+    "edgeColor",
+    "layerSpacing",
+    "layerStrokes",
+    "neuronSpacing",
   ],
 
   // Position keywords for syntax highlighting
@@ -135,6 +140,18 @@ export const languageConfig = {
     "800",
     "900",
   ],
+  fontWeightsArch: [
+    "100",
+    "200",
+    "300",
+    "400",
+    "500",
+    "600",
+    "700",
+    "800",
+    "900",
+  ],
+  fontStyles: ["normal", "italic", "oblique"],
   fontFamilies: [
     "Arial",
     "Helvetica",
@@ -142,11 +159,31 @@ export const languageConfig = {
     "Times",
     "Courier New",
     "Courier",
-    "Georgia",
     "Verdana",
+    "Georgia",
+    "Palatino",
+    "Garamond",
+    "Bookman",
+    "Trebuchet MS",
+    "Arial Black",
+    "Impact",
+    "Comic Sans MS",
+    "Lucida Sans Unicode",
+    "Tahoma",
+    "Geneva",
+    "Segoe UI",
+    "Roboto",
+    "Open Sans",
+    "Lato",
+    "Montserrat",
+    "Inter",
+    "system-ui",
     "sans-serif",
     "serif",
     "monospace",
+    "cursive",
+    "fantasy",
+    "math",
   ],
   alignValues: ["left", "center", "right"],
 };
@@ -217,12 +254,17 @@ export const typeDocumentation = {
       "layers",
       "neurons",
       "layerColors",
+      "layerStrokes",
       "neuronColors",
       "showBias",
       "showLabels",
       "labelPosition",
       "showWeights",
       "showArrowheads",
+      "edgeWidth",
+      "edgeColor",
+      "layerSpacing",
+      "neuronSpacing",
       "above",
       "below",
       "left",
@@ -379,7 +421,7 @@ export const typeMethodsMap = {
     edge: [
       "setEdgeLabel",
       "setEdgeColor",
-      "setEdgeStyle",
+      "setEdgeShape",
       "removeEdge",
       "removeEdges",
       "hideEdge",
@@ -608,8 +650,8 @@ export const methodSignatures = {
     "setEdgeLabel(${1:blockNameOrdiagram}, ${2:edgeNameOrIndex}, ${3:label})",
   setEdgeColor: () =>
     "setEdgeColor(${1:blockNameOrdiagram}, ${2:edgeNameOrIndex}, ${3:color})",
-  setEdgeStyle: () =>
-    "setEdgeStyle(${1:blockNameOrdiagram}, ${2:edgeNameOrIndex}, ${3:style})",
+  setEdgeShape: () =>
+    "setEdgeShape(${1:blockNameOrdiagram}, ${2:edgeNameOrIndex}, ${3:shape})",
   removeEdges: () =>
     "removeEdges(${1:blockNameOrdiagram}, [${2:edgeNameOrIndex1}, ${3:edgeNameOrIndex2}])",
   hideEdge: () => "hideEdge(${1:blockName}, ${2:edgeName})",
@@ -770,19 +812,19 @@ export const methodDocumentation = {
     },
   },
 
-  setEdgeStyle: {
+  setEdgeShape: {
     default: {
       signature:
-        "setEdgeStyle(blockName, edgeName, style) or setEdgeStyle(diagram, connectionIndex, style)",
+        "setEdgeShape(blockName, edgeName, shape) or setEdgeShape(diagram, connectionIndex, shape)",
       description:
-        "Set the style of a block edge by name, or set the style of a diagram connection by index.",
+        "Set the shape of a block edge by name, or set the shape of a diagram connection by index.",
       parameters: [
         "blockName | diagram: `identifier` - A block name, or the literal `diagram`",
         "edgeName | connectionIndex: `identifier | number` - Edge name for a block edge, or connection index for a diagram connection",
-        "style: `bow | straight` - Edge rendering style",
+        "shape: `bow | straight | arc` - Edge rendering shape",
       ],
       example:
-        "a.setEdgeStyle(Encoder, e1, bow)\na.setEdgeStyle(diagram, 0, straight)",
+        "a.setEdgeShape(Encoder, e1, bow)\na.setEdgeShape(diagram, 0, straight)",
     },
   },
 
@@ -1751,8 +1793,8 @@ export const methodDescriptions = {
     "Set a block edge label by edge name, or a diagram connection label by index",
   setEdgeColor:
     "Set a block edge color by edge name, or a diagram connection color by index",
-  setEdgeStyle:
-    "Set a block edge style by edge name, or a diagram connection style by index",
+  setEdgeShape:
+    "Set a block edge shape by edge name, or a diagram connection shape by index",
   removeEdges: "Remove multiple edges from a specific block",
   hideEdge: "Hide an edge inside a specific block",
   showEdge: "Show an edge inside a specific block",

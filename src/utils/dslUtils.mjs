@@ -26,8 +26,8 @@ export function parseInspectorIndex(inspectorIndex, pages, currentPage) {
     // Matrix format: unit_(0,1)
     const row = parseInt(matrixMatch[1]);
     const col = parseInt(matrixMatch[2]);
-    const edgesLength = component.body?.blocks?.[row]?.edges?.length ?? 0;
-    const nodesLength = component.body?.blocks?.[row]?.nodes?.length ?? 0;
+    const edgesLength = component?.body?.blocks?.[row]?.edges?.length ?? 0;
+    const nodesLength = component?.body?.blocks?.[row]?.nodes?.length ?? 0;
     coordinates =
       component.type === "neuralnetwork"
         ? { row, col, isNeuralMatrix: true }
@@ -36,7 +36,7 @@ export function parseInspectorIndex(inspectorIndex, pages, currentPage) {
               row,
               col,
               isArchitectureMatrix: true,
-              type: component.body?.blocks?.[row]?.nodes[col]?.type,
+              type: component.body?.blocks?.[row]?.nodes?.[col]?.type,
               isNode: col < nodesLength,
               isEdge: nodesLength <= col && col < edgesLength + nodesLength,
               isGroup: col >= nodesLength + edgesLength,
@@ -55,7 +55,7 @@ export function parseInspectorIndex(inspectorIndex, pages, currentPage) {
   } else {
     // Array format: unit_5
     const index = parseInt(unitIdPart, 10);
-    const blockLength = component.body?.blocks?.length ?? 0;
+    const blockLength = component?.body?.blocks?.length ?? 0;
     coordinates =
       component.type === "neuralnetwork"
         ? { index, isNeuralMatrix: false }
@@ -197,8 +197,8 @@ export function getComponentFields(componentType) {
       color: "Edit Color",
       stroke: "Edit Stroke Color",
       annotation: "Edit Annotation",
-      styleEdge: "Edit Edge Style",
-      layout: "Edit Group Layout",
+      shapeEdge: "Edit Edge Shape",
+      layout: "Edit Layout",
       shapeStacked: "Edit Stacked Shape",
       shapeFlatten: "Edit Flatten Shape",
     },

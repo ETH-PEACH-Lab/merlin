@@ -97,6 +97,10 @@ comma_sep4[A, B, C, D] -> $A _ comma _ $B _ comma _ $C _ comma _ $D {% ([a, , , 
 # Tuples, e.g. (1, 2)
 tuple[X, Y] -> lparen _ $X _ comma _ $Y _ rparen {% ([, , x, , , , y, ]) => [x[0], y[0]] %}
 
+# Tuples, e.g. (1,2,3,4)
+tuple4[A, B, C, D] -> lparen _ $A _ comma _ $B _ comma _ $C _ comma _ $D _ rparen
+  {% ([, , a, , , , b, , , , c, , , , d, ]) => [a[0], b[0], c[0], d[0]] %}
+
 # Lists, e.g. [1, 2, 3]
 list[X] -> lbrac nlow:? rbrac {% () => [] %}
     | lbrac list_content[$X] rbrac {% ([, content]) => content.flat() %}
@@ -277,8 +281,15 @@ block_body -> lbrac wsn (block_entry (comma_nlow_new block_entry):*):? wsn rbrac
         if (!entry || typeof entry !== "object") return;
 
         if (entry.annotation) {
-            if (!result.annotations) result.annotations = [];
-            result.annotations.push(entry.annotation);
+             if (!result.annotations) result.annotations = [];
+
+            const existing = result.annotations.find(a => a.side === entry.annotation.side);
+
+            if (existing) {
+              Object.assign(existing, entry.annotation);
+            } else { 
+              result.annotations.push({ ...entry.annotation });
+            }
             return;
         }
 
@@ -304,16 +315,53 @@ block_entry -> (
             | pair["gap", number] 
             | pair["size", size_tuple]
             | pair["color", (string | nullT)]
-            | pair["style", style_literal]
+            | pair["shape", block_group_shape_literal]
+            | stroke_property
             | block_annotation
+            | annotation_property
+            | block_font_subfield
             | block_nodes
             | block_edges
             | block_groups
 ) {% iid %}
 
-block_annotation -> annotation_key colon _ (string | nullT) {% ([key, , , value]) => ({
-  annotation: { side: key.side, value }
-}) %}
+block_font_subfield -> 
+      "fontFamily" colon _ (string | nullT) {% ([ , , , x]) => ({ fontFamily: x }) %}
+    | "fontSize" colon _ number {% ([ , , , x]) => ({ fontSize: x }) %}
+    | "fontWeight" colon _ numberL {% ([ , , , x]) => ({ fontWeight: x }) %}
+    | "fontStyle" colon _ font_style_literal {% ([ , , , x]) => ({ fontStyle: x }) %}
+    | "fontColor" colon _ (string | nullT) {% ([ , , , x]) => ({ fontColor: x }) %}
+
+stroke_property -> "stroke" dot stroke_subfield {% ([ , , sub]) => sub %}
+
+stroke_subfield -> 
+      "color" colon _ (string | nullT) {% ([ , , , x]) => ({ strokeColor: x }) %}
+    | "style" colon _ stroke_style_literal {% ([ , , , x]) => ({ strokeStyle: x }) %}
+    | "width" colon _ number {% ([ , , , x]) => ({ strokeWidth: x }) %}
+
+annotation_entry ->
+      "annotation" dot side_literal colon _ (string | nullT) {% ([, , side, , , value]) => ({
+        annotation: { side, value }
+      }) %}
+    | "annotation" dot side_literal dot "shift" dot side_literal colon _ number {% ([, , side, , , , shiftSide, , , value]) => ({
+        annotation: {
+          side,
+          [`shift${shiftSide[0].toUpperCase()}${shiftSide.slice(1)}`]: value
+        }
+      }) %}
+      
+block_annotation -> annotation_entry {% id %}
+
+annotation_property -> "annotation" dot annotation_subfield {% ([ , , sub]) => sub %}
+
+annotation_subfield -> 
+      "gap" colon _ number {% ([ , , , x]) => ({ annotationGap: x }) %}
+    | "fontFamily" colon _ (string | nullT) {% ([ , , , x]) => ({ annotationFontFamily: x }) %}
+    | "fontSize" colon _ number {% ([ , , , x]) => ({ annotationFontSize: x }) %}
+    | "fontWeight" colon _ numberL {% ([ , , , x]) => ({ annotationFontWeight: x }) %}
+    | "fontStyle" colon _ font_style_literal {% ([ , , , x]) => ({ annotationFontStyle: x }) %}
+    | "fontColor" colon _ (string | nullT) {% ([ , , , x]) => ({ annotationFontColor: x }) %}
+
 
 block_nodes -> "nodes" colon _ node_list {% ([, , , list]) => ({ nodes: list }) %}
 block_edges -> "edges" colon _ edge_list {% ([, , , list]) => ({ edges: list }) %}
@@ -342,9 +390,14 @@ node_body -> node_field (nlow node_field):* {% ([first, rest]) => {
         if (!entry || typeof entry !== "object") continue;
 
         if (entry.annotation) {
-            annotations.push(entry.annotation);
+            const existing = annotations.find(a => a.side === entry.annotation.side);
+            if (existing) {
+                Object.assign(existing, entry.annotation);
+            } else {
+                annotations.push({ ...entry.annotation });
+            }
             continue;
-        }
+            }
 
         for (const key of Object.keys(entry)) {
             result[key] = entry[key];
@@ -361,26 +414,66 @@ node_body -> node_field (nlow node_field):* {% ([first, rest]) => {
 node_field -> (pair["type", node_type_literal] 
             | pair["shape", (shape_literal | number_only_list)] 
             | pair["kernelSize", kernel_size_literal] 
-            | pair["label", (string | nullT)] 
-            | pair["labelSubtext", (string | nullT)] 
-            | pair["opLabel", (string | nullT)] 
-            | pair["opLabelSubtext", (string | nullT)] 
-            | label_orientation
+            | pair["filterSpacing", number] 
+            | node_label_property
+            | node_sub_label_property
+            | node_op_label_property
+            | stroke_property
+            | outer_stroke_property
+            | annotation_property
             | pair["size", size_tuple] 
-            | pair["style", style_literal] 
+            | pair["shape", node_shape_literal] 
             | pair["color", (string | nullT | ns_list)]
-            | pair["stroke", (string | nullT)] 
             | pair["outputLabels", ns_list]
-            | node_annotation)
+            | pair["direction", side_literal]
+            | node_annotation
+            )
 {% iid %}
 
-label_orientation -> "label" dot "orientation" colon _ label_orientation_literal {% ([ , , , , , orientation]) => ({
-  labelOrientation: orientation
-}) %}
+outer_stroke_property -> "outerStroke" dot outer_stroke_subfield {% ([ , , sub]) => sub %}
 
-node_annotation -> annotation_key colon _ (string | nullT) {% ([key, , , value]) => ({
-  annotation: { side: key.side, value }
-}) %}
+outer_stroke_subfield -> 
+      "color" colon _ (string | nullT) {% ([ , , , x]) => ({ outerStrokeColor: x }) %}
+    | "style" colon _ stroke_style_literal {% ([ , , , x]) => ({ outerStrokeStyle: x }) %}
+    | "width" colon _ number {% ([ , , , x]) => ({ outerStrokeWidth: x }) %}
+
+
+node_label_property -> "label" dot node_label_subfield {% ([ , , sub]) => sub %}
+
+node_label_subfield -> 
+      "text" colon _ (string | nullT) {% ([ , , , x]) => ({ labelText: x }) %}
+    | "orientation" colon _ labelOrientation_tuple {% ([ , , , x]) => ({ labelOrientation: x }) %}
+    | "fontColor" colon _ (string | nullT) {% ([ , , , x]) => ({ labelFontColor: x }) %}
+    | "fontFamily" colon _ (string | nullT) {% ([ , , , x]) => ({ labelFontFamily: x }) %}
+    | "fontSize" colon _ number {% ([ , , , x]) => ({ labelFontSize: x }) %}
+    | "fontWeight" colon _ numberL {% ([ , , , x]) => ({ labelFontWeight: x }) %}
+    | "fontStyle" colon _ font_style_literal {% ([ , , , x]) => ({ labelFontStyle: x }) %}
+
+
+node_sub_label_property -> "subLabel" dot node_sub_label_subfield {% ([ , , sub]) => sub %}
+
+node_sub_label_subfield -> 
+      "text" colon _ (string | nullT) {% ([ , , , x]) => ({ subLabelText: x }) %}
+    | "fontColor" colon _ (string | nullT) {% ([ , , , x]) => ({ subLabelFontColor: x }) %}
+    | "fontFamily" colon _ (string | nullT) {% ([ , , , x]) => ({ subLabelFontFamily: x }) %}
+    | "fontSize" colon _ number {% ([ , , , x]) => ({ subLabelFontSize: x }) %}
+    | "fontWeight" colon _ numberL {% ([ , , , x]) => ({ subLabelFontWeight: x }) %}
+    | "fontStyle" colon _ font_style_literal {% ([ , , , x]) => ({ subLabelFontStyle: x }) %}
+
+
+node_op_label_property -> "opLabel" dot node_op_label_subfield {% ([ , , sub]) => sub %}
+
+node_op_label_subfield -> 
+      "text" colon _ (string | nullT) {% ([ , , , x]) => ({ opLabelText: x }) %}
+    | "fontColor" colon _ (string | nullT) {% ([ , , , x]) => ({ opLabelFontColor: x }) %}
+    | "fontFamily" colon _ (string | nullT) {% ([ , , , x]) => ({ opLabelFontFamily: x }) %}
+    | "fontSize" colon _ number {% ([ , , , x]) => ({ opLabelFontSize: x }) %}
+    | "fontWeight" colon _ numberL {% ([ , , , x]) => ({ opLabelFontWeight: x }) %}
+    | "fontStyle" colon _ font_style_literal {% ([ , , , x]) => ({ opLabelFontStyle: x }) %}
+    | "subtext" colon _ (string | nullT) {% ([ , , , x]) => ({ opLabelSubtext: x }) %}
+
+
+node_annotation -> annotation_entry {% id %}
 
 edge_list -> lbrac wsn (edge_entry (comma_nlow_new edge_entry):*):? wsn rbrac {% ([, , items, ,]) => {
     if (!items) return []
@@ -416,13 +509,33 @@ edge_entry -> wordL _ equals wsn endpoint _ %arrow _ endpoint (__ edge_field (nl
     
 } %}
 
-edge_field -> (pair["label", (string | nullT)]
-            | pair["style", edge_style_literal] 
+edge_field -> (
+             pair["shape", edge_shape_literal] 
+            | pair["style", edge_style_literal]
             | pair["transition", edge_transition_literal]
             | pair["color", (string | nullT)]
             | pair["arrowheads", numberL]
-            | pair["gap", number])
+            | pair["gap", number]
+            | pair["edgeAnchorOffset", number_only_list]
+            | pair["curveHeight", number]
+            | pair["width", number]
+            | pair["bidirectional", boolean]
+            | pair["headOnly", boolean]
+            | edge_label_property
+            | pair["alignToIndexedPort", boolean])
 {% iid %}
+
+
+edge_label_property -> "label" dot edge_label_subfield {% ([ , , sub]) => sub %}
+
+edge_label_subfield -> 
+      "text" colon _ (string | nullT) {% ([ , , , x]) => ({ labelText: x }) %}
+    | "fontColor" colon _ (string | nullT) {% ([ , , , x]) => ({ labelFontColor: x }) %}
+    | "fontFamily" colon _ (string | nullT) {% ([ , , , x]) => ({ labelFontFamily: x }) %}
+    | "fontSize" colon _ number {% ([ , , , x]) => ({ labelFontSize: x }) %}
+    | "fontWeight" colon _ numberL {% ([ , , , x]) => ({ labelFontWeight: x }) %}
+    | "fontStyle" colon _ font_style_literal {% ([ , , , x]) => ({ labelFontStyle: x }) %}
+    | "shift" dot side_literal colon _ number {% ([, , side, , , value]) => ({ [`labelShift${side[0].toUpperCase()}${side.slice(1)}`]: value }) %}
 
 endpoint -> wordL anchor_with_index {% ([name, s]) => {
     if (s.edgeAnchor) {
@@ -476,7 +589,13 @@ group_body -> group_field (nlow group_field):* {% ([first, rest]) => {
 
         if (entry.annotation) {
             if (!result.annotations) result.annotations = [];
-            result.annotations.push(entry.annotation);
+
+            const existing = result.annotations.find(a => a.side === entry.annotation.side);
+            if (existing) {
+                Object.assign(existing, entry.annotation);
+            } else {
+                result.annotations.push({ ...entry.annotation });
+            }
             return;
         }
 
@@ -496,20 +615,53 @@ group_body -> group_field (nlow group_field):* {% ([first, rest]) => {
 
 group_field -> (pair["members", member_list]
           | pair["layout", layout_literal]
-          | pair["anchor", wordL]
           | pair["gap", number]
           | pair["color", (string | nullT)] 
-          | pair["colorBoxSize", size_tuple]
-          | pair["stroke", (string | nullT)] 
-          | pair["markerType", marker_type_literal]
-          | pair["markerLabel", (string | nullT)]
-          | pair["markerPosition", marker_position_literal]
-          | group_annotation)
+          | pair["colorBoxAdjustments", size_4tuple]
+          | pair["align", boolean] 
+          | pair["shape", block_group_shape_literal]
+          | stroke_property
+          | marker_property
+          | anchor_property
+          | group_annotation
+          | annotation_property
+          | shift_property
+          )
           {% iid %}
 
-group_annotation -> annotation_key colon _ (string | nullT) {% ([key, , , value]) => ({
-  annotation: { side: key.side, value }
-}) %}
+anchor_property -> "anchor" dot anchor_subfield {% ([ , , sub]) => sub %}
+
+anchor_subfield -> 
+     "source" colon _ wordL {% ([ , , , x]) => ({anchorSource: x}) %}
+    | "target" colon _ wordL {% ([ , , , x]) => ({anchorTarget: x}) %}
+
+shift_property -> "shift" dot shift_subfield {% ([ , , sub]) => sub %}
+
+shift_subfield -> 
+     "left" colon _ number {% ([ , , , x]) => ({shiftLeft: x}) %}
+    | "right" colon _ number {% ([ , , , x]) => ({shiftRight: x}) %}
+    | "top" colon _ number {% ([ , , , x]) => ({shiftTop: x}) %}
+    | "bottom" colon _ number {% ([ , , , x]) => ({shiftBottom: x}) %}
+
+marker_property -> "marker" dot marker_subfield {% ([ , , sub]) => sub %}
+
+marker_subfield -> 
+     "type" colon _ marker_type_literal {% ([ , , , x]) => ({markerType: x}) %}
+    | "color" colon _ (string | nullT) {% ([ , , , x]) => ({markerColor: x}) %}
+    | "position" colon _ side_literal {% ([ , , , x]) => ({markerPosition: x}) %}
+    | "text" colon _ (string | nullT) {% ([ , , , x]) => ({ markerLabelText: x }) %}
+    | "fontColor" colon _ (string | nullT) {% ([ , , , x]) => ({ markerLabelFontColor: x }) %}
+    | "fontFamily" colon _ (string | nullT) {% ([ , , , x]) => ({ markerLabelFontFamily: x }) %}
+    | "fontSize" colon _ number {% ([ , , , x]) => ({ markerLabelFontSize: x }) %}
+    | "fontWeight" colon _ numberL {% ([ , , , x]) => ({ markerLabelFontWeight: x }) %}
+    | "fontStyle" colon _ font_style_literal {% ([ , , , x]) => ({ markerLabelFontStyle: x }) %}
+    | "shift" dot "left" colon _ number {% ([ , , , , , x]) => ({ markerLeft: x }) %}
+    | "shift" dot "right" colon _ number {% ([ , , , , , x]) => ({ markerRight: x }) %}
+    | "shift" dot "bottom" colon _ number {% ([ , , , , , x]) => ({ markerBottom: x }) %}
+    | "shift" dot "top" colon _ number {% ([ , , , , , x]) => ({ markerTop: x }) %}
+
+
+group_annotation -> annotation_entry {% id %}
 
 member_list -> lbrac wsn (wordL (comma_nlow_new wordL):*):? wsn rbrac {% ([, ,items, ,]) => {
    if (!items) return []
@@ -526,6 +678,19 @@ diagram_body -> lbrac wsn (diagram_entry (comma_nlow_new diagram_entry):*):? wsn
 
     const mergeEntry = (entry) => {
         if (!entry || typeof entry !== "object") return;
+
+        if (entry.annotation) {
+            if (!result.annotations) result.annotations = [];
+
+            const existing = result.annotations.find(a => a.side === entry.annotation.side);
+            if (existing) {
+            Object.assign(existing, entry.annotation);
+             } else {
+            result.annotations.push({ ...entry.annotation });
+            }
+            return;
+        }
+
         Object.assign(result, entry);
     };
 
@@ -541,10 +706,15 @@ diagram_body -> lbrac wsn (diagram_entry (comma_nlow_new diagram_entry):*):? wsn
 diagram_entry -> (
               pair["layout", layout_literal]
             | pair["gap", number]
+            | pair["rotateRight", numberL]
             | pair["uses", use_list] 
             | pair["connects", connect_list] 
+            | diagram_annotation
+            | annotation_property
 ) {% iid %}
 
+
+diagram_annotation -> annotation_entry {% id %}
 
 connect_list -> lbrac wsn (connect_entry (comma_nlow_new connect_entry):*):? wsn rbrac {% ([, , items, ,]) => {
     if (!items) return []
@@ -594,12 +764,19 @@ endpoint_connect -> wordL dot wordL anchor_with_index {% ([blockName, ,node_or_e
     };
 } %}
 
-connect_field -> (pair["label", (string | nullT)]
-            | pair["style", edge_style_literal] 
+connect_field -> (pair["shape", edge_shape_literal] 
+            | pair["style", edge_style_literal]
             | pair["transition", edge_transition_literal]
             | pair["color", (string | nullT)]
             | pair["arrowheads", numberL]
-            | pair["gap", number])
+            | pair["gap", number]
+            | pair["curveHeight", number]
+            | pair["width", number]
+            | pair["alignToIndexedPort", boolean]
+            | pair["edgeAnchorOffset", number_only_list]
+            | pair["bidirectional", boolean]
+            | edge_label_property
+            )
 {% iid %}
 
 
@@ -648,11 +825,10 @@ kernel_size_literal -> %layoutspec {% ([t]) => {
 } %}
 
 # Literals of blocks
-marker_position_literal -> "bottom" {% () => "bottom" %}
-                   | "top" {% () => "top" %}
 
 marker_type_literal -> "bracket" {% () => "bracket" %}
                    | "brace" {% () => "brace" %}
+                   | "arrow" {% () => "arrow" %}
 
 label_orientation_literal -> "horizontal" {% () => "horizontal" %}
                    | "vertical" {% () => "vertical" %}
@@ -662,17 +838,24 @@ node_edge_literals -> side_literal {% id %}
                 | "start" {% () => "start" %}
                 | "end" {% () => "end" %}
 
-edge_style_literal -> "straight" {% () => "straight" %}
-                   | "bow" {% () => "bow" %}    
+edge_shape_literal -> "straight" {% () => "straight" %}
+                   | "bow" {% () => "bow" %} 
+                   | "arc" {% () => "arc" %} 
+
+                   
+edge_style_literal -> "solid" {% () => "solid" %}
+                   | "dashed" {% () => "dashed" %}      
+                   | "dotted" {% () => "dotted" %}      
+
+stroke_style_literal -> "solid" {% () => "solid" %}
+                   | "dashed" {% () => "dashed" %}      
+                   | "dotted" {% () => "dotted" %}    
 
 edge_transition_literal -> "default" {% () => "default" %}
                    | "featureMap" {% () => "featureMap" %} 
                    | "flatten" {% () => "flatten" %} 
                    | "fullyConnected" {% () => "fullyConnected" %} 
 
-annotation_key -> "annotation" dot side_literal {% ([, , side]) => {
-  return { side };
-} %}
 
 layout_literal -> "horizontal" {% () => "horizontal" %}
                    | "vertical" {% () => "vertical" %}
@@ -680,16 +863,32 @@ layout_literal -> "horizontal" {% () => "horizontal" %}
 
 size_tuple -> tuple[number, number] {%id %}
 
+labelOrientation_tuple -> tuple[labelOrientation_orientation_literal, labelOrientation_side_literal] {%id %}
+
+labelOrientation_orientation_literal -> "vertical" {% () => "vertical" %}
+
+labelOrientation_side_literal -> "right" {% () => "right" %}
+                     | "left" {% () => "left" %}
+
+size_4tuple -> tuple4[number, number, number, number] {%id %}
+
 node_type_literal -> "text" {% () => "text" %}
                    | "rect" {% () => "rect" %}
                    | "circle" {% () => "circle" %}
                    | "stacked" {% () => "stacked" %}
                    | "flatten" {% () => "flatten" %}
                    | "fullyConnected" {% () => "fullyConnected" %}
+                   | "arrow" {% () => "arrow" %}
+                   | "trapezoid" {% () => "trapezoid" %}
 
-style_literal -> "rounded" {% () => "rounded" %}
-                   | "box" {% () => "box" %}                  
+font_style_literal -> "normal" {% () => "normal" %}
+                   | "italic" {% () => "italic" %}
+                   | "oblique" {% () => "oblique" %}
 
+
+node_shape_literal -> "rounded" {% () => "rounded" %}             
+
+block_group_shape_literal -> "rounded" {% () => "rounded" %}    
 
 node_orientation_literal -> "vertical" {% () => "vertical" %}
                      | "horizontal" {% () => "horizontal" %}
@@ -699,7 +898,6 @@ side_literal -> "top" {% () => "top" %}
               | "bottom" {% () => "bottom" %}
               | "left" {% () => "left" %}
               | "right" {% () => "right" %}
-
 
 # NeuralNetwork Definition
 neuralNetwork_def -> definition["neuralnetwork", neuralNetwork_pair] {% id %}
@@ -713,6 +911,11 @@ neuralNetwork_pair -> (
             | pair["labelPosition", position_labels_literal]
             | pair["showWeights", boolean]
             | pair["showArrowheads", boolean]
+            | pair["edgeWidth", numberL]
+            | pair["edgeColor", (string | null)]
+            | pair["layerSpacing", number]
+            | pair["neuronSpacing", number]
+            | pair["layerStrokes", ns_list]
             | pair["above", (string | word) {% id %}]
             | pair["below", (string | word) {% id %}]
             | pair["left", (string | word) {% id %}]
@@ -821,7 +1024,7 @@ commands -> (comment
           | set_node_stroke
           | set_edge_label
           | set_edge_color
-          | set_edge_style
+          | set_edge_shape
           | hide_node
           | show_node
           | hide_edge
@@ -926,7 +1129,7 @@ block_remove_edges -> cmd["removeEdges", comma_sep[word, (w_list | number_only_l
 block_remove_edge -> cmd["removeEdge", comma_sep[word, (word | number)]] {% (details) => ({ type: "block_remove_edge", ...id(details) }) %}
 set_edge_label -> cmd["setEdgeLabel", comma_sep3[word, (word | number), (string | nullT)]] {% (details) => ({ type: "set_edge_label", ...id(details) }) %}
 set_edge_color-> cmd["setEdgeColor", comma_sep3[word, (word | number), (string | nullT)]] {% (details) => ({ type: "set_edge_color", ...id(details) }) %}
-set_edge_style -> cmd["setEdgeStyle", comma_sep3[word, (word | number), edge_style_literal]] {% (details) => ({ type: "set_edge_style", ...id(details) }) %}
+set_edge_shape -> cmd["setEdgeShape", comma_sep3[word, (word | number), edge_shape_literal]] {% (details) => ({ type: "set_edge_shape", ...id(details) }) %}
 set_node_stroke -> cmd["setNodeStroke", comma_sep3[word, word, (string | nullT)]] {% (details) => ({ type: "set_node_stroke", ...id(details) }) %}
 hide_node -> cmd["hideNode", comma_sep[word, word]] {% (details) => ({ type: "hide_node", ...id(details) }) %}
 show_node -> cmd["showNode", comma_sep[word, word]] {% (details) => ({ type: "show_node", ...id(details) }) %}

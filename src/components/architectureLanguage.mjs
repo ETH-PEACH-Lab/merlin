@@ -2079,23 +2079,6 @@ export function registerCustomLanguage(monaco) {
         [/^\s*\],?/, { token: "symbol", next: "@pop" }],
 
         [
-          /^(\s*)(annotation)(\.)(top|bottom|left|right)(\.)(shift)(\.)(top|bottom|left|right)(?=\s*:)/,
-          [
-            "",
-            "arch-section",
-            "symbol",
-            "positional",
-            "symbol",
-            "",
-            "symbol",
-            "positional",
-          ],
-        ],
-        [
-          /^(\s*)(annotation)(\.)(top|bottom|left|right)(?=\s*:)/,
-          ["", "arch-section", "symbol", "positional"],
-        ],
-        [
           new RegExp(
             `^(\\s*)(layout|gap|stroke(?:\\.(?:color|style|width))?|size|color|style|shape|fontFamily|fontSize|fontWeight|fontStyle|fontColor|${annotationNonSidePropRegex})(?=\\s*:)`,
           ),
@@ -2153,22 +2136,6 @@ export function registerCustomLanguage(monaco) {
         ],
 
         [
-          /\b(annotation)(\.)(top|bottom|left|right)(\.)(shift)(\.)(top|bottom|left|right)(?=\s*:)/,
-          [
-            "arch-inline-prop",
-            "symbol",
-            "positional",
-            "symbol",
-            "arch-inline-prop",
-            "symbol",
-            "positional",
-          ],
-        ],
-        [
-          /\b(annotation)(\.)(top|bottom|left|right)(?=\s*:)/,
-          ["arch-inline-prop", "symbol", "positional"],
-        ],
-        [
           new RegExp(
             `\\b(type|label\\.text|label\\.orientation|label\\.fontColor|label\\.fontFamily|label\\.fontSize|label\\.fontWeight|label\\.fontStyle|subLabel\\.text|subLabel\\.fontColor|subLabel\\.fontFamily|subLabel\\.fontSize|subLabel\\.fontWeight|subLabel\\.fontStyle|size|color|stroke\\.(?:color|style|width)|outerStroke\\.(?:color|style|width)|shape|kernelSize|filterSpacing|opLabel\\.text|opLabel\\.subtext|opLabel\\.fontColor|opLabel\\.fontFamily|opLabel\\.fontSize|opLabel\\.fontWeight|opLabel\\.fontStyle|outputLabels|direction|${annotationNonSidePropRegex})(?=\\s*:)`,
           ),
@@ -2223,38 +2190,8 @@ export function registerCustomLanguage(monaco) {
         ],
 
         [
-          /\b(annotation)(\.)(top|bottom|left|right)(\.)(shift)(\.)(top|bottom|left|right)(?=\s*:)/,
-          [
-            "arch-inline-prop",
-            "symbol",
-            "positional",
-            "symbol",
-            "arch-inline-prop",
-            "symbol",
-            "positional",
-          ],
-        ],
-        [
-          /\b(annotation)(\.)(top|bottom|left|right)(?=\s*:)/,
-          ["arch-inline-prop", "symbol", "positional"],
-        ],
-        [
-          /\b(marker)(\.)(shift)(\.)(top|bottom|left|right)(?=\s*:)/,
-          [
-            "arch-inline-prop",
-            "symbol",
-            "arch-inline-prop",
-            "symbol",
-            "positional",
-          ],
-        ],
-        [
-          /\b(shift)(\.)(top|bottom|left|right)(?=\s*:)/,
-          ["arch-inline-prop", "symbol", "positional"],
-        ],
-        [
           new RegExp(
-            `\\b(members|layout|anchor|anchor\\.(?:source|target)|marker|marker\\.type|marker\\.color|marker\\.position|marker\\.text|marker\\.fontColor|marker\\.fontFamily|marker\\.fontSize|marker\\.fontWeight|marker\\.fontStyle|marker\\.shift|shape|gap|stroke\\.(?:color|style|width)|color|align|colorBoxAdjustments|${annotationNonSidePropRegex})(?=\\s*:)`,
+            `\\b(members|layout|anchor|anchor\\.(?:source|target)|marker|marker\\.type|marker\\.color|marker\\.position|marker\\.text|marker\\.fontColor|marker\\.fontFamily|marker\\.fontSize|marker\\.fontWeight|marker\\.fontStyle|shape|gap|stroke\\.(?:color|style|width)|color|align|colorBoxAdjustments|${annotationPropRegex})(?=\\s*:)`,
           ),
           "arch-inline-prop",
         ],

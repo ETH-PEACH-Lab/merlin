@@ -92,7 +92,7 @@ const DynamicInput = ({
         return (
           <BorderStyleIcon sx={{ color: value !== null ? value : "#ffffff" }} />
         );
-      case "styleEdge":
+      case "shapeEdge":
         return <LineStyleIcon />;
       case "shapeStacked":
         return <ViewInArIcon />;
@@ -363,7 +363,7 @@ const DynamicInput = ({
       "addRow",
       "addColumn",
       "addChild",
-      "styleEdge",
+      "shapeEdge",
       "annotation",
       "layout",
     ].includes(fieldKey)
@@ -440,7 +440,7 @@ const DynamicInput = ({
                     </FormControl>
                   )}
 
-                  {fieldKey === "styleEdge" && (
+                  {fieldKey === "shapeEdge" && (
                     <FormControl fullWidth size="small">
                       <InputLabel>Style</InputLabel>
                       <Select
@@ -453,6 +453,7 @@ const DynamicInput = ({
                       >
                         <MenuItem value="straight">straight</MenuItem>
                         <MenuItem value="bow">bow</MenuItem>
+                        <MenuItem value="arc">arc</MenuItem>
                       </Select>
                     </FormControl>
                   )}
@@ -474,7 +475,7 @@ const DynamicInput = ({
                     </FormControl>
                   )}
 
-                  {fieldKey !== "styleEdge" && fieldKey !== "layout" && (
+                  {fieldKey !== "shapeEdge" && fieldKey !== "layout" && (
                     <TextField
                       label={
                         fieldKey === "addRow" || fieldKey === "addColumn"
@@ -649,7 +650,7 @@ export const UnitEditor = ({
           Object.entries(getComponentFields(currentUnitData.type))
             .filter(([fieldKey]) => {
               if (
-                fieldKey === "styleEdge" &&
+                fieldKey === "shapeEdge" &&
                 !currentUnitData.coordinates.isEdge &&
                 !currentUnitData.coordinates.isDiagramEdge
               ) {

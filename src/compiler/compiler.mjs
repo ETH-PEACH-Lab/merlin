@@ -657,7 +657,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
         "set_node_stroke",
         "set_edge_label",
         "set_edge_color",
-        "set_edge_style",
+        "set_edge_shape",
         "hide_node",
         "show_node",
         "hide_edge",
@@ -1812,6 +1812,12 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                 block.groups = block.groups.filter(
                   (group) => group.id.name !== secondArg,
                 );
+                block.groups.map(
+                  (group) =>
+                    (group.members = group.members.filter(
+                      (member) => member.name !== secondArg,
+                    )),
+                );
               }
             }
           }
@@ -2048,7 +2054,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                         command,
                       );
                     } else {
-                      node.stroke = [thirdArg];
+                      node.strokeColor = [thirdArg];
                     }
                   }
                 }
@@ -2306,7 +2312,7 @@ Example: ${name}.setEdgeColor(diagram, 0, "blue")`,
         break;
       }
 
-      case "set_edge_style": {
+      case "set_edge_shape": {
         const name = command.name;
         const targetObject = pages[pages.length - 1].find(
           (comp) => comp.name === name,
@@ -2326,11 +2332,11 @@ Example: ${name}.setEdgeColor(diagram, 0, "blue")`,
                     if (secondArg < 0 || secondArg > block.edges.length - 1) {
                       causeCompileError(`OutofIndex\n\nName: ${name}`, command);
                     }
-                    block.edges[secondArg].style = thirdArg;
+                    block.edges[secondArg].shape = thirdArg;
                   } else {
                     for (const edge of block.edges) {
                       if (edge.id.name === secondArg) {
-                        edge.style = thirdArg;
+                        edge.shape = thirdArg;
                       }
                     }
                   }
@@ -2348,7 +2354,7 @@ Example: ${name}.setEdgeColor(diagram, 0, "blue")`,
                   causeCompileError(`OutofIndex\n\nName: ${name}`, command);
                 }
 
-                diagram.connects[secondArg].style = thirdArg;
+                diagram.connects[secondArg].shape = thirdArg;
               }
             } else {
               causeCompileError(
@@ -2449,11 +2455,11 @@ Example: ${name}.setEdgeColor(diagram, 0, "blue")`,
                     if (secondArg < 0 || secondArg > block.edges.length - 1) {
                       causeCompileError(`OutofIndex\n\nName: ${name}`, command);
                     }
-                    block.edges[secondArg].label = thirdArg;
+                    block.edges[secondArg].labelText = thirdArg;
                   } else {
                     for (const edge of block.edges) {
                       if (edge.id.name === secondArg) {
-                        edge.label = thirdArg;
+                        edge.labelText = thirdArg;
                       }
                     }
                   }
@@ -2471,7 +2477,7 @@ Example: ${name}.setEdgeColor(diagram, 0, "blue")`,
                   causeCompileError(`OutofIndex\n\nName: ${name}`, command);
                 }
 
-                diagram.connects[secondArg].label = thirdArg;
+                diagram.connects[secondArg].labelText = thirdArg;
               }
             } else {
               causeCompileError(
@@ -2509,7 +2515,11 @@ Example: ${name}.setEdgeColor(diagram, 0, "blue")`,
               if (block.nodes) {
                 for (const node of block.nodes) {
                   if (node.id.name === secondArg) {
-                    node.color = [thirdArg];
+                    if (node.type === "text") {
+                      node.labelFontColor = thirdArg;
+                    } else {
+                      node.color = [thirdArg];
+                    }
                   }
                 }
               }
@@ -2542,7 +2552,7 @@ Example: ${name}.setEdgeColor(diagram, 0, "blue")`,
               if (block.nodes) {
                 for (const node of block.nodes) {
                   if (node.id.name === secondArg) {
-                    node.label = [thirdArg];
+                    node.labelText = [thirdArg];
                   }
                 }
               }
@@ -5012,7 +5022,7 @@ function preCheck(parsedDSL) {
         "set_node_stroke",
         "set_edge_label",
         "set_edge_color",
-        "set_edge_style",
+        "set_edge_shape",
         "hide_node",
         "show_node",
         "hide_edge",

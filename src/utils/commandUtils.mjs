@@ -245,10 +245,10 @@ function createOptimizedArchitectureCommand1d(
   if (
     fieldKey === "value" ||
     fieldKey === "color" ||
-    fieldKey === "styleEdge" ||
+    fieldKey === "shapeEdge" ||
     fieldKey === "layout" ||
     fieldKey === "annotation" ||
-    "layout"
+    fieldKey === "layout"
   ) {
     const blockLength = componentDefinition.body?.blocks.length ?? 0;
 
@@ -268,6 +268,7 @@ function createOptimizedArchitectureCommand1d(
       } else if (fieldKey === "annotation") {
         if (
           value.value !== undefined &&
+          value.value !== null &&
           value.side !== undefined &&
           value.side !== null
         ) {
@@ -276,7 +277,7 @@ function createOptimizedArchitectureCommand1d(
             args: {
               block: blockId,
               second: value.side,
-              fourth: value.value,
+              third: value.value,
             },
             name: componentName,
             line: 0,
@@ -285,16 +286,13 @@ function createOptimizedArchitectureCommand1d(
         }
       }
     } else if (index >= blockLength) {
-      console.log("CALLED");
-      console.log(index);
-      console.log(blockLength);
       let type;
       if (fieldKey === "value") {
         type = "set_edge_label";
       } else if (fieldKey === "color") {
         type = "set_edge_color";
-      } else if (fieldKey === "styleEdge") {
-        type = "set_edge_style";
+      } else if (fieldKey === "shapeEdge") {
+        type = "set_edge_shape";
       }
       result.push({
         type,
@@ -344,16 +342,16 @@ function createOptimizedArchitectureCommand2d(
     fieldKey === "color" ||
     fieldKey === "stroke" ||
     fieldKey === "annotation" ||
-    fieldKey === "styleEdge" ||
+    fieldKey === "shapeEdge" ||
     fieldKey === "layout" ||
     fieldKey === "shapeStacked" ||
     fieldKey === "shapeFlatten"
   ) {
     const blockId = componentDefinition.body.blocks[row].id.name;
     const nodesLength =
-      componentDefinition.body?.blocks?.[row]?.nodes.length ?? 0;
+      componentDefinition.body?.blocks?.[row]?.nodes?.length ?? 0;
     const edgesLength =
-      componentDefinition.body?.blocks?.[row]?.edges.length ?? 0;
+      componentDefinition.body?.blocks?.[row]?.edges?.length ?? 0;
     let id;
     let type;
 
@@ -377,8 +375,8 @@ function createOptimizedArchitectureCommand2d(
         type = "set_edge_label";
       } else if (fieldKey === "color") {
         type = "set_edge_color";
-      } else if (fieldKey === "styleEdge") {
-        type = "set_edge_style";
+      } else if (fieldKey === "shapeEdge") {
+        type = "set_edge_shape";
       }
     } else if (col >= nodesLength + edgesLength) {
       id =
@@ -427,7 +425,6 @@ function createOptimizedArchitectureCommand2d(
         value.width >= 0
       ) {
         result.push({
-          type,
           args: {
             block: blockId,
             second: id,

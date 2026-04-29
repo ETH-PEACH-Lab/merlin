@@ -30,6 +30,7 @@ const App = () => {
   const [inspectorIndex, setInspectorIndex] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [dslEditorEditable, setDslEditorEditable] = useState(true);
+  const [showRenderer, setShowRenderer] = useState(true);
 
   // Export state
   const [exportProgress, setExportProgress] = useState({
@@ -142,6 +143,7 @@ const App = () => {
     updateUnparsedCode(item.userCode);
     setCurrentPage(1);
   };
+  
 
   const handleSave = () => {
     const timestamp = new Date().toISOString();
@@ -239,6 +241,20 @@ ${timestamp}
     else setInspectorIndex(null);
   };
 
+const handleDslEditorFullSpace = () => {
+  setShowRenderer((prev) => {
+    const nextShowRenderer = !prev;
+
+    if (nextShowRenderer) {
+      setLeftWidth(window.innerWidth / 2);
+    } else {
+      setLeftWidth(window.innerWidth);
+    }
+
+    return nextShowRenderer;
+  });
+};
+
   const theme = useTheme();
 
   return (
@@ -313,6 +329,9 @@ ${timestamp}
                     handleMouseDown={handleMouseDown}
                     updateInspector={updateInspector}
                     dslEditorEditable={dslEditorEditable}
+                    showRenderer={showRenderer}
+                    setShowRenderer={setShowRenderer}
+                    onDslEditorFullSpace={handleDslEditorFullSpace}
                     setDslEditorEditable={setDslEditorEditable}
                     setCode1={updateUnparsedCode}
                     currentPage={currentPage}
@@ -329,6 +348,7 @@ ${timestamp}
                     }}
                     onMouseDown={handleMouseDown}
                   />
+                  {showRenderer &&
                   <Box
                     sx={{
                       width: "100%",
@@ -345,7 +365,7 @@ ${timestamp}
                       setCurrentPage={setCurrentPage}
                       onOpenCustomExport={() => setCustomExportOpen(true)}
                     />
-                  </Box>
+                  </Box>}
                 </div>
               </div>
             </Box>

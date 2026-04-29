@@ -33,10 +33,19 @@ const DslEditor = ({
     return lines.filter((line) => /^\s*page\b/.test(line)).length;
   }, []);
 
-  loader.init().then((monaco) => {
-    registerCustomLanguage(monaco);
-    monacoRef.current = monaco;
-  });
+  useEffect(() => {
+    let mounted = true;
+
+    loader.init().then((monaco) => {
+      if (!mounted) return;
+      registerCustomLanguage(monaco);
+      monacoRef.current = monaco;
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const handleEditorDidMount = useCallback(
     (editor, monaco) => {
@@ -115,6 +124,20 @@ const DslEditor = ({
           // Reset the typing flag after processing
           isTypingRef.current = false;
         }
+      });
+      editor.onDidChangeModelContent((event) => {
+        const model = editor.getModel();
+        const position = editor.getPosition();
+        if (!model || !position) return;
+
+        const newValue = model.getValue();
+
+        lastChangeFromEditorRef.current = true;
+        onChange(newValue);
+
+        const linePrefix = model
+          .getLineContent(position.lineNumber)
+          .slice(0, position.column - 1);
       });
       editor.onDidChangeModelContent((event) => {
         const model = editor.getModel();
@@ -266,30 +289,37 @@ const DslEditor = ({
   const decorationIds = useRef([]);
   useEffect(() => {
     const editor = editorRef.current;
-    const monaco = monacoRef.current;
-    if (!editor || !monaco) return;
+    if (!editor) return;
+
     const model = editor.getModel();
-    const lines = model.getValue().split("\n");
-    let pageCount = 0;
-    const newDecorations = [];
-    lines.forEach((line, idx) => {
-      if (/^\s*page\b/.test(line)) {
-        pageCount += 1;
-        const col = line.indexOf("page") + 1;
-        const isCurrent = pageCount === currentPage;
-        newDecorations.push({
-          range: new monaco.Range(idx + 1, col, idx + 1, col + 4),
-          options: {
-            inlineClassName: isCurrent ? "currentPageKeyword" : "pageKeyword",
-          },
-        });
-      }
-    });
-    decorationIds.current = editor.deltaDecorations(
-      decorationIds.current,
-      newDecorations,
-    );
-  }, [value, currentPage, pages]);
+    if (!model) return;
+
+    const editorValue = model.getValue();
+
+    // do nothing if the editor already has this text
+    if (editorValue === value) return;
+
+    // if this change came from typing inside Monaco, don't push it back in
+    if (lastChangeFromEditorRef.current) {
+      lastChangeFromEditorRef.current = false;
+      return;
+    }
+
+    const selection = editor.getSelection();
+    const scrollTop = editor.getScrollTop();
+    const scrollLeft = editor.getScrollLeft();
+
+    editor.executeEdits("external-update", [
+      {
+        range: model.getFullModelRange(),
+        text: value ?? "",
+      },
+    ]);
+
+    if (selection) editor.setSelection(selection);
+    editor.setScrollTop(scrollTop);
+    editor.setScrollLeft(scrollLeft);
+  }, [value]);
 
   // Effect to detect when new page commands are added and auto-navigate
   useEffect(() => {
@@ -350,11 +380,7 @@ const DslEditor = ({
     <MonacoEditor
       height="100%"
       language="customLang"
-      value={value}
-      onChange={(newValue) => {
-        lastChangeFromEditorRef.current = true;
-        onChange(newValue ?? "");
-      }}
+      defaultValue={value}
       onMount={handleEditorDidMount}
       theme="customTheme"
       options={{
@@ -363,7 +389,7 @@ const DslEditor = ({
         fontSize: 15,
         lineNumbers: "on",
         minimap: { enabled: false },
-        readOnly: readOnly,
+        readOnly,
         suggest: {
           snippetsPreventQuickSuggestions: false,
           localityBonus: true,
@@ -373,7 +399,7 @@ const DslEditor = ({
           showInlineDetails: true,
           shareSuggestSelections: false,
           filterGraceful: true,
-          placement: "top", // Force placement to top/bottom only, never left/right
+          placement: "top",
         },
       }}
     />

@@ -224,10 +224,11 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
       parseTimeoutRef.current = setTimeout(() => {
         parseAndCompile(newCode, false, currentCursorLine);
         parseTimeoutRef.current = null;
-      }, 400);
+      }, 150);
     },
     [parseAndCompile, currentCursorLine],
   );
+
   /*const updateUnparsedCode = useCallback(
     (newCode) => {
       setUnparsedCode(newCode);
@@ -662,12 +663,12 @@ export function ParseCompileProvider({ children, initialCode = "" }) {
 
   const updateValue = useCallback(
     (page, componentName, coordinates, fieldKey, value) => {
-      console.log("coordinates");
+      /*  console.log("coordinates");
       console.log(coordinates);
       console.log("fieldKey");
       console.log(fieldKey);
       console.log("value");
-      console.log(value);
+      console.log(value);*/
       if (!parsedCode) return;
       pastActions.push(structuredClone(unparsedCode));
 
