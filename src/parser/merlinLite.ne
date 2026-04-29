@@ -14,7 +14,7 @@ definition[X, Y] -> $X __ wordL _ equals _ bracketlist[$Y] _ {% ([type, , wordL,
 #   value: [1, 2, 3]
 #   name: "something"
 # }
-bracketlist[X] -> lbracket wsn ($X (comma_nlow_new $X):*):? wsn rbracket {% d => {
+bracketlist[X] -> lbracket wsn ($X (comma_nlow $X):*):? wsn rbracket {% d => {
     const items = d[2];
     let result = {};
 
@@ -274,7 +274,7 @@ architecture_diagram -> "diagram" _ colon _ diagram_body {% ([ , , , , body]) =>
 
 })%}
 
-block_body -> lbrac wsn (block_entry (comma_nlow_new block_entry):*):? wsn rbrac {% ([ , ,items, , ]) => {
+block_body -> lbrac wsn (block_entry (comma_nlow_new_arch block_entry):*):? wsn rbrac {% ([ , ,items, , ]) => {
     let result = {};
 
     const mergeEntry = (entry) => {
@@ -367,7 +367,7 @@ block_nodes -> "nodes" colon _ node_list {% ([, , , list]) => ({ nodes: list }) 
 block_edges -> "edges" colon _ edge_list {% ([, , , list]) => ({ edges: list }) %}
 block_groups -> "groups" colon _ group_list {% ([, , , list]) => ({ groups: list }) %}
 
-node_list -> lbrac wsn (node_entry (comma_nlow_new node_entry):*):? wsn rbrac {% ([, , items, ,]) => {
+node_list -> lbrac wsn (node_entry (comma_nlow_new_arch node_entry):*):? wsn rbrac {% ([, , items, ,]) => {
     if (!items) return []
     const [first, rest] = items
     const result = [first];
@@ -475,7 +475,7 @@ node_op_label_subfield ->
 
 node_annotation -> annotation_entry {% id %}
 
-edge_list -> lbrac wsn (edge_entry (comma_nlow_new edge_entry):*):? wsn rbrac {% ([, , items, ,]) => {
+edge_list -> lbrac wsn (edge_entry (comma_nlow_new_arch edge_entry):*):? wsn rbrac {% ([, , items, ,]) => {
     if (!items) return []
     const [first, rest] = items
     const result = [first];
@@ -566,7 +566,7 @@ anchor_with_index -> dot node_edge_literals index_opt:? {% ([, anchor, index]) =
 index_opt -> lbrac _ numberL _ rbrac {% ([, , n, ,]) => n %}
 
 
-group_list -> lbrac wsn (group_entry (comma_nlow_new group_entry):*):? wsn rbrac {% ([, , items, ,]) => {
+group_list -> lbrac wsn (group_entry (comma_nlow_new_arch group_entry):*):? wsn rbrac {% ([, , items, ,]) => {
     if (!items) return []
     const [first, rest] = items
     const result = [first];
@@ -663,7 +663,7 @@ marker_subfield ->
 
 group_annotation -> annotation_entry {% id %}
 
-member_list -> lbrac wsn (wordL (comma_nlow_new wordL):*):? wsn rbrac {% ([, ,items, ,]) => {
+member_list -> lbrac wsn (wordL (comma_nlow_new_arch wordL):*):? wsn rbrac {% ([, ,items, ,]) => {
    if (!items) return []
    const [first, rest] = items
    let result = [first]
@@ -671,7 +671,7 @@ member_list -> lbrac wsn (wordL (comma_nlow_new wordL):*):? wsn rbrac {% ([, ,it
    return result
 } %}
 
-diagram_body -> lbrac wsn (diagram_entry (comma_nlow_new diagram_entry):*):? wsn rbrac {% ([, ,items, ,]) => {
+diagram_body -> lbrac wsn (diagram_entry (comma_nlow_new_arch diagram_entry):*):? wsn rbrac {% ([, ,items, ,]) => {
     if (!items) return {}
     const [first, rest] = items
     let result = {};
@@ -716,7 +716,7 @@ diagram_entry -> (
 
 diagram_annotation -> annotation_entry {% id %}
 
-connect_list -> lbrac wsn (connect_entry (comma_nlow_new connect_entry):*):? wsn rbrac {% ([, , items, ,]) => {
+connect_list -> lbrac wsn (connect_entry (comma_nlow_new_arch connect_entry):*):? wsn rbrac {% ([, , items, ,]) => {
     if (!items) return []
     const [first, rest] = items
     const result = [first];
@@ -780,7 +780,7 @@ connect_field -> (pair["shape", edge_shape_literal]
 {% iid %}
 
 
-use_list -> lbrac wsn (use_entry (comma_nlow_new use_entry):*):? wsn rbrac {% ([, ,items, ,]) => {
+use_list -> lbrac wsn (use_entry (comma_nlow_new_arch use_entry):*):? wsn rbrac {% ([, ,items, ,]) => {
    if (!items) return []
    const [first, rest] = items
    let result = [first]
@@ -1342,7 +1342,8 @@ nlow -> (%nlw | %ws) {% () => null %}
 comma_nlow -> ((nlow:? comma nlow:?) | nlw) {% () => null %}
 wsn -> (%ws | %nlw):* {% () => null %}
 nlw1 -> %nlw:+ {% () => null %}
-comma_nlow_new -> (wsn comma wsn | nlw1) {% () => null %}
+comma_nlow_new_arch -> (wsn comma wsn) {% () => null %}
+
 
 # - Tokens - # 
 # Note: Return null to save memory
