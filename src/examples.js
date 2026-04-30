@@ -358,8 +358,7 @@ show nn
         id: "blockExample12",
         title: "Example - CNN",
         userCode: `architecture a = {
-  title: "Hello"
-
+  title: "Hello",
   block Encoder: [
     layout: horizontal,
     gap: 16,
@@ -372,20 +371,20 @@ show nn
       conv1 = type: rect label.text: "Conv1" label.orientation: (vertical,right) subLabel.text: "7x7 stride=2, 64ch" opLabel.text: "opLabel.text" opLabel.subtext: "opLabel.text SUBTEXT" annotation.top: "TOP" size: (180,70) shape: rounded stroke.color: "black",
       bn1 = type: rect label.text: "BatchNorm" subLabel.text: "normalize features" stroke.color: "black",
       relu1 = type: rect label.text: "ReLU" subLabel.text: "activation" opLabel.text: "opLabel.text" size: (110,40) stroke.color: "black",
-      s1 = type: stacked shape: 8x128x128 kernelSize: 10x10 label.text: "8@128x128" subLabel.text: "subLabel.text" subLabel.fontColor: "red" subLabel.fontFamily: "math" subLabel.fontSize: 15 subLabel.fontWeight: 900 subLabel.fontStyle: italic
-      s2 = type: stacked shape: 8x64x64 kernelSize: 16x16 label.text: "8@64x64" subLabel.text: " dsadasdad dasddasdasd dsadasdsa dsadasd ddsadasdaddd dasdsdsdsad" opLabel.text: "opLabel.text" opLabel.subtext: "opLabel.subtext" color: "red"
-      s3 = type: stacked shape: 24x48x48 label.text: "8@64x64" color: "white"
-      f1 = type: flatten shape: 24x1 label.text: "8@128x128" subLabel.text: "Hellod dsadasdad dasddasdasd dsadasdsa" opLabel.text: "opLabel.text" color: "blue"
-      fully1 = type: fullyConnected shape: [24, 12, 6, 3] outputLabels: ["label", "hello", "world"] label.text: "1x128" opLabel.text: "Dense" color: ["blue", "black", "red", "yellow"]
+      s1 = type: stacked shape: 8x128x128 kernelSize: 10x10 label.text: "8@128x128" subLabel.text: "subLabel.text" subLabel.fontColor: "red" subLabel.fontFamily: "math" subLabel.fontSize: 15 subLabel.fontWeight: 900 subLabel.fontStyle: italic,
+      s2 = type: stacked shape: 8x64x64 kernelSize: 16x16 label.text: "8@64x64" subLabel.text: " dsadasdad dasddasdasd dsadasdsa dsadasd ddsadasdaddd dasdsdsdsad" opLabel.text: "opLabel.text" opLabel.subtext: "opLabel.subtext" color: "red",
+      s3 = type: stacked shape: 24x48x48 label.text: "8@64x64" color: "white",
+      f1 = type: flatten shape: 24x1 label.text: "8@128x128" subLabel.text: "Hellod dsadasdad dasddasdasd dsadasdsa" opLabel.text: "opLabel.text" color: "blue",
+      fully1 = type: fullyConnected shape: [24, 12, 6, 3] outputLabels: ["label", "hello", "world"] label.text: "1x128" opLabel.text: "Dense" color: ["blue", "black", "red", "yellow"],
       fully2 = type: fullyConnected shape: [24, 12, 6, 3] outputLabels: ["label", "hello", "world"] label.text: "1x128" opLabel.text: "Dense" color: ["blue", "black", "red", "yellow"]
     ],
 
     edges: [
-      e4 = conv1.right -> bn1.left transition: flatten gap: 50 color: "blue"
-      e3 = s1.top -> s2.left transition: featureMap
-      e0 = s2.right -> s3.left 
-      e1 = s3.right -> f1.left transition: flatten
-      e2 = f1.top -> fully1.left transition: fullyConnected
+      e4 = conv1.right -> bn1.left transition: flatten gap: 50 color: "blue",
+      e3 = s1.top -> s2.left transition: featureMap,
+      e0 = s2.right -> s3.left,
+      e1 = s3.right -> f1.left transition: flatten,
+      e2 = f1.top -> fully1.left transition: fullyConnected,
       e5 = fully1.top -> fully2.left
     ],
 
@@ -398,6 +397,14 @@ show nn
 
 page
 show a
+
+
+
+
+
+
+
+
 
 
 
@@ -649,7 +656,7 @@ show a
 		groups: [
 			row1 = members: [empty, rnn1, rnn2, rnn3] gap: 55,
 			row2 = members: [x1, x2, x3] gap: 75,
-			row3 = members: [row1, row2] layout: vertical annotation.top: "Encoder" annotation.fontFamily: "Arial" annotation.fontWeight: 900
+			row3 = members: [row1, row2] layout: vertical annotation.top: "Encoder" annotation.top.shift.top: 30 annotation.top.shift.right: 20 annotation.fontFamily: "Arial" annotation.fontWeight: 900
 		]
 	],
 	block middle: [
@@ -674,7 +681,7 @@ show a
 		groups: [
 			row1 = members: [rnn1, rnn2] gap: 55,
 			row2 = members: [y1, y2] gap: 75,
-			row3 = members: [row2, row1] layout: vertical gap: 40 annotation.bottom: "Decoder" annotation.fontFamily: "Arial" annotation.fontWeight: 900
+			row3 = members: [row2, row1] layout: vertical gap: 40 annotation.bottom: "Decoder" annotation.bottom.shift.bottom: 30 annotation.fontFamily: "Arial" annotation.fontWeight: 900
 		]
 	],
 	diagram: [
@@ -690,6 +697,7 @@ show a
 
 page
 show a
+
 `,
       },
       {
@@ -725,7 +733,8 @@ show a
 		annotation.bottom: "(a) Traditional",
 		annotation.fontFamily: "Times New Roman",
 		annotation.fontWeight: 500,
-		annotation.fontSize: 15
+		annotation.fontSize: 15,
+        annotation.gap: -40
 	],
 	block Shortened: [
 		layout: vertical,
@@ -759,7 +768,7 @@ show a
 		annotation.fontFamily: "Times New Roman",
 		annotation.fontWeight: 500,
 		annotation.fontSize: 15,
-		annotation.gap: -5
+		annotation.gap: 0
 	],
 	block None: [
 		layout: vertical,
@@ -799,6 +808,7 @@ show a
 
 page
 show a
+
 `,
       },
       {
@@ -869,7 +879,7 @@ show nn
 	],
 	block Resnet: [
 		annotation.fontFamily: "Arial",
-		annotation.right: "Element-wise feature\\nsummation",
+		annotation.right: "Element-wise feature\nsummation",
 		annotation.top.shift.top: 10,
 		annotation.fontSize: 15,
 		layout: horizontal,
@@ -921,7 +931,7 @@ show nn
 			stacked4 = type: stacked shape: 11x80x80 filterSpacing: 5 color: "#4F5569",
 			c3 = type: circle label.text: "c" size: (20, 20) color: "#50A243",
 			empty0 = type: rect size: (-20, 0) color: "transparent" stroke.color: "transparent",
-			cBottom = type: circle label.text: "c" annotation.right: ": Channel-wise concatenation" size: (20, 20) color: "#50A243"
+			cBottom = type: circle label.text: "c" annotation.right: ":Channel-wise concatenation" size: (20, 20) color: "#50A243"
 		],
 		edges: [
 			e1 = stacked0.right -> stacked1.left gap: 15 color: "#5F5F5F",
@@ -956,6 +966,7 @@ show nn
 
 page
 show a
+
 `,
       },
       {
@@ -1227,7 +1238,7 @@ show a
 			rect4 = type: rect size: (15, 60) color: "#6A98D0" stroke.color: "#6388B1",
 			rect5 = type: rect size: (15, 60) color: "#6A98D0" stroke.color: "#6388B1",
 			rect6 = type: rect size: (15, 60) color: "#6A98D0" stroke.color: "#6388B1",
-			plus = type: circle label.text: "+" label.fontColor: "#6175AE" label.fontFamily: "Arial" label.fontSize: 15 size: (15, 15) stroke.color: "#6175AE",
+			plus = type: circle label.text: "+" label.fontColor: "#6175AE" label.fontFamily: "Helvetica" label.fontSize: 15 size: (15, 15) stroke.color: "#6175AE",
 			output = type: text label.text: "output",
 			rect7 = type: rect size: (15, 60) color: "#DD874B" stroke.color: "#D48B58"
 		],
@@ -1258,7 +1269,7 @@ show a
 		nodes: [
 			rect7 = type: rect annotation.right: "3x3 convolution (ReLU)" size: (10, 30) color: "#6A98D0" stroke.color: "#6388B1",
 			rect0 = type: rect annotation.right: "1x1 convolution (ReLU)" size: (10, 30) color: "#DD874B" stroke.color: "#D48B58",
-			plus = type: circle label.text: "+" label.fontColor: "#6175AE" label.fontFamily: "Arial" label.fontSize: 15 annotation.right: "Addition" size: (10, 15) stroke.color: "#6175AE",
+			plus = type: circle label.text: "+" label.fontColor: "#6175AE" label.fontFamily: "Helvetica" label.fontSize: 15 annotation.right: "Addition" size: (10, 15) stroke.color: "#6175AE",
 			arrow0 = type: arrow annotation.right: "Concatenation" annotation.gap: -2 size: (15, 15) color: "#A3A3A3" stroke.color: "#A3A3A3"
 		],
 		groups: [
@@ -1280,6 +1291,7 @@ show a
 
 page
 show a
+
 `,
       },
       {
@@ -1299,9 +1311,9 @@ show a
 			rect3 = type: rect size: (15, 60) color: "#DD874B" stroke.color: "#DD874B",
 			rect4 = type: rect size: (15, 60) color: "#DD874B" stroke.color: "#DD874B",
 			rect5 = type: rect size: (15, 60) color: "#DD874B" stroke.color: "#DD874B",
-			plus0 = type: circle label.text: "+" label.fontColor: "#6175AE" label.fontSize: 15 label.fontWeight: 900 size: (15, 15) stroke.color: "#6175AE",
-			plus1 = type: circle label.text: "+" label.fontColor: "#6175AE" label.fontSize: 15 label.fontWeight: 900 size: (15, 15) stroke.color: "#6175AE",
-			plus2 = type: circle label.text: "+" label.fontColor: "#6175AE" label.fontSize: 15 label.fontWeight: 900 size: (15, 15) stroke.color: "#6175AE"
+			plus0 = type: circle label.text: "+" label.fontColor: "#6175AE" label.fontFamily: "Helvetica" label.fontSize: 15 label.fontWeight: 900 size: (15, 15) stroke.color: "#6175AE",
+			plus1 = type: circle label.text: "+" label.fontColor: "#6175AE" label.fontFamily: "Helvetica" label.fontSize: 15 label.fontWeight: 900 size: (15, 15) stroke.color: "#6175AE",
+			plus2 = type: circle label.text: "+" label.fontColor: "#6175AE" label.fontFamily: "Helvetica" label.fontSize: 15 label.fontWeight: 900 size: (15, 15) stroke.color: "#6175AE"
 		],
 		edges: [
 			e1 = encoder.right -> rect0.left width: 1 color: "#8F9FC5",
@@ -1333,7 +1345,7 @@ show a
 		nodes: [
 			rect7 = type: rect annotation.right: "3x3 convolution (ReLU)" size: (10, 30) color: "#6A98D0" stroke.color: "#6388B1",
 			rect0 = type: rect annotation.right: "1x1 convolution (ReLU)" size: (10, 30) color: "#DD874B" stroke.color: "#D48B58",
-			plus = type: circle label.text: "+" label.fontColor: "#6175AE" label.fontSize: 15 annotation.right: "Addition" size: (15, 15) stroke.color: "#6175AE",
+			plus = type: circle label.text: "+" label.fontColor: "#6175AE" label.fontFamily: "Helvetica" label.fontSize: 15 annotation.right: "Addition" size: (15, 15) stroke.color: "#6175AE",
 			empty = type: rect size: (15, 15) color: "transparent" stroke.color: "transparent"
 		],
 		groups: [
@@ -1355,6 +1367,7 @@ show a
 
 page
 show a
+
 `,
       },
       {
