@@ -1943,6 +1943,40 @@ export function registerCustomLanguage(monaco) {
           const { section, namespace, memberPrefix, fullPrefix } =
             inlineNamespaceCtx;
 
+          const diagramNamespaceCtx =
+            section === "diagram"
+              ? getArchitectureDiagramTopLevelContext(model, position)
+              : null;
+
+          const currentInlineText =
+            section === "block" || section === "diagram"
+              ? ""
+              : architectureInlineDotCtx.architectureInlineItemContext
+                  .afterEqualsText || "";
+
+          const usedBlockEntries = new Set(
+            architectureInlineDotCtx.architectureBlockContext
+              ?.usedBlockEntries || [],
+          );
+
+          const usedDiagramEntries = new Set(
+            diagramNamespaceCtx?.usedEntries || [],
+          );
+
+          const hasProp = (fullName) => {
+            if (section === "block") {
+              return usedBlockEntries.has(fullName);
+            }
+
+            if (section === "diagram") {
+              return usedDiagramEntries.has(fullName);
+            }
+
+            return new RegExp(`\\b${fullName.replace(/\./g, "\\.")}\\s*:`).test(
+              currentInlineText,
+            );
+          };
+
           const isExactAnnotationLeaf =
             /^(annotation)\.(top|bottom|left|right)$/.test(namespace) &&
             memberPrefix === "" &&
@@ -1956,45 +1990,44 @@ export function registerCustomLanguage(monaco) {
               endColumn: position.column,
             };
 
-            return {
-              suggestions: [
-                {
-                  label: namespace,
-                  kind: monaco.languages.CompletionItemKind.Property,
-                  insertText: `${namespace}: "\${1:text}"`,
-                  insertTextRules:
-                    monaco.languages.CompletionItemInsertTextRule
-                      .InsertAsSnippet,
-                  detail: `${section} inline property`,
-                  documentation: `Use ${namespace} with text`,
-                  range: namespaceRange,
-                  sortText: "0inline_annotation_leaf",
-                  filterText: namespace,
-                },
-                {
-                  label: `${namespace}.shift`,
-                  kind: monaco.languages.CompletionItemKind.Property,
-                  insertText: `${namespace}.shift`,
-                  detail: `${section} inline property`,
-                  documentation: `Open shift properties for ${namespace}`,
-                  range: namespaceRange,
-                  sortText: "1inline_annotation_shift",
-                  filterText: `${namespace}.shift`,
-                  command: {
-                    id: "editor.action.triggerSuggest",
-                    title: "Trigger suggest",
-                  },
-                },
-              ],
-            };
-          }
+            const leafUsed = hasProp(namespace);
 
+            const leafSuggestions = [];
+
+            if (!leafUsed) {
+              leafSuggestions.push({
+                label: namespace,
+                kind: monaco.languages.CompletionItemKind.Property,
+                insertText: `${namespace}: "\${1:text}"`,
+                insertTextRules:
+                  monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                detail: `${section} inline property`,
+                documentation: `Use ${namespace} with text`,
+                range: namespaceRange,
+                sortText: "0inline_annotation_leaf",
+                filterText: namespace,
+              });
+            }
+
+            leafSuggestions.push({
+              label: `${namespace}.shift`,
+              kind: monaco.languages.CompletionItemKind.Property,
+              insertText: `${namespace}.shift`,
+              detail: `${section} inline property`,
+              documentation: `Open shift properties for ${namespace}`,
+              range: namespaceRange,
+              sortText: "1inline_annotation_shift",
+              filterText: `${namespace}.shift`,
+              command: {
+                id: "editor.action.triggerSuggest",
+                title: "Trigger suggest",
+              },
+            });
+
+            return { suggestions: leafSuggestions };
+          }
           let members = [];
           let usedNamespaceProps = new Set();
-
-          const currentInlineText =
-            architectureInlineDotCtx.architectureInlineItemContext
-              .afterEqualsText || "";
 
           if (section === "groups" && namespace === "anchor") {
             members = ["source", "target"];
@@ -2244,8 +2277,72 @@ export function registerCustomLanguage(monaco) {
             ) {
               members = ["top", "bottom", "left", "right"];
             }
-          }
 
+            usedNamespaceProps = new Set();
+
+            if (namespace === "annotation") {
+              for (const name of members) {
+                const fullName = `annotation.${name}`;
+
+                if (
+                  [
+                    "gap",
+                    "fontFamily",
+                    "fontSize",
+                    "fontWeight",
+                    "fontStyle",
+                    "fontColor",
+                  ].includes(name)
+                ) {
+                  if (hasProp(fullName)) {
+                    usedNamespaceProps.add(name);
+                  }
+                  continue;
+                }
+
+                const leafUsed = hasProp(fullName);
+                const allShiftChildrenUsed = [
+                  "top",
+                  "bottom",
+                  "left",
+                  "right",
+                ].every((dir) => hasProp(`${fullName}.shift.${dir}`));
+
+                // hide annotation.top only when both the leaf and all nested shift props are done
+                if (leafUsed && allShiftChildrenUsed) {
+                  usedNamespaceProps.add(name);
+                }
+              }
+            } else if (
+              /^annotation\.(top|bottom|left|right)$/.test(namespace)
+            ) {
+              const leafUsed = hasProp(namespace);
+
+              if (leafUsed) {
+                usedNamespaceProps.add("__self__"); // hides annotation.top leaf suggestion
+              }
+
+              const allShiftChildrenUsed = [
+                "top",
+                "bottom",
+                "left",
+                "right",
+              ].every((dir) => hasProp(`${namespace}.shift.${dir}`));
+
+              if (allShiftChildrenUsed) {
+                usedNamespaceProps.add("shift"); // hides annotation.top.shift only when exhausted
+              }
+            } else if (
+              /^annotation\.(top|bottom|left|right)\.shift$/.test(namespace)
+            ) {
+              for (const name of members) {
+                const fullName = `${namespace}.${name}`;
+                if (hasProp(fullName)) {
+                  usedNamespaceProps.add(name);
+                }
+              }
+            }
+          }
           const namespaceRange = {
             startLineNumber: position.lineNumber,
             endLineNumber: position.lineNumber,
@@ -2403,6 +2500,7 @@ export function registerCustomLanguage(monaco) {
           model,
           position,
         );
+
         const currentArchitectureName = getArchitectureNameAtPosition(
           model,
           position,
@@ -2437,16 +2535,7 @@ export function registerCustomLanguage(monaco) {
             .getLineContent(position.lineNumber)
             .substring(0, position.column - 1);
 
-          return linePrefix.endsWith(",");
-        }
-        if (
-          !context.isInAttributeValue &&
-          (diagramTopLevelContext.insideDiagramTopLevel ||
-            architectureTopLevelContext.insideArchitectureTopLevel ||
-            architectureBlockContext.insideArchitectureBlockTopLevel) &&
-          isImmediatelyAfterComma(model, position)
-        ) {
-          return { suggestions: [] };
+          return /,\s*$/.test(linePrefix);
         }
 
         function isImmediatelyAfterCommaInArchitectureInlineItem(
@@ -3125,7 +3214,86 @@ export function registerCustomLanguage(monaco) {
           !context.methodCallContext &&
           !context.isInAttributeValue
         ) {
-          const used = architectureBlockContext.usedBlockEntries;
+          function getUsedBlockPropertiesFromLinePrefix(linePrefix) {
+            const used = new Set();
+
+            let inQuotes = false;
+            let quoteChar = "";
+            let bracketDepth = 0;
+            let parenDepth = 0;
+            let braceDepth = 0;
+
+            for (let i = 0; i < linePrefix.length; i++) {
+              const ch = linePrefix[i];
+
+              if (!inQuotes) {
+                if (ch === '"' || ch === "'") {
+                  inQuotes = true;
+                  quoteChar = ch;
+                  continue;
+                }
+
+                if (ch === "[") {
+                  bracketDepth++;
+                  continue;
+                }
+                if (ch === "]") {
+                  bracketDepth = Math.max(0, bracketDepth - 1);
+                  continue;
+                }
+                if (ch === "(") {
+                  parenDepth++;
+                  continue;
+                }
+                if (ch === ")") {
+                  parenDepth = Math.max(0, parenDepth - 1);
+                  continue;
+                }
+                if (ch === "{") {
+                  braceDepth++;
+                  continue;
+                }
+                if (ch === "}") {
+                  braceDepth = Math.max(0, braceDepth - 1);
+                  continue;
+                }
+
+                if (
+                  ch === ":" &&
+                  bracketDepth === 0 &&
+                  parenDepth === 0 &&
+                  braceDepth === 0
+                ) {
+                  let j = i - 1;
+                  while (j >= 0 && /\s/.test(linePrefix[j])) j--;
+
+                  const end = j + 1;
+                  while (j >= 0 && /[a-zA-Z0-9_.]/.test(linePrefix[j])) j--;
+
+                  const start = j + 1;
+                  const key = linePrefix.slice(start, end);
+                  const boundaryOk =
+                    start === 0 || /[\s,]/.test(linePrefix[start - 1]);
+
+                  if (key && boundaryOk) {
+                    used.add(key);
+                  }
+                }
+              } else if (ch === quoteChar && linePrefix[i - 1] !== "\\") {
+                inQuotes = false;
+              }
+            }
+
+            return used;
+          }
+          const linePrefix = model
+            .getLineContent(position.lineNumber)
+            .substring(0, position.column - 1);
+
+          const used = new Set([
+            ...(architectureBlockContext.usedBlockEntries || []),
+            ...getUsedBlockPropertiesFromLinePrefix(linePrefix),
+          ]);
 
           const hasAllStrokeProps =
             used.has("stroke.color") &&
@@ -3495,6 +3663,78 @@ export function registerCustomLanguage(monaco) {
             }
           }
         }
+        function getUsedDiagramPropertiesFromLinePrefix(linePrefix) {
+          const used = new Set();
+
+          let inQuotes = false;
+          let quoteChar = "";
+          let bracketDepth = 0;
+          let parenDepth = 0;
+          let braceDepth = 0;
+
+          for (let i = 0; i < linePrefix.length; i++) {
+            const ch = linePrefix[i];
+
+            if (!inQuotes) {
+              if (ch === '"' || ch === "'") {
+                inQuotes = true;
+                quoteChar = ch;
+                continue;
+              }
+
+              if (ch === "[") {
+                bracketDepth++;
+                continue;
+              }
+              if (ch === "]") {
+                bracketDepth = Math.max(0, bracketDepth - 1);
+                continue;
+              }
+              if (ch === "(") {
+                parenDepth++;
+                continue;
+              }
+              if (ch === ")") {
+                parenDepth = Math.max(0, parenDepth - 1);
+                continue;
+              }
+              if (ch === "{") {
+                braceDepth++;
+                continue;
+              }
+              if (ch === "}") {
+                braceDepth = Math.max(0, braceDepth - 1);
+                continue;
+              }
+
+              if (
+                ch === ":" &&
+                bracketDepth === 0 &&
+                parenDepth === 0 &&
+                braceDepth === 0
+              ) {
+                let j = i - 1;
+                while (j >= 0 && /\s/.test(linePrefix[j])) j--;
+
+                const end = j + 1;
+                while (j >= 0 && /[a-zA-Z0-9_.]/.test(linePrefix[j])) j--;
+
+                const start = j + 1;
+                const key = linePrefix.slice(start, end);
+                const boundaryOk =
+                  start === 0 || /[\s,]/.test(linePrefix[start - 1]);
+
+                if (key && boundaryOk) {
+                  used.add(key);
+                }
+              }
+            } else if (ch === quoteChar && linePrefix[i - 1] !== "\\") {
+              inQuotes = false;
+            }
+          }
+
+          return used;
+        }
         if (
           diagramTopLevelContext.insideDiagramTopLevel &&
           !diagramSectionContext.insideDiagramConnects &&
@@ -3504,7 +3744,15 @@ export function registerCustomLanguage(monaco) {
           !context.isInAttributeValue &&
           shouldShowTopLevelPropertyStarters(model, position)
         ) {
-          const used = diagramTopLevelContext.usedEntries;
+          const linePrefix = model
+            .getLineContent(position.lineNumber)
+            .substring(0, position.column - 1);
+
+          const used = new Set([
+            ...(diagramTopLevelContext.usedEntries || []),
+
+            ...getUsedDiagramPropertiesFromLinePrefix(linePrefix),
+          ]);
 
           [
             {
@@ -10963,6 +11211,52 @@ export function registerCustomLanguage(monaco) {
 
   let lastAutoSuggestKey = null;
 
+  function shouldAutoSuggestInsideArchitectureTopLevelProps(editor, position) {
+    const model = editor.getModel();
+    if (!model) return false;
+
+    const architectureTopLevelContext = getArchitectureTopLevelContext(
+      model,
+      position,
+    );
+    const architectureBlockContext = getArchitectureBlockContext(
+      model,
+      position,
+    );
+    const diagramTopLevelContext = getArchitectureDiagramTopLevelContext(
+      model,
+      position,
+    );
+    const architectureSectionContext = getArchitectureSectionContext(
+      model,
+      position,
+    );
+    const diagramSectionContext = getArchitectureDiagramSectionContext(
+      model,
+      position,
+    );
+
+    const isTopLevelArea =
+      (architectureTopLevelContext.insideArchitectureTopLevel ||
+        architectureBlockContext.insideArchitectureBlockTopLevel ||
+        diagramTopLevelContext.insideDiagramTopLevel) &&
+      !architectureSectionContext.insideNodes &&
+      !architectureSectionContext.insideEdges &&
+      !architectureSectionContext.insideGroups &&
+      !diagramSectionContext.insideDiagramUses &&
+      !diagramSectionContext.insideDiagramConnects;
+
+    if (!isTopLevelArea) return false;
+
+    const line = model.getLineContent(position.lineNumber);
+    const linePrefix = line.substring(0, position.column - 1);
+
+    // Trigger after:
+    // layout: vertical,
+    // layout: vertical,␠
+    return /,\s*$/.test(linePrefix);
+  }
+
   function shouldAutoSuggestInsideDiagramUses(editor, position) {
     const model = editor.getModel();
     if (!model) return false;
@@ -11145,6 +11439,7 @@ export function registerCustomLanguage(monaco) {
       shouldAutoSuggestInsideNeurons(editor, position) ||
       shouldAutoSuggestInsideNeuronColors(editor, position) ||
       shouldAutoSuggestInsideArchitectureItems(editor, position) ||
+      shouldAutoSuggestInsideArchitectureTopLevelProps(editor, position) ||
       shouldAutoSuggestInsideLabelOrientation(editor, position);
 
     if (!shouldTrigger) return;
