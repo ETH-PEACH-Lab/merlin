@@ -13,6 +13,9 @@ import { handleExport } from "./utils/exportUtils";
 import ExportProgressDialog from "./components/ExportProgressDialog";
 import CustomExportDialog from "./components/CustomExportDialog";
 import { useTheme } from '@mui/material/styles';
+import { StudyTaskPanel } from "./study/StudyTaskPanel";
+import { recordStudyEvent, getCodeStats } from "./study/studyStore";
+
 
 const App = () => {
   // Use context for code and parsing
@@ -99,6 +102,7 @@ const App = () => {
 
   // Helper function to handle exports using the new export utilities
   const handleExportWrapper = async (format, customConfig = null) => {
+    
     // Prevent GIF export with less than 2 pages
     if (format === 'gif' || format == "video") {
       // Determine how many pages would be exported
@@ -259,6 +263,7 @@ const handleDslEditorFullSpace = () => {
 
   return (
     <div ref={containerRef} className="container">
+      
       <Box
         sx={{
           display: "flex",
@@ -287,6 +292,7 @@ const handleDslEditorFullSpace = () => {
               minHeight: 0,
             }}
           >
+           
             <NavigationBar
               examples={examples}
               savedItems={savedItems}
@@ -296,6 +302,8 @@ const handleDslEditorFullSpace = () => {
                   : handleSelectSavedItem
               }
             />
+           
+           
             <Box
               component="main"
               sx={{
@@ -391,6 +399,10 @@ const handleDslEditorFullSpace = () => {
         pages={pages}
         mermaidRef={mermaidRef}
         currentPage={currentPage}
+      />
+       <StudyTaskPanel
+        unparsedCode={unparsedCode}
+        pages={pages}
       />
     </div>
   );

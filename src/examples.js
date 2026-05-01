@@ -1,5 +1,50 @@
 const examples = [
   {
+    groupName: "Task User Study",
+    items: [
+      {
+        id: "Task 1",
+        title: "Task 1",
+        userCode: `neuralnetwork nn = {
+
+}
+page
+show nn
+`,
+      },
+      {
+        id: "Task 2",
+        title: "Task 2",
+        userCode: `architecture a = {
+
+}
+page
+show a
+`,
+      },
+      {
+        id: "Task 3",
+        title: "Task 3",
+        userCode: `architecture a = {
+
+}
+page
+show a
+`,
+      },
+      {
+        id: "Task 4",
+        title: "Task 4",
+        userCode: `architecture a = {
+
+}
+page
+show a
+`,
+      },
+    ],
+  },
+  {
     groupName: "Template",
     items: [
       {
