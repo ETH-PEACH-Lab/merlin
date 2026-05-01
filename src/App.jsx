@@ -34,6 +34,7 @@ const App = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [dslEditorEditable, setDslEditorEditable] = useState(true);
   const [showRenderer, setShowRenderer] = useState(true);
+  const [task1Started, setTask1Started] = useState(false);
 
   // Export state
   const [exportProgress, setExportProgress] = useState({
@@ -60,6 +61,21 @@ const App = () => {
   useEffect(() => {
     loadSavedItems();
   }, []);
+
+ useEffect(() => {
+  if (!task1Started) return;
+
+  const handleBeforeUnload = (event) => {
+    event.preventDefault();
+    event.returnValue = "";
+  };
+
+  window.addEventListener("beforeunload", handleBeforeUnload);
+
+  return () => {
+    window.removeEventListener("beforeunload", handleBeforeUnload);
+  };
+}, [task1Started]);
 
   // Listen for hash changes to support browser navigation
   useEffect(() => {
@@ -403,6 +419,7 @@ const handleDslEditorFullSpace = () => {
        <StudyTaskPanel
         unparsedCode={unparsedCode}
         pages={pages}
+        onTask1Start={() => setTask1Started(true)}
       />
     </div>
   );

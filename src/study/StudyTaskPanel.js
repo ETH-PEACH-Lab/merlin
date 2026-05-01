@@ -12,7 +12,7 @@ import {
 import { STUDY_TASKS, SURVEY_URL } from "./studyConfig";
 import { getCodeStats, getStudyMeta, submitStudyPayload } from "./studyStore";
 
-export function StudyTaskPanel({ unparsedCode, pages }) {
+export function StudyTaskPanel({ unparsedCode, pages, onTask1Start }) {
   const meta = useMemo(() => getStudyMeta(), []);
 
   const [taskIndex, setTaskIndex] = useState(0);
@@ -39,6 +39,10 @@ export function StudyTaskPanel({ unparsedCode, pages }) {
   };
 
   const startTask = () => {
+    if (taskIndex === 0) {
+      onTask1Start?.();
+    }
+
     taskStartRef.current = Date.now();
     setElapsedMs(0);
     setRunning(true);
