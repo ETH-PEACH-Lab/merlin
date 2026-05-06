@@ -20,6 +20,3 @@ export const STUDY_TASKS = [
     description: "Complete the final diagram and submit your result.",
   },
 ];
-
-export const SURVEY_URL =
-  "https://docs.google.com/forms/d/e/1FAIpQLScSm0UJXN686vLg72b9o7ggB0qHJNwSxMMeCHzotAzLbOaHzQ/viewform?usp=dialog";

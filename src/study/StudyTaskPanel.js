@@ -9,7 +9,7 @@ import {
   Typography,
 } from "@mui/material";
 
-import { STUDY_TASKS, SURVEY_URL } from "./studyConfig";
+import { STUDY_TASKS } from "./studyConfig";
 import { getCodeStats, getStudyMeta, submitStudyPayload } from "./studyStore";
 
 export function StudyTaskPanel({ unparsedCode, pages, onTask1Start }) {
@@ -119,6 +119,7 @@ export function StudyTaskPanel({ unparsedCode, pages, onTask1Start }) {
   };
 
   const openSurvey = () => {
+    const SURVEY_URL = `https://docs.google.com/forms/d/e/1FAIpQLScSm0UJXN686vLg72b9o7ggB0qHJNwSxMMeCHzotAzLbOaHzQ/viewform?usp=pp_url&entry.1365092958=${meta.participantId}`;
     const surveyUrl = new URL(SURVEY_URL);
 
     surveyUrl.searchParams.set("participant", meta.participantId);
