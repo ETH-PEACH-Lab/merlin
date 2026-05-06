@@ -51,6 +51,39 @@ const DslEditor = ({
     (editor, monaco) => {
       editorRef.current = editor;
 
+      const domNode = editor.getDomNode();
+
+      if (domNode && !editor.__customTabHandlerInstalled) {
+        editor.__customTabHandlerInstalled = true;
+
+        domNode.addEventListener(
+          "keydown",
+          (event) => {
+            if (event.key !== "Tab") return;
+
+            event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation();
+
+            // 1. Close current suggestion popup without accepting item
+            editor.trigger("custom-tab", "hideSuggestWidget", {});
+
+            // 2. Perform normal Tab behavior
+            if (event.shiftKey) {
+              editor.trigger("custom-tab", "outdent", {});
+            } else {
+              editor.trigger("custom-tab", "tab", {});
+            }
+
+            // 3. Re-open autocomplete after Monaco has applied the tab/outdent
+            setTimeout(() => {
+              if (!editor.getModel()) return;
+              editor.trigger("custom-tab", "editor.action.triggerSuggest", {});
+            }, 0);
+          },
+          true,
+        );
+      }
       // Handle clicks on "page" commands specifically to change current page
       editor.onMouseDown((e) => {
         const pos = e.target.position;
@@ -228,7 +261,6 @@ const DslEditor = ({
         // Handle autocomplete triggers
         if (
           e.keyCode === monaco.KeyCode.Enter ||
-          e.keyCode === monaco.KeyCode.Tab ||
           e.keyCode === monaco.KeyCode.Backspace ||
           e.keyCode === monaco.KeyCode.Delete
         ) {
@@ -252,8 +284,7 @@ const DslEditor = ({
               editor.trigger("keyboard", "editor.action.triggerSuggest", {});
             } else if (
               bracketsDepth > 0 &&
-              (e.keyCode === monaco.KeyCode.Tab ||
-                e.keyCode === monaco.KeyCode.Backspace)
+              e.keyCode === monaco.KeyCode.Backspace
             ) {
               // Trigger in methods completion on tab
               editor.trigger("keyboard", "editor.action.triggerSuggest", {});
@@ -390,6 +421,11 @@ const DslEditor = ({
         lineNumbers: "on",
         minimap: { enabled: false },
         readOnly,
+
+        tabCompletion: "off",
+        acceptSuggestionOnEnter: "on",
+        acceptSuggestionOnCommitCharacter: false,
+
         suggest: {
           snippetsPreventQuickSuggestions: false,
           localityBonus: true,
