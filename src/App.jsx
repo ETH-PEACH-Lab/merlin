@@ -4,14 +4,16 @@ import EditorSection from "./components/EditorSection";
 import RendererSection from "./components/RendererSection";
 import "./index.css";
 import { examples } from "./examples";
-import { Box } from "@mui/material";
+import { Box, Button, Dialog, DialogTitle, DialogContent } from "@mui/material";
 
 import Header from "./components/Header";
+import PythonVisualizerSection from "./components/PythonVisualizerSection";
 import { useParseCompile } from "./context/ParseCompileContext";
 import { extractCodeFromUrl, hasSharedExample } from "./utils/urlSharing";
 import { handleExport } from "./utils/exportUtils";
 import ExportProgressDialog from "./components/ExportProgressDialog";
 import CustomExportDialog from "./components/CustomExportDialog";
+import PythonStepper from "./components/PythonStepper";
 import { useTheme } from '@mui/material/styles';
 
 const App = () => {
@@ -30,6 +32,7 @@ const App = () => {
   const [inspectorIndex, setInspectorIndex] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [dslEditorEditable, setDslEditorEditable] = useState(true);
+  const [appMode, setAppMode] = useState("merlin"); // "merlin" or "python-visualizer"
 
   // Export state
   const [exportProgress, setExportProgress] = useState({
@@ -263,40 +266,46 @@ ${timestamp}
                 md: "static",
               },
             }}
+            appMode={appMode}
+            onModeChange={setAppMode}
           />
-          <Box
-            sx={{
-              flex: 1,
-              display: "flex",
-              minHeight: 0,
-            }}
-          >
-            <NavigationBar
-              examples={examples}
-              savedItems={savedItems}
-              onSelect={
-                activeTab === "examples"
-                  ? handleSelectExample
-                  : handleSelectSavedItem
-              }
-            />
+          
+          {/* Conditional rendering based on app mode */}
+          {appMode === "merlin" ? (
+            // Merlin Editor Mode
             <Box
-              component="main"
               sx={{
-                minWidth: 0,
-                minHeight: 0,
                 flex: 1,
                 display: "flex",
-                flexDirection: "column",
+                minHeight: 0,
               }}
             >
-              <div
-                style={{
+              <NavigationBar
+                examples={examples}
+                savedItems={savedItems}
+                onSelect={
+                  activeTab === "examples"
+                    ? handleSelectExample
+                    : handleSelectSavedItem
+                }
+              />
+              <Box
+                component="main"
+                sx={{
+                  minWidth: 0,
+                  minHeight: 0,
+                  flex: 1,
                   display: "flex",
-                  height: "100%",
+                  flexDirection: "column",
                 }}
               >
                 <div
+                  style={{
+                    display: "flex",
+                    height: "100%",
+                  }}
+                >
+                  <div
                   style={{
                     display: "flex",
                     height: "100%",
@@ -350,6 +359,25 @@ ${timestamp}
               </div>
             </Box>
           </Box>
+          ) : (
+            // Python Visualizer Mode
+            <Box
+              sx={{
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                minHeight: 0,
+                overflow: "hidden",
+              }}
+            >
+              <PythonVisualizerSection 
+                onExportToMerlin={(merlinCode) => {
+                  updateUnparsedCode(merlinCode);
+                  setAppMode("merlin");
+                }}
+              />
+            </Box>
+          )}
         </Box>
       </Box>
 

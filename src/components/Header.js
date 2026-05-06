@@ -1,9 +1,10 @@
 import React from 'react';
-import { Button, Box, Toolbar, Typography, AppBar, SvgIcon } from "@mui/material";
+import { Button, Box, Toolbar, Typography, AppBar, SvgIcon, Divider } from "@mui/material";
 import { merlinIcon } from './CustomIcons';
 import "../index.css"
 
-const Header = () => {
+
+const Header = ({ appMode = "merlin", onModeChange = () => {} }) => {
     return (
         <AppBar position="static" sx={{
             flexDirection: "row",
@@ -23,7 +24,26 @@ const Header = () => {
                 </Box>
                 <Button href="https://eth-peach-lab.github.io/merlin-docs/docs/getting-started" target="_blank">Documentation</Button>
                 <Button href="https://eth-peach-lab.github.io/merlin-docs/development" target="_blank">Development</Button>
-                <Button sx={{ color: "#a94fd8" }} href="https://eth-peach-lab.github.io/merlin" target="_blank">Merlin Editor</Button>
+                
+                
+                {/* Mode Toggle Buttons */}
+                <Button
+                    sx={{
+                        color: appMode === "merlin" ? "#a94fd8" : "inherit"
+                    }}
+                    onClick={() => onModeChange("merlin")}
+                >
+                    Merlin Editor
+                </Button>
+
+                <Button
+                    sx={{
+                        color: appMode === "python-visualizer" ? "#a94fd8" : "inherit"
+                    }}
+                    onClick={() => onModeChange("python-visualizer")}
+                >
+                    Python Visualizer
+                </Button>
             </Box>
             <Box display="flex" alignItems={"right"}>
                 <Toolbar disableGutters>
