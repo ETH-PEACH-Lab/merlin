@@ -880,6 +880,7 @@ node_type_literal -> "text" {% () => "text" %}
                    | "fullyConnected" {% () => "fullyConnected" %}
                    | "arrow" {% () => "arrow" %}
                    | "trapezoid" {% () => "trapezoid" %}
+                   | "cuboid" {% () => "cuboid" %}
 
 font_style_literal -> "normal" {% () => "normal" %}
                    | "italic" {% () => "italic" %}

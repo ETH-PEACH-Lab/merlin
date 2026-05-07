@@ -6282,7 +6282,7 @@ export function registerCustomLanguage(monaco) {
                 return { suggestions };
               }
 
-              if (detectedType === "stacked") {
+              if (detectedType === "stacked" || detectedType === "cuboid") {
                 suggestions.push({
                   label: "depth x height x width",
                   kind: monaco.languages.CompletionItemKind.Snippet,
@@ -6292,7 +6292,7 @@ export function registerCustomLanguage(monaco) {
                       .InsertAsSnippet,
                   detail: "3D shape",
                   documentation:
-                    "Stacked shape in the form depth x height x width",
+                    "Stacked/Cuboid shape in the form depth x height x width",
                   range,
                   sortText: "0shape_snippet",
                 });
@@ -6504,6 +6504,7 @@ export function registerCustomLanguage(monaco) {
                 "arrow",
                 "text",
                 "stacked",
+                "cuboid",
                 "flatten",
                 "fullyConnected",
                 "trapezoid",
@@ -9206,7 +9207,8 @@ export function registerCustomLanguage(monaco) {
               a?.blocks?.[selectedBlock].nodes.filter(
                 (node) =>
                   a?.blocks?.[selectedBlock].nodeTypes[node] === "flatten" ||
-                  a?.blocks?.[selectedBlock].nodeTypes[node] === "stacked",
+                  a?.blocks?.[selectedBlock].nodeTypes[node] === "stacked" ||
+                  a?.blocks?.[selectedBlock].nodeTypes[node] === "cuboid",
               ) || [];
 
             allNodes.forEach((num, index) => {

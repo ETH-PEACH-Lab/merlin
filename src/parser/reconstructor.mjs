@@ -469,7 +469,7 @@ function reconstructArchitectureBody(body) {
                 if (node.direction) {
                   result += ` direction: ${node.direction}`;
                 }
-              } else if (node.type === "stacked") {
+              } else if (node.type === "stacked" || node.type === "cuboid") {
                 if (node.shape) {
                   result += ` shape: ${node.shape[0][0]}x${node.shape[0][1]}x${node.shape[0][2]}`;
                 }
