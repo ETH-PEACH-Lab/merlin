@@ -72,7 +72,6 @@ export function StudyTaskPanel({ unparsedCode, pages, onTask1Start }) {
       taskId: currentTask.id,
       taskTitle: currentTask.title,
       taskIndex: taskIndex + 1,
-      finishedAt: new Date().toISOString(),
       durationMs,
       durationSeconds: Math.round(durationMs / 1000),
       finalCode: unparsedCode,
