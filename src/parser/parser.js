@@ -1102,6 +1102,7 @@ var grammar = {
     {"name": "node_type_literal", "symbols": [{"literal":"fullyConnected"}], "postprocess": () => "fullyConnected"},
     {"name": "node_type_literal", "symbols": [{"literal":"arrow"}], "postprocess": () => "arrow"},
     {"name": "node_type_literal", "symbols": [{"literal":"trapezoid"}], "postprocess": () => "trapezoid"},
+    {"name": "node_type_literal", "symbols": [{"literal":"cuboid"}], "postprocess": () => "cuboid"},
     {"name": "font_style_literal", "symbols": [{"literal":"normal"}], "postprocess": () => "normal"},
     {"name": "font_style_literal", "symbols": [{"literal":"italic"}], "postprocess": () => "italic"},
     {"name": "font_style_literal", "symbols": [{"literal":"oblique"}], "postprocess": () => "oblique"},

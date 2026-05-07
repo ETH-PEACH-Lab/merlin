@@ -289,6 +289,42 @@ export function generateBlock(blockComponent, layout = [3, 3]) {
       "annotationGap",
       "size",
     ]),
+
+    cuboid: new Set([
+      "type",
+      "shape",
+      "labelText",
+      "labelFontColor",
+      "labelFontFamily",
+      "labelFontSize",
+      "labelFontWeight",
+      "labelFontStyle",
+      "subLabelText",
+      "subLabelFontColor",
+      "subLabelFontFamily",
+      "subLabelFontSize",
+      "subLabelFontWeight",
+      "subLabelFontStyle",
+      "opLabelText",
+      "opLabelFontColor",
+      "opLabelFontFamily",
+      "opLabelFontSize",
+      "opLabelFontWeight",
+      "opLabelFontStyle",
+      "opLabelSubtext",
+      "color",
+      "strokeColor",
+      "strokeStyle",
+      "strokeWidth",
+      "annotations",
+      "annotationFontFamily",
+      "annotationFontSize",
+      "annotationFontWeight",
+      "annotationFontStyle",
+      "annotationFontColor",
+      "annotationGap",
+      "size",
+    ]),
   };
   function getPresentNodeFields(node) {
     const present = [];
@@ -538,7 +574,8 @@ export function generateBlock(blockComponent, layout = [3, 3]) {
       if (
         node.type === "flatten" ||
         node.type === "fullyConnected" ||
-        node.type === "stacked"
+        node.type === "stacked" ||
+        node.type === "cuboid"
       ) {
         if (node.shape === undefined || node.shape === null) {
           throw new Error(
@@ -1125,7 +1162,8 @@ Available groups: ${validGroups === "" ? "none" : validGroups}.`,
           if (
             node.type === "flatten" ||
             node.type === "stacked" ||
-            node.type === "fullyConnected"
+            node.type === "fullyConnected" ||
+            node.type === "cuboid"
           ) {
             const shapeTextFullyConnected = node.outputLabels
               ? `shape: {${node.shape[0].join(", ")}: {${node.outputLabels.map((x) => JSON.stringify(formatNullValue(x))).join(", ")}}} `
@@ -1135,7 +1173,7 @@ Available groups: ${validGroups === "" ? "none" : validGroups}.`,
               node.shape
                 ? node.type === "flatten"
                   ? `shape: ${node.shape[0][0]}x${node.shape[0][1]} `
-                  : node.type === "stacked"
+                  : node.type === "stacked" || node.type === "cuboid"
                     ? `shape: ${node.shape[0][0]}x${node.shape[0][1]}x${node.shape[0][2]} `
                     : shapeTextFullyConnected
                 : "",
