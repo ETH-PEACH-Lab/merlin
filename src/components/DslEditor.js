@@ -51,6 +51,10 @@ const DslEditor = ({
     (editor, monaco) => {
       editorRef.current = editor;
 
+      editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
+        editor.trigger("keyboard", "acceptSelectedSuggestion", {});
+      });
+
       const domNode = editor.getDomNode();
 
       if (domNode && !editor.__customTabHandlerInstalled) {
@@ -422,9 +426,9 @@ const DslEditor = ({
         minimap: { enabled: false },
         readOnly,
 
-        tabCompletion: "off",
-        acceptSuggestionOnEnter: "on",
+        acceptSuggestionOnEnter: "off",
         acceptSuggestionOnCommitCharacter: false,
+        tabCompletion: "off",
 
         suggest: {
           snippetsPreventQuickSuggestions: false,
