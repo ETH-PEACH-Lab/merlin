@@ -22,7 +22,7 @@ importers:
         version: 11.14.1(@emotion/react@11.14.0(@types/react@19.2.7)(react@18.3.1))(@types/react@19.2.7)(react@18.3.1)
       '@eth-peach-lab/mermaid-merlin':
         specifier: github:ETH-PEACH-Lab/mermaid-merlin#nn-develop
-        version: mermaid-monorepo@https://codeload.github.com/ETH-PEACH-Lab/mermaid-merlin/tar.gz/43f721c0296476c80a0d0d97cb6e01e22609613f
+        version: mermaid-monorepo@https://codeload.github.com/ETH-PEACH-Lab/mermaid-merlin/tar.gz/6c28ab8d7465529314106e85810c0d9318c16d62
       '@fontsource/roboto':
         specifier: ^5.2.9
         version: 5.2.9
@@ -2118,8 +2118,8 @@ packages:
       react: '>=16.9.0'
       react-dom: '>=16.9.0'
 
-  '@ungap/structured-clone@1.3.0':
-    resolution: {integrity: sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g==}
+  '@ungap/structured-clone@1.3.1':
+    resolution: {integrity: sha512-mUFwbeTqrVgDQxFveS+df2yfap6iuP20NAKAsBt5jDEoOTDew+zwLAOilHCeQJOVSvmgCX4ogqIrA0mnyr08yQ==}
 
   '@webassemblyjs/ast@1.14.1':
     resolution: {integrity: sha512-nuBEDgQfm1ccRp/8bCQrx1frohyufl4JlbMMZ4P1wpeOfDhF6FQkxZJ1b/e+PLwr6X1Nhw6OLme5usuBWYBvuQ==}
@@ -4973,8 +4973,8 @@ packages:
     resolution: {integrity: sha512-8q7VEgMJW4J8tcfVPy8g09NcQwZdbwFEqhe/WZkoIzjn/3TGDwtOCYtXGxA3O8tPzpczCCDgv+P2P5y00ZJOOg==}
     engines: {node: '>= 8'}
 
-  mermaid-monorepo@https://codeload.github.com/ETH-PEACH-Lab/mermaid-merlin/tar.gz/43f721c0296476c80a0d0d97cb6e01e22609613f:
-    resolution: {tarball: https://codeload.github.com/ETH-PEACH-Lab/mermaid-merlin/tar.gz/43f721c0296476c80a0d0d97cb6e01e22609613f}
+  mermaid-monorepo@https://codeload.github.com/ETH-PEACH-Lab/mermaid-merlin/tar.gz/6c28ab8d7465529314106e85810c0d9318c16d62:
+    resolution: {tarball: https://codeload.github.com/ETH-PEACH-Lab/mermaid-merlin/tar.gz/6c28ab8d7465529314106e85810c0d9318c16d62}
     version: 10.2.4
 
   methods@1.1.2:
@@ -10077,7 +10077,7 @@ snapshots:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 
-  '@ungap/structured-clone@1.3.0': {}
+  '@ungap/structured-clone@1.3.1': {}
 
   '@webassemblyjs/ast@1.14.1':
     dependencies:
@@ -11847,7 +11847,7 @@ snapshots:
       '@humanwhocodes/config-array': 0.13.0
       '@humanwhocodes/module-importer': 1.0.1
       '@nodelib/fs.walk': 1.2.8
-      '@ungap/structured-clone': 1.3.0
+      '@ungap/structured-clone': 1.3.1
       ajv: 6.15.0
       chalk: 4.1.2
       cross-spawn: 7.0.6
@@ -13614,7 +13614,7 @@ snapshots:
 
   merge2@1.4.1: {}
 
-  mermaid-monorepo@https://codeload.github.com/ETH-PEACH-Lab/mermaid-merlin/tar.gz/43f721c0296476c80a0d0d97cb6e01e22609613f: {}
+  mermaid-monorepo@https://codeload.github.com/ETH-PEACH-Lab/mermaid-merlin/tar.gz/6c28ab8d7465529314106e85810c0d9318c16d62: {}
 
   methods@1.1.2: {}
 
