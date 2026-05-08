@@ -205,8 +205,6 @@ export function registerCustomLanguage(monaco) {
     },
   };
 
-  ///HERERERER
-
   // Register a new language
   monaco.languages.register({ id: "customLang" });
 
@@ -216,10 +214,14 @@ export function registerCustomLanguage(monaco) {
   );
 
   // Escape special characters for regular expression
-  const escapedSymbols = languageConfig.symbols.map((symbol) =>
-    symbol.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
-  );
-  const symbolPattern = new RegExp(`(${escapedSymbols.join("|")})`, "g");
+  const escapedSymbols = languageConfig.symbols
+    .filter((symbol) => typeof symbol === "string" && symbol.length > 0)
+    .sort((a, b) => b.length - a.length)
+    .map((symbol) => symbol.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+
+  const symbolPattern = escapedSymbols.length
+    ? new RegExp(`(?:${escapedSymbols.join("|")})`)
+    : /a^/;
 
   const componentPattern = new RegExp(
     `\\b(${languageConfig.components.join("|")})\\b`,
@@ -1056,7 +1058,7 @@ export function registerCustomLanguage(monaco) {
         [/\[debug\].*/, "custom-debug"],
         [/\b(digit|number)\b/, "custom-number"],
         [/\/\/.*$/, "comment"],
-        [/$[ \t]*.*/, "inlinecomment"],
+        [/\$.*$/, "inlinecomment"],
 
         [
           /^(\s*)(architecture)(\s+)([a-zA-Z_][a-zA-Z0-9_]*)(\s*=\s*\{)/,
@@ -11435,6 +11437,8 @@ export function registerCustomLanguage(monaco) {
     const model = editor.getModel();
     if (!model) return;
 
+    if (!editor.hasTextFocus()) return;
+
     const shouldTrigger =
       shouldAutoSuggestInsideEmptyBlockBody(editor, position) ||
       shouldAutoSuggestInsideDiagramUses(editor, position) ||
@@ -11452,6 +11456,10 @@ export function registerCustomLanguage(monaco) {
 
     requestAnimationFrame(() => {
       if (!editor.getModel()) return;
+
+      // Re-check after the frame. Focus may have moved to the find/search input.
+      if (!editor.hasTextFocus()) return;
+
       editor.trigger("auto-suggest", "editor.action.triggerSuggest", {});
     });
   }

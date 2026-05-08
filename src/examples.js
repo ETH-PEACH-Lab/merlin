@@ -556,7 +556,7 @@ show a
 		groups: [
 			row1 = members: [add_norm0, feed_forward] layout: vertical gap: 5,
 			row2 = members: [add_norm1, multi_head_attention] layout: vertical gap: 5,
-			row3 = members: [row1, row2] layout: vertical gap: 40 color: "#F3F3F4" colorBoxAdjustments: (-10,-20,5,-5) stroke.color: "black" stroke.width: 2.2 shape: rounded annotation.left: "N\\\\mul" annotation.gap: 0 annotation.fontFamily: "Helvetica" annotation.fontSize: 14 annotation.fontWeight: 100,
+			row3 = members: [row1, row2] layout: vertical gap: 40 color: "#F3F3F4" colorBoxAdjustments: (-10,-20,5,-15) stroke.color: "black" stroke.width: 2.2 shape: rounded annotation.left: "N\\\\mul" annotation.gap: 10 annotation.fontFamily: "Helvetica" annotation.fontSize: 14 annotation.fontWeight: 100,
 			row4 = members: [positional_encoding, plus] gap: 12,
 			row6 = members: [row3, row4] layout: vertical anchor.source: plus anchor.target: multi_head_attention,
 			row5 = members: [row6, input_embedding] layout: vertical gap: 10
@@ -604,7 +604,7 @@ show a
 			row1 = members: [add_norm0, feed_forward] layout: vertical gap: 5,
 			row2 = members: [add_norm1, multi_head_attention] layout: vertical gap: 5,
 			row3 = members: [add_norm2, masked_multi_head_attention] layout: vertical gap: 5,
-			row4 = members: [row1, row2, row3] layout: vertical gap: 30 color: "#F3F3F4" colorBoxAdjustments: (-22,-5,5,-20) stroke.color: "black" stroke.width: 2.2 shape: rounded annotation.right: "N\\\\mul" annotation.gap: 0 annotation.fontFamily: "Helvetica" annotation.fontSize: 14 annotation.fontWeight: 100,
+			row4 = members: [row1, row2, row3] layout: vertical gap: 30 color: "#F3F3F4" colorBoxAdjustments: (-22,-20,5,-20) stroke.color: "black" stroke.width: 2.2 shape: rounded annotation.right: "N\\\\mul" annotation.gap: 5 annotation.fontFamily: "Helvetica" annotation.fontSize: 14 annotation.fontWeight: 100,
 			row6 = members: [row0, row4] layout: vertical gap: 25,
 			row5 = members: [plus, positional_encoding] gap: 12,
 			row8 = members: [row6, row5] layout: vertical anchor.source: plus anchor.target: masked_multi_head_attention,
@@ -627,6 +627,7 @@ show a
 
 page
 show a
+
 
 `,
       },
@@ -879,7 +880,7 @@ show nn
 	],
 	block Resnet: [
 		annotation.fontFamily: "Arial",
-		annotation.right: "Element-wise feature\nsummation",
+		annotation.right: "Element-wise feature\\nsummation",
 		annotation.top.shift.top: 10,
 		annotation.fontSize: 15,
 		layout: horizontal,
@@ -1925,12 +1926,12 @@ show a
 			ht_top = type: rect label.text: "h_t" label.fontSize: 28 label.fontWeight: 100 label.fontStyle: italic size: (70, 34) color: "#D9D9D9" stroke.color: "transparent"
 		],
 		groups: [
-			forget_col = members: [x2, sigma0] layout: vertical gap: 107 color: "#D9EBE7" colorBoxAdjustments: (-15,-20,20,-20) annotation.top: "Forget gate" annotation.gap: -20,
+			forget_col = members: [x2, sigma0] layout: vertical gap: 107 color: "#D9EBE7" colorBoxAdjustments: (-15,-20,20,-20) annotation.top: "Forget gate" annotation.gap: -40,
 			input_mix = members: [plus, x1] layout: vertical gap: 40,
 			input_col = members: [input_mix, tanh0] layout: vertical gap: 40,
 			output_col = members: [tanh1, x0] layout: vertical shift.top: 100 shift.left: 10,
-			row2 = members: [sigma1, input_col] gap: 30 color: "#EBEADF" colorBoxAdjustments: (-15,-20,20,-20) annotation.top: "Input gate" annotation.gap: -25,
-			row3 = members: [sigma2, output_col] color: "#CCF1DF" colorBoxAdjustments: (120,-20,-28,-20) annotation.top: "Output gate" annotation.gap: -25,
+			row2 = members: [sigma1, input_col] gap: 30 color: "#EBEADF" colorBoxAdjustments: (-15,-20,20,-20) annotation.top: "Input gate" annotation.gap: -40,
+			row3 = members: [sigma2, output_col] color: "#CCF1DF" colorBoxAdjustments: (120,-20,-28,-20) annotation.top: "Output gate" annotation.gap: -40,
 			core_row = members: [forget_col, row2, row3] gap: 30 color: "#F2F2F2" colorBoxAdjustments: (10,20,-20,20) stroke.color: "black" stroke.style: dashed stroke.width: 4 shape: rounded,
 			left_io = members: [ct_prev, ht_prev] layout: vertical gap: 150,
 			main_with_left = members: [left_io, core_row] gap: 80 anchor.source: ct_prev anchor.target: x2,
@@ -1964,6 +1965,10 @@ show a
 
 page
 show a
+
+
+
+
 
 
 
