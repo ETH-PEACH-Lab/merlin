@@ -462,7 +462,55 @@ var grammar = {
             }
         
             if (annotations.length > 0) {
-                result.annotations = annotations;
+            result.annotations = annotations;
+        }
+        
+            if (result.shape !== undefined) {
+                const type = result.type;
+        
+                if (type === "fullyConnected") {
+                    if (result.shapeKind !== "numberList") {
+                        throw new Error(`fullyConnected nodes require shape like [15, 15, 15]`);
+                     }
+                }
+        
+                else if (type === "flatten") {
+                    if (result.shapeKind !== "layout") {
+                        throw new Error(`flatten nodes require shape like 10x10`);
+                    }
+        
+                    if (result.shape.length !== 2) {
+                        throw new Error(`flatten nodes require a 2D shape like 10x10`);
+                    }
+                }
+        
+                else if (type === "stacked") {
+                    if (result.shapeKind !== "layout") {
+                        throw new Error(`stacked nodes require shape like 10x10x3`);
+                    }
+        
+                    if (result.shape.length !== 3) {
+                        throw new Error(`stacked nodes require a 3D shape like 10x10x3`);
+                    }
+                }
+        
+                else if (type === "cuboid") {
+                    if (result.shapeKind !== "layout") {
+                        throw new Error(`cuboid nodes require shape like 10x10x3, not [10,10,3]`);
+                    }
+        
+                    if (result.shape.length !== 3) {
+                        throw new Error(`cuboid nodes require a 3D shape like 10x10x3`);
+                    }
+                }
+        
+                else if (type === "rect") {
+                    if (result.shapeKind !== "nodeShape") {
+                        throw new Error(`rect nodes only support shape: rounded`);
+                    }
+                 }
+        
+                delete result.shapeKind;
             }
         
             return result;
@@ -471,51 +519,54 @@ var grammar = {
     {"name": "node_field$subexpression$1$macrocall$3", "symbols": ["node_type_literal"]},
     {"name": "node_field$subexpression$1$macrocall$1", "symbols": ["node_field$subexpression$1$macrocall$2", "colon", "_", "node_field$subexpression$1$macrocall$3"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
     {"name": "node_field$subexpression$1", "symbols": ["node_field$subexpression$1$macrocall$1"]},
-    {"name": "node_field$subexpression$1$macrocall$5", "symbols": [{"literal":"shape"}]},
-    {"name": "node_field$subexpression$1$macrocall$6$subexpression$1", "symbols": ["shape_literal"]},
-    {"name": "node_field$subexpression$1$macrocall$6$subexpression$1", "symbols": ["number_only_list"]},
-    {"name": "node_field$subexpression$1$macrocall$6", "symbols": ["node_field$subexpression$1$macrocall$6$subexpression$1"]},
+    {"name": "node_field$subexpression$1", "symbols": ["node_shape_field"]},
+    {"name": "node_field$subexpression$1$macrocall$5", "symbols": [{"literal":"kernelSize"}]},
+    {"name": "node_field$subexpression$1$macrocall$6", "symbols": ["kernel_size_literal"]},
     {"name": "node_field$subexpression$1$macrocall$4", "symbols": ["node_field$subexpression$1$macrocall$5", "colon", "_", "node_field$subexpression$1$macrocall$6"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
     {"name": "node_field$subexpression$1", "symbols": ["node_field$subexpression$1$macrocall$4"]},
-    {"name": "node_field$subexpression$1$macrocall$8", "symbols": [{"literal":"kernelSize"}]},
-    {"name": "node_field$subexpression$1$macrocall$9", "symbols": ["kernel_size_literal"]},
+    {"name": "node_field$subexpression$1$macrocall$8", "symbols": [{"literal":"filterSpacing"}]},
+    {"name": "node_field$subexpression$1$macrocall$9", "symbols": ["number"]},
     {"name": "node_field$subexpression$1$macrocall$7", "symbols": ["node_field$subexpression$1$macrocall$8", "colon", "_", "node_field$subexpression$1$macrocall$9"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
     {"name": "node_field$subexpression$1", "symbols": ["node_field$subexpression$1$macrocall$7"]},
-    {"name": "node_field$subexpression$1$macrocall$11", "symbols": [{"literal":"filterSpacing"}]},
-    {"name": "node_field$subexpression$1$macrocall$12", "symbols": ["number"]},
-    {"name": "node_field$subexpression$1$macrocall$10", "symbols": ["node_field$subexpression$1$macrocall$11", "colon", "_", "node_field$subexpression$1$macrocall$12"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
-    {"name": "node_field$subexpression$1", "symbols": ["node_field$subexpression$1$macrocall$10"]},
     {"name": "node_field$subexpression$1", "symbols": ["node_label_property"]},
     {"name": "node_field$subexpression$1", "symbols": ["node_sub_label_property"]},
     {"name": "node_field$subexpression$1", "symbols": ["node_op_label_property"]},
     {"name": "node_field$subexpression$1", "symbols": ["stroke_property"]},
     {"name": "node_field$subexpression$1", "symbols": ["outer_stroke_property"]},
     {"name": "node_field$subexpression$1", "symbols": ["annotation_property"]},
-    {"name": "node_field$subexpression$1$macrocall$14", "symbols": [{"literal":"size"}]},
-    {"name": "node_field$subexpression$1$macrocall$15", "symbols": ["size_tuple"]},
+    {"name": "node_field$subexpression$1$macrocall$11", "symbols": [{"literal":"size"}]},
+    {"name": "node_field$subexpression$1$macrocall$12", "symbols": ["size_tuple"]},
+    {"name": "node_field$subexpression$1$macrocall$10", "symbols": ["node_field$subexpression$1$macrocall$11", "colon", "_", "node_field$subexpression$1$macrocall$12"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
+    {"name": "node_field$subexpression$1", "symbols": ["node_field$subexpression$1$macrocall$10"]},
+    {"name": "node_field$subexpression$1$macrocall$14", "symbols": [{"literal":"color"}]},
+    {"name": "node_field$subexpression$1$macrocall$15$subexpression$1", "symbols": ["string"]},
+    {"name": "node_field$subexpression$1$macrocall$15$subexpression$1", "symbols": ["nullT"]},
+    {"name": "node_field$subexpression$1$macrocall$15$subexpression$1", "symbols": ["ns_list"]},
+    {"name": "node_field$subexpression$1$macrocall$15", "symbols": ["node_field$subexpression$1$macrocall$15$subexpression$1"]},
     {"name": "node_field$subexpression$1$macrocall$13", "symbols": ["node_field$subexpression$1$macrocall$14", "colon", "_", "node_field$subexpression$1$macrocall$15"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
     {"name": "node_field$subexpression$1", "symbols": ["node_field$subexpression$1$macrocall$13"]},
-    {"name": "node_field$subexpression$1$macrocall$17", "symbols": [{"literal":"shape"}]},
-    {"name": "node_field$subexpression$1$macrocall$18", "symbols": ["node_shape_literal"]},
+    {"name": "node_field$subexpression$1$macrocall$17", "symbols": [{"literal":"outputLabels"}]},
+    {"name": "node_field$subexpression$1$macrocall$18", "symbols": ["ns_list"]},
     {"name": "node_field$subexpression$1$macrocall$16", "symbols": ["node_field$subexpression$1$macrocall$17", "colon", "_", "node_field$subexpression$1$macrocall$18"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
     {"name": "node_field$subexpression$1", "symbols": ["node_field$subexpression$1$macrocall$16"]},
-    {"name": "node_field$subexpression$1$macrocall$20", "symbols": [{"literal":"color"}]},
-    {"name": "node_field$subexpression$1$macrocall$21$subexpression$1", "symbols": ["string"]},
-    {"name": "node_field$subexpression$1$macrocall$21$subexpression$1", "symbols": ["nullT"]},
-    {"name": "node_field$subexpression$1$macrocall$21$subexpression$1", "symbols": ["ns_list"]},
-    {"name": "node_field$subexpression$1$macrocall$21", "symbols": ["node_field$subexpression$1$macrocall$21$subexpression$1"]},
+    {"name": "node_field$subexpression$1$macrocall$20", "symbols": [{"literal":"direction"}]},
+    {"name": "node_field$subexpression$1$macrocall$21", "symbols": ["side_literal"]},
     {"name": "node_field$subexpression$1$macrocall$19", "symbols": ["node_field$subexpression$1$macrocall$20", "colon", "_", "node_field$subexpression$1$macrocall$21"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
     {"name": "node_field$subexpression$1", "symbols": ["node_field$subexpression$1$macrocall$19"]},
-    {"name": "node_field$subexpression$1$macrocall$23", "symbols": [{"literal":"outputLabels"}]},
-    {"name": "node_field$subexpression$1$macrocall$24", "symbols": ["ns_list"]},
-    {"name": "node_field$subexpression$1$macrocall$22", "symbols": ["node_field$subexpression$1$macrocall$23", "colon", "_", "node_field$subexpression$1$macrocall$24"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
-    {"name": "node_field$subexpression$1", "symbols": ["node_field$subexpression$1$macrocall$22"]},
-    {"name": "node_field$subexpression$1$macrocall$26", "symbols": [{"literal":"direction"}]},
-    {"name": "node_field$subexpression$1$macrocall$27", "symbols": ["side_literal"]},
-    {"name": "node_field$subexpression$1$macrocall$25", "symbols": ["node_field$subexpression$1$macrocall$26", "colon", "_", "node_field$subexpression$1$macrocall$27"], "postprocess": ([key, , , value]) => ({ [key]: id(value) })},
-    {"name": "node_field$subexpression$1", "symbols": ["node_field$subexpression$1$macrocall$25"]},
     {"name": "node_field$subexpression$1", "symbols": ["node_annotation"]},
     {"name": "node_field", "symbols": ["node_field$subexpression$1"], "postprocess": iid},
+    {"name": "node_shape_field", "symbols": [{"literal":"shape"}, "colon", "_", "shape_literal"], "postprocess":  ([, , , value]) => ({
+            shape: value,
+            shapeKind: "layout"
+        }) },
+    {"name": "node_shape_field", "symbols": [{"literal":"shape"}, "colon", "_", "number_only_list"], "postprocess":  ([, , , value]) => ({
+            shape: value,
+            shapeKind: "numberList"
+        }) },
+    {"name": "node_shape_field", "symbols": [{"literal":"shape"}, "colon", "_", "node_shape_literal"], "postprocess":  ([, , , value]) => ({
+            shape: value,
+            shapeKind: "nodeShape"
+        }) },
     {"name": "outer_stroke_property", "symbols": [{"literal":"outerStroke"}, "dot", "outer_stroke_subfield"], "postprocess": ([ , , sub]) => sub},
     {"name": "outer_stroke_subfield$subexpression$1", "symbols": ["string"]},
     {"name": "outer_stroke_subfield$subexpression$1", "symbols": ["nullT"]},

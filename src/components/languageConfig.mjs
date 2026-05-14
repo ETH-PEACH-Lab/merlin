@@ -201,17 +201,14 @@ export const typeDocumentation = {
     ],
     url: "https://eth-peach-lab.github.io/merlin-docs/docs/data-structures/architecture",
     insertText: `architecture \${1:a} = {
-  title: "\${2:Hello}",
-
   block \${3:Encoder}: [
     layout: \${4:vertical},
     gap: \${5:40},
     color: "\${6:yellow}",
-    style: \${7:box},
 
     nodes: [
-      \${8:add_norm1} = type: rect label: "Add & Norm",
-      \${9:feed_forward} = type: rect label: "Feed Forward"
+      \${8:add_norm1} = type: rect label.text: "Add & Norm",
+      \${9:feed_forward} = type: rect label.text: "Feed Forward"
     ],
 
     edges: [
@@ -221,7 +218,7 @@ export const typeDocumentation = {
     groups: [
       \${11:row1} = members: [\${8:add_norm1}, \${9:feed_forward}] layout: vertical gap: 10
     ]
-  ],
+  ]
 
   diagram: [
     gap: \${12:15},
@@ -248,7 +245,7 @@ export const typeDocumentation = {
       "Per-layer values and colors",
     ],
     url: "https://eth-peach-lab.github.io/merlin-docs/docs/data-structures/neural-network",
-    insertText: `neuralnetwork \${1:nn} = {\n  layers: [\${2:"input","hidden","output"}]\n  neurons: [[\${3:"x1","x2"}],[\${4:"h1","h2"}],[\${5:"y"}]]\n  layerColors: [\${6:"blue", null, "red"}]\n  neuronColors: [[\${7:"blue", null}],[null, null],[null]]\n  showBias: \${8:true}\n  showLabels: \${9:true}\n  labelPosition: "\${10:top}"\n  showWeights: \${11:false}\n  showArrowheads: \${12:true}\n}`,
+    insertText: `neuralnetwork \${1:nn} = {\n  layers: [\${2:"input","hidden","output"}]\n  neurons: [[\${3:"x1","x2"}],[\${4:"h1","h2"}],[\${5:"y"}]]\n  layerColors: [\${6:"blue", null, "red"}]\n  neuronColors: [[\${7:"blue", null}],[null, null],[null]]\n  showBias: \${8:true}\n  showLabels: \${9:true}\n  labelPosition: \${10:top}\n  showWeights: \${11:false}\n  showArrowheads: \${12:true}\n}`,
     insertTextName: "nn",
     supportedProperties: [
       "layers",

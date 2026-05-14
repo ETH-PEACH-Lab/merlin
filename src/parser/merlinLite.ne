@@ -405,14 +405,62 @@ node_body -> node_field (nlow node_field):* {% ([first, rest]) => {
     }
 
     if (annotations.length > 0) {
-        result.annotations = annotations;
+    result.annotations = annotations;
+}
+
+    if (result.shape !== undefined) {
+        const type = result.type;
+
+        if (type === "fullyConnected") {
+            if (result.shapeKind !== "numberList") {
+                throw new Error(`fullyConnected nodes require shape like [15, 15, 15]`);
+             }
+        }
+
+        else if (type === "flatten") {
+            if (result.shapeKind !== "layout") {
+                throw new Error(`flatten nodes require shape like 10x10`);
+            }
+
+            if (result.shape.length !== 2) {
+                throw new Error(`flatten nodes require a 2D shape like 10x10`);
+            }
+        }
+
+        else if (type === "stacked") {
+            if (result.shapeKind !== "layout") {
+                throw new Error(`stacked nodes require shape like 10x10x3`);
+            }
+
+            if (result.shape.length !== 3) {
+                throw new Error(`stacked nodes require a 3D shape like 10x10x3`);
+            }
+        }
+
+        else if (type === "cuboid") {
+            if (result.shapeKind !== "layout") {
+                throw new Error(`cuboid nodes require shape like 10x10x3, not [10,10,3]`);
+            }
+
+            if (result.shape.length !== 3) {
+                throw new Error(`cuboid nodes require a 3D shape like 10x10x3`);
+            }
+        }
+
+        else if (type === "rect") {
+            if (result.shapeKind !== "nodeShape") {
+                throw new Error(`rect nodes only support shape: rounded`);
+            }
+         }
+
+        delete result.shapeKind;
     }
 
     return result;
 } %}
 
 node_field -> (pair["type", node_type_literal] 
-            | pair["shape", (shape_literal | number_only_list)] 
+            | node_shape_field
             | pair["kernelSize", kernel_size_literal] 
             | pair["filterSpacing", number] 
             | node_label_property
@@ -422,13 +470,25 @@ node_field -> (pair["type", node_type_literal]
             | outer_stroke_property
             | annotation_property
             | pair["size", size_tuple] 
-            | pair["shape", node_shape_literal] 
             | pair["color", (string | nullT | ns_list)]
             | pair["outputLabels", ns_list]
             | pair["direction", side_literal]
             | node_annotation
             )
 {% iid %}
+
+node_shape_field -> "shape" colon _ shape_literal {% ([, , , value]) => ({
+    shape: value,
+    shapeKind: "layout"
+}) %}
+| "shape" colon _ number_only_list {% ([, , , value]) => ({
+    shape: value,
+    shapeKind: "numberList"
+}) %}
+| "shape" colon _ node_shape_literal {% ([, , , value]) => ({
+    shape: value,
+    shapeKind: "nodeShape"
+}) %}
 
 outer_stroke_property -> "outerStroke" dot outer_stroke_subfield {% ([ , , sub]) => sub %}
 

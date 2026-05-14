@@ -471,7 +471,7 @@ function reconstructArchitectureBody(body) {
                 }
               } else if (node.type === "stacked" || node.type === "cuboid") {
                 if (node.shape) {
-                  result += ` shape: ${node.shape[0][0]}x${node.shape[0][1]}x${node.shape[0][2]}`;
+                  result += ` shape: ${node.shape[0]}x${node.shape[1]}x${node.shape[2]}`;
                 }
 
                 if (node.kernelSize) {
@@ -674,7 +674,7 @@ function reconstructArchitectureBody(body) {
                 }
               } else if (node.type === "flatten") {
                 if (node.shape) {
-                  result += ` shape: ${node.shape[0][0]}x${node.shape[0][1]}`;
+                  result += ` shape: ${node.shape[0]}x${node.shape[1]}`;
                 }
 
                 if (node.labelText !== undefined && node.labelText !== null) {
@@ -832,9 +832,9 @@ function reconstructArchitectureBody(body) {
                 if (node.shape) {
                   result += ` shape: [`;
 
-                  for (let i = 0; i < node.shape[0].length; i++) {
-                    result += `${node.shape[0][i]}`;
-                    if (i !== node.shape[0].length - 1) {
+                  for (let i = 0; i < node.shape.length; i++) {
+                    result += `${node.shape[i]}`;
+                    if (i !== node.shape.length - 1) {
                       result += `, `;
                     }
                   }
@@ -1005,7 +1005,7 @@ function reconstructArchitectureBody(body) {
                   result += ` color: [`;
 
                   for (let i = 0; i < node.color[0].length; i++) {
-                    result += `"${node.color[0][i]}"`;
+                    result += `"${node.color[i]}"`;
                     if (i !== node.color[0].length - 1) {
                       result += `, `;
                     }
