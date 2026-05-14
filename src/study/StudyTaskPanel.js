@@ -136,21 +136,23 @@ export function StudyTaskPanel({ unparsedCode, pages, onTask1Start }) {
     <Box
       sx={{
         position: "fixed",
-        top: 88,
-        right: 14,
-        width: 280,
+        top: 5,
+        right: 5,
+        width: 220,
+        height: submitted ? 235 : 185,
+        transition: "height 180ms ease",
         zIndex: 9999,
-        borderRadius: "14px",
+        borderRadius: "10px",
         overflow: "hidden",
         backgroundColor: "#ffffff",
         border: "1px solid rgba(0,0,0,0.1)",
-        boxShadow: "0 12px 34px rgba(0,0,0,0.24)",
+        boxShadow: "0 8px 22px rgba(0,0,0,0.2)",
       }}
     >
       <Box
         sx={{
-          px: 1.5,
-          py: 1,
+          px: 1,
+          py: 0.55,
           background:
             "linear-gradient(135deg, rgba(156,39,176,1), rgba(103,58,183,1))",
           color: "white",
@@ -163,24 +165,26 @@ export function StudyTaskPanel({ unparsedCode, pages, onTask1Start }) {
         >
           <Box sx={{ minWidth: 0 }}>
             <Typography
-              variant="subtitle2"
+              variant="caption"
               sx={{
                 fontWeight: 800,
-                lineHeight: 1.2,
+                lineHeight: 1,
+                fontSize: 11,
               }}
             >
               NN-LIVE Study
             </Typography>
 
             <Typography
-              variant="caption"
               sx={{
                 display: "block",
                 opacity: 0.85,
-                maxWidth: 180,
+                maxWidth: 140,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
+                fontSize: 9,
+                lineHeight: 1,
               }}
             >
               {meta.participantId}
@@ -192,10 +196,14 @@ export function StudyTaskPanel({ unparsedCode, pages, onTask1Start }) {
               size="small"
               label={`${taskIndex + 1}/${STUDY_TASKS.length}`}
               sx={{
-                height: 22,
+                height: 17,
+                fontSize: 9,
                 color: "white",
                 fontWeight: 800,
                 backgroundColor: "rgba(255,255,255,0.22)",
+                "& .MuiChip-label": {
+                  px: 0.75,
+                },
               }}
             />
           )}
@@ -206,7 +214,7 @@ export function StudyTaskPanel({ unparsedCode, pages, onTask1Start }) {
         variant="determinate"
         value={progress}
         sx={{
-          height: 4,
+          height: 3,
           backgroundColor: "rgba(156,39,176,0.12)",
           "& .MuiLinearProgress-bar": {
             backgroundColor: "#9c27b0",
@@ -214,7 +222,7 @@ export function StudyTaskPanel({ unparsedCode, pages, onTask1Start }) {
         }}
       />
 
-      <Box sx={{ p: 1.5 }}>
+      <Box sx={{ p: 0.85 }}>
         {!submitted ? (
           <>
             <Stack
@@ -225,23 +233,23 @@ export function StudyTaskPanel({ unparsedCode, pages, onTask1Start }) {
             >
               <Box sx={{ minWidth: 0 }}>
                 <Typography
-                  variant="subtitle1"
                   sx={{
                     fontWeight: 900,
-                    lineHeight: 1.15,
+                    lineHeight: 1.05,
                     color: "#1f1f1f",
+                    fontSize: 12,
                   }}
                 >
                   {currentTask?.title}
                 </Typography>
 
                 <Typography
-                  variant="caption"
                   sx={{
                     display: "block",
-                    mt: 0.5,
+                    mt: 0.25,
                     color: "#555",
-                    lineHeight: 1.35,
+                    lineHeight: 1.15,
+                    fontSize: 9.5,
                   }}
                 >
                   {currentTask?.description}
@@ -252,28 +260,32 @@ export function StudyTaskPanel({ unparsedCode, pages, onTask1Start }) {
                 size="small"
                 label={running ? "Live" : "Ready"}
                 sx={{
-                  height: 22,
+                  height: 17,
                   flexShrink: 0,
                   fontWeight: 800,
+                  fontSize: 9,
                   color: running ? "#2e7d32" : "#666",
                   backgroundColor: running ? "#eaf6ec" : "#f2f2f2",
+                  "& .MuiChip-label": {
+                    px: 0.75,
+                  },
                 }}
               />
             </Stack>
 
             <Box
               sx={{
-                mt: 1.25,
-                mb: 1,
-                p: 1,
-                borderRadius: "12px",
+                mt: 0.65,
+                mb: 0.65,
+                p: 0.6,
+                borderRadius: "8px",
                 backgroundColor: "#fafafa",
                 border: "1px solid rgba(0,0,0,0.06)",
               }}
             >
               <Typography
                 sx={{
-                  fontSize: 29,
+                  fontSize: 21,
                   fontWeight: 900,
                   lineHeight: 1,
                   letterSpacing: "-0.03em",
@@ -286,20 +298,23 @@ export function StudyTaskPanel({ unparsedCode, pages, onTask1Start }) {
 
               <Stack
                 direction="row"
-                spacing={0.5}
+                spacing={0.4}
                 sx={{
-                  mt: 0.75,
+                  mt: 0.45,
                   flexWrap: "wrap",
-                  gap: 0.5,
+                  gap: 0.4,
                 }}
               >
                 <Chip
                   size="small"
                   label={`${stats.lineCount} lines`}
                   sx={{
-                    height: 22,
+                    height: 17,
                     fontWeight: 700,
-                    fontSize: 11,
+                    fontSize: 9,
+                    "& .MuiChip-label": {
+                      px: 0.75,
+                    },
                   }}
                 />
 
@@ -307,15 +322,17 @@ export function StudyTaskPanel({ unparsedCode, pages, onTask1Start }) {
                   size="small"
                   label={`${stats.pageCount} pages`}
                   sx={{
-                    height: 22,
+                    height: 17,
                     fontWeight: 700,
-                    fontSize: 11,
+                    fontSize: 9,
+                    "& .MuiChip-label": {
+                      px: 0.75,
+                    },
                   }}
                 />
               </Stack>
             </Box>
-
-            <Stack direction="row" spacing={0.75}>
+            <Stack direction="row" spacing={0.5}>
               <Button
                 fullWidth
                 size="small"
@@ -323,10 +340,12 @@ export function StudyTaskPanel({ unparsedCode, pages, onTask1Start }) {
                 onClick={startTask}
                 disabled={running || isSubmitting}
                 sx={{
-                  minHeight: 34,
+                  minHeight: 26,
+                  py: 0,
                   textTransform: "none",
                   fontWeight: 900,
-                  borderRadius: "10px",
+                  fontSize: 11,
+                  borderRadius: "7px",
                   backgroundColor: "#9c27b0",
                   boxShadow: "none",
                   "&:hover": {
@@ -346,16 +365,14 @@ export function StudyTaskPanel({ unparsedCode, pages, onTask1Start }) {
                   onClick={finishAndGoNext}
                   disabled={!running || isSubmitting}
                   sx={{
-                    minHeight: 34,
+                    minHeight: 26,
+                    py: 0,
                     textTransform: "none",
                     fontWeight: 900,
-                    borderRadius: "10px",
+                    fontSize: 11,
+                    borderRadius: "7px",
                     borderColor: "#9c27b0",
                     color: "#9c27b0",
-                    "&:hover": {
-                      borderColor: "#7b1fa2",
-                      backgroundColor: "rgba(156,39,176,0.06)",
-                    },
                   }}
                 >
                   Finish
@@ -368,16 +385,14 @@ export function StudyTaskPanel({ unparsedCode, pages, onTask1Start }) {
                   onClick={submitStudy}
                   disabled={!running || isSubmitting}
                   sx={{
-                    minHeight: 34,
+                    minHeight: 26,
+                    py: 0,
                     textTransform: "none",
                     fontWeight: 900,
-                    borderRadius: "10px",
+                    fontSize: 11,
+                    borderRadius: "7px",
                     backgroundColor: "#2e7d32",
                     boxShadow: "none",
-                    "&:hover": {
-                      backgroundColor: "#1b5e20",
-                      boxShadow: "none",
-                    },
                   }}
                 >
                   {isSubmitting ? "Saving..." : "Submit"}
@@ -405,17 +420,17 @@ export function StudyTaskPanel({ unparsedCode, pages, onTask1Start }) {
             <Box sx={{ textAlign: "center" }}>
               <Box
                 sx={{
-                  width: 42,
-                  height: 42,
+                  width: 30,
+                  height: 30,
                   mx: "auto",
-                  mb: 1,
+                  mb: 0.5,
                   borderRadius: "50%",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   backgroundColor: "rgba(156,39,176,0.1)",
                   color: "#9c27b0",
-                  fontSize: 24,
+                  fontSize: 18,
                   fontWeight: 900,
                 }}
               >
@@ -423,23 +438,23 @@ export function StudyTaskPanel({ unparsedCode, pages, onTask1Start }) {
               </Box>
 
               <Typography
-                variant="subtitle1"
                 sx={{
                   fontWeight: 900,
                   color: "#1f1f1f",
-                  mb: 0.25,
+                  mb: 0.2,
+                  fontSize: 12,
                 }}
               >
                 Study submitted
               </Typography>
 
               <Typography
-                variant="caption"
                 sx={{
                   display: "block",
                   color: "#555",
-                  lineHeight: 1.35,
-                  mb: 1.25,
+                  lineHeight: 1.2,
+                  mb: 0.75,
+                  fontSize: 9.5,
                 }}
               >
                 Thank you. Please complete the short survey.
@@ -451,16 +466,14 @@ export function StudyTaskPanel({ unparsedCode, pages, onTask1Start }) {
                 size="small"
                 onClick={openSurvey}
                 sx={{
-                  minHeight: 36,
+                  minHeight: 27,
+                  py: 0,
                   textTransform: "none",
                   fontWeight: 900,
-                  borderRadius: "11px",
+                  fontSize: 11,
+                  borderRadius: "8px",
                   background: "linear-gradient(135deg, #9c27b0, #673ab7)",
-                  boxShadow: "0 8px 18px rgba(156,39,176,0.28)",
-                  "&:hover": {
-                    background: "linear-gradient(135deg, #8e24aa, #5e35b1)",
-                    boxShadow: "0 10px 22px rgba(156,39,176,0.34)",
-                  },
+                  boxShadow: "none",
                 }}
               >
                 Go to Survey
