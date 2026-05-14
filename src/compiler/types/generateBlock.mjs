@@ -1166,15 +1166,15 @@ Available groups: ${validGroups === "" ? "none" : validGroups}.`,
             node.type === "cuboid"
           ) {
             const shapeTextFullyConnected = node.outputLabels
-              ? `shape: {${node.shape[0].join(", ")}: {${node.outputLabels.map((x) => JSON.stringify(formatNullValue(x))).join(", ")}}} `
-              : `shape: {${node.shape[0].join(", ")}}`;
+              ? `shape: {${node.shape.join(", ")}: {${node.outputLabels.map((x) => JSON.stringify(formatNullValue(x))).join(", ")}}} `
+              : `shape: {${node.shape.join(", ")}}`;
 
             out.push(
               node.shape
                 ? node.type === "flatten"
-                  ? `shape: ${node.shape[0][0]}x${node.shape[0][1]} `
+                  ? `shape: ${node.shape[0]}x${node.shape[1]} `
                   : node.type === "stacked" || node.type === "cuboid"
-                    ? `shape: ${node.shape[0][0]}x${node.shape[0][1]}x${node.shape[0][2]} `
+                    ? `shape: ${node.shape[0]}x${node.shape[1]}x${node.shape[2]} `
                     : shapeTextFullyConnected
                 : "",
             );

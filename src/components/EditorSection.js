@@ -1,17 +1,40 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import DslEditor from "./DslEditor";
 import MermaidEditor from "./MermaidEditor";
 import { ResizableBox } from "react-resizable";
 import "react-resizable/css/styles.css";
-import { Box, Typography, Tooltip, IconButton } from "@mui/material";
+import {
+  Box,
+  Typography,
+  Tooltip,
+  IconButton,
+  Button,
+  Slider,
+  Checkbox,
+  FormControlLabel,
+  Radio,
+  RadioGroup,
+  TextField,
+  Divider,
+  Tabs,
+  Tab,
+} from "@mui/material";
 import LockIcon from "@mui/icons-material/Lock";
 import EditIcon from "@mui/icons-material/Edit";
-import CloseFullscreenIcon from '@mui/icons-material/CloseFullscreen';
+import CloseFullscreenIcon from "@mui/icons-material/CloseFullscreen";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ErrorIcon from "@mui/icons-material/Error";
 import { useParseCompile } from "../context/ParseCompileContext";
 import { useTheme } from "@mui/material/styles";
+import CodeIcon from "@mui/icons-material/Code";
+import DashboardCustomizeIcon from "@mui/icons-material/DashboardCustomize";
+import RemoveIcon from "@mui/icons-material/Remove";
+import AddIcon from "@mui/icons-material/Add";
+import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
+
+import NeuralNetworkGuiPanel from "./GuiPanel/NeuralNetworkGuiPanel";
+import ArchitectureGuiPanel from "./GuiPanel/ArchitectureGuiPanel";
 
 const EditorSection = ({
   editor1Height,
@@ -31,12 +54,28 @@ const EditorSection = ({
   // Track height for expanded state
   const [splitHeight, setSplitHeight] = useState(window.innerHeight * 0.7);
 
+  const [isGuiMode, setIsGuiMode] = useState(false);
+
+  const { unparsedCode, compiledMerlin, error, updateUnparsedCode } =
+    useParseCompile();
+
+  const hasNeuralNetwork = /(^|\n)\s*neuralnetwork\b/.test(unparsedCode);
+  const hasArchitecture = /(^|\n)\s*architecture\b/.test(unparsedCode);
+  const hasGuiPanel = hasNeuralNetwork || hasArchitecture;
+
+  useEffect(() => {
+    if (!hasGuiPanel && isGuiMode) {
+      setIsGuiMode(false);
+    }
+  }, [hasGuiPanel, isGuiMode]);
+
   const handleClickLock = () => {
     setDslEditorEditable((dslEditorEditable) => !dslEditorEditable);
   };
 
-  const { unparsedCode, compiledMerlin, error, updateUnparsedCode } =
-    useParseCompile();
+  const handleToggleEditorMode = () => {
+    setIsGuiMode((prev) => !prev);
+  };
 
   // Check if there's an actual error (not just "nothing to show")
   const hasError =
@@ -51,9 +90,10 @@ const EditorSection = ({
         width: leftWidth,
         display: "flex",
         flexDirection: "column",
-        overflow: "shown",
+        overflow: "hidden",
         position: "relative",
         border: "none",
+        minHeight: 0,
       }}
     >
       {/* Code Editor Section */}
@@ -69,38 +109,79 @@ const EditorSection = ({
           maxHeight: "40px",
         }}
       >
-        <Typography variant="body2">Merlin-Lite Editor</Typography>
-        <Tooltip title={dslEditorEditable ? "Edit Mode" : "Read Mode"}>
-          <IconButton onClick={handleClickLock} size="small">
-            {dslEditorEditable ? (
-              <EditIcon sx={{ fontSize: 18 }} />
-            ) : (
-              <LockIcon sx={{ fontSize: 18 }} />
-            )}
-          </IconButton>
-          <IconButton onClick={onDslEditorFullSpace} size="small">
+        <Typography variant="body2">
+          {isGuiMode ? "Merlin GUI Panel" : "Merlin-Lite Editor"}
+        </Typography>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+          {!isGuiMode && (
+            <Tooltip title={dslEditorEditable ? "Edit Mode" : "Read Mode"}>
+              <IconButton onClick={handleClickLock} size="small">
+                {dslEditorEditable ? (
+                  <EditIcon sx={{ fontSize: 18 }} />
+                ) : (
+                  <LockIcon sx={{ fontSize: 18 }} />
+                )}
+              </IconButton>
+            </Tooltip>
+          )}
+
+          <Tooltip title="Full screen Mode">
+            <IconButton onClick={onDslEditorFullSpace} size="small">
               <CloseFullscreenIcon sx={{ fontSize: 18 }} />
-          </IconButton>
-        </Tooltip>
+            </IconButton>
+          </Tooltip>
+
+          {hasGuiPanel && (
+            <Tooltip
+              title={
+                isGuiMode ? "Switch to DSL Editor" : "Switch to GUI Editor"
+              }
+            >
+              <IconButton onClick={handleToggleEditorMode} size="small">
+                {isGuiMode ? (
+                  <CodeIcon sx={{ fontSize: 18 }} />
+                ) : (
+                  <DashboardCustomizeIcon sx={{ fontSize: 18 }} />
+                )}
+              </IconButton>
+            </Tooltip>
+          )}
+        </Box>
       </Box>
       {/* Merlin Lite Editor Section (Resizable when expanded) */}
       {isCollapsed ? (
         <div
           style={{
-            height: "100%",
+            height: showRenderer ? "calc(100% - 80px)" : "calc(100% - 40px)",
+            minHeight: 0,
             width: "100%",
             position: "relative",
+            overflow: "hidden",
             flexShrink: 0,
           }}
         >
-          <DslEditor
-            value={unparsedCode}
-            onChange={updateUnparsedCode}
-            readOnly={!dslEditorEditable}
-            currentPage={currentPage}
-            setCurrentPage={setCurrentPage}
-            pages={pages}
-          />
+          {isGuiMode ? (
+            hasArchitecture ? (
+              <ArchitectureGuiPanel
+                value={unparsedCode}
+                onChange={updateUnparsedCode}
+              />
+            ) : (
+              <NeuralNetworkGuiPanel
+                value={unparsedCode}
+                onChange={updateUnparsedCode}
+              />
+            )
+          ) : (
+            <DslEditor
+              value={unparsedCode}
+              onChange={updateUnparsedCode}
+              readOnly={!dslEditorEditable}
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+              pages={pages}
+            />
+          )}
         </div>
       ) : (
         <ResizableBox
@@ -132,152 +213,168 @@ const EditorSection = ({
           }
         >
           <div style={{ height: "100%", margin: 0, padding: 0 }}>
-            <DslEditor
-              value={unparsedCode}
-              onChange={updateUnparsedCode}
-              readOnly={!dslEditorEditable}
-              currentPage={currentPage}
-              setCurrentPage={setCurrentPage}
-              pages={pages}
-            />
+            {isGuiMode ? (
+              hasArchitecture ? (
+                <ArchitectureGuiPanel
+                  value={unparsedCode}
+                  onChange={updateUnparsedCode}
+                />
+              ) : (
+                <NeuralNetworkGuiPanel
+                  value={unparsedCode}
+                  onChange={updateUnparsedCode}
+                />
+              )
+            ) : (
+              <DslEditor
+                value={unparsedCode}
+                onChange={updateUnparsedCode}
+                readOnly={!dslEditorEditable}
+                currentPage={currentPage}
+                setCurrentPage={setCurrentPage}
+                pages={pages}
+              />
+            )}
           </div>
         </ResizableBox>
       )}
 
       {/* Merlin Editor Bar and Section */}
-      {showRenderer && (<div
-        style={{
-          position: isCollapsed ? "absolute" : "relative",
-          left: 0,
-          right: 0,
-          bottom: 0,
-          width: "100%",
-          height: isCollapsed ? "40px" : `calc(100% - ${splitHeight}px)`,
-          minHeight: "40px",
-          maxHeight: isCollapsed ? "40px" : undefined,
-          overflow: "hidden",
-          zIndex: 2,
-          background: isCollapsed ? "rgba(30,30,30,0.98)" : undefined,
-          boxShadow: isCollapsed ? "0 -2px 8px rgba(0,0,0,0.12)" : undefined,
-          borderTop: theme.palette.border,
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            px: 2,
-            cursor: "pointer",
-            "&:hover": {
-              backgroundColor: "rgba(24, 24, 24, 1)",
-            },
-            height: "40px",
+      {showRenderer && (
+        <div
+          style={{
+            position: isCollapsed ? "absolute" : "relative",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: "100%",
+            height: isCollapsed ? "40px" : `calc(100% - ${splitHeight}px)`,
             minHeight: "40px",
-            maxHeight: "40px",
-            boxSizing: "border-box",
-            backgroundColor: theme.palette.sectionHeaderColor,
-          }}
-          onClick={() => {
-            if (isCollapsed) {
-              setIsCollapsed(false);
-              setSplitHeight(window.innerHeight * 0.5);
-            } else {
-              setIsCollapsed(true);
-            }
+            maxHeight: isCollapsed ? "40px" : undefined,
+            overflow: "hidden",
+            zIndex: 2,
+            background: isCollapsed ? "rgba(30,30,30,0.98)" : undefined,
+            boxShadow: isCollapsed ? "0 -2px 8px rgba(0,0,0,0.12)" : undefined,
+            borderTop: theme.palette.border,
+            display: "flex",
+            flexDirection: "column",
           }}
         >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Typography variant="body2">Compiled Merlin</Typography>
-            {hasError && (
-              <Tooltip title="Error in code">
-                <ErrorIcon
-                  sx={{ fontSize: 16, color: "#f44336", marginBottom: "2px" }}
-                />
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              px: 2,
+              cursor: "pointer",
+              "&:hover": {
+                backgroundColor: "rgba(24, 24, 24, 1)",
+              },
+              height: "40px",
+              minHeight: "40px",
+              maxHeight: "40px",
+              boxSizing: "border-box",
+              backgroundColor: theme.palette.sectionHeaderColor,
+            }}
+            onClick={() => {
+              if (isCollapsed) {
+                setIsCollapsed(false);
+                setSplitHeight(window.innerHeight * 0.5);
+              } else {
+                setIsCollapsed(true);
+              }
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Typography variant="body2">Compiled Merlin</Typography>
+              {hasError && (
+                <Tooltip title="Error in code">
+                  <ErrorIcon
+                    sx={{ fontSize: 16, color: "#f44336", marginBottom: "2px" }}
+                  />
+                </Tooltip>
+              )}
+            </Box>
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <Tooltip title={isCollapsed ? "Expand" : "Collapse"}>
+                <IconButton size="small">
+                  {isCollapsed ? (
+                    <ExpandMoreIcon sx={{ fontSize: 18 }} />
+                  ) : (
+                    <ExpandLessIcon sx={{ fontSize: 18 }} />
+                  )}
+                </IconButton>
               </Tooltip>
-            )}
+            </Box>
           </Box>
-          <Box sx={{ display: "flex", alignItems: "center" }}>
-            <Tooltip title={isCollapsed ? "Expand" : "Collapse"}>
-              <IconButton size="small">
-                {isCollapsed ? (
-                  <ExpandMoreIcon sx={{ fontSize: 18 }} />
+          {/* Only render content if expanded */}
+          {!isCollapsed && (
+            <div style={{ flexGrow: 1, overflow: "auto" }}>
+              {error ? (
+                error.startsWith("Compile error:\nNothing to show\n") ? (
+                  <div
+                    style={{
+                      fontFamily: "inherit",
+                      color: "#999",
+                      fontSize: "15px",
+                      padding: "30px",
+                      whiteSpace: "pre-line",
+                    }}
+                  >
+                    Nothing to show yet. Please enter some code above.
+                    <br />
+                    <br />
+                    <b>Example input format:</b>
+                    <div
+                      style={{
+                        fontFamily: "monospace",
+                        fontSize: "14px",
+                        padding: "14px 18px",
+                        margin: "10px 0",
+                        background: "#23272f",
+                        color: "#e0e0e0",
+                        borderRadius: "7px",
+                        whiteSpace: "pre",
+                        overflowX: "auto",
+                      }}
+                    >
+                      &lt;type&gt; &lt;component_name&gt; {`{`} <br />
+                      &nbsp;&nbsp;... <br />
+                      {`}`} <br />
+                      <br />
+                      page <br />
+                      show &lt;component_name&gt;
+                    </div>
+                    <span style={{ fontSize: "13px" }}>
+                      • <b>&lt;type&gt;</b>: The type of component (e.g.,{" "}
+                      <i>array</i>, <i>graph</i>, etc.)
+                      <br />• <b>&lt;component_name&gt;</b>: A name you choose
+                      for your component
+                      <br />
+                    </span>
+                    <br />
+                    For more information, please visit the documentation.
+                  </div>
                 ) : (
-                  <ExpandLessIcon sx={{ fontSize: 18 }} />
-                )}
-              </IconButton>
-            </Tooltip>
-          </Box>
-        </Box>
-        {/* Only render content if expanded */}
-        {!isCollapsed && (
-          <div style={{ flexGrow: 1, overflow: "auto" }}>
-            {error ? (
-              error.startsWith("Compile error:\nNothing to show\n") ? (
-                <div
-                  style={{
-                    fontFamily: "inherit",
-                    color: "#999",
-                    fontSize: "15px",
-                    padding: "30px",
-                    whiteSpace: "pre-line",
-                  }}
-                >
-                  Nothing to show yet. Please enter some code above.
-                  <br />
-                  <br />
-                  <b>Example input format:</b>
                   <div
                     style={{
                       fontFamily: "monospace",
+                      color: "rgb(255, 118, 118)",
                       fontSize: "14px",
-                      padding: "14px 18px",
-                      margin: "10px 0",
-                      background: "#23272f",
-                      color: "#e0e0e0",
-                      borderRadius: "7px",
+                      padding: "30px",
                       whiteSpace: "pre",
-                      overflowX: "auto",
                     }}
                   >
-                    &lt;type&gt; &lt;component_name&gt; {`{`} <br />
-                    &nbsp;&nbsp;... <br />
-                    {`}`} <br />
-                    <br />
-                    page <br />
-                    show &lt;component_name&gt;
+                    {error}
                   </div>
-                  <span style={{ fontSize: "13px" }}>
-                    • <b>&lt;type&gt;</b>: The type of component (e.g.,{" "}
-                    <i>array</i>, <i>graph</i>, etc.)
-                    <br />• <b>&lt;component_name&gt;</b>: A name you choose for
-                    your component
-                    <br />
-                  </span>
-                  <br />
-                  For more information, please visit the documentation.
-                </div>
+                )
               ) : (
-                <div
-                  style={{
-                    fontFamily: "monospace",
-                    color: "rgb(255, 118, 118)",
-                    fontSize: "14px",
-                    padding: "30px",
-                    whiteSpace: "pre",
-                  }}
-                >
-                  {error}
-                </div>
-              )
-            ) : (
-              <MermaidEditor value={compiledMerlin} onChange={() => {}} />
-            )}
-          </div>
-        )}
-      </div>)}
+                <MermaidEditor value={compiledMerlin} onChange={() => {}} />
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

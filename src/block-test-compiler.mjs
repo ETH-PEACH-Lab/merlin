@@ -7,106 +7,110 @@ import util from "node:util";
 
 const dsl = `
 architecture a = {
-	block Encoder: [
+	block Traditional: [
 		layout: vertical,
 		fontFamily: "Helvetica",
-		fontWeight: 100,
-		gap: 40,
 		nodes: [
-			add_norm0 = type: rect label.text: "Add & Norm" size: (90, 25) shape: rounded color: "#F3F4C6" stroke.color: "black" stroke.width: 2.2,
-			feed_forward = type: rect label.text: "Feed\nForward" size: (90, 35) shape: rounded color: "#CAE7F5" stroke.color: "black" stroke.width: 2.2,
-			add_norm1 = type: rect label.text: "Add & Norm" size: (90, 25) shape: rounded color: "#F3F4C6" stroke.color: "black" stroke.width: 2.2,
-			multi_head_attention = type: rect label.text: "Multi-Head\nAttention" size: (90, 35) shape: rounded color: "#FAE3C0" stroke.color: "black" stroke.width: 2.2,
-			plus = type: circle label.text: "+" label.fontSize: 20 size: (15, 15),
-			positional_encoding = type: circle label.text: "∿" label.fontSize: 56 annotation.left: "Positional\nEncoding" annotation.fontFamily: "Helvetica" annotation.fontSize: 14 annotation.fontWeight: 100 size: (30, 30),
-			input_embedding = type: rect label.text: "Input\nEmbedding" size: (90, 35) shape: rounded color: "#F8E1E2" stroke.color: "black" stroke.width: 2.2,
-			inputs = type: text label.text: "Inputs" label.fontSize: 14
+			empty0 = type: rect color: "transparent" stroke.color: "transparent",
+			conv0 = type: rect label.text: "Conv" size: (125, 24) shape: rounded color: "#D7E9FD" stroke.color: "#879DC3",
+			batch_norm0 = type: rect label.text: "BatchNorm" size: (125, 24) shape: rounded color: "#D0EAD2" stroke.color: "#97BE82",
+			relu0 = type: rect label.text: "ReLU" size: (125, 24) shape: rounded color: "#FFF3C8" stroke.color: "#D9C374",
+			conv1 = type: rect label.text: "Conv" size: (125, 24) shape: rounded color: "#D7E9FD" stroke.color: "#879DC3",
+			batch_norm1 = type: rect label.text: "BatchNorm" size: (125, 24) shape: rounded color: "#D0EAD2" stroke.color: "#97BE82",
+			plus = type: circle label.text: "+" label.fontSize: 20 label.fontWeight: 100 size: (20, 20),
+			relu1 = type: rect label.text: "ReLU" size: (125, 24) shape: rounded color: "#FFF3C8" stroke.color: "#D9C374",
+			empty1 = type: rect color: "transparent" stroke.color: "transparent"
 		],
 		edges: [
-			e1 = multi_head_attention.top -> add_norm1.bottom shape: straight arrowheads: 0,
-			e2 = add_norm1.top -> feed_forward.bottom shape: straight,
-			e3 = e2.mid -> add_norm0.left shape: bow,
-			e4 = feed_forward.top -> add_norm0.bottom shape: straight arrowheads: 0,
-			e5 = input_embedding.top -> plus.bottom shape: straight,
-			e6 = plus.top -> multi_head_attention.bottom shape: straight arrowheads: 3,
-			e7 = inputs.top -> input_embedding.bottom shape: straight,
-			e8 = e6.mid -> add_norm1.left shape: bow,
-			e9 = positional_encoding.right -> plus.left shape: straight arrowheads: 0
+			e0 = empty0.bottom -> conv0.top shape: straight,
+			e1 = conv0.bottom -> batch_norm0.top shape: straight,
+			e2 = batch_norm0.bottom -> relu0.top shape: straight,
+			e3 = relu0.bottom -> conv1.top shape: straight,
+			e4 = conv1.bottom -> batch_norm1.top shape: straight,
+			e5 = batch_norm1.bottom -> plus.top shape: straight,
+			e6 = plus.bottom -> relu1.top shape: straight,
+			e8 = e0.mid -> plus.right shape: bow curveHeight: -1 width: 3 color: "red",
+			e9 = relu1.bottom -> empty1.top shape: straight
 		],
-		groups: [
-			row1 = members: [add_norm0, feed_forward] layout: vertical gap: 5,
-			row2 = members: [add_norm1, multi_head_attention] layout: vertical gap: 5,
-			row3 = members: [row1, row2] layout: vertical gap: 40 color: "#F3F3F4" colorBoxAdjustments: (-10,-20,5,-5) stroke.color: "black" stroke.width: 2.2 shape: rounded annotation.left: "N\\\\mul" annotation.gap: 0 annotation.fontFamily: "Helvetica" annotation.fontSize: 14 annotation.fontWeight: 100,
-			row4 = members: [positional_encoding, plus] gap: 12,
-			row6 = members: [row3, row4] layout: vertical anchor.source: row3 anchor.target: multi_head_attention,
-			row5 = members: [row6, input_embedding] layout: vertical gap: 10
-		]
+		annotation.bottom: "(a) Traditional",
+		annotation.fontFamily: "Times New Roman",
+		annotation.fontWeight: 500,
+		annotation.fontSize: 15,
+        annotation.gap: -40
 	],
-	block Decoder: [
+	block Shortened: [
 		layout: vertical,
 		fontFamily: "Helvetica",
-		fontWeight: 100,
-		gap: 40,
 		nodes: [
-			output = type: text label.text: "Output\nProbabilities" label.fontSize: 14,
-			softmax = type: rect label.text: "Softmax" size: (90, 25) shape: rounded color: "#D1E6D1" stroke.color: "black" stroke.width: 2.2,
-			linear = type: rect label.text: "Linear" size: (90, 25) shape: rounded color: "#DCDFEE" stroke.color: "black" stroke.width: 2.2,
-			add_norm0 = type: rect label.text: "Add & Norm" size: (90, 25) shape: rounded color: "#F3F4C6" stroke.color: "black" stroke.width: 2.2,
-			feed_forward = type: rect label.text: "Feed\nForward" size: (90, 35) shape: rounded color: "#CAE7F5" stroke.color: "black" stroke.width: 2.2,
-			add_norm1 = type: rect label.text: "Add & Norm" size: (90, 25) shape: rounded color: "#F3F4C6" stroke.color: "black" stroke.width: 2.2,
-			multi_head_attention = type: rect label.text: "Multi-Head\nAttention" size: (90, 35) shape: rounded color: "#FAE3C0" stroke.color: "black" stroke.width: 2.2,
-			add_norm2 = type: rect label.text: "Add & Norm" size: (90, 25) shape: rounded color: "#F3F4C6" stroke.color: "black" stroke.width: 2.2,
-			masked_multi_head_attention = type: rect label.text: "Masked\nMulti-Head\nAttention" size: (90, 55) shape: rounded color: "#FAE3C0" stroke.color: "black" stroke.width: 2.2,
-			plus = type: circle label.text: "+" label.fontSize: 20 size: (15, 15),
-			positional_encoding = type: circle label.text: "∿" label.fontSize: 56 annotation.right: "Positional\nEncoding" annotation.fontFamily: "Helvetica" annotation.fontSize: 14 annotation.fontWeight: 100 size: (33, 33),
-			output_embedding = type: rect label.text: "Output\nEmbedding" size: (90, 35) shape: rounded color: "#F8E1E2" stroke.color: "black" stroke.width: 2.2,
-			outputs = type: text label.text: "Outputs\n(shifted right)" label.fontSize: 14 label.fontWeight: 100
+			empty0 = type: rect color: "transparent" stroke.color: "transparent",
+			conv0 = type: rect label.text: "Conv" size: (125, 24) shape: rounded color: "#D7E9FD" stroke.color: "#879DC3",
+			batch_norm0 = type: rect label.text: "BatchNorm" size: (125, 24) shape: rounded color: "#D0EAD2" stroke.color: "#97BE82",
+			relu0 = type: rect label.text: "ReLU" size: (125, 24) shape: rounded color: "#FFF3C8" stroke.color: "#D9C374",
+			plus0 = type: circle label.text: "+" label.fontSize: 20 label.fontWeight: 100 size: (20, 20),
+			conv1 = type: rect label.text: "Conv" size: (125, 24) shape: rounded color: "#D7E9FD" stroke.color: "#879DC3",
+			batch_norm1 = type: rect label.text: "BatchNorm" size: (125, 24) shape: rounded color: "#D0EAD2" stroke.color: "#97BE82",
+			relu1 = type: rect label.text: "ReLU" size: (125, 24) shape: rounded color: "#FFF3C8" stroke.color: "#D9C374",
+			plus1 = type: circle label.text: "+" label.fontSize: 20 label.fontWeight: 100 size: (20, 20),
+			empty1 = type: rect size: (0, -3) color: "transparent" stroke.color: "transparent"
 		],
 		edges: [
-			e1 = feed_forward.top -> add_norm0.bottom shape: straight arrowheads: 0,
-			e2 = multi_head_attention.top -> add_norm1.bottom shape: straight arrowheads: 0,
-			e3 = masked_multi_head_attention.top -> add_norm2.bottom shape: straight arrowheads: 0,
-			e4 = add_norm1.top -> feed_forward.bottom shape: straight,
-			e5 = e4.mid -> add_norm0.right shape: bow,
-			e6 = add_norm2.top[5] -> multi_head_attention.bottom[9] shape: bow,
-			e7 = e6.start -> add_norm1.right shape: bow edgeAnchorOffset: [7,0],
-			e8 = add_norm0.top -> linear.bottom shape: straight,
-			e9 = linear.top -> softmax.bottom shape: straight,
-			e10 = softmax.top -> output.bottom shape: straight,
-			e11 = plus.right -> positional_encoding.left shape: straight arrowheads: 0,
-			e12 = plus.top -> masked_multi_head_attention.bottom shape: straight arrowheads: 3,
-			e13 = outputs.top -> output_embedding.bottom shape: straight,
-			e14 = output_embedding.top -> plus.bottom shape: straight,
-			e15 = e12.mid -> add_norm2.right shape: bow
+			e0 = empty0.bottom -> conv0.top shape: straight,
+			e1 = conv0.bottom -> batch_norm0.top shape: straight,
+			e2 = batch_norm0.bottom -> relu0.top shape: straight,
+			e3 = relu0.bottom -> plus0.top shape: straight,
+			e7 = plus0.bottom -> conv1.top shape: straight,
+			e4 = conv1.bottom -> batch_norm1.top shape: straight,
+			e5 = batch_norm1.bottom -> relu1.top shape: straight,
+			e6 = relu1.bottom -> plus1.top shape: straight,
+			e8 = e0.mid -> plus0.right shape: bow curveHeight: -1 width: 3 color: "red",
+			e9 = plus1.bottom -> empty1.top shape: straight,
+			e10 = e7.mid -> plus1.right shape: bow curveHeight: -1 width: 3 color: "red"
 		],
-		groups: [
-			row0 = members: [output, softmax, linear] layout: vertical gap: 25,
-			row1 = members: [add_norm0, feed_forward] layout: vertical gap: 5,
-			row2 = members: [add_norm1, multi_head_attention] layout: vertical gap: 5,
-			row3 = members: [add_norm2, masked_multi_head_attention] layout: vertical gap: 5,
-			row4 = members: [row1, row2, row3] layout: vertical gap: 30 color: "#F3F3F4" colorBoxAdjustments: (-22,-5,5,-20) stroke.color: "black" stroke.width: 2.2 shape: rounded annotation.right: "N\\\\mul" annotation.gap: 0 annotation.fontFamily: "Helvetica" annotation.fontSize: 14 annotation.fontWeight: 100,
-			row6 = members: [row0, row4] layout: vertical gap: 25,
-			row5 = members: [plus, positional_encoding] gap: 12,
-			row8 = members: [row6, row5] layout: vertical anchor.source: plus anchor.target: masked_multi_head_attention,
-			row7 = members: [row8, output_embedding] layout: vertical gap: 10
-		]
+		annotation.bottom: "(b) Shortened",
+		annotation.fontFamily: "Times New Roman",
+		annotation.fontWeight: 500,
+		annotation.fontSize: 15,
+		annotation.gap: 0
+	],
+	block None: [
+		layout: vertical,
+		fontFamily: "Helvetica",
+		nodes: [
+			empty0 = type: rect color: "transparent" stroke.color: "transparent",
+			conv0 = type: rect label.text: "Conv" size: (125, 24) shape: rounded color: "#D7E9FD" stroke.color: "#879DC3",
+			batch_norm0 = type: rect label.text: "BatchNorm" size: (125, 24) shape: rounded color: "#D0EAD2" stroke.color: "#97BE82",
+			relu0 = type: rect label.text: "ReLU" size: (125, 24) shape: rounded color: "#FFF3C8" stroke.color: "#D9C374",
+			conv1 = type: rect label.text: "Conv" size: (125, 24) shape: rounded color: "#D7E9FD" stroke.color: "#879DC3",
+			batch_norm1 = type: rect label.text: "BatchNorm" size: (125, 24) shape: rounded color: "#D0EAD2" stroke.color: "#97BE82",
+			relu1 = type: rect label.text: "ReLU" size: (125, 24) shape: rounded color: "#FFF3C8" stroke.color: "#D9C374",
+			empty1 = type: rect size: (0, 80) color: "transparent" stroke.color: "transparent"
+		],
+		edges: [
+			e0 = empty0.bottom -> conv0.top shape: straight,
+			e1 = conv0.bottom -> batch_norm0.top shape: straight,
+			e2 = batch_norm0.bottom -> relu0.top shape: straight,
+			e3 = relu0.bottom -> conv1.top shape: straight,
+			e4 = conv1.bottom -> batch_norm1.top shape: straight,
+			e5 = batch_norm1.bottom -> relu1.top shape: straight,
+			e9 = relu1.bottom -> empty1.top shape: straight
+		],
+		annotation.bottom: "(c) None",
+		annotation.fontFamily: "Times New Roman",
+		annotation.fontWeight: 500,
+		annotation.fontSize: 15,
+		annotation.gap: -48
 	],
 	diagram: [
-		gap: -35,
-		uses: [e = Encoder anchor: plus, d = Decoder anchor: plus],
-		connects: [
-			e.add_norm0.top -> d.multi_head_attention.bottom[3] shape: bow arrowheads: 2
-		],
-		annotation.bottom: "Figure 1: The Transformer - model architecture.",
-		annotation.fontFamily: "serif",
-		annotation.gap: 0,
-		annotation.fontSize: 19
+		layout: horizontal,
+		uses: [t = Traditional anchor: conv1, s = Shortened anchor: conv1, n = None anchor: conv1],
+		gap: 30
 	]
 }
 
 
 page
 show a
+
 
 
 `;
