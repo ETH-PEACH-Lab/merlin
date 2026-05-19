@@ -2455,7 +2455,9 @@ function formatValue(value, target = null, type = undefined) {
     return `[${value.map((v) => formatValue(v, target)).join(", ")}]`;
   }
 
-  if (target === "edgeWidth" && type === "neuralnetwork") return value.number;
+  if (target === "edgeWidth" && type === "neuralnetwork") {
+    return value?.number ?? value;
+  }
   if (target === "labelPosition" && type === "neuralnetwork") return value;
   if (value === "_") return "_";
   if (target === "nodes") return value;
