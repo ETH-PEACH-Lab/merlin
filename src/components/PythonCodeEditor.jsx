@@ -1,9 +1,17 @@
-import React from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import MonacoEditor from '@monaco-editor/react';
 
-const PythonCodeEditor = ({ value = '', onChange = () => { } }) => {
+const PythonCodeEditor = ({ value = '', onChange = () => { }, currentLineNumber = null }) => {
+  const editorRef = useRef(null);
+  const monacoRef = useRef(null);
+  const decorationIdsRef = useRef([]);
+  const [editorReady, setEditorReady] = useState(false); 
 
   const handleMount = (editor, monaco) => {
+    editorRef.current = editor;
+    monacoRef.current = monaco;
+    setEditorReady(true);
+
     monaco.languages.registerCompletionItemProvider('python', {
       provideCompletionItems: () => ({
         suggestions: [
@@ -39,6 +47,48 @@ const PythonCodeEditor = ({ value = '', onChange = () => { } }) => {
       })
     });
   };
+
+  useEffect(() => {
+    console.log('Decoration effect triggered, currentLineNumber:', currentLineNumber);
+    
+    if (!editorRef.current || currentLineNumber === null) {
+      
+      if (decorationIdsRef.current.length > 0) {
+        console.log('Clearing decorations');
+        decorationIdsRef.current = editorRef.current?.deltaDecorations(decorationIdsRef.current, []) || [];
+      }
+      return;
+    }
+
+    const editor = editorRef.current;
+    const monaco = monacoRef.current;
+    
+    if (!editor || !monaco) {
+      console.warn('Editor or Monaco not available', { editor: !!editor, monaco: !!monaco });
+      return;
+    }
+
+    try {
+      console.log('Setting decoration for line:', currentLineNumber);
+      const newDecorations = [
+        {
+          range: new monaco.Range(currentLineNumber, 1, currentLineNumber, 999999),
+          options: {
+            isWholeLine: true,
+            className: 'highlighted-line',
+            glyphMarginClassName: 'codicon codicon-debug-breakpoint',
+            glyphMarginHoverMessage: { value: 'Current snapshot line' },
+          },
+        },
+      ];
+
+      const oldIds = decorationIdsRef.current;
+      decorationIdsRef.current = editor.deltaDecorations(oldIds, newDecorations);
+      console.log('Decorations updated, old IDs:', oldIds, 'new IDs:', decorationIdsRef.current);
+    } catch (e) {
+      console.error('Error setting line decoration:', e);
+    }
+  }, [currentLineNumber, editorReady]);
 
   return (
     <MonacoEditor

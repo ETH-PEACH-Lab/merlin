@@ -39,6 +39,7 @@ const PythonVisualizerSection = () => {
   const [executionResult, setExecutionResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [currentSnapshotIndex, setCurrentSnapshotIndex] = useState(0);
 
   const [editableMerlinCode, setEditableMerlinCode] = useState('');
   const [compiledMerlin, setCompiledMerlin] = useState('');
@@ -172,6 +173,7 @@ const PythonVisualizerSection = () => {
     setError(null);
     setExecutionResult(null);
     setCurrentPage(1);
+    setCurrentSnapshotIndex(0);
 
     try {
       console.log('Executing Python code...');
@@ -266,6 +268,7 @@ const PythonVisualizerSection = () => {
     setCompiledMerlin('');
     setPages([]);
     setCurrentPage(1);
+    setCurrentSnapshotIndex(0);
   };
 
 
@@ -385,9 +388,30 @@ const PythonVisualizerSection = () => {
           )}
 
           {executionResult && !error && (
-            <Typography variant="body2" color="success.main" sx={{ ml: 'auto' }}>
-              ✓ {executionResult.snapshots?.length || 0} snapshots
-            </Typography>
+            <>
+              <Typography variant="body2" color="success.main" sx={{ ml: 'auto', mr: 2 }}>
+                ✓ {executionResult.snapshots?.length || 0} snapshots
+              </Typography>
+              <Button
+                onClick={() => setCurrentSnapshotIndex(Math.max(0, currentSnapshotIndex - 1))}
+                variant="outlined"
+                size="small"
+                disabled={currentSnapshotIndex === 0}
+              >
+                Prev Snapshot
+              </Button>
+              <Typography variant="caption" sx={{ mx: 1, alignSelf: 'center' }}>
+                {currentSnapshotIndex + 1} / {executionResult.snapshots?.length || 0}
+              </Typography>
+              <Button
+                onClick={() => setCurrentSnapshotIndex(Math.min(executionResult.snapshots.length - 1, currentSnapshotIndex + 1))}
+                variant="outlined"
+                size="small"
+                disabled={currentSnapshotIndex === executionResult.snapshots.length - 1}
+              >
+                Next Snapshot
+              </Button>
+            </>
           )}
         </Box>
 
@@ -489,6 +513,13 @@ const PythonVisualizerSection = () => {
                   <PythonCodeEditor
                     value={pythonCode}
                     onChange={setPythonCode}
+                    currentLineNumber={
+                      (() => {
+                        const line = executionResult?.snapshots[currentSnapshotIndex]?.line || null;
+                        console.log('PythonVisualizerSection passing line:', line, 'index:', currentSnapshotIndex, 'snapshots length:', executionResult?.snapshots?.length);
+                        return line === 'return' ? null : line;
+                      })()
+                    }
                   />
                 )}
               </Box>

@@ -270,9 +270,11 @@ error_json = json.dumps(execution_error)
 
     const userCodeIndented = code.split('\n').map(line => '    ' + line).join('\n');
     
-    const fullCode = wrapperPrefix + '\n' +
+    const wrapperPrefixWithOffset = wrapperPrefix.replace('line_offset = 0', `line_offset = ${wrapperLinesBefore}`);
+    
+    const fullCode = wrapperPrefixWithOffset + '\n' +
       userCodeIndented + '\n' +
-      wrapperSuffix.replace('line_offset = 0', `line_offset = ${wrapperLinesBefore}`);
+      wrapperSuffix;
     
     try{
         // Run everything as one block
