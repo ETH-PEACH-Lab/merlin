@@ -170,6 +170,7 @@ const EditorSection = ({
               <NeuralNetworkGuiPanel
                 value={unparsedCode}
                 onChange={updateUnparsedCode}
+                currentPage={currentPage}
               />
             )
           ) : (
