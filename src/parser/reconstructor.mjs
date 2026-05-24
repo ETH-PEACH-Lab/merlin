@@ -2226,22 +2226,6 @@ function reconstructCommand(cmd) {
       return `${cmd.name}.setEdgeColor(${block}, ${second}, "${third}")`;
     }
 
-    case "set_node_shape": {
-      const { block, second, third } = cmd.args;
-      if (
-        (third.depth !== undefined &&
-          third.height !== undefined &&
-          third.width !== undefined) ||
-        (third[0] !== undefined &&
-          third[1] !== undefined &&
-          third[2] !== undefined)
-      ) {
-        return `${cmd.name}.setNodeShape(${block}, ${second}, ${third.depth ?? third[0]}x${third.height ?? third[1]}x${third.width ?? third[2]})`;
-      } else {
-        return `${cmd.name}.setNodeShape(${block}, ${second}, ${third.rows ?? third[0]}x${third.columns ?? third[1]})`;
-      }
-    }
-
     case "set_node_label": {
       const { block, second, third } = cmd.args;
       return `${cmd.name}.setNodeLabel(${block}, ${second}, "${third}")`;

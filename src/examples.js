@@ -1709,43 +1709,43 @@ show a
 		fontFamily: "sans-serif",
 		nodes: [
 			a0 = type: rect annotation.left: "128x128" size: (1, 110) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
-			a1 = type: rect annotation.top: "64" annotation.gap: 0 size: (6, 110) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
-			a2 = type: rect annotation.top: "64" annotation.gap: 0 size: (6, 110) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
+			a1 = type: rect annotation.top: "64" annotation.gap: 0 size: (5, 110) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
+			a2 = type: rect annotation.top: "64" annotation.gap: 0 size: (5, 110) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
 			b0 = type: rect size: (4, 58) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
 			b1 = type: rect annotation.top: "128" annotation.gap: -3 size: (14, 58) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1,
 			b2 = type: rect annotation.top: "128" annotation.gap: -3 size: (14, 58) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
 			c0 = type: rect size: (8, 25) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
 			c1 = type: rect annotation.top: "256" annotation.gap: -3 size: (20, 25) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
 			c2 = type: rect annotation.top: "256" annotation.gap: -3 size: (20, 25) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
-			d0 = type: rect size: (22, 22) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
-			d1 = type: rect annotation.top: "512" annotation.gap: -3 size: (56, 22) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
-			d2 = type: rect annotation.top: "512" annotation.gap: -3 size: (56, 22) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
-			e0 = type: rect size: (72, 16) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
-			e1 = type: rect annotation.top: "1024" annotation.gap: -3 size: (118, 16) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
-			e2 = type: rect size: (118, 16) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
-			f0 = type: rect annotation.top: "1024" annotation.gap: -3 size: (46, 20) stroke.color: "#C77D12" stroke.width: 1.3,
-			f1 = type: rect size: (46, 20) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
-			f2 = type: rect annotation.top: "512" annotation.gap: -3 size: (56, 20) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
-			f3 = type: rect size: (56, 20) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
-			g0 = type: rect annotation.top: "512" annotation.gap: -3 size: (20, 25) stroke.color: "#C77D12" stroke.width: 1.3,
+			d0 = type: rect size: (22, 15) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
+			d1 = type: rect annotation.top: "512" annotation.gap: -3 size: (50, 15) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
+			d2 = type: rect annotation.top: "512" annotation.gap: -3 size: (50, 15) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
+			e0 = type: rect size: (72, 8) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
+			e1 = type: rect annotation.top: "1024" annotation.top.shift.top: -3 annotation.top.shift.left: 6 size: (100, 8) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
+			e2 = type: rect size: (100, 8) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
+			f0 = type: rect annotation.top: "1024" annotation.top.shift.top: -6 annotation.top.shift.right: 14 size: (46, 15) stroke.color: "#C77D12" stroke.width: 1.3,
+			f1 = type: rect size: (46,15) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
+			f2 = type: rect annotation.top: "512" annotation.gap: -3 size: (50, 15) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
+			f3 = type: rect size: (50, 15) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
+			g0 = type: rect annotation.top: "512" annotation.top.shift.top: -5 annotation.top.shift.right: 10 size: (20, 25) stroke.color: "#C77D12" stroke.width: 1.3,
 			g1 = type: rect size: (20, 25) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
-			g2 = type: rect annotation.top: "256" annotation.gap: -3 size: (20, 25) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
+			g2 = type: rect annotation.top: "256" annotation.gap: -1 size: (20, 25) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
 			g3 = type: rect size: (20, 25) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
-			h0 = type: rect annotation.top: "256" annotation.gap: -3 size: (8, 58) stroke.color: "#C77D12" stroke.width: 1.3,
+			h0 = type: rect annotation.top: "256" annotation.top.shift.top: -7 annotation.top.shift.right: 4 size: (8, 58) stroke.color: "#C77D12" stroke.width: 1.3,
 			h1 = type: rect size: (8, 58) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
 			h2 = type: rect annotation.top: "128" annotation.gap: -3 size: (14, 58) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1,
 			h3 = type: rect size: (14, 58) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
 			i0 = type: rect annotation.top: "128" annotation.gap: 0 size: (5, 110) stroke.color: "#C77D12" stroke.width: 1.3,
 			i1 = type: rect size: (5, 110) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
-			i2 = type: rect annotation.top: "64" annotation.gap: 0 size: (8, 110) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
-			i3 = type: rect annotation.top: "64" annotation.gap: 0 size: (8, 110) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
-			i4 = type: rect annotation.top: "11" annotation.gap: 0 size: (8, 110) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3
+			i2 = type: rect annotation.top: "64" annotation.gap: 0 size: (5, 110) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
+			i3 = type: rect annotation.top: "64" annotation.gap: 0 size: (5, 110) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3,
+			i4 = type: rect annotation.top: "11" annotation.gap: 0 size: (1, 110) color: "#F39A1E" stroke.color: "#C77D12" stroke.width: 1.3
 		],
 		edges: [
 			edge0 = a2.right -> i0.left width: 4 gap: 40 color: "#969696",
 			edge28 = b2.right -> h0.left width: 4 gap: 40 color: "#969696",
 			edge29 = c2.right -> g0.left width: 4 gap: 40 color: "#969696",
-			edge30 = d2.right -> f0.left width: 4 gap: 40 color: "#969696",
+			edge30 = d2.right -> f0.left width: 4 gap: 20 color: "#969696",
 			edge1 = a0.right -> a1.left shape: straight color: "#2A46BA",
 			edge2 = a1.right -> a2.left shape: straight color: "#2A46BA",
 			edge3 = a2.bottom -> b0.top label.text: "64x64" shape: straight width: 4 gap: 5 color: "#AF3331",
@@ -1807,7 +1807,7 @@ show a
 			rightBox0 = type: arrow annotation.right: "Conv (3 x3), RELU" color: "#2A46BA",
 			rightBox1 = type: arrow annotation.right: "Max Pool (2 x 2)" color: "#AF3331",
 			rightBox2 = type: arrow annotation.right: "De conv (2 x 2)" color: "#4B7C33",
-			rightBox3 = type: arrow annotation.right: "Crop and\\nconcatenate" color: "#969696"
+			rightBox3 = type: arrow annotation.right: "Crop and\nconcatenate" color: "#969696"
 		]
 	],
 	diagram: [
@@ -1819,6 +1819,8 @@ show a
 
 page
 show a
+
+
 `,
       },
       {
