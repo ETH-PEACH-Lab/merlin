@@ -1074,15 +1074,6 @@ export function registerCustomLanguage(monaco) {
         [keywordPattern, "keyword"],
 
         [
-          /(\.)(setNodeShape)(\s*\()/,
-          [
-            "symbol",
-            "external-method-call",
-            { token: "symbol", next: "@setNodeShapeArgs" },
-          ],
-        ],
-
-        [
           /(\.)([a-zA-Z_][a-zA-Z0-9_]*)(?=\s*\()/,
           ["symbol", "external-method-call"],
         ],
@@ -8066,12 +8057,6 @@ export function registerCustomLanguage(monaco) {
             (parameterIndex === 0 || parameterIndex === 1)
           ) &&
           !(
-            methodName === "setNodeShape" &&
-            (parameterIndex === 0 ||
-              parameterIndex === 1 ||
-              parameterIndex === 2)
-          ) &&
-          !(
             methodName === "removeNodes" &&
             (parameterIndex === 0 || parameterIndex === 1)
           ) &&
@@ -9175,74 +9160,6 @@ export function registerCustomLanguage(monaco) {
                 documentation: `Use ${color} color`,
                 range: range,
                 sortText: `1color${index}`,
-              });
-            });
-          }
-
-          return { suggestions };
-        }
-
-        if (methodName === "setNodeShape") {
-          const a = context.architectureData?.[variableName];
-
-          if (parameterIndex === 0) {
-            const allBlocks = a?.blockOrder || [];
-            allBlocks.forEach((num, index) => {
-              suggestions.push({
-                label: num,
-                kind: monaco.languages.CompletionItemKind.Value,
-                insertText: num,
-                detail: "Block name",
-                range: range,
-                sortText: `1index${index}`,
-              });
-            });
-          }
-
-          if (parameterIndex === 1) {
-            const args = splitTopLevelArgs(
-              context.methodCallContext.paramsText,
-            );
-            const selectedBlock = args[0];
-
-            const allNodes =
-              a?.blocks?.[selectedBlock].nodes.filter(
-                (node) =>
-                  a?.blocks?.[selectedBlock].nodeTypes[node] === "flatten" ||
-                  a?.blocks?.[selectedBlock].nodeTypes[node] === "stacked" ||
-                  a?.blocks?.[selectedBlock].nodeTypes[node] === "cuboid",
-              ) || [];
-
-            allNodes.forEach((num, index) => {
-              suggestions.push({
-                label: num,
-                kind: monaco.languages.CompletionItemKind.Value,
-                insertText: num,
-                detail: "Node name",
-                range: range,
-                sortText: `1index${index}`,
-              });
-            });
-          }
-
-          if (parameterIndex === 2) {
-            const args = splitTopLevelArgs(
-              context.methodCallContext.paramsText,
-            );
-
-            const arr =
-              a?.blocks?.[args[0]].nodeTypes[args[1]] === "flatten"
-                ? ["1x1", "10x10"]
-                : ["1x1x1", "10x10x10"];
-
-            arr.forEach((num, index) => {
-              suggestions.push({
-                label: num,
-                kind: monaco.languages.CompletionItemKind.Value,
-                insertText: `${num}`,
-                detail: "Label",
-                range: range,
-                sortText: `1index${index}`,
               });
             });
           }

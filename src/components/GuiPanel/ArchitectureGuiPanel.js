@@ -143,6 +143,696 @@ const tabsSx = {
   },
 };
 
+const cloneArchitecture = (architecture) => ({
+  ...architecture,
+  body: {
+    ...architecture.body,
+    blocks: (architecture.body?.blocks || []).map((block) => ({
+      ...block,
+      nodes: [...(block.nodes || [])],
+      edges: [...(block.edges || [])],
+      groups: (block.groups || []).map((group) => ({
+        ...group,
+        members: [...(group.members || [])],
+      })),
+    })),
+    ...(architecture.body?.diagram
+      ? {
+          diagram: {
+            ...architecture.body.diagram,
+            uses: [...(architecture.body.diagram.uses || [])],
+            connects: [...(architecture.body.diagram.connects || [])],
+          },
+        }
+      : {}),
+  },
+});
+
+const asArray = (value) => {
+  return Array.isArray(value) ? value : [value];
+};
+
+const getCommandIndex = (cmd) => cmd.args?.index;
+
+const getCommandValue = (cmd) => cmd.args?.value;
+
+const getBlock = (architecture, blockName) =>
+  (architecture.body?.blocks || []).find(
+    (block) => block.id?.name === blockName,
+  );
+
+const getUseIdsForBlock = (diagram, blockName) =>
+  new Set(
+    (diagram?.uses || [])
+      .filter((use) => use.block?.name === blockName)
+      .map((use) => use.id?.name)
+      .filter(Boolean),
+  );
+
+const resolveEdgeNames = (block, rawValue) => {
+  const values = asArray(rawValue);
+
+  return values
+    .map((value) => {
+      if (typeof value === "number") {
+        return block?.edges?.[value]?.id?.name;
+      }
+
+      return value;
+    })
+    .filter(Boolean);
+};
+
+const collectRelatedEdgeNames = (block, initialNames) => {
+  const idsToRemove = new Set(initialNames);
+
+  let changed = true;
+
+  while (changed) {
+    changed = false;
+
+    for (const edge of block?.edges || []) {
+      const edgeId = edge.id?.name;
+      const fromEdge = edge.from?.edge?.name;
+      const toEdge = edge.to?.edge?.name;
+
+      if (
+        edgeId &&
+        !idsToRemove.has(edgeId) &&
+        (idsToRemove.has(fromEdge) || idsToRemove.has(toEdge))
+      ) {
+        idsToRemove.add(edgeId);
+        changed = true;
+      }
+    }
+  }
+
+  return idsToRemove;
+};
+
+const removeNodeReferences = (architecture, blockName, rawNodeNames) => {
+  const body = architecture.body || {};
+  const diagram = body.diagram;
+  const nodeNamesToRemove = new Set(asArray(rawNodeNames).filter(Boolean));
+
+  let edgeNamesToRemove = new Set();
+
+  const nextBlocks = (body.blocks || []).map((block) => {
+    if (block.id?.name !== blockName) return block;
+
+    const directEdgeNames = (block.edges || [])
+      .filter((edge) => {
+        const fromNode = edge.from?.node?.name;
+        const toNode = edge.to?.node?.name;
+
+        return nodeNamesToRemove.has(fromNode) || nodeNamesToRemove.has(toNode);
+      })
+      .map((edge) => edge.id?.name)
+      .filter(Boolean);
+
+    edgeNamesToRemove = collectRelatedEdgeNames(block, directEdgeNames);
+
+    return {
+      ...block,
+
+      nodes: (block.nodes || []).filter(
+        (node) => !nodeNamesToRemove.has(node.id?.name),
+      ),
+
+      edges: (block.edges || []).filter(
+        (edge) => !edgeNamesToRemove.has(edge.id?.name),
+      ),
+
+      groups: (block.groups || []).map((group) => ({
+        ...group,
+        members: (group.members || []).filter(
+          (member) => !nodeNamesToRemove.has(member.name),
+        ),
+        ...(group.anchor?.name && nodeNamesToRemove.has(group.anchor.name)
+          ? { anchor: undefined }
+          : {}),
+      })),
+    };
+  });
+
+  if (!diagram) {
+    return {
+      ...architecture,
+      body: {
+        ...body,
+        blocks: nextBlocks,
+      },
+    };
+  }
+
+  const useIdsForBlock = getUseIdsForBlock(diagram, blockName);
+
+  const nextConnects = (diagram.connects || []).filter((connect) => {
+    const fromUsesBlock = useIdsForBlock.has(connect.from?.block?.name);
+    const toUsesBlock = useIdsForBlock.has(connect.to?.block?.name);
+
+    const fromRemovedNode =
+      fromUsesBlock && nodeNamesToRemove.has(connect.from?.node?.name);
+
+    const toRemovedNode =
+      toUsesBlock && nodeNamesToRemove.has(connect.to?.node?.name);
+
+    const fromRemovedEdge =
+      fromUsesBlock && edgeNamesToRemove.has(connect.from?.edge?.name);
+
+    const toRemovedEdge =
+      toUsesBlock && edgeNamesToRemove.has(connect.to?.edge?.name);
+
+    return (
+      !fromRemovedNode && !toRemovedNode && !fromRemovedEdge && !toRemovedEdge
+    );
+  });
+
+  return {
+    ...architecture,
+    body: {
+      ...body,
+      blocks: nextBlocks,
+      diagram: {
+        ...diagram,
+        connects: nextConnects,
+      },
+    },
+  };
+};
+
+const removeEdgeReferences = (
+  architecture,
+  blockName,
+  rawEdgeNamesOrIndexes,
+) => {
+  const body = architecture.body || {};
+  const diagram = body.diagram;
+  const targetBlock = getBlock(architecture, blockName);
+
+  const initialEdgeNames = resolveEdgeNames(targetBlock, rawEdgeNamesOrIndexes);
+  const finalEdgeNamesToRemove = collectRelatedEdgeNames(
+    targetBlock,
+    initialEdgeNames,
+  );
+
+  const nextBlocks = (body.blocks || []).map((block) => {
+    if (block.id?.name !== blockName) return block;
+
+    return {
+      ...block,
+      edges: (block.edges || []).filter(
+        (edge) => !finalEdgeNamesToRemove.has(edge.id?.name),
+      ),
+    };
+  });
+
+  if (!diagram) {
+    return {
+      ...architecture,
+      body: {
+        ...body,
+        blocks: nextBlocks,
+      },
+    };
+  }
+
+  const useIdsForBlock = getUseIdsForBlock(diagram, blockName);
+
+  const nextConnects = (diagram.connects || []).filter((connect) => {
+    const fromUsesBlock = useIdsForBlock.has(connect.from?.block?.name);
+    const toUsesBlock = useIdsForBlock.has(connect.to?.block?.name);
+
+    const fromRemovedEdge =
+      fromUsesBlock && finalEdgeNamesToRemove.has(connect.from?.edge?.name);
+
+    const toRemovedEdge =
+      toUsesBlock && finalEdgeNamesToRemove.has(connect.to?.edge?.name);
+
+    return !fromRemovedEdge && !toRemovedEdge;
+  });
+
+  return {
+    ...architecture,
+    body: {
+      ...body,
+      blocks: nextBlocks,
+      diagram: {
+        ...diagram,
+        connects: nextConnects,
+      },
+    },
+  };
+};
+
+const removeGroupReferences = (architecture, blockName, groupName) => {
+  const body = architecture.body || {};
+  const diagram = body.diagram;
+
+  const nextBlocks = (body.blocks || []).map((block) => {
+    if (block.id?.name !== blockName) return block;
+
+    return {
+      ...block,
+      groups: (block.groups || []).filter(
+        (group) => group.id?.name !== groupName,
+      ),
+    };
+  });
+
+  if (!diagram) {
+    return {
+      ...architecture,
+      body: {
+        ...body,
+        blocks: nextBlocks,
+      },
+    };
+  }
+
+  const useIdsForBlock = getUseIdsForBlock(diagram, blockName);
+
+  const nextConnects = (diagram.connects || []).filter((connect) => {
+    const fromUsesBlock = useIdsForBlock.has(connect.from?.block?.name);
+    const toUsesBlock = useIdsForBlock.has(connect.to?.block?.name);
+
+    const fromRemovedGroup =
+      fromUsesBlock && connect.from?.group?.name === groupName;
+
+    const toRemovedGroup = toUsesBlock && connect.to?.group?.name === groupName;
+
+    return !fromRemovedGroup && !toRemovedGroup;
+  });
+
+  return {
+    ...architecture,
+    body: {
+      ...body,
+      blocks: nextBlocks,
+      diagram: {
+        ...diagram,
+        connects: nextConnects,
+      },
+    },
+  };
+};
+
+const removeBlockReferences = (architecture, blockName) => {
+  const body = architecture.body || {};
+  const diagram = body.diagram;
+
+  if (!diagram) {
+    return {
+      ...architecture,
+      body: {
+        ...body,
+        blocks: (body.blocks || []).filter(
+          (block) => block.id?.name !== blockName,
+        ),
+      },
+    };
+  }
+
+  const removedUseIds = new Set(
+    (diagram.uses || [])
+      .filter((use) => use.block?.name === blockName)
+      .map((use) => use.id?.name)
+      .filter(Boolean),
+  );
+
+  return {
+    ...architecture,
+    body: {
+      ...body,
+      blocks: (body.blocks || []).filter(
+        (block) => block.id?.name !== blockName,
+      ),
+      diagram: {
+        ...diagram,
+        uses: (diagram.uses || []).filter(
+          (use) => use.block?.name !== blockName,
+        ),
+        connects: (diagram.connects || []).filter(
+          (connect) =>
+            !removedUseIds.has(connect.from?.block?.name) &&
+            !removedUseIds.has(connect.to?.block?.name),
+        ),
+      },
+    },
+  };
+};
+
+const setNodeHidden = (architecture, blockName, nodeName, hidden) => {
+  const body = architecture.body || {};
+  const diagram = body.diagram;
+  const nodeNames = new Set([nodeName].filter(Boolean));
+  let relatedEdgeNames = new Set();
+
+  const nextBlocks = (body.blocks || []).map((block) => {
+    if (block.id?.name !== blockName) return block;
+
+    const directEdgeNames = (block.edges || [])
+      .filter((edge) => {
+        const from = edge.from?.node?.name;
+        const to = edge.to?.node?.name;
+
+        return nodeNames.has(from) || nodeNames.has(to);
+      })
+      .map((edge) => edge.id?.name)
+      .filter(Boolean);
+
+    relatedEdgeNames = collectRelatedEdgeNames(block, directEdgeNames);
+
+    return {
+      ...block,
+
+      nodes: (block.nodes || []).map((node) =>
+        nodeNames.has(node.id?.name)
+          ? hidden
+            ? { ...node, hidden: true }
+            : (() => {
+                const { hidden: _hidden, ...rest } = node;
+                return rest;
+              })()
+          : node,
+      ),
+
+      edges: (block.edges || []).map((edge) =>
+        relatedEdgeNames.has(edge.id?.name)
+          ? hidden
+            ? { ...edge, hidden: true }
+            : (() => {
+                const { hidden: _hidden, ...rest } = edge;
+                return rest;
+              })()
+          : edge,
+      ),
+
+      groups: (block.groups || []).map((group) => ({
+        ...group,
+        members: (group.members || []).map((member) =>
+          nodeNames.has(member.name)
+            ? hidden
+              ? { ...member, hidden: true }
+              : (() => {
+                  const { hidden: _hidden, ...rest } = member;
+                  return rest;
+                })()
+            : member,
+        ),
+      })),
+    };
+  });
+
+  if (!diagram) {
+    return {
+      ...architecture,
+      body: {
+        ...body,
+        blocks: nextBlocks,
+      },
+    };
+  }
+
+  const useIdsForBlock = getUseIdsForBlock(diagram, blockName);
+
+  const nextConnects = (diagram.connects || []).map((connect) => {
+    const fromUsesBlock = useIdsForBlock.has(connect.from?.block?.name);
+    const toUsesBlock = useIdsForBlock.has(connect.to?.block?.name);
+
+    const affected =
+      (fromUsesBlock && nodeNames.has(connect.from?.node?.name)) ||
+      (toUsesBlock && nodeNames.has(connect.to?.node?.name)) ||
+      (fromUsesBlock && relatedEdgeNames.has(connect.from?.edge?.name)) ||
+      (toUsesBlock && relatedEdgeNames.has(connect.to?.edge?.name));
+
+    if (!affected) return connect;
+
+    if (hidden) return { ...connect, hidden: true };
+
+    const { hidden: _hidden, ...rest } = connect;
+    return rest;
+  });
+
+  return {
+    ...architecture,
+    body: {
+      ...body,
+      blocks: nextBlocks,
+      diagram: {
+        ...diagram,
+        connects: nextConnects,
+      },
+    },
+  };
+};
+
+const setEdgeHidden = (architecture, blockName, rawEdgeName, hidden) => {
+  const body = architecture.body || {};
+  const diagram = body.diagram;
+  const targetBlock = getBlock(architecture, blockName);
+
+  const edgeNames = resolveEdgeNames(targetBlock, rawEdgeName);
+  const relatedEdgeNames = collectRelatedEdgeNames(targetBlock, edgeNames);
+
+  const nextBlocks = (body.blocks || []).map((block) => {
+    if (block.id?.name !== blockName) return block;
+
+    return {
+      ...block,
+      edges: (block.edges || []).map((edge) =>
+        relatedEdgeNames.has(edge.id?.name)
+          ? hidden
+            ? { ...edge, hidden: true }
+            : (() => {
+                const { hidden: _hidden, ...rest } = edge;
+                return rest;
+              })()
+          : edge,
+      ),
+    };
+  });
+
+  if (!diagram) {
+    return {
+      ...architecture,
+      body: {
+        ...body,
+        blocks: nextBlocks,
+      },
+    };
+  }
+
+  const useIdsForBlock = getUseIdsForBlock(diagram, blockName);
+
+  const nextConnects = (diagram.connects || []).map((connect) => {
+    const fromUsesBlock = useIdsForBlock.has(connect.from?.block?.name);
+    const toUsesBlock = useIdsForBlock.has(connect.to?.block?.name);
+
+    const affected =
+      (fromUsesBlock && relatedEdgeNames.has(connect.from?.edge?.name)) ||
+      (toUsesBlock && relatedEdgeNames.has(connect.to?.edge?.name));
+
+    if (!affected) return connect;
+
+    if (hidden) return { ...connect, hidden: true };
+
+    const { hidden: _hidden, ...rest } = connect;
+    return rest;
+  });
+
+  return {
+    ...architecture,
+    body: {
+      ...body,
+      blocks: nextBlocks,
+      diagram: {
+        ...diagram,
+        connects: nextConnects,
+      },
+    },
+  };
+};
+
+const setBlockHidden = (architecture, blockName, hidden) => {
+  const body = architecture.body || {};
+  const diagram = body.diagram;
+
+  const nextBlocks = (body.blocks || []).map((block) => {
+    if (block.id?.name !== blockName) return block;
+
+    if (hidden) return { ...block, hidden: true };
+
+    const { hidden: _hidden, ...rest } = block;
+    return rest;
+  });
+
+  if (!diagram) {
+    return {
+      ...architecture,
+      body: {
+        ...body,
+        blocks: nextBlocks,
+      },
+    };
+  }
+
+  const useIdsForBlock = getUseIdsForBlock(diagram, blockName);
+
+  const nextUses = (diagram.uses || []).map((use) => {
+    if (use.block?.name !== blockName) return use;
+
+    if (hidden) return { ...use, hidden: true };
+
+    const { hidden: _hidden, ...rest } = use;
+    return rest;
+  });
+
+  const nextConnects = (diagram.connects || []).map((connect) => {
+    const affected =
+      useIdsForBlock.has(connect.from?.block?.name) ||
+      useIdsForBlock.has(connect.to?.block?.name);
+
+    if (!affected) return connect;
+
+    if (hidden) return { ...connect, hidden: true };
+
+    const { hidden: _hidden, ...rest } = connect;
+    return rest;
+  });
+
+  return {
+    ...architecture,
+    body: {
+      ...body,
+      blocks: nextBlocks,
+      diagram: {
+        ...diagram,
+        uses: nextUses,
+        connects: nextConnects,
+      },
+    },
+  };
+};
+
+const applyArchitectureCommands = (architectureDef, cmds = []) => {
+  let architecture = cloneArchitecture(architectureDef);
+  const architectureName = architecture.name;
+
+  const architectureCommands = (cmds || []).filter(
+    (cmd) => cmd?.name === architectureName,
+  );
+
+  for (const cmd of architectureCommands) {
+    switch (cmd.type) {
+      case "block_remove_nodes": {
+        architecture = removeNodeReferences(
+          architecture,
+          getCommandIndex(cmd),
+          getCommandValue(cmd),
+        );
+        break;
+      }
+
+      case "block_remove_node": {
+        architecture = removeNodeReferences(
+          architecture,
+          getCommandIndex(cmd),
+          getCommandValue(cmd),
+        );
+        break;
+      }
+
+      case "block_remove_edges": {
+        architecture = removeEdgeReferences(
+          architecture,
+          getCommandIndex(cmd),
+          getCommandValue(cmd),
+        );
+        break;
+      }
+
+      case "block_remove_edge": {
+        architecture = removeEdgeReferences(
+          architecture,
+          getCommandIndex(cmd),
+          getCommandValue(cmd),
+        );
+        break;
+      }
+
+      case "block_remove_group": {
+        architecture = removeGroupReferences(
+          architecture,
+          getCommandIndex(cmd),
+          getCommandValue(cmd),
+        );
+        break;
+      }
+
+      case "block_remove_block": {
+        architecture = removeBlockReferences(architecture, cmd.args);
+        break;
+      }
+
+      case "hide_node": {
+        architecture = setNodeHidden(
+          architecture,
+          getCommandIndex(cmd),
+          getCommandValue(cmd),
+          true,
+        );
+        break;
+      }
+
+      case "show_node": {
+        architecture = setNodeHidden(
+          architecture,
+          getCommandIndex(cmd),
+          getCommandValue(cmd),
+          false,
+        );
+        break;
+      }
+
+      case "hide_edge": {
+        architecture = setEdgeHidden(
+          architecture,
+          getCommandIndex(cmd),
+          getCommandValue(cmd),
+          true,
+        );
+        break;
+      }
+
+      case "show_edge": {
+        architecture = setEdgeHidden(
+          architecture,
+          getCommandIndex(cmd),
+          getCommandValue(cmd),
+          false,
+        );
+        break;
+      }
+
+      case "hide_block": {
+        architecture = setBlockHidden(architecture, cmd.args, true);
+        break;
+      }
+
+      case "show_block": {
+        architecture = setBlockHidden(architecture, cmd.args, false);
+        break;
+      }
+
+      default:
+        break;
+    }
+  }
+
+  return architecture;
+};
+
 const ArchitectureGuiPanel = ({ value, onChange }) => {
   const [draftInputs, setDraftInputs] = useState({});
   const [architecture, setArchitecture] = useState(createEmptyArchitecture);
@@ -255,8 +945,15 @@ const ArchitectureGuiPanel = ({ value, onChange }) => {
 
       if (!architectureDef) return;
 
+      const baseArchitecture = normalizeArchitectureDef(architectureDef);
+
+      const architectureWithCommands = applyArchitectureCommands(
+        baseArchitecture,
+        nextParsedDSL.cmds || [],
+      );
+
       const restoredArchitecture = restoreSelectedEditor(
-        normalizeArchitectureDef(architectureDef),
+        architectureWithCommands,
       );
 
       setParsedDSL(nextParsedDSL);
@@ -289,38 +986,6 @@ const ArchitectureGuiPanel = ({ value, onChange }) => {
       ...prev,
       [key]: value,
     }));
-  };
-
-  const finishDraftInput = (key) => {
-    clearTimeout(commitTimerRef.current);
-
-    const latestArchitecture = latestArchitectureRef.current;
-    updateArchitectureAst(latestArchitecture);
-
-    setDraftInputs((prev) => {
-      const next = { ...prev };
-      delete next[key];
-      return next;
-    });
-  };
-
-  const blocks = architecture.body?.blocks || [];
-
-  const diagram = {
-    ...(architecture.body?.diagram || {}),
-    uses: architecture.body?.diagram?.uses || [],
-    connects: architecture.body?.diagram?.connects || [],
-  };
-
-  const selectedBlock =
-    typeof architecture.selectedEditor === "number"
-      ? blocks[architecture.selectedEditor] || null
-      : null;
-
-  const restoreNumber = (key, fallback = 0) => {
-    const saved = Number(localStorage.getItem(key));
-
-    return Number.isInteger(saved) && saved >= 0 ? saved : fallback;
   };
 
   const updateArchitectureAst = (nextArchitecture) => {
@@ -367,6 +1032,59 @@ const ArchitectureGuiPanel = ({ value, onChange }) => {
     setParsedDSL(nextParsedDSL);
     setArchitecture(nextArchitecture);
     onChange(nextCode);
+  };
+
+  const appendArchitectureCommand = (command, nextArchitecture = null) => {
+    if (!parsedDSL) return;
+
+    const nextParsedDSL = {
+      ...parsedDSL,
+      cmds: [...(parsedDSL.cmds || []), command],
+    };
+
+    const nextCode = reconstructDSL(nextParsedDSL);
+
+    isGuiEditingRef.current = true;
+    setParsedDSL(nextParsedDSL);
+
+    if (nextArchitecture) {
+      setArchitecture(nextArchitecture);
+      latestArchitectureRef.current = nextArchitecture;
+    }
+
+    onChange(nextCode);
+  };
+
+  const finishDraftInput = (key) => {
+    clearTimeout(commitTimerRef.current);
+
+    const latestArchitecture = latestArchitectureRef.current;
+    updateArchitectureAst(latestArchitecture);
+
+    setDraftInputs((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  };
+
+  const blocks = architecture.body?.blocks || [];
+
+  const diagram = {
+    ...(architecture.body?.diagram || {}),
+    uses: architecture.body?.diagram?.uses || [],
+    connects: architecture.body?.diagram?.connects || [],
+  };
+
+  const selectedBlock =
+    typeof architecture.selectedEditor === "number"
+      ? blocks[architecture.selectedEditor] || null
+      : null;
+
+  const restoreNumber = (key, fallback = 0) => {
+    const saved = Number(localStorage.getItem(key));
+
+    return Number.isInteger(saved) && saved >= 0 ? saved : fallback;
   };
 
   const updateArchitectureAstDebounced = (nextArchitecture, delay = 500) => {
@@ -739,24 +1457,91 @@ const ArchitectureGuiPanel = ({ value, onChange }) => {
   const removeNode = (nodeIndex) => {
     if (!selectedBlock) return;
 
-    const nextBlocks = blocks.map((block, blockIndex) =>
-      blockIndex === architecture.selectedEditor
-        ? {
-            ...block,
-            nodes: (block.nodes || []).filter(
-              (_, index) => index !== nodeIndex,
-            ),
-          }
-        : block,
+    clearTimeout(commitTimerRef.current);
+
+    const architectureName = architecture.name;
+    const blockName = selectedBlock.id?.name;
+    const nodeName = selectedBlock.nodes?.[nodeIndex]?.id?.name;
+
+    if (!architectureName || !blockName || !nodeName) return;
+
+    const nextArchitecture = removeNodeReferences(
+      architecture,
+      blockName,
+      nodeName,
     );
 
-    updateArchitectureAst({
-      ...architecture,
-      body: {
-        ...architecture.body,
-        blocks: nextBlocks,
+    appendArchitectureCommand(
+      {
+        type: "block_remove_node",
+        name: architectureName,
+        args: {
+          index: blockName,
+          value: nodeName,
+        },
       },
-    });
+      nextArchitecture,
+    );
+  };
+
+  const removeEdge = (edgeIndex) => {
+    if (!selectedBlock) return;
+
+    clearTimeout(commitTimerRef.current);
+
+    const architectureName = architecture.name;
+    const blockName = selectedBlock.id?.name;
+    const edgeName = selectedBlock.edges?.[edgeIndex]?.id?.name;
+
+    if (!architectureName || !blockName || !edgeName) return;
+
+    const nextArchitecture = removeEdgeReferences(
+      architecture,
+      blockName,
+      edgeName,
+    );
+
+    appendArchitectureCommand(
+      {
+        type: "block_remove_edge",
+        name: architectureName,
+        args: {
+          index: blockName,
+          value: edgeName,
+        },
+      },
+      nextArchitecture,
+    );
+  };
+
+  const removeGroup = (groupIndex) => {
+    if (!selectedBlock) return;
+
+    clearTimeout(commitTimerRef.current);
+
+    const architectureName = architecture.name;
+    const blockName = selectedBlock.id?.name;
+    const groupName = selectedBlock.groups?.[groupIndex]?.id?.name;
+
+    if (!architectureName || !blockName || !groupName) return;
+
+    const nextArchitecture = removeGroupReferences(
+      architecture,
+      blockName,
+      groupName,
+    );
+
+    appendArchitectureCommand(
+      {
+        type: "block_remove_group",
+        name: architectureName,
+        args: {
+          index: blockName,
+          value: groupName,
+        },
+      },
+      nextArchitecture,
+    );
   };
 
   const parseEndpointForAst = (value) => {
@@ -913,29 +1698,6 @@ const ArchitectureGuiPanel = ({ value, onChange }) => {
     } else {
       updateArchitectureAst(nextArchitecture);
     }
-  };
-
-  const removeEdge = (edgeIndex) => {
-    if (!selectedBlock) return;
-
-    const nextBlocks = blocks.map((block, blockIndex) =>
-      blockIndex === architecture.selectedEditor
-        ? {
-            ...block,
-            edges: (block.edges || []).filter(
-              (_, index) => index !== edgeIndex,
-            ),
-          }
-        : block,
-    );
-
-    updateArchitectureAst({
-      ...architecture,
-      body: {
-        ...architecture.body,
-        blocks: nextBlocks,
-      },
-    });
   };
 
   const formatMembersForInput = (members = []) => {
@@ -1123,28 +1885,6 @@ const ArchitectureGuiPanel = ({ value, onChange }) => {
     } else {
       updateArchitectureAst(nextArchitecture);
     }
-  };
-  const removeGroup = (groupIndex) => {
-    if (!selectedBlock) return;
-
-    const nextBlocks = blocks.map((block, blockIndex) =>
-      blockIndex === architecture.selectedEditor
-        ? {
-            ...block,
-            groups: (block.groups || []).filter(
-              (_, index) => index !== groupIndex,
-            ),
-          }
-        : block,
-    );
-
-    updateArchitectureAst({
-      ...architecture,
-      body: {
-        ...architecture.body,
-        blocks: nextBlocks,
-      },
-    });
   };
 
   const updateDiagramUse = (useIndex, key, nextValue) => {

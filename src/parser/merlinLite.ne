@@ -1099,7 +1099,6 @@ commands -> (comment
           | set_group_layout
           | set_group_annotation
           | set_node_annotation
-          | set_node_shape
           | set_neuralnetwork_neuron
           | set_neuralnetwork_neuron_color
           | set_neuralnetwork_layer
@@ -1205,7 +1204,6 @@ set_group_color -> cmd["setGroupColor", comma_sep3[word, word, (string | nullT)]
 set_group_layout -> cmd["setGroupLayout", comma_sep3[word, word, layout_literal]] {% (details) => ({ type: "set_group_layout", ...id(details) }) %}
 set_group_annotation -> cmd["setGroupAnnotation", comma_sep4[word, word, side_literal, (string | nullT)]] {% (details) => ({ type: "set_group_annotation", ...id(details) }) %}
 set_node_annotation -> cmd["setNodeAnnotation", comma_sep4[word, word, side_literal, (string | nullT)]] {% (details) => ({ type: "set_node_annotation", ...id(details) }) %}
-set_node_shape -> cmd["setNodeShape", comma_sep3[word, word, shape_literal]] {% (details) => ({ type: "set_node_shape", ...id(details) }) %}
 
 # Set a value in an array (or by node name for graphs/trees)
 set_value -> cmd["setValue", comma_sep[(number | word) {% id %}, (number | string | nullT) {% id %}]] {% (details) => ({ type: "set", target: "value", ...id(details) }) %}

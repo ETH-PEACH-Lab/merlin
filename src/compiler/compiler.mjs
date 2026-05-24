@@ -652,7 +652,6 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
         "block_remove_edge",
         "block_remove_group",
         "set_node_label",
-        "set_node_shape",
         "set_node_color",
         "set_node_stroke",
         "set_edge_label",
@@ -1446,11 +1445,20 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                   }
 
                   if (
-                    group.anchor?.name !== undefined &&
-                    relatedIds.has(group.anchor.name)
+                    group.anchorSource?.name !== undefined &&
+                    relatedIds.has(group.anchorSource.name)
                   ) {
-                    if (group.anchor.hidden) {
-                      delete group.anchor.hidden;
+                    if (group.anchorSource.hidden) {
+                      delete group.anchorSource.hidden;
+                    }
+                  }
+
+                  if (
+                    group.anchorTarget?.name !== undefined &&
+                    relatedIds.has(group.anchorTarget.name)
+                  ) {
+                    if (group.anchorTarget.hidden) {
+                      delete group.anchorTarget.hidden;
                     }
                   }
                 }
@@ -1546,10 +1554,17 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                   }
 
                   if (
-                    group.anchor?.name !== undefined &&
-                    relatedIds.has(group.anchor.name)
+                    group.anchorSource?.name !== undefined &&
+                    relatedIds.has(group.anchorSource.name)
                   ) {
-                    group.anchor.hidden = true;
+                    group.anchorSource.hidden = true;
+                  }
+
+                  if (
+                    group.anchorTarget?.name !== undefined &&
+                    relatedIds.has(group.anchorTarget.name)
+                  ) {
+                    group.anchorTarget.hidden = true;
                   }
                 }
               }
@@ -2568,39 +2583,6 @@ Example: ${name}.setEdgeColor(diagram, 0, "blue")`,
         break;
       }
 
-      case "set_node_shape": {
-        const name = command.name;
-        const targetObject = pages[pages.length - 1].find(
-          (comp) => comp.name === name,
-        );
-
-        if (targetObject) {
-          const firstArg = command.args.block;
-          const secondArg = command.args.second;
-          const thirdArg = command.args.third;
-
-          const blocks = targetObject.body.blocks;
-          for (const block of blocks) {
-            if (block.id.name === firstArg) {
-              if (block.nodes) {
-                for (const node of block.nodes) {
-                  if (node.id.name === secondArg) {
-                    node.shape = [thirdArg];
-                  }
-                }
-              }
-            }
-            //console.log(block.nodes);
-          }
-        } else {
-          causeCompileError(
-            `Component "${name}" not found on the current page.`,
-            command,
-          );
-        }
-        break;
-      }
-
       case "block_remove_nodes": {
         const name = command.name;
         const targetObject = pages[pages.length - 1].find(
@@ -2651,10 +2633,17 @@ Example: ${name}.setEdgeColor(diagram, 0, "blue")`,
                   (member) => !idsToRemove.has(member.name),
                 );
                 if (
-                  group.anchor !== undefined &&
-                  idsToRemove.has(group.anchor.name)
+                  group.anchorSource !== undefined &&
+                  idsToRemove.has(group.anchorSource.name)
                 ) {
-                  delete group.anchor;
+                  delete group.anchorSource;
+                }
+
+                if (
+                  group.anchorTarget !== undefined &&
+                  idsToRemove.has(group.anchorTarget.name)
+                ) {
+                  delete group.anchorTarget;
                 }
               }
             }
@@ -2770,10 +2759,17 @@ Example: ${name}.setEdgeColor(diagram, 0, "blue")`,
                   (member) => !idsToRemove.has(member.name),
                 );
                 if (
-                  group.anchor !== undefined &&
-                  idsToRemove.has(group.anchor.name)
+                  group.anchorSource !== undefined &&
+                  idsToRemove.has(group.anchorSource.name)
                 ) {
-                  delete group.anchor;
+                  delete group.anchorSource;
+                }
+
+                if (
+                  group.anchorTarget !== undefined &&
+                  idsToRemove.has(group.anchorTarget.name)
+                ) {
+                  delete group.anchorTarget;
                 }
               }
             }
@@ -5017,7 +5013,6 @@ function preCheck(parsedDSL) {
         "block_remove_edge",
         "block_remove_group",
         "set_node_label",
-        "set_node_shape",
         "set_node_color",
         "set_node_stroke",
         "set_edge_label",
