@@ -17,9 +17,11 @@ import {
 import {
   PlayArrow,
   Clear,
-  Add,
-  Delete,
   Grid3x3,
+  NavigateBefore,
+  NavigateNext,
+  PlayCircleOutline,
+  PauseCircleOutline,
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import NavigationBar from './NavigationBar';
@@ -45,6 +47,10 @@ const PythonVisualizerSection = () => {
   const [compiledMerlin, setCompiledMerlin] = useState('');
   const [pages, setPages] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
+  // Maps each snapshot index to the page it should display.
+  const [snapshotToPage, setSnapshotToPage] = useState([]);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const playIntervalMs = 1000;
 
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
@@ -99,6 +105,39 @@ const PythonVisualizerSection = () => {
     console.log('Extracted pages from DSL:', pageNumbers, 'Total pages:', pageCount);
     return pageNumbers;
   };
+
+  useEffect(() => {
+    if (!isPlaying) return;
+    const total = executionResult?.snapshots?.length || 0;
+    if (total === 0) {
+      setIsPlaying(false);
+      return;
+    }
+    const id = setInterval(() => {
+      setCurrentSnapshotIndex((prev) => {
+        if (prev >= total - 1) {
+          setIsPlaying(false);
+          return prev;
+        }
+        return prev + 1;
+      });
+    }, playIntervalMs);
+    return () => clearInterval(id);
+  }, [isPlaying, executionResult]);
+
+  // Drive the visualization page from the snapshot index so that stepping
+  // through snapshots automatically advances the diagram. We look one snapshot
+  // ahead so the visualization shows the state *after* the highlighted line
+  // executes, keeping the code highlight and visualization in sync.
+  useEffect(() => {
+    if (snapshotToPage.length === 0) return;
+    const nextIdx = Math.min(currentSnapshotIndex + 1, snapshotToPage.length - 1);
+    const page = snapshotToPage[nextIdx];
+    if (page && page !== currentPage) {
+      setCurrentPage(page);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentSnapshotIndex, snapshotToPage]);
 
   useEffect(() => {
     if (editableMerlinCode) {
@@ -166,6 +205,8 @@ const PythonVisualizerSection = () => {
     setCompiledMerlin('');
     setPages([]);
     setCurrentPage(1);
+    setSnapshotToPage([]);
+    setIsPlaying(false);
   };
 
   const handleExecute = async () => {
@@ -189,13 +230,14 @@ const PythonVisualizerSection = () => {
         setExecutionResult(result);
     
         try {
-          const merlinCode = snapshotsToMerlinDSL_Pipeline(
+          const { dsl: merlinCode, snapshotToPage: stp } = snapshotsToMerlinDSL_Pipeline(
             result.snapshots,
             pythonCode
           );
           console.log('Generated Merlin DSL:', merlinCode);
           console.log('DSL length:', merlinCode?.length);
           setEditableMerlinCode(merlinCode);
+          setSnapshotToPage(stp);
         } catch (conversionError) {
           console.error('Failed to convert snapshots to Merlin DSL:', conversionError);
         }
@@ -269,35 +311,11 @@ const PythonVisualizerSection = () => {
     setPages([]);
     setCurrentPage(1);
     setCurrentSnapshotIndex(0);
+    setSnapshotToPage([]);
+    setIsPlaying(false);
   };
 
 
-
-  const handleAddPage = () => {
-    if (pages.length === 0) {
-      showSnackbar('No pages in visualization', 'error');
-      return;
-    }
-    const newPageNum = Math.max(...pages) + 1;
-    const newCode = editableMerlinCode + `\n\npage ${newPageNum}\n  // New page content`;
-    setEditableMerlinCode(newCode);
-  };
-
-  const handleDeletePage = () => {
-    if (pages.length <= 1) {
-      showSnackbar('Cannot delete the only page', 'error');
-      return;
-    }
-
-    const pageRegex = new RegExp(`page\\s+${currentPage}\\b[\\s\\S]*?(?=page\\s+\\d|$)`, 'gi');
-    const newCode = editableMerlinCode.replace(pageRegex, '').trim();
-    setEditableMerlinCode(newCode);
-
-    const newPages = extractPagesFromDSL(newCode);
-    if (newPages.length > 0) {
-      setCurrentPage(newPages[0]);
-    }
-  };
 
   const handlePrevPage = () => {
     const currentIndex = pages.indexOf(currentPage);
@@ -355,64 +373,117 @@ const PythonVisualizerSection = () => {
           sx={{
             display: 'flex',
             gap: 1,
-            p: 2,
+            px: 2,
             bgcolor: 'background.paper',
             borderBottom: '1px solid',
             borderColor: 'divider',
             alignItems: 'center',
-            flexWrap: 'wrap',
+            height: '40px',
+            minHeight: '40px',
+            maxHeight: '40px',
           }}
         >
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<PlayArrow />}
-            onClick={handleExecute}
-            disabled={loading || !pythonCode.trim()}
-          >
-            {loading ? 'Running...' : 'Run Code'}
-          </Button>
+          <Tooltip title={loading ? 'Running...' : 'Run Code'}>
+            <span>
+              <IconButton
+                color="primary"
+                size="small"
+                onClick={handleExecute}
+                disabled={loading || !pythonCode.trim()}
+              >
+                <PlayArrow fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
 
-          <Button
-            variant="outlined"
-            color="secondary"
-            startIcon={<Clear />}
-            onClick={handleClear}
-            disabled={loading}
-          >
-            Clear
-          </Button>
+          <Tooltip title="Clear">
+            <span>
+              <IconButton
+                color="secondary"
+                size="small"
+                onClick={handleClear}
+                disabled={loading}
+              >
+                <Clear fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
 
           {loading && (
             <CircularProgress size={24} sx={{ ml: 1 }} />
           )}
 
-          {executionResult && !error && (
-            <>
-              <Typography variant="body2" color="success.main" sx={{ ml: 'auto', mr: 2 }}>
-                ✓ {executionResult.snapshots?.length || 0} snapshots
-              </Typography>
-              <Button
-                onClick={() => setCurrentSnapshotIndex(Math.max(0, currentSnapshotIndex - 1))}
-                variant="outlined"
-                size="small"
-                disabled={currentSnapshotIndex === 0}
-              >
-                Prev Snapshot
-              </Button>
-              <Typography variant="caption" sx={{ mx: 1, alignSelf: 'center' }}>
-                {currentSnapshotIndex + 1} / {executionResult.snapshots?.length || 0}
-              </Typography>
-              <Button
-                onClick={() => setCurrentSnapshotIndex(Math.min(executionResult.snapshots.length - 1, currentSnapshotIndex + 1))}
-                variant="outlined"
-                size="small"
-                disabled={currentSnapshotIndex === executionResult.snapshots.length - 1}
-              >
-                Next Snapshot
-              </Button>
-            </>
-          )}
+          {(() => {
+            const totalSnapshots = executionResult?.snapshots?.length || 0;
+            const inSnapshotMode = totalSnapshots > 0 && snapshotToPage.length > 0;
+            const canPrev = inSnapshotMode
+              ? currentSnapshotIndex > 0
+              : pages.length > 1 && pages.indexOf(currentPage) > 0;
+            const canNext = inSnapshotMode
+              ? currentSnapshotIndex < totalSnapshots - 1
+              : pages.length > 1 && pages.indexOf(currentPage) < pages.length - 1;
+            const onPrev = inSnapshotMode
+              ? () => setCurrentSnapshotIndex(Math.max(0, currentSnapshotIndex - 1))
+              : handlePrevPage;
+            const onNext = inSnapshotMode
+              ? () => setCurrentSnapshotIndex(Math.min(totalSnapshots - 1, currentSnapshotIndex + 1))
+              : handleNextPage;
+            const label = inSnapshotMode
+              ? `Step ${currentSnapshotIndex + 1}/${totalSnapshots}`
+              : pages.length > 0
+                ? `Page ${currentPage}/${pages.length}`
+                : '';
+
+            if (!inSnapshotMode && pages.length === 0) return null;
+
+            const togglePlay = () => {
+              if (isPlaying) {
+                setIsPlaying(false);
+                return;
+              }
+              // If we're at the last snapshot, restart from the beginning.
+              if (inSnapshotMode && currentSnapshotIndex >= totalSnapshots - 1) {
+                setCurrentSnapshotIndex(0);
+              }
+              setIsPlaying(true);
+            };
+
+            return (
+              <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+                <Tooltip title="Previous">
+                  <span>
+                    <IconButton size="small" onClick={onPrev} disabled={!canPrev}>
+                      <NavigateBefore fontSize="small" />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+                <Tooltip title="Next">
+                  <span>
+                    <IconButton size="small" onClick={onNext} disabled={!canNext}>
+                      <NavigateNext fontSize="small" />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+                {inSnapshotMode && (
+                  <Tooltip title={isPlaying ? 'Pause' : 'Play'}>
+                    <span>
+                      <IconButton
+                        size="small"
+                        onClick={togglePlay}
+                        disabled={totalSnapshots === 0}
+                      >
+                        {isPlaying
+                          ? <PauseCircleOutline fontSize="small" />
+                          : <PlayCircleOutline fontSize="small" />}
+                      </IconButton>
+                    </span>
+                  </Tooltip>
+                )}
+                <Typography variant="caption" sx={{ ml: 0.5 }}>{label}</Typography>
+              </Box>
+            );
+          })()}
+
         </Box>
 
         {/* 2-Column Content Layout: Left (Python) | Divider | Right (Visualization) */}
@@ -565,46 +636,11 @@ const PythonVisualizerSection = () => {
                 Visualization
               </Typography>
               {pages.length > 0 && (
-                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                  <Button
-                    onClick={handlePrevPage}
-                    variant="contained"
-                    disabled={pages.length <= 1 || pages.indexOf(currentPage) === 0}
-                    style={{ fontSize: "12px", marginRight: "15px", maxWidth: '80px', maxHeight: '25px', minWidth: '40px', minHeight: '25px' }}
-                  >
-                    Prev
-                  </Button>
-                  <Button
-                    onClick={handleNextPage}
-                    variant="contained"
-                    disabled={pages.length <= 1 || pages.indexOf(currentPage) === pages.length - 1}
-                    style={{ fontSize: "12px", marginRight: "15px", maxWidth: '80px', maxHeight: '25px', minWidth: '40px', minHeight: '25px' }}
-                  >
-                    Next
-                  </Button>
-                  <Typography variant="caption">
-                    {currentPage}/{pages.length}
-                  </Typography>
-                  <Tooltip title="Add Page">
-                    <IconButton size="small" onClick={handleAddPage}>
-                      <Add fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Delete Page">
-                    <IconButton
-                      size="small"
-                      onClick={handleDeletePage}
-                      disabled={pages.length <= 1}
-                    >
-                      <Delete fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Set Grid Size">
-                    <IconButton size="small" onClick={handleOpenGridDialog}>
-                      <Grid3x3 fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                </Box>
+                <Tooltip title="Set Grid Size">
+                  <IconButton size="small" onClick={handleOpenGridDialog}>
+                    <Grid3x3 fontSize="small" />
+                  </IconButton>
+                </Tooltip>
               )}
             </Box>
 

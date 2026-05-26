@@ -214,7 +214,8 @@ code::-webkit-scrollbar-thumb {
 
 .mermaid-container {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
   align-items: baseline;
   width: 100%;
   background-color: #fafafa;
@@ -234,4 +235,8 @@ code::-webkit-scrollbar-thumb {
 
 #title:hover {
   color: #a94fd8 !important
+}
+
+.highlighted-line {
+  background: rgba(253, 251, 98, 0.3) !important;
 }

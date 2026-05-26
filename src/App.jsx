@@ -13,7 +13,6 @@ import { extractCodeFromUrl, hasSharedExample } from "./utils/urlSharing";
 import { handleExport } from "./utils/exportUtils";
 import ExportProgressDialog from "./components/ExportProgressDialog";
 import CustomExportDialog from "./components/CustomExportDialog";
-import PythonStepper from "./components/PythonStepper";
 import { useTheme } from '@mui/material/styles';
 
 const App = () => {

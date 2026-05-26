@@ -187,15 +187,27 @@ def trace_calls(frame, event, arg):
         try:
             local_vars = capture_locals(frame)
 
-            # Build call stack for recursion tracking
+            # Build call stack for recursion tracking. Capture each frame's
+            # locals so the converter can build per-function Merlin frames.
+            # STOP at the user_code wrapper -- frames above it are the
+            # worker's own scope and would serialize the ever-growing
+            # snapshots/heap globals on every step.
             call_stack = []
             current_frame = frame
             depth = 0
+            first = True
             while current_frame and depth < 50:
+                fname = current_frame.f_code.co_name
                 call_stack.append({
-                    'function': current_frame.f_code.co_name,
-                    'line': current_frame.f_lineno
+                    'function': fname,
+                    'line': current_frame.f_lineno,
+                    # Reuse already-captured locals for the innermost frame
+                    # to avoid serializing it twice.
+                    'locals': local_vars if first else capture_locals(current_frame)
                 })
+                first = False
+                if fname == 'user_code':
+                    break
                 current_frame = current_frame.f_back
                 depth += 1
 
@@ -218,14 +230,34 @@ def trace_calls(frame, event, arg):
         # Capture final state when function returns
         try:
             local_vars = capture_locals(frame)
-            
+
+            # Build call stack just like the line handler so buildFrames gets
+            # the correct per-frame locals. An empty call_stack would cause the
+            # fallback to use the returning function's locals for the global frame.
+            call_stack = []
+            current_frame = frame
+            depth = 0
+            first = True
+            while current_frame and depth < 50:
+                fname = current_frame.f_code.co_name
+                call_stack.append({
+                    'function': fname,
+                    'line': current_frame.f_lineno,
+                    'locals': local_vars if first else capture_locals(current_frame)
+                })
+                first = False
+                if fname == 'user_code':
+                    break
+                current_frame = current_frame.f_back
+                depth += 1
+
             if local_vars:  # Only add if there are variables
                 snapshots.append({
                     'line': 'return',
                     'locals': local_vars,
                     'heap': dict(heap),
-                    'call_stack': [],
-                    'stack_depth': 0
+                    'call_stack': call_stack,
+                    'stack_depth': len(call_stack)
                 })
                 debug_events.append(f"  -> Final snapshot on return with {len(local_vars)} vars")
         except Exception as e:
