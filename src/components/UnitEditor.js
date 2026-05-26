@@ -176,7 +176,7 @@ const DynamicInput = ({
     );
   }
 
-  if (["shapeStacked", "shapeFlatten"].includes(fieldKey)) {
+  /*if (["shapeStacked", "shapeFlatten"].includes(fieldKey)) {
     return (
       <React.Fragment>
         <Tooltip title={label} sx={{ mr: 5 }}>
@@ -350,7 +350,7 @@ const DynamicInput = ({
         </Popover>
       </React.Fragment>
     );
-  }
+  }*/
 
   // Regular text/number inputs
   if (
