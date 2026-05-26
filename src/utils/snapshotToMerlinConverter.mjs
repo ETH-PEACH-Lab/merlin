@@ -385,45 +385,128 @@ export function singleSnapshotToMerlin(snapshot, pythonCode) {
  * @param {Object} previousSnapshot - Previous snapshot (or null for first)
  * @returns {Object} {dslCommands, models, delta}
  */
+// Resolve the call stack into FrameModels. Worker order is innermost→outermost;
+// we walk outer→inner so depth 0 is the outermost frame ("global" for the
+// module-level wrapper). Frame IDs are stable while a function stays on the
+// stack — when the function name at a given depth changes (different call),
+// a fresh id is allocated via `state.frameCounter`.
+function buildFrames(snapshot, heap, state) {
+  const rawStack = snapshot.call_stack || [];
+  const outerToInner = [...rawStack].reverse();
+
+  // Fallback: no call stack metadata (older snapshot format). Use top-level
+  // locals as a synthetic global frame so the pipeline still emits something.
+  if (outerToInner.length === 0 && snapshot.locals) {
+    outerToInner.push({
+      function: 'user_code',
+      line: null,
+      locals: snapshot.locals,
+    });
+  }
+
+  const resolved = [];
+  for (let i = 0; i < outerToInner.length; i++) {
+    const entry = outerToInner[i];
+    const isOutermost = i === 0;
+    const isWrapper = entry.function === 'user_code' || entry.function === '<module>';
+    const displayName = isOutermost && isWrapper ? 'global' : entry.function;
+
+    const prev = state.previousFrameStack[i];
+    let frameId;
+    if (prev && prev.displayName === displayName) {
+      frameId = prev.frameId;
+    } else {
+      // Strip leading/trailing underscores so __init__ → init_N (valid DSL identifier)
+      const safeName = displayName.replace(/^_+|_+$/g, '') || 'func';
+      frameId = `${safeName}_${state.frameCounter++}`;
+    }
+
+    resolved.push({
+      frameId,
+      displayName,
+      depth: i,
+      locals: entry.locals || {},
+    });
+  }
+
+  const frames = new Map();
+  resolved.forEach(({ frameId, displayName, depth, locals }) => {
+    const frameModel = new FrameModel({ id: frameId, displayName, depth });
+    Object.entries(locals).forEach(([varName, serializedValue]) => {
+      const detection = detectStructureType(varName, serializedValue, heap, locals);
+      const model = createModel(varName, detection, heap, locals);
+      if (model) frameModel.addVariable(model);
+    });
+    frames.set(frameId, frameModel);
+  });
+
+  const innermostLocals = resolved.length > 0
+    ? resolved[resolved.length - 1].locals
+    : {};
+
+  return { frames, resolvedStack: resolved, innermostLocals };
+}
+
 export function processSnapshotPipeline(
   currentSnapshot,
   previousSnapshot,
   previousModels = new Map(),
-  initializedVariables = new Set()
+  initializedVariables = new Set(),
+  state = { previousFrameStack: [], previousFrames: new Map(), frameCounter: 0 },
 ) {
   const heap = currentSnapshot.heap || {};
-  const locals = currentSnapshot.locals || {};
-  
-  // Stage 2 & 3: Detect and Normalize - create models for each variable
+
+  // Build per-call-stack frame models (one Merlin frame per Python frame).
+  const { frames, resolvedStack, innermostLocals } = buildFrames(currentSnapshot, heap, state);
+
+  // Standalone complex models come from the innermost scope only — outer
+  // frames' complex variables stay frame-only (shown as a type hint).
   const currentModels = new Map();
-  
-  Object.entries(locals).forEach(([varName, serializedValue]) => {
-    const detection = detectStructureType(varName, serializedValue, heap, locals);
-    
-    // Skip text/primitive variables - only render complex structures
-    if (detection.type === 'text') {
-      return;
-    }
-    
-    // Create model for complex types (list, stack, tree, graph)
-    const model = createModel(varName, detection, heap, locals);
-    if (model) {
-      currentModels.set(varName, model);
-    }
+  Object.entries(innermostLocals).forEach(([varName, serializedValue]) => {
+    const detection = detectStructureType(varName, serializedValue, heap, innermostLocals);
+    if (detection.type === 'text') return;
+    const model = createModel(varName, detection, heap, innermostLocals);
+    if (model) currentModels.set(varName, model);
   });
-  
-  // Stage 4: Diff - compute changes from previous snapshot
+
   const delta = computeDelta(currentModels, previousModels, initializedVariables);
-  
-  // Store models for next snapshot's diff
-  currentSnapshot._models = currentModels;
-  
-  // Stage 5: Emit - convert delta to DSL commands
   const dslCommands = delta.getDSLCommands();
-  
+
+  // Diff frames against the previous snapshot's frames.
+  const frameCommands = [];
+  for (const [frameId, frameModel] of frames) {
+    const previous = state.previousFrames.get(frameId);
+    if (!previous) {
+      frameCommands.push({
+        type: 'frame_declaration',
+        frameId,
+        component: frameModel.componentName(),
+        command: frameModel.toDSLDeclaration(),
+      });
+    } else {
+      frameModel.toDSLUpdates(previous).forEach((cmd) => {
+        frameCommands.push({
+          type: 'frame_update',
+          frameId,
+          component: frameModel.componentName(),
+          command: cmd,
+        });
+      });
+    }
+  }
+
+  const removedFrameIds = [];
+  for (const frameId of state.previousFrames.keys()) {
+    if (!frames.has(frameId)) removedFrameIds.push(frameId);
+  }
+
   return {
     dslCommands,
     models: currentModels,
+    frames,
+    resolvedStack,
+    frameCommands,
+    removedFrameIds,
     delta,
     initializedVariables: delta.initializedVariables,
   };
@@ -438,70 +521,144 @@ export function processSnapshotPipeline(
  */
 export function snapshotsToMerlinDSL_Pipeline(snapshots, pythonCode) {
   if (!snapshots || snapshots.length === 0) {
-    return 'page\ntext info = { value: "No execution snapshots to display" }';
+    return {
+      dsl: 'page\ntext info = { value: "No execution snapshots to display" }',
+      snapshotToPage: [],
+    };
   }
-  
+
   const lines = [];
-  let previousModels = new Map();  // Track models between iterations
-  const initializedVariables = new Set();  // Track what's been declared
+  const previousModels = new Map();          // standalone complex models
+  const initializedVariables = new Set();    // standalone components already declared
+  const initializedFrames = new Set();       // frame components already declared
+  const state = {
+    previousFrameStack: [],                  // outer→inner stack from prior snapshot
+    previousFrames: new Map(),               // frameId → FrameModel from prior snapshot
+    frameCounter: 0,
+  };
   const maxSnapshots = Math.min(snapshots.length, 100);
-  
+  // snapshotToPage[i] = 1-based page index shown when stepping to snapshot i.
+  // Snapshots that don't produce DSL changes "stick" on the last emitted page.
+  const snapshotToPage = new Array(snapshots.length).fill(1);
+  let currentPageNum = 0;
+
   for (let i = 0; i < maxSnapshots; i++) {
     const currentSnapshot = snapshots[i];
     const previousSnapshot = i > 0 ? snapshots[i - 1] : null;
-    
-    const { dslCommands, delta, models } = processSnapshotPipeline(
+
+    const {
+      dslCommands,
+      delta,
+      models,
+      frames,
+      resolvedStack,
+      frameCommands,
+      removedFrameIds,
+    } = processSnapshotPipeline(
       currentSnapshot,
       previousSnapshot,
-      previousModels,  // Pass models from previous iteration
-      initializedVariables
+      previousModels,
+      initializedVariables,
+      state,
     );
-    
-    if (!delta.hasChanges()) {
+
+    const frameDeclarations = frameCommands.filter((c) => c.type === 'frame_declaration');
+    const frameUpdates = frameCommands.filter((c) => c.type === 'frame_update');
+    const hasFrameChanges =
+      frameDeclarations.length > 0 ||
+      frameUpdates.length > 0 ||
+      removedFrameIds.length > 0;
+
+    if (!delta.hasChanges() && !hasFrameChanges) {
+      snapshotToPage[i] = Math.max(currentPageNum, 1);
       continue;
     }
-    
-    // Accumulate models to retain last known state for variables
-    // (Protects against variables temporarily dropping out during execution)
-    models.forEach((model, varName) => {
-      previousModels.set(varName, model);
-    });
-    
+
+    // Capture component names of frames that just went out of scope BEFORE
+    // we overwrite state.previousFrames — we need them to emit `hide` commands.
+    const hideCommands = removedFrameIds
+      .map((id) => state.previousFrames.get(id))
+      .filter(Boolean)
+      .map((frameModel) => `hide ${frameModel.componentName()}`);
+
+    models.forEach((model, varName) => previousModels.set(varName, model));
+    state.previousFrames = frames;
+    state.previousFrameStack = resolvedStack.map(({ frameId, displayName }) => ({
+      frameId,
+      displayName,
+    }));
+
     const declarations = dslCommands.filter((cmd) => cmd.type === 'declaration');
     const updates = dslCommands.filter((cmd) => cmd.type === 'update');
+    const actualDeclarations = declarations.filter(
+      (cmd) => !initializedVariables.has(cmd.varName),
+    );
 
-    // Filter out declarations for variables that are already initialized
-    const actualDeclarations = declarations.filter(cmd => !initializedVariables.has(cmd.varName));
-
-    if (actualDeclarations.length === 0 && updates.length === 0) {
+    if (
+      actualDeclarations.length === 0 &&
+      updates.length === 0 &&
+      frameDeclarations.length === 0 &&
+      frameUpdates.length === 0 &&
+      hideCommands.length === 0
+    ) {
+      snapshotToPage[i] = Math.max(currentPageNum, 1);
       continue;
     }
-    
-    lines.push('page');
-    
+
+    currentPageNum += 1;
+    snapshotToPage[i] = currentPageNum;
+
+    // Generate the columns: 
+    // Left column (col 0): Frames.
+    // Right column (col 1): Data structures (lists, trees, graphs, variables).
+    // The frames remain strictly adjacent to the border and not below the data structures.
+    const maxFrameDepth = Math.max(
+      -1,
+      ...[...frames.values()].map((f) => f.depth),
+    );
+    const standaloneCount = initializedVariables.size;
+    const rowsNeeded = Math.max(maxFrameDepth + 1, standaloneCount, 4);
+    lines.push(`page 4x${rowsNeeded}`);
+
     actualDeclarations.forEach((cmd) => {
       lines.push(cmd.command);
       initializedVariables.add(cmd.varName);
     });
-    
-    initializedVariables.forEach((varName) => {
-      lines.push(`show ${varName}`);
+
+    frameDeclarations.forEach((cmd) => {
+      lines.push(cmd.command);
+      initializedFrames.add(cmd.frameId);
     });
 
-    const updatedVarNames = new Set();
-    updates.forEach((cmd) => {
-      lines.push(cmd.command);
-      updatedVarNames.add(cmd.varName);
+    // Hide frames whose function just returned.
+    hideCommands.forEach((cmd) => lines.push(cmd));
+
+    // Only `show` frames currently on the stack. Position is column 0,
+    frames.forEach((frameModel, frameId) => {
+      if (initializedFrames.has(frameId)) {
+        lines.push(`show ${frameModel.componentName()} (0, ${frameModel.depth})`);
+      }
     });
-    
-    updatedVarNames.forEach((varName) => {
-      lines.push(`show ${varName}`);
+
+    // Standalone components go in column 1 to 3 (right wide area), one per row.
+    let standaloneRow = 0;
+    initializedVariables.forEach((varName) => {
+      lines.push(`show ${varName} (1..3, ${standaloneRow})`);
+      standaloneRow++;
     });
-    
+
+    updates.forEach((cmd) => lines.push(cmd.command));
+    frameUpdates.forEach((cmd) => lines.push(cmd.command));
+
     lines.push('');
   }
-  
-  return lines.join('\n');
+
+  // Any snapshots above the maxSnapshots cap stick on the last emitted page.
+  for (let i = maxSnapshots; i < snapshots.length; i++) {
+    snapshotToPage[i] = Math.max(currentPageNum, 1);
+  }
+
+  return { dsl: lines.join('\n'), snapshotToPage };
 }
 
 /**

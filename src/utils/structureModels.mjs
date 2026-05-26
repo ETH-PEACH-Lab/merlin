@@ -30,52 +30,116 @@ class StructureModel {
   }
 }
 
-// FrameModel is currently unused 
 export class FrameModel extends StructureModel {
   constructor(frameInfo) {
     super(frameInfo.id, null, null, null);
     this.type = 'frame';
-    this.id = frameInfo.id; 
+    this.id = frameInfo.id;
     this.displayName = frameInfo.displayName;
     this.depth = frameInfo.depth;
     this.variables = new Map();
+    this.coloredVariables = new Set();
   }
 
   addVariable(varModel) {
     this.variables.set(varModel.varName, varModel);
   }
 
+  // Frame component name used in emitted DSL. Sanitize so the id is a valid word.
+  componentName() {
+    return `${this.sanitizeName(this.id)}_frame`;
+  }
+
+  formatVariableValue(varModel) {
+    if (varModel.type === 'text') {
+      const sv = varModel.serializedValue;
+      if (!sv) return '';
+      if (sv.type === 'str') return sv.value;
+      if (sv.type === 'int' || sv.type === 'float') return String(sv.value ?? '');
+      if (sv.type === 'bool') return sv.value ? 'True' : 'False';
+      if (sv.type === 'NoneType') return 'None';
+      return String(varModel.displayValue ?? '');
+    }
+    return varModel.type; // "list" | "stack" | "tree" | "graph"
+  }
+
   toDSLDeclaration() {
-    const headerDsl = `text ${this.id}_frame = { value: "--- ${this.displayName} ---" }`;
-    const varDeclarations = [];
+    const varNames = [];
+    const varValues = [];
+    const varColors = [];
+
     for (const varModel of this.variables.values()) {
-      varDeclarations.push(varModel.toDSLDeclaration());
+      varNames.push(this.sanitizeName(varModel.varName));
+      varValues.push(`"${this.formatVariableValue(varModel)}"`);
+      varColors.push('null');
     }
 
-    return [headerDsl, ...varDeclarations].join('\n');
+    const lines = [
+      `frame ${this.componentName()} = {`,
+      `  name: "${this.displayName}"`,
+      `  variable: [${varNames.join(', ')}]`,
+      `  value: [${varValues.join(', ')}]`,
+      `  color: [${varColors.join(', ')}]`,
+      `}`,
+    ];
+    return lines.join('\n');
   }
 
   getLayoutCommands() {
-    const commands = [];
-    let lastVarName = null;
-
-    for (const varName of this.variables.keys()) {
-      if (lastVarName) {
-        commands.push(`${lastVarName}.below = ${varName}`);
-      }
-      lastVarName = varName;
-    }
-
-    if (lastVarName) {
-      commands.push(`${this.id}_frame.right = ${[...this.variables.keys()][0]}`);
-    }
-
-    return commands;
+    return [];
   }
 
   toDSLUpdates(previousFrame) {
     const updates = [];
- 
+    if (!previousFrame || previousFrame.type !== 'frame') return updates;
+
+    const component = this.componentName();
+
+    if (previousFrame.coloredVariables && previousFrame.coloredVariables.size > 0) {
+      previousFrame.coloredVariables.forEach((name) => {
+        if (this.variables.has(name)) {
+          updates.push(`${component}.setColor(${this.sanitizeName(name)}, null)`);
+        }
+      });
+      previousFrame.coloredVariables.clear();
+    }
+
+    const current = new Map();
+    for (const [name, model] of this.variables) {
+      current.set(name, this.formatVariableValue(model));
+    }
+    const previous = new Map();
+    for (const [name, model] of previousFrame.variables) {
+      previous.set(name, previousFrame.formatVariableValue(model));
+    }
+
+    // Removed variables first (so subsequent indices stay valid).
+    for (const name of previous.keys()) {
+      if (!current.has(name)) {
+        updates.push(`${component}.removeVariable(${this.sanitizeName(name)})`);
+      }
+    }
+
+    // Added variables — highlight with yellow on entry.
+    for (const [name, value] of current) {
+      if (!previous.has(name)) {
+        updates.push(
+          `${component}.addVariable(${this.sanitizeName(name)}, "${value}", "yellow")`,
+        );
+        this.coloredVariables.add(name);
+      }
+    }
+
+    // Changed values — update the value and highlight the variable.
+    for (const [name, value] of current) {
+      if (previous.has(name) && previous.get(name) !== value) {
+        const safe = this.sanitizeName(name);
+        updates.push(`${component}.setValue(${safe}, "${value}")`);
+        updates.push(`${component}.setColor(${safe}, "yellow")`);
+        this.coloredVariables.add(name);
+      }
+    }
+
     return updates;
   }
 }

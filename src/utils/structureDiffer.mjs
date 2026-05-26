@@ -86,8 +86,17 @@ export function computeDelta(currentModels, previousModels, initializedVariables
 
 
 export function hasModelChanged(currentModel, previousModel) {
-  
   if (currentModel.type !== previousModel.type) {
+    return true;
+  }
+
+  if (previousModel.coloredIndices && previousModel.coloredIndices.size > 0) {
+    return true;
+  }
+  if (previousModel.coloredVariables && previousModel.coloredVariables.size > 0) {
+    return true;
+  }
+  if (previousModel.coloredNodes && previousModel.coloredNodes.size > 0) {
     return true;
   }
 

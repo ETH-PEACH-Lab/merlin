@@ -9,6 +9,7 @@ import { generateTree } from "./types/generateTree.mjs";
 import { generateMatrix } from "./types/generateMatrix.mjs";
 import { generateGraph } from "./types/generateGraph.mjs";
 import { generateText } from "./types/generateText.mjs";
+import { generateFrame } from "./types/generateFrame.mjs";
 import { getMermaidContainerSize } from "../utils/positionUtils.mjs";
 import { generateNodeName } from '../utils/dslUtils.mjs';
 
@@ -352,16 +353,20 @@ function getNodeIndex(targetObject, nodeNameOrIndex) {
     if (typeof nodeNameOrIndex === 'number') {
         return nodeNameOrIndex;
     }
-    
-    // If it's a string (node name), find its index
-    if (typeof nodeNameOrIndex === 'string' && targetObject.body.nodes) {
-        const index = targetObject.body.nodes.indexOf(nodeNameOrIndex);
+
+    // Frames look up by variable name; everything else by node name
+    const lookupArray = targetObject.type === 'frame'
+        ? targetObject.body.variable
+        : targetObject.body.nodes;
+
+    if (typeof nodeNameOrIndex === 'string' && lookupArray) {
+        const index = lookupArray.indexOf(nodeNameOrIndex);
         if (index === -1) {
-            return null; // Node not found
+            return null; // Not found
         }
         return index;
     }
-    
+
     return null; // Invalid input
 }
 
@@ -523,7 +528,7 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
             'set', 'set_multiple', 'set_matrix', 'set_matrix_multiple',
             'add', 'insert', 'remove', 'remove_at', 'remove_subtree',
             'add_child', 'set_child', 'add_matrix_row', 'add_matrix_column',
-            'remove_matrix_row', 'remove_matrix_column', 'add_matrix_border', 'insert_matrix_row', 'insert_matrix_column', 'set_text', 'set_chained'
+            'remove_matrix_row', 'remove_matrix_column', 'add_matrix_border', 'insert_matrix_row', 'insert_matrix_column', 'add_frame_variable', 'remove_frame_variable', 'set_frame_variable_name', 'set_text', 'set_chained'
         ].includes(command.type)) {
             const targetObject = pages.length > 0 ? pages[pages.length - 1]?.find(comp => comp.name === command.name) : null;
             if (targetObject) {
@@ -718,9 +723,9 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                         initializeValueArrayWithNodeNames(body);
                     }
                     
-                    // Handle node name to index conversion for trees, graphs, and linkedlists
+                    // Handle node/variable name to index conversion for trees, graphs, linkedlists, and frames
                     let index = indexOrNodeName;
-                    if (targetObject.type === "tree" || targetObject.type === "graph" || targetObject.type === "linkedlist") {
+                    if (targetObject.type === "tree" || targetObject.type === "graph" || targetObject.type === "linkedlist" || targetObject.type === "frame") {
                         // If it's already a number, use it directly
                         if (typeof indexOrNodeName === 'number') {
                             index = indexOrNodeName;
@@ -729,12 +734,14 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                             if (nodeIndex !== null) {
                                 index = nodeIndex;
                             } else {
-                                causeCompileError(`Node not found\n\nNode: ${indexOrNodeName}\nComponent: ${name}`, command);
+                                const label = targetObject.type === 'frame' ? 'Variable' : 'Node';
+                                causeCompileError(`${label} not found\n\n${label}: ${indexOrNodeName}\nComponent: ${name}`, command);
                                 break;
                             }
                         } else {
                             // Handle case where indexOrNodeName might be an object or other type
-                            causeCompileError(`Invalid index type\n\nExpected number or node name, got: ${typeof indexOrNodeName}\nIndex: ${indexOrNodeName}\nProperty: ${property}\nComponent: ${name}`, command);
+                            const label = targetObject.type === 'frame' ? 'variable name' : 'node name';
+                            causeCompileError(`Invalid index type\n\nExpected number or ${label}, got: ${typeof indexOrNodeName}\nIndex: ${indexOrNodeName}\nProperty: ${property}\nComponent: ${name}`, command);
                             break;
                         }
                     } else {
@@ -1759,7 +1766,89 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                 break;
             }
 
-                        case "add_child":
+            // Frame commands
+            case "add_frame_variable": {
+                const name = command.name;
+                const args = command.args;
+                const targetComponent = pages[pages.length - 1].find(comp => comp.name === name);
+                
+                if (!targetComponent || targetComponent.type !== "frame") {
+                    causeCompileError(`Frame "${name}" not found on the current page.`, command);
+                    break;
+                }
+
+                const body = targetComponent.body;
+                // Add new variable, value, and optional color
+                if (!body.variable) body.variable = [];
+                if (!body.value) body.value = [];
+                if (!body.color) body.color = [];
+                
+                body.variable.push(args.variable);
+                body.value.push(args.value);
+                body.color.push(args.color || null);
+                break;
+            }
+
+            case "remove_frame_variable": {
+                const name = command.name;
+                const args = command.args; // Can be index (number) or variable name (string)
+                const targetComponent = pages[pages.length - 1].find(comp => comp.name === name);
+                
+                if (!targetComponent || targetComponent.type !== "frame") {
+                    causeCompileError(`Frame "${name}" not found on the current page.`, command);
+                    break;
+                }
+
+                const body = targetComponent.body;
+                let indexToRemove = -1;
+                
+                if (typeof args === 'number') {
+                    // Remove by index
+                    indexToRemove = args;
+                } else if (typeof args === 'string') {
+                    // Remove by variable name
+                    indexToRemove = body.variable ? body.variable.indexOf(args) : -1;
+                }
+                
+                if (indexToRemove >= 0 && indexToRemove < (body.variable ? body.variable.length : 0)) {
+                    body.variable.splice(indexToRemove, 1);
+                    if (body.value) body.value.splice(indexToRemove, 1);
+                    if (body.color) body.color.splice(indexToRemove, 1);
+                } else {
+                    causeCompileError(`Variable at index/name "${args}" not found in frame "${name}".`, command);
+                }
+                break;
+            }
+
+            case "set_frame_variable_name": {
+                const name = command.name;
+                const indexOrName = command.args.index;
+                const newName = command.args.value;
+                const targetComponent = pages[pages.length - 1].find(comp => comp.name === name);
+
+                if (!targetComponent || targetComponent.type !== "frame") {
+                    causeCompileError(`Frame "${name}" not found on the current page.`, command);
+                    break;
+                }
+
+                const body = targetComponent.body;
+                let idx = -1;
+                if (typeof indexOrName === 'number') {
+                    idx = indexOrName;
+                } else if (typeof indexOrName === 'string') {
+                    idx = body.variable ? body.variable.indexOf(indexOrName) : -1;
+                }
+
+                if (idx < 0 || idx >= (body.variable ? body.variable.length : 0)) {
+                    causeCompileError(`Variable "${indexOrName}" not found in frame "${name}".`, command);
+                    break;
+                }
+
+                body.variable[idx] = newName;
+                break;
+            }
+
+            case "add_child":
                 // args can be: {start, end} or {index: {start, end}, value: ...}
                 const name = command.name;
                 const args = command.args;
@@ -2036,6 +2125,9 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                     case "text":
                         mermaidString += generateText(component, currentLayout);
                         break;
+                    case "frame":
+                        mermaidString += generateFrame(component, currentLayout);
+                        break;
                     default:
                         console.log(`No matching component type:\n${component.type}!`)
                         break;
@@ -2087,7 +2179,7 @@ function preCheck(parsedDSL) {
         if (![
             "page", "show", "hide", "set", "set_multiple", "set_matrix", "set_matrix_multiple",
             "add", "insert", "remove", "remove_subtree", "remove_at", "comment",
-            "add_matrix_row", "add_matrix_column", "remove_matrix_row", "remove_matrix_column", "insert_matrix_row", "insert_matrix_column", "add_matrix_border", "add_child", "set_child", "set_text", "set_chained"
+            "add_matrix_row", "add_matrix_column", "remove_matrix_row", "remove_matrix_column", "insert_matrix_row", "insert_matrix_column", "add_matrix_border", "add_frame_variable", "remove_frame_variable", "set_frame_variable_name", "add_child", "set_child", "set_text", "set_chained"
         ].includes(cmd.type)) {
             throw createPreCheckError(
                 `Unknown command\n\nType: ${cmd.type}`,

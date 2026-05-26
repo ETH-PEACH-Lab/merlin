@@ -7,12 +7,13 @@ export const languageConfig = {
   
   symbols: [':', ':=', '=', '*', ',', '@', '&', '(', ')', '[', ']', '{', '}'],
   
-  components: ['array', 'matrix', 'linkedlist', 'stack', 'tree', 'graph', 'text'],
+  components: ['array', 'matrix', 'linkedlist', 'stack', 'tree', 'graph', 'text', 'frame'],
   
   attributes: [
     'id', 'value', 'color', 'arrow', 'nodes', 'edges', 'hidden', 
     'above', 'below', 'left', 'right', 'fontSize', 'fontWeight', 
-    'fontFamily', 'align', 'lineSpacing', 'width', 'height', 'children'
+    'fontFamily', 'align', 'lineSpacing', 'width', 'height', 'children',
+    'name', 'variable'
   ],
 
   // Position keywords for syntax highlighting
@@ -98,6 +99,14 @@ export const typeDocumentation = {
     insertText: `text \${1:label} = {\n  value: \${2:"Hello, world!"}\n  fontSize: \${3:16}\n  color: \${4:"gray"}\n}`,
     insertTextName: 'label',
     supportedProperties: ['value', 'fontSize', 'fontWeight', 'fontFamily', 'align', 'lineSpacing', 'width', 'height']
+  },
+  frame: {
+    description: 'Frame displays execution context with function name, variable bindings, and their values.',
+    features: ['Function header', 'Variable-value pairs', 'Color support', 'Positioning control'],
+    url: 'https://eth-peach-lab.github.io/merlin-docs/docs/data-structures/frame',
+    insertText: `frame \${1:myFrame} = {\n  name: "\${2:functionName}"\n  variable: [\${3:i, j}]\n  value: [\${4:10, 20}]\n  color: [\${5:null, "blue"}]\n}`,
+    insertTextName: 'myFrame',
+    supportedProperties: ['name', 'variable', 'value', 'color', 'above', 'below', 'left', 'right']
   }
 };
 
@@ -161,6 +170,12 @@ export const typeMethodsMap = {
       width: 'setWidth',
       height: 'setHeight'
     }
+  },
+  frame: {
+    single: ['setValue', 'setVariable', 'setColor'],
+    multiple: ['setValues', 'setVariables', 'setColors'],
+    addInsert: ['addVariable'],
+    remove: ['removeVariable']
   }
 };
 

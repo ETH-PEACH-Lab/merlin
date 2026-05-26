@@ -122,7 +122,7 @@ const lexer = moo.compile({
   pass: "_",
   x: "x",
   word: { match: /[a-zA-Z_][a-zA-Z0-9_]*/, type: moo.keywords({
-    def: ["array", "matrix", "graph", "linkedlist", "tree", "stack", "text"],
+    def: ["array", "matrix", "graph", "linkedlist", "tree", "stack", "text", "frame"],
   })},
   comment: { match: /\/\/.*?$/, lineBreaks: true, value: s => s.slice(2).trim() },
   string: { match: /"(?:\\.|[^"\\])*"/, value: s => s.slice(1, -1) },
@@ -185,6 +185,7 @@ definition -> (array_def
             | stack_def
             | graph_def
             | text_def
+            | frame_def
 ) {% iid %}
 
 # Mixed definitions and commands
@@ -282,6 +283,22 @@ text_pair -> (
             | pair["height", number]
 ) {% iid %}
 
+# Frame Definition
+frame_def -> definition["frame", frame_pair] {% id %}
+frame_pair -> (
+              pair["name", string]
+            | pair["variable", w_list]
+            | pair["value", nns_list]
+            | pair["color", ns_list]
+            | pair["position", (ranged_tuple | position_keyword) {% iid %}]
+            | pair["title", string]
+            | pair["label", string]
+            | pair["above", (string | word) {% id %}]
+            | pair["below", (string | word) {% id %}]
+            | pair["left", (string | word) {% id %}]
+            | pair["right", (string | word) {% id %}]
+) {% iid %}
+
 # - COMMANDS - #
 # List of all commands
 commands -> (comment
@@ -345,6 +362,10 @@ commands -> (comment
           | remove_matrix_row
           | remove_matrix_column
           | add_matrix_border
+          | add_frame_variable
+          | remove_frame_variable
+          | set_frame_variable_name
+          | set_frame_variables
 ) {% iid %}
 
 # Main commands
@@ -361,8 +382,8 @@ show -> "show" _ wordL (_ (position_keyword | ranged_tuple)):? {% ([, , wordL, p
 hide -> "hide" _ wordL {% ([, , wordL]) => ({ type: "hide", value: wordL.name, line: wordL.line, col: wordL.col }) %}
 
 # Set a value in an array (or by node name for graphs/trees)
-set_value -> cmd["setValue", comma_sep[(number | word) {% id %}, (number | string | nullT) {% id %}]] {% (details) => ({ type: "set", target: "value", ...id(details) }) %}
-set_color -> cmd["setColor", comma_sep[(number | word) {% id %}, (string | nullT) {% id %}]] {% (details) => ({ type: "set", target: "color", ...id(details) }) %}
+set_value -> cmd["setValue", comma_sep[(number | string | word) {% id %}, (number | string | nullT) {% id %}]] {% (details) => ({ type: "set", target: "value", ...id(details) }) %}
+set_color -> cmd["setColor", comma_sep[(number | string | word) {% id %}, (string | nullT) {% id %}]] {% (details) => ({ type: "set", target: "color", ...id(details) }) %}
 set_arrow -> cmd["setArrow", comma_sep[(number | word) {% id %}, (number | string | nullT) {% id %}]] {% (details) => ({ type: "set", target: "arrow", ...id(details) }) %}
 set_hidden -> cmd["setHidden", comma_sep[(number | word) {% id %}, boolean]] {% (details) => ({ type: "set", target: "hidden", ...id(details) }) %}
 
@@ -462,6 +483,17 @@ remove_matrix_column -> cmd["removeColumn", number] {% (details) => ({ type: "re
 add_matrix_border -> cmd["addBorder", comma_sep[(number | string | nullT) {% id %}, (string | nullT) {% id %}]] {% (details) => ({ type: "add_matrix_border", target: "value", ...id(details) }) %}
 add_matrix_border -> cmd["addBorder", (number | string | nullT) {% id %}] {% (details) => ({ type: "add_matrix_border", target: "value", ...id(details) }) %}
 
+# Frame commands
+# addVariable: 2-arg (variable, value) or 3-arg (variable, value, color)
+add_frame_variable -> cmd["addVariable", add_variable_2_args] {% (details) => ({ type: "add_frame_variable", ...id(details) }) %}
+add_frame_variable -> cmd["addVariable", add_variable_3_args] {% (details) => ({ type: "add_frame_variable", ...id(details) }) %}
+add_variable_2_args -> (string | word) _ comma _ (number | string | nullT) {% ([varName, , , , value]) => ({ variable: id(varName), value: id(value), color: null }) %}
+add_variable_3_args -> (string | word) _ comma _ (number | string | nullT) _ comma _ (string | nullT) {% ([varName, , , , value, , , , color]) => ({ variable: id(varName), value: id(value), color: id(color) }) %}
+remove_frame_variable -> cmd["removeVariable", (number | word) {% id %}] {% (details) => ({ type: "remove_frame_variable", ...id(details) }) %}
+# setVariable: rename a variable, by index or current name
+set_frame_variable_name -> cmd["setVariable", comma_sep[(number | string | word) {% id %}, (string | word) {% id %}]] {% (details) => ({ type: "set_frame_variable_name", ...id(details) }) %}
+set_frame_variables -> cmd["setVariables", list[(word | pass) {% id %}]] {% (details) => ({ type: "set_multiple", target: "variable", ...id(details) }) %}
+
 # - Lists - #
 nns_list -> list[(nullT | number | string) {% iid %}] {% id %} # Accepts null, number, or string
 ns_list -> list[(nullT | string) {% iid %}] {% id %} # Accepts null or string
@@ -478,8 +510,10 @@ number -> %number {% ([value]) => Number(value.value) %}
 string -> %string {% ([value]) => value.value %}
 boolean -> %boolean {% ([value]) => value.value %}
 edge -> wordL %dash wordL {% ([start, , end]) => ({ start: start.name, end: end.name }) %}
-word -> %word {% ([value]) => value.value %}
-wordL -> %word {% ([value]) => ({name: value.value, line: value.line, col: value.col}) %}
+# Accept the special `x` lexer token (used by `NxM` layout) as a regular word
+# too, so Python variables named `x` parse correctly.
+word -> (%word | %x) {% ([[value]]) => value.value %}
+wordL -> (%word | %x) {% ([[value]]) => ({name: value.value, line: value.line, col: value.col}) %}
 nullT -> %nullT {% () => null %}
 pass -> %pass {% () => "_" %}
 layout -> number %x number {% ([a, , b]) => [a, b] %}
