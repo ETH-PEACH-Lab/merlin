@@ -73,8 +73,31 @@ c1.add_child(c3)
 `
 			},
 			{
-				id: "sorting",
-				title: "Example - Sorting Algorithm",
+				id: "functions",
+				title: "Example - Function Calls",
+				userCode: `def add(a, b):
+    return a + b
+
+result = add(3, 5)`
+			},{
+				id: "recursion",
+				title: "Example - Recursion",
+				userCode: `def fib(n):
+	if n <= 1:
+		return n
+	else:
+		return (fib(n-1) + fib(n-2))
+
+res = fib(6)`
+			}
+
+		]
+	},{
+		groupName: 'Algorithms',
+		items: [
+			{
+				id: "bubbleSort",
+				title: "Example - Bubble Sort",
 				userCode: `numbers = [64, 34, 25, 12, 5]
 
 # Bubble sort
@@ -84,6 +107,50 @@ for i in range(len(numbers)):
             # Swap
             numbers[j], numbers[j + 1] = numbers[j + 1], numbers[j]`
 			},
+			{
+				id: "insertionSort",
+				title: "Example - Insertion Sort",
+				userCode: `numbers = [64, 34, 25, 12, 5]
+
+# Insertion sort
+
+for i in range(1, len(numbers)):
+    j = i
+
+    while j > 0 and numbers[j] < numbers[j - 1]:
+        numbers[j], numbers[j - 1] = numbers[j - 1], numbers[j]
+        j -= 1`
+			},
+			{
+				id: "binarySearch",
+				title: "Example - Binary Search",
+				userCode:`def binary_search(arr, target):
+    l = 0
+    r = len(arr) - 1
+
+    while l <= r:
+        mid = (l + r) // 2
+
+        if arr[mid] == target:
+            return mid
+
+        elif arr[mid] < target:
+            l = mid + 1
+
+        else:
+            r = mid - 1
+
+    return -1
+
+arr = [23, 1, 9, 12, 5, 25, 2, 3]
+location = binary_search(arr, 25)
+				`
+			},{
+				id: "BFS",
+				title: "Example - Breadth First Search",
+				userCode: `
+				`
+			}
 		]
 	},
 ];
