@@ -131,6 +131,7 @@ function getInlinePropValue(text, key) {
 function parseArchitectureNamespaceAccess(linePrefix) {
   const namespaceCandidates = new Set([
     "label",
+    "label.shift",
     "subLabel",
     "opLabel",
     "annotation",
@@ -199,6 +200,11 @@ const CONNECTION_INLINE_PROP_KEYS = [
   "label.fontSize",
   "label.fontWeight",
   "label.fontStyle",
+  "label.shift",
+  "label.shift.top",
+  "label.shift.bottom",
+  "label.shift.left",
+  "label.shift.right",
   "shape",
   "style",
   "color",
@@ -1431,7 +1437,8 @@ export function getArchitectureEdgeCompletionContext(
       text,
     );
 
-  const hasEdgeAnchorEndpoint = false;
+  const hasEdgeAnchorEndpoint =
+    hasEdgeAnchorEndpointInArchitectureEdgeText(text);
 
   const shapeValue = getInlinePropValue(text, "shape");
   const isNotStraight = shapeValue !== "straight";
@@ -2325,6 +2332,7 @@ export function getArchitecturePropertyInsertText(fullName) {
     fullName === "outerStroke" ||
     fullName === "annotation" ||
     fullName === "label" ||
+    fullName === "label.shift" ||
     fullName === "opLabel" ||
     fullName === "subLabel" ||
     fullName === "marker" ||
@@ -2456,6 +2464,14 @@ export function getArchitecturePropertyInsertText(fullName) {
   }
 
   if (fullName === "annotation.gap") {
+    return `${fullName}: \${1:10}`;
+  }
+
+  if (fullName === "label.shift") {
+    return "label.shift";
+  }
+
+  if (/^label\.shift\.(top|bottom|left|right)$/.test(fullName)) {
     return `${fullName}: \${1:10}`;
   }
 
@@ -2690,6 +2706,17 @@ export function shouldSuppressDiagramConnectValueSuggestions(
 
   if (attributeName === "edgeAnchorOffset") {
     return isCompletedNumber(value);
+  }
+
+  if (
+    attributeName === "label.shift.top" ||
+    attributeName === "label.shift.bottom" ||
+    attributeName === "label.shift.left" ||
+    attributeName === "label.shift.right"
+  ) {
+    return isCompletedScalarValue(value, {
+      allowNumber: true,
+    });
   }
 
   if (

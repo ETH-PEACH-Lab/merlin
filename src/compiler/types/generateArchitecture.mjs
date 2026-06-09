@@ -1,7 +1,7 @@
 import { formatPositionForOutput } from "../../utils/positionUtils.mjs";
 import { formatNullValue } from "../compiler.mjs";
 
-export function generateBlock(blockComponent, layout = [3, 3]) {
+export function generateArchitecture(blockComponent, layout = [3, 3]) {
   const out = [];
   out.push("architecture\n");
   const blocks = new Map();

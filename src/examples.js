@@ -5,7 +5,7 @@ const examples = [
       {
         id: "emptyTemplate",
         title: "Empty Template",
-        userCode: `page`,
+        userCode: `architecture a = {\r\n    block Encoder: [\r\n        layout: horizontal,\r\n        nodes: [\r\n            n0 = type: rect label.text: \"HELLO\" color: \"red\",\r\n            n1 = type: rect label.text: \"HELLO\" color: \"yellow\" annotation.top: \"text\",\r\n            n2 = type: rect label.text: \"HELLO\" color: \"red\",\r\n            n3 = type: rect label.text: \"HELLO\" color: \"red\" label.fontColor: \"blue\",\r\n            n4 = type: rect label.text: \"HELLO\" color: \"red\"\r\n        ],\r\n        edges: [\r\n            e0 = n0.right -> n1.left bidirectional: true,\r\n            e1 = n1.right -> n2.left,\r\n            e2 = n2.right -> n3.left arrowheads: 0,\r\n            e3 = n3.right -> n4.left\r\n        ],\r\n        groups: [\r\n            row0 = members: [n0, n1, n2] gap: 30 color: \"gray\" colorBoxAdjustments: (0, 0, 0, 0),\r\n            row1 = members: [row0, n3, n4] gap: 30 color: \"lightgray\" colorBoxAdjustments: (2, 2, 2, 2)\r\n        ]\r\n    ]\r\n\r\n}\r\npage\r\nshow a\r\n`,
       },
     ],
   },
@@ -638,41 +638,41 @@ show a
 	block Encoder: [
 		layout: horizontal,
 		nodes: [
-			rnn1 = type: rect label.text: "RNN" label.fontFamily: "Arial" size: (50, 30) color: "#FBE7F0",
-			rnn2 = type: rect label.text: "RNN" label.fontFamily: "Arial" size: (50, 30) color: "#FBE7F0",
-			rnn3 = type: rect label.text: "RNN" label.fontFamily: "Arial" size: (50, 30) color: "#FBE7F0",
-			x1 = type: rect annotation.bottom: "x_1" annotation.gap: 5 annotation.fontFamily: "sans-serif" annotation.fontStyle: italic size: (30, 20) color: "#FBE7F0",
-			x2 = type: rect annotation.bottom: "x_2" annotation.gap: 5 annotation.fontFamily: "sans-serif" annotation.fontStyle: italic size: (30, 20) color: "#FBE7F0",
-			x3 = type: rect annotation.bottom: "x_3" annotation.gap: 5 annotation.fontFamily: "sans-serif" annotation.fontStyle: italic size: (30, 20) color: "#FBE7F0",
+			rnn1 = type: rect label.text: "RNN" label.fontFamily: "Arial" size: (50, 30) color: "#FBE7F0" stroke.width: 0.75,
+			rnn2 = type: rect label.text: "RNN" label.fontFamily: "Arial" size: (50, 30) color: "#FBE7F0" stroke.width: 0.75,
+			rnn3 = type: rect label.text: "RNN" label.fontFamily: "Arial" size: (50, 30) color: "#FBE7F0" stroke.width: 0.75,
+			x1 = type: rect annotation.bottom: "x_1" annotation.gap: 5 annotation.fontFamily: "sans-serif" annotation.fontWeight: 300 annotation.fontStyle: italic size: (30, 20) color: "#FBE7F0" stroke.width: 0.75,
+			x2 = type: rect annotation.bottom: "x_2" annotation.gap: 5 annotation.fontFamily: "sans-serif" annotation.fontWeight: 300 annotation.fontStyle: italic size: (30, 20) color: "#FBE7F0" stroke.width: 0.75,
+			x3 = type: rect annotation.bottom: "x_3" annotation.gap: 5 annotation.fontFamily: "sans-serif" annotation.fontWeight: 300 annotation.fontStyle: italic size: (30, 20) color: "#FBE7F0" stroke.width: 0.75,
 			empty = type: rect size: (50, 30) color: "transparent" stroke.color: "transparent"
 		],
 		edges: [
-			e0 = empty.right[2] -> rnn1.left[2] label.text: "h_1" label.fontFamily: "sans-serif" label.fontStyle: italic label.shift.top: 3 width: 1.5,
-			e1 = rnn1.right[2] -> rnn2.left[2] label.text: "h_2" label.fontFamily: "sans-serif" label.fontStyle: italic label.shift.top: 3 width: 1.5,
-			e2 = rnn2.right[2] -> rnn3.left[2] label.text: "h_3" label.fontFamily: "sans-serif" label.fontStyle: italic label.shift.top: 3 width: 1.5,
-			e3 = x1.top -> rnn1.left[6] width: 1.5,
-			e4 = x2.top -> rnn2.left[6] width: 1.5,
-			e5 = x3.top -> rnn3.left[6] width: 1.5
+			e0 = empty.right[3] -> rnn1.left[3] label.text: "h_1" label.fontFamily: "sans-serif" label.fontWeight: 300 label.fontStyle: italic label.shift.top: 2 width: 1.5,
+			e1 = rnn1.right[3] -> rnn2.left[3] label.text: "h_2" label.fontFamily: "sans-serif" label.fontWeight: 300 label.fontStyle: italic label.shift.top: 2 width: 1.5,
+			e2 = rnn2.right[3] -> rnn3.left[3] label.text: "h_3" label.fontFamily: "sans-serif" label.fontWeight: 300 label.fontStyle: italic label.shift.top: 2 width: 1.5,
+			e3 = x1.top -> rnn1.left[8] width: 1.5,
+			e4 = x2.top -> rnn2.left[8] width: 1.5,
+			e5 = x3.top -> rnn3.left[8] width: 1.5
 		],
 		groups: [
-			row1 = members: [empty, rnn1, rnn2, rnn3] gap: 55,
-			row2 = members: [x1, x2, x3] gap: 75,
-			row3 = members: [row1, row2] layout: vertical annotation.top: "Encoder" annotation.top.shift.top: 30 annotation.top.shift.right: 20 annotation.fontFamily: "Arial" annotation.fontWeight: 900
+			row1 = members: [empty, rnn1, rnn2, rnn3] gap: 45,
+			row2 = members: [x1, x2, x3] gap: 65,
+			row3 = members: [row1, row2] layout: vertical gap: 35 annotation.top: "Encoder" annotation.top.shift.top: 20 annotation.top.shift.right: 2 annotation.fontFamily: "Arial" annotation.fontSize: 14 annotation.fontWeight: 900
 		]
 	],
 	block middle: [
 		layout: horizontal,
 		nodes: [
-			encoder_vector = type: rect label.text: "Encoder Vector" label.orientation: (vertical,left) label.fontFamily: "Arial" size: (35, 125)
+			encoder_vector = type: rect label.text: "Encoder Vector" label.orientation: (vertical,left) label.fontFamily: "Arial" label.fontWeight: 100 size: (30, 110) stroke.width: 0.75
 		]
 	],
 	block Decoder: [
 		layout: horizontal,
 		nodes: [
-			rnn1 = type: rect label.text: "RNN" label.fontFamily: "Arial" size: (50, 30) color: "#E9F4FE",
-			rnn2 = type: rect label.text: "RNN" label.fontFamily: "Arial" size: (50, 30) color: "#E9F4FE",
-			y1 = type: rect annotation.top: "y_1" annotation.gap: 1 annotation.fontFamily: "sans-serif" annotation.fontStyle: italic size: (30, 20) color: "#E9F4FE",
-			y2 = type: rect annotation.top: "y_2" annotation.gap: 1 annotation.fontFamily: "sans-serif" annotation.fontStyle: italic size: (30, 20) color: "#E9F4FE"
+			rnn1 = type: rect label.text: "RNN" label.fontFamily: "Arial" size: (50, 30) color: "#E9F4FE" stroke.width: 0.75,
+			rnn2 = type: rect label.text: "RNN" label.fontFamily: "Arial" size: (50, 30) color: "#E9F4FE" stroke.width: 0.75,
+			y1 = type: rect annotation.top: "y_1" annotation.gap: 1 annotation.fontFamily: "sans-serif" annotation.fontWeight: 300 annotation.fontStyle: italic size: (30, 20) color: "#E9F4FE" stroke.width: 0.75,
+			y2 = type: rect annotation.top: "y_2" annotation.gap: 1 annotation.fontFamily: "sans-serif" annotation.fontWeight: 300 annotation.fontStyle: italic size: (30, 20) color: "#E9F4FE" stroke.width: 0.75
 		],
 		edges: [
 			e1 = rnn1.top -> y1.bottom width: 1.5,
@@ -680,9 +680,9 @@ show a
 			e3 = rnn1.right -> rnn2.left width: 1.5
 		],
 		groups: [
-			row1 = members: [rnn1, rnn2] gap: 55,
-			row2 = members: [y1, y2] gap: 75,
-			row3 = members: [row2, row1] layout: vertical gap: 40 annotation.bottom: "Decoder" annotation.bottom.shift.bottom: 30 annotation.fontFamily: "Arial" annotation.fontWeight: 900
+			row1 = members: [rnn1, rnn2] gap: 40,
+			row2 = members: [y1, y2] gap: 60,
+			row3 = members: [row2, row1] layout: vertical gap: 40 annotation.bottom: "Decoder" annotation.bottom.shift.bottom: 40 annotation.fontFamily: "Arial" annotation.fontSize: 14 annotation.fontWeight: 900
 		]
 	],
 	diagram: [
@@ -698,6 +698,7 @@ show a
 
 page
 show a
+
 
 `,
       },

@@ -1242,7 +1242,19 @@ export function registerCustomLanguage(monaco) {
         ],
 
         [
-          /\b(label\.text|label\.fontColor|label\.fontFamily|label\.fontSize|label\.fontWeight|label\.fontStyle|label|shape|style|color|arrowheads|transition|gap|width|curveHeight|anchor|alignToIndexedPort|bidirectional|edgeAnchorOffset)(?=\s*:|\.)/,
+          /\b(label)(\.)(shift)(\.)(top|bottom|left|right)(?=\s*:)/,
+
+          [
+            "arch-inline-prop",
+            "symbol",
+            "arch-inline-prop",
+            "symbol",
+            "positional",
+          ],
+        ],
+
+        [
+          /\b(label\.shift|label\.text|label\.fontColor|label\.fontFamily|label\.fontSize|label\.fontWeight|label\.fontStyle|label|shape|style|color|arrowheads|transition|gap|width|curveHeight|anchor|alignToIndexedPort|bidirectional|edgeAnchorOffset)(?=\s*:|\.)/,
 
           "arch-inline-prop",
         ],
@@ -1312,8 +1324,18 @@ export function registerCustomLanguage(monaco) {
         ],
 
         [
-          /\b(label\.text|label\.fontColor|label\.fontFamily|label\.fontSize|label\.fontWeight|label\.fontStyle|label|shape|style|color|arrowheads|transition|gap|width|curveHeight|anchor|alignToIndexedPort|bidirectional|edgeAnchorOffset)(?=\s*:|\.)/,
+          /\b(label)(\.)(shift)(\.)(top|bottom|left|right)(?=\s*:)/,
+          [
+            "arch-inline-prop",
+            "symbol",
+            "arch-inline-prop",
+            "symbol",
+            "positional",
+          ],
+        ],
 
+        [
+          /\b(label\.shift|label\.text|label\.fontColor|label\.fontFamily|label\.fontSize|label\.fontWeight|label\.fontStyle|label|shape|style|color|arrowheads|transition|gap|width|curveHeight|anchor|alignToIndexedPort|bidirectional|edgeAnchorOffset)(?=\s*:|\.)/,
           "arch-inline-prop",
         ],
 
@@ -1792,7 +1814,7 @@ export function registerCustomLanguage(monaco) {
           const segment = getTrailingTopLevelSegment(beforeCursor);
 
           const match = segment.match(
-            /([a-zA-Z_][a-zA-Z0-9_]*)\.(top|bottom|left|right|start|mid|end)\[([0-9]*)$/,
+            /([a-zA-Z_][a-zA-Z0-9_]*)\.(top|bottom|left|right)\[([0-9]*)$/,
           );
 
           if (!match) return null;
@@ -2046,17 +2068,26 @@ export function registerCustomLanguage(monaco) {
               "fontSize",
               "fontWeight",
               "fontStyle",
+              "shift",
             ];
 
             const currentInlineText =
               getCurrentDiagramConnectText(model, position) || "";
 
             usedNamespaceProps = new Set(
-              members.filter((key) =>
-                new RegExp(`\\blabel\\.${key.replace(/\./g, "\\.")}\\s*:`).test(
-                  currentInlineText,
-                ),
-              ),
+              members.filter((key) => {
+                if (key === "shift") {
+                  return ["top", "bottom", "left", "right"].every((side) =>
+                    new RegExp(`\\blabel\\.shift\\.${side}\\s*:`).test(
+                      currentInlineText,
+                    ),
+                  );
+                }
+
+                return new RegExp(
+                  `\\blabel\\.${key.replace(/\./g, "\\.")}\\s*:`,
+                ).test(currentInlineText);
+              }),
             );
           }
           if (section === "groups" && namespace === "shift") {
@@ -2083,11 +2114,41 @@ export function registerCustomLanguage(monaco) {
               "fontSize",
               "fontWeight",
               "fontStyle",
+              "shift",
             ];
 
             usedNamespaceProps = new Set(
-              members.filter((key) =>
-                new RegExp(`\\blabel\\.${key.replace(/\./g, "\\.")}\\s*:`).test(
+              members.filter((key) => {
+                if (key === "shift") {
+                  return ["top", "bottom", "left", "right"].every((side) =>
+                    new RegExp(`\\blabel\\.shift\\.${side}\\s*:`).test(
+                      currentInlineText,
+                    ),
+                  );
+                }
+
+                return new RegExp(
+                  `\\blabel\\.${key.replace(/\./g, "\\.")}\\s*:`,
+                ).test(currentInlineText);
+              }),
+            );
+          }
+
+          if (
+            (section === "edges" || section === "diagramConnects") &&
+            namespace === "label.shift"
+          ) {
+            members = ["top", "bottom", "left", "right"];
+
+            const currentInlineText =
+              section === "diagramConnects"
+                ? getCurrentDiagramConnectText(model, position) || ""
+                : architectureInlineDotCtx.architectureInlineItemContext
+                    .afterEqualsText || "";
+
+            usedNamespaceProps = new Set(
+              members.filter((side) =>
+                new RegExp(`\\blabel\\.shift\\.${side}\\s*:`).test(
                   currentInlineText,
                 ),
               ),

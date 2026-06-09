@@ -12,7 +12,7 @@ import { generateTree } from "./types/generateTree.mjs";
 import { generateMatrix } from "./types/generateMatrix.mjs";
 import { generateGraph } from "./types/generateGraph.mjs";
 import { generateNeuralNetwork } from "./types/generateNeuralNetwork.mjs";
-import { generateBlock } from "./types/generateBlock.mjs";
+import { generateArchitecture } from "./types/generateArchitecture.mjs";
 import { generateText } from "./types/generateText.mjs";
 import { getMermaidContainerSize } from "../utils/positionUtils.mjs";
 import { generateNodeName } from "../utils/dslUtils.mjs";
@@ -4879,7 +4879,7 @@ Example: ${name}.setEdgeColor(diagram, 0, "blue")`,
             mermaidString += generateNeuralNetwork(component, currentLayout);
             break;
           case "architecture":
-            mermaidString += generateBlock(component, currentLayout);
+            mermaidString += generateArchitecture(component, currentLayout);
             break;
           case "linkedlist":
             mermaidString += generateLinkedlist(component, currentLayout);
