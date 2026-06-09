@@ -2017,7 +2017,7 @@ show a
 			row0 = members: [node2, node3a] gap: 15 colorBoxAdjustments: (-5,-25,-15,-20) stroke.color: "black" stroke.style: dashed shape: rounded annotation.top: "H/4 \\\\mul W/4 \\\\mul 48" annotation.top.shift.bottom: 6 annotation.top.shift.left: 65,
 			row1 = members: [node4a, node3b] gap: 15 colorBoxAdjustments: (-5,-25,-15,-20) stroke.color: "black" stroke.style: dashed shape: rounded annotation.top: "H/4 \\\\mul W/4 \\\\mul C" annotation.top.shift.bottom: 6 annotation.top.shift.left: 65,
 			row2 = members: [node4b, node3c] gap: 15 colorBoxAdjustments: (-5,-25,-15,-20) stroke.color: "black" stroke.style: dashed shape: rounded annotation.top: "H/8 \\\\mul W/8 \\\\mul 2C" annotation.top.shift.bottom: 6 annotation.top.shift.left: 65,
-			row3 = members: [node4c, node3d] gap: 15 colorBoxAdjustments: (-5,-25,-15,-20) stroke.color: "black" stroke.style: dashed shape: rounded annotation.top: "H/16 \\\\mul W/16 \\\\mul 4C" annotation.top.shift.bottom: 6 annotation.top.shift.left: 65 annotation.bottom: "H/32 \\\\mul W/32 \\\\mul 8C" annotation.bottom.shift.top: 181 annotation.bottom.shift.right: 50,
+			row3 = members: [node4c, node3d] gap: 15 colorBoxAdjustments: (-5,-25,-15,-20) stroke.color: "black" stroke.style: dashed shape: rounded annotation.top: "H/16 \\\\mul W/16 \\\\mul 4C" annotation.top.shift.bottom: 6 annotation.top.shift.left: 65 annotation.bottom: "H/32 \\\\mul W/32 \\\\mul 8C" annotation.bottom.shift.top: 184 annotation.bottom.shift.right: 50,
 			row5 = members: [node0, node1] gap: 15,
 			row8 = members: [row5, row0, row1, row2, row3] gap: 30 align: true,
 			row6 = members: [row8, empty0] gap: 20
@@ -2074,7 +2074,7 @@ show a
 	],
 	diagram: [
 		uses: [a = A anchor: node0, b = B anchor: wmsa],
-		gap: -140
+		gap: -50
 	]
 }
 
