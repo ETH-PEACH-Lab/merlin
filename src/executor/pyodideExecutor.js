@@ -6,7 +6,7 @@ class PyodideExecutor{
         this.pendingCallbacks = new Map();
         this.isReady = false;
         this.initializationTimeout = 10000; // 10 seconds
-        this.executionTimeout = 30000; // 30 seconds
+        this.executionTimeout = 10000; // 10 seconds (backstop for runaway code)
     }
 
     async initialize(){
@@ -60,8 +60,13 @@ class PyodideExecutor{
     sendMessageWithTimeout(type, data = {}, timeoutMs = this.executionTimeout){
         return Promise.race([
             this.sendMessage(type, data),
-            new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Execution timeout')), timeoutMs)
+            new Promise((_, reject) =>
+                setTimeout(() => {
+                    const seconds = Math.round(timeoutMs / 1000);
+                    const err = new Error(`Execution timed out after ${seconds}s. Your program may have an infinite loop or be too slow to visualize.`);
+                    err.isTimeout = true;
+                    reject(err);
+                }, timeoutMs)
             )
         ]);
     }
@@ -90,7 +95,7 @@ class PyodideExecutor{
             return {
                 success: false,
                 error: error.message,
-                errorType: error.message === 'Execution timeout' ? 'TimeoutError' : 'ExecutionError'
+                errorType: error.isTimeout ? 'TimeoutError' : 'ExecutionError'
             };
         }
     }

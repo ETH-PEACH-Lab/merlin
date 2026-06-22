@@ -1,6 +1,5 @@
 let pyodide = null;
 
-// Initialize Pyodide 
 async function initializePyodide() {
     if (!pyodide){
         importScripts('https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js');
@@ -12,9 +11,10 @@ async function initializePyodide() {
 async function executePythonWithTracing(code, maxSteps = 1000){
     const py = await initializePyodide();
 
-    // Compute the line offset dynamically so line numbers are always correct
     const wrapperPrefix = `import sys
+import io
 import json
+import collections
 
 snapshots = []
 debug_events = []
@@ -23,7 +23,11 @@ line_offset = 0
 object_ids = {}
 next_object_id = 1
 heap = {}
-visited_during_serialize = set()  # Cycle detection
+visited_during_serialize = set()
+
+_stdout_buffer = io.StringIO()
+_orig_stdout = sys.stdout
+_orig_stderr = sys.stderr
 
 def get_object_id(v):
     global next_object_id
@@ -36,45 +40,36 @@ def get_object_id(v):
     return object_ids[vid]
 
 def detect_ds_hint(v):
-    """Heuristically detect if object is a known data structure."""
     class_name = type(v).__name__
     if not hasattr(v, '__dict__'):
         return None
-    
+
     attrs = v.__dict__
     attr_names = set(attrs.keys())
-    
-    # Stack detection: has 'items' or 'elements' list + optional 'top/size' markers
+
     if ('items' in attr_names or 'elements' in attr_names) and any(k in attr_names for k in ['top', 'size', 'length']):
         return 'stack'
-    # Stack by name
     if 'stack' in class_name.lower():
         return 'stack'
-    
-    # Tree detection: has 'left' and 'right' attributes
+
     if 'left' in attr_names and 'right' in attr_names:
         return 'tree'
-    # Tree by name or 'children' attribute
     if 'tree' in class_name.lower() or 'children' in attr_names:
         return 'tree'
-    
-    # Graph detection: has 'neighbors' or 'adj' list of references
+
     if ('neighbors' in attr_names or 'adj' in attr_names or 'edges' in attr_names):
         return 'graph'
-    # Graph by name
     if 'graph' in class_name.lower() or 'node' in class_name.lower():
         return 'graph'
-    
+
     return None
 
 def serialize_value(v):
     t = type(v).__name__
 
-    # Primitives
     if v is None or isinstance(v, (bool, int, float, str)):
         return {'type': t, 'value': v}
 
-    # Lists
     elif isinstance(v, list):
         oid = get_object_id(v)
 
@@ -83,12 +78,43 @@ def serialize_value(v):
             'length': len(v),
             'value': []
         }
-        
+
         heap[oid]['value'] = [serialize_value(item) for item in v[:100]]
 
         return {'ref': oid}
 
-    # Tuples
+    # Sort set elements so iteration order is stable across snapshots.
+    elif isinstance(v, (set, frozenset)):
+        oid = get_object_id(v)
+
+        try:
+            items = sorted(v)
+        except TypeError:
+            items = list(v)
+
+        heap[oid] = {
+            'type': 'set',
+            'length': len(v),
+            'value': []
+        }
+
+        heap[oid]['value'] = [serialize_value(item) for item in items[:100]]
+
+        return {'ref': oid}
+
+    elif isinstance(v, collections.deque):
+        oid = get_object_id(v)
+
+        heap[oid] = {
+            'type': 'deque',
+            'length': len(v),
+            'value': []
+        }
+
+        heap[oid]['value'] = [serialize_value(item) for item in list(v)[:100]]
+
+        return {'ref': oid}
+
     elif isinstance(v, tuple):
         oid = get_object_id(v)
 
@@ -102,68 +128,58 @@ def serialize_value(v):
 
         return {'ref': oid}
 
-    # Dicts
     elif isinstance(v, dict):
         oid = get_object_id(v)
-        
+
         heap[oid] = {
             'type': 'dict',
             'length': len(v),
             'value': {}
         }
-        
+
         heap[oid]['value'] = {str(k): serialize_value(val) for k, val in list(v.items())[:50]}
 
         return {'ref': oid}
 
-    # Custom objects (linked lists, trees, etc.)
     elif hasattr(v, '__dict__'):
         vid = id(v)
-        
-        # Cycle detection: if already visiting this object, return a back-reference
+
         if vid in visited_during_serialize:
             return {'type': 'cyclic_ref', 'ref': get_object_id(v)}
-        
+
         visited_during_serialize.add(vid)
-        
+
         oid = get_object_id(v)
         class_name = type(v).__name__
         ds_hint = detect_ds_hint(v)
 
         heap[oid] = {
             'type': 't',
-            'class_name': class_name,  # NEW: Explicit class name
+            'class_name': class_name,
             'attributes': {}
         }
-        
-        # Optional: add ds_hint if confidently detected
+
         if ds_hint:
             heap[oid]['ds_hint'] = ds_hint
-        
-        # Filter out dunder attributes, methods, and other non-data attributes
+
         filtered_attrs = {}
         for k, val in v.__dict__.items():
-            # Skip dunder attributes (e.g., __module__, __qualname__)
             if k.startswith('__') and k.endswith('__'):
                 continue
-            # Skip callable objects (methods, functions)
             if callable(val):
                 continue
-            # Keep data attributes
             filtered_attrs[k] = serialize_value(val)
-        
+
         heap[oid]['attributes'] = filtered_attrs
-        
+
         visited_during_serialize.discard(vid)
 
         return {'ref': oid}
 
-    # Fallback
     else:
         return {'type': t, 'repr': repr(v)}
 
 def capture_locals(frame):
-    """Capture and serialize local variables from a frame."""
     visited_during_serialize.clear()
     local_vars = {}
     for k, v in frame.f_locals.items():
@@ -175,10 +191,13 @@ def capture_locals(frame):
     return local_vars
 
 def trace_calls(frame, event, arg):
-    # Stop tracing if max steps reached
     if len(snapshots) >= max_steps:
         debug_events.append(f"Max steps ({max_steps}) reached, stopping tracer")
         sys.settrace(None)
+        return None
+
+    # Don't trace into stdlib/import-machinery frames; they leak module objects into locals.
+    if frame.f_code.co_filename != trace_calls.__code__.co_filename:
         return None
 
     if event == 'call':
@@ -187,11 +206,8 @@ def trace_calls(frame, event, arg):
         try:
             local_vars = capture_locals(frame)
 
-            # Build call stack for recursion tracking. Capture each frame's
-            # locals so the converter can build per-function Merlin frames.
-            # STOP at the user_code wrapper -- frames above it are the
-            # worker's own scope and would serialize the ever-growing
-            # snapshots/heap globals on every step.
+            # Walk frames for recursion tracking, stopping at the user_code
+            # wrapper so the worker's own globals aren't serialized every step.
             call_stack = []
             current_frame = frame
             depth = 0
@@ -201,8 +217,6 @@ def trace_calls(frame, event, arg):
                 call_stack.append({
                     'function': fname,
                     'line': current_frame.f_lineno,
-                    # Reuse already-captured locals for the innermost frame
-                    # to avoid serializing it twice.
                     'locals': local_vars if first else capture_locals(current_frame)
                 })
                 first = False
@@ -211,7 +225,6 @@ def trace_calls(frame, event, arg):
                 current_frame = current_frame.f_back
                 depth += 1
 
-            # Fix line number relative to original user code
             actual_line = frame.f_lineno - line_offset
 
             snapshots.append({
@@ -219,7 +232,8 @@ def trace_calls(frame, event, arg):
                 'locals': local_vars,
                 'heap': dict(heap),
                 'call_stack': call_stack,
-                'stack_depth': len(call_stack)
+                'stack_depth': len(call_stack),
+                'stdout_len': len(_stdout_buffer.getvalue())
             })
 
             debug_events.append(f"  -> Snapshot at user line {actual_line} with {len(local_vars)} vars")
@@ -227,13 +241,9 @@ def trace_calls(frame, event, arg):
             debug_events.append(f"  -> Error capturing: {e}")
         return trace_calls
     elif event == 'return':
-        # Capture final state when function returns
         try:
             local_vars = capture_locals(frame)
 
-            # Build call stack just like the line handler so buildFrames gets
-            # the correct per-frame locals. An empty call_stack would cause the
-            # fallback to use the returning function's locals for the global frame.
             call_stack = []
             current_frame = frame
             depth = 0
@@ -251,13 +261,14 @@ def trace_calls(frame, event, arg):
                 current_frame = current_frame.f_back
                 depth += 1
 
-            if local_vars:  # Only add if there are variables
+            if local_vars:
                 snapshots.append({
                     'line': 'return',
                     'locals': local_vars,
                     'heap': dict(heap),
                     'call_stack': call_stack,
-                    'stack_depth': len(call_stack)
+                    'stack_depth': len(call_stack),
+                    'stdout_len': len(_stdout_buffer.getvalue())
                 })
                 debug_events.append(f"  -> Final snapshot on return with {len(local_vars)} vars")
         except Exception as e:
@@ -273,72 +284,131 @@ def user_code():
     const wrapperSuffix = `
 
 execution_error = None
+sys.stdout = _stdout_buffer
+sys.stderr = _stdout_buffer
 try:
     user_code()
 except Exception as e:
+    # Stop tracing IMMEDIATELY: the traceback helpers below create frames the
+    # tracer would otherwise intercept, serializing all globals on every line.
+    sys.settrace(None)
+    sys._getframe().f_trace = None
+    sys.stdout = _orig_stdout
+    sys.stderr = _orig_stderr
     import traceback
+    tb_frames = traceback.extract_tb(e.__traceback__)
+    user_start = next((i for i, fr in enumerate(tb_frames) if fr.name == 'user_code'), 0)
+    clean_lines = ['Traceback (most recent call last):']
+    error_line = None
+    for fr in tb_frames[user_start:]:
+        ul = fr.lineno - line_offset
+        error_line = ul
+        func = 'main' if fr.name == 'user_code' else fr.name
+        clean_lines.append('  File "<program>", line {}, in {}'.format(ul, func))
+        if fr.line:
+            clean_lines.append('    ' + fr.line.strip())
+    clean_lines.append('{}: {}'.format(type(e).__name__, str(e)))
     execution_error = {
         'type': type(e).__name__,
         'message': str(e),
-        'traceback': traceback.format_exc()
+        'traceback': '\\n'.join(clean_lines),
+        'line': error_line
     }
+finally:
+    sys.settrace(None)
+    sys.stdout = _orig_stdout
+    sys.stderr = _orig_stderr
 
-sys.settrace(None)
+stdout_text = _stdout_buffer.getvalue()
 
-# Clear all globals except what we need to return
 user_vars = list(globals().keys())
 for var in user_vars:
-    if var not in ['snapshots', 'debug_events', 'json', 'sys', 'execution_error']:
+    if var not in ['snapshots', 'debug_events', 'json', 'sys', 'execution_error', 'stdout_text']:
         try:
             del globals()[var]
         except:
             pass
 
-# Convert to JSON
 snapshot_json = json.dumps(snapshots)
 debug_json = json.dumps(debug_events)
 error_json = json.dumps(execution_error)
+stdout_json = json.dumps(stdout_text)
 `;
 
     const userCodeIndented = code.split('\n').map(line => '    ' + line).join('\n');
-    
+
     const wrapperPrefixWithOffset = wrapperPrefix.replace('line_offset = 0', `line_offset = ${wrapperLinesBefore}`);
-    
+
     const fullCode = wrapperPrefixWithOffset + '\n' +
       userCodeIndented + '\n' +
       wrapperSuffix;
-    
-    try{
-        // Run everything as one block
-        await py.runPythonAsync(fullCode);
 
-        // Check for execution error
-        const errorJson = py.globals.get('error_json');
-        const executionError = errorJson ? JSON.parse(errorJson) : null;
-        
-        if (executionError) {
-            console.error('[Worker] Python execution error:', executionError);
+    try{
+        // Compile-check user code standalone so SyntaxError line numbers map to the user's source.
+        py.globals.set('__user_source__', code);
+        await py.runPythonAsync(`
+import json as __json
+__compile_error_json__ = None
+try:
+    compile(__user_source__, '<program>', 'exec')
+except SyntaxError as __e:
+    __compile_error_json__ = __json.dumps({
+        'type': type(__e).__name__,
+        'message': __e.msg,
+        'line': __e.lineno,
+        'offset': __e.offset,
+        'text': __e.text,
+    })
+`);
+        const compileErrorJson = py.globals.get('__compile_error_json__');
+        if (compileErrorJson) {
+            const compileError = JSON.parse(compileErrorJson);
+            console.error('[Worker] Python compile error:', compileError);
             return {
                 success: false,
-                error: executionError.message,
-                errorType: executionError.type,
-                errorTraceback: executionError.traceback,
+                phase: 'compile',
+                error: compileError.message,
+                errorType: compileError.type,
+                errorLine: compileError.line,
+                errorOffset: compileError.offset,
+                errorText: compileError.text,
                 snapshots: [],
                 debug: []
             };
         }
 
-        // Get JSON string and parse it
+        await py.runPythonAsync(fullCode);
+
+        const errorJson = py.globals.get('error_json');
+        const executionError = errorJson ? JSON.parse(errorJson) : null;
+        const stdoutJson = py.globals.get('stdout_json');
+        const stdout = stdoutJson ? JSON.parse(stdoutJson) : '';
+
+        if (executionError) {
+            console.error('[Worker] Python execution error:', executionError);
+            return {
+                success: false,
+                phase: 'runtime',
+                error: executionError.message,
+                errorType: executionError.type,
+                errorTraceback: executionError.traceback,
+                errorLine: executionError.line,
+                stdout: stdout,
+                snapshots: [],
+                debug: []
+            };
+        }
+
         const snapshotJson = py.globals.get('snapshot_json');
         const debugJson = py.globals.get('debug_json');
-        
+
         if (!snapshotJson) {
             return { success: false, error: 'snapshot_json not found in Python globals' };
         }
-        
+
         const snapshots = JSON.parse(snapshotJson);
         const debugEvents = debugJson ? JSON.parse(debugJson) : [];
-        return { success: true, snapshots: snapshots, debug: debugEvents };
+        return { success: true, snapshots: snapshots, debug: debugEvents, stdout: stdout };
 
     } catch (error){
         console.error('[Worker] Execution error:', error);
@@ -346,7 +416,6 @@ error_json = json.dumps(execution_error)
     }
 }
 
-//message handler
 self.onmessage = async (event) =>{
     const { type, code, id, maxSteps } = event.data;
 
@@ -356,13 +425,13 @@ self.onmessage = async (event) =>{
                 await initializePyodide();
                 self.postMessage({ type: 'ready', id});
                 break;
-            
+
             case 'execute':
                 const result = await executePythonWithTracing(code, maxSteps);
                 self.postMessage({ type: 'result', id, ...result});
                 break;
 
-            default: 
+            default:
                 console.warn('[Worker] Unknown message type:', type);
         }
     } catch (error) {
