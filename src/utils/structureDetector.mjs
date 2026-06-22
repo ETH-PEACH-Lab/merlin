@@ -297,8 +297,10 @@ export function detectStructureType(varName, serializedValue, heap, locals) {
     };
   }
 
-  // Shouldn't reach here, but default to list if heapObj exists
-  if (heapObj) {
+  // Only treat genuine list/array heap objects as lists. Dicts, sets, and
+  // other types that weren't recognised above (e.g. {node: -1} comprehensions)
+  // are skipped rather than incorrectly fed into ListModel.
+  if (heapObj && (heapObj.type === 'list' || heapObj.type === 'array')) {
     return {
       type: 'list',
       heapObj,
@@ -315,7 +317,7 @@ export function detectStructureType(varName, serializedValue, heap, locals) {
   };
 }
 
-export function createModel(varName, detection, heap, locals) {
+export function createModel(varName, detection, heap, locals, previousLocals = null, valueAccessVars = null) {
   if (detection.type === 'text') {
     // Get the serialized value from locals
     const serializedValue = locals[varName];
@@ -338,10 +340,10 @@ export function createModel(varName, detection, heap, locals) {
       return new StackModel(varName, detection.heapObj, heap, locals);
 
     case 'tree':
-      return new TreeModel(varName, heapObjToPass, heap, locals);
+      return new TreeModel(varName, heapObjToPass, heap, locals, valueAccessVars);
 
     case 'graph':
-      return new GraphModel(varName, detection.heapObj, heap, locals);
+      return new GraphModel(varName, detection.heapObj, heap, locals, previousLocals);
 
     case 'list':
       return new ListModel(varName, detection.heapObj, heap, locals);

@@ -1,9 +1,25 @@
 import { detectStructureType, createModel, detectAllVariables } from './structureDetector.mjs';
 import { computeDelta } from './structureDiffer.mjs';
-import { FrameModel } from './structureModels.mjs';
+import { FrameModel, sanitizeDSLIdentifier } from './structureModels.mjs';
+import { detectValueAccessVars } from './indexPointerDetector.mjs';
 
 function createFrameInfo(id, displayName, depth) {
   return { id, displayName, depth };
+}
+
+function mergeCallStackLocals(snapshot) {
+  if (!snapshot) return {};
+  const stack = snapshot.call_stack;
+  if (!stack || stack.length === 0) return snapshot.locals || {};
+  const merged = {};
+  
+  for (let i = stack.length - 1; i >= 0; i--) {
+    const locals = stack[i].locals || {};
+    for (const k in locals) {
+      if (!(k in merged)) merged[k] = locals[k];
+    }
+  }
+  return merged;
 }
 
 function convertElementToMerlin(el) {
@@ -289,7 +305,9 @@ export function snapshotsToMerlinDSL(snapshots, pythonCode) {
   pages.push('// Generated from snapshot sequence');
   pages.push('');
 
-  const maxSnapshots = Math.min(snapshots.length, 100);
+  // Match the worker's capture limit (maxSteps = 1000); snapshots with no
+  // changes are skipped/sticky, so emitted pages stay far below this.
+  const maxSnapshots = Math.min(snapshots.length, 1000);
 
   for (let i = 0; i < maxSnapshots; i++) {
     const currentSnapshot = snapshots[i];
@@ -385,128 +403,75 @@ export function singleSnapshotToMerlin(snapshot, pythonCode) {
  * @param {Object} previousSnapshot - Previous snapshot (or null for first)
  * @returns {Object} {dslCommands, models, delta}
  */
-// Resolve the call stack into FrameModels. Worker order is innermost→outermost;
-// we walk outer→inner so depth 0 is the outermost frame ("global" for the
-// module-level wrapper). Frame IDs are stable while a function stays on the
-// stack — when the function name at a given depth changes (different call),
-// a fresh id is allocated via `state.frameCounter`.
-function buildFrames(snapshot, heap, state) {
-  const rawStack = snapshot.call_stack || [];
-  const outerToInner = [...rawStack].reverse();
-
-  // Fallback: no call stack metadata (older snapshot format). Use top-level
-  // locals as a synthetic global frame so the pipeline still emits something.
-  if (outerToInner.length === 0 && snapshot.locals) {
-    outerToInner.push({
-      function: 'user_code',
-      line: null,
-      locals: snapshot.locals,
-    });
-  }
-
-  const resolved = [];
-  for (let i = 0; i < outerToInner.length; i++) {
-    const entry = outerToInner[i];
-    const isOutermost = i === 0;
-    const isWrapper = entry.function === 'user_code' || entry.function === '<module>';
-    const displayName = isOutermost && isWrapper ? 'global' : entry.function;
-
-    const prev = state.previousFrameStack[i];
-    let frameId;
-    if (prev && prev.displayName === displayName) {
-      frameId = prev.frameId;
-    } else {
-      // Strip leading/trailing underscores so __init__ → init_N (valid DSL identifier)
-      const safeName = displayName.replace(/^_+|_+$/g, '') || 'func';
-      frameId = `${safeName}_${state.frameCounter++}`;
-    }
-
-    resolved.push({
-      frameId,
-      displayName,
-      depth: i,
-      locals: entry.locals || {},
-    });
-  }
-
-  const frames = new Map();
-  resolved.forEach(({ frameId, displayName, depth, locals }) => {
-    const frameModel = new FrameModel({ id: frameId, displayName, depth });
-    Object.entries(locals).forEach(([varName, serializedValue]) => {
-      const detection = detectStructureType(varName, serializedValue, heap, locals);
-      const model = createModel(varName, detection, heap, locals);
-      if (model) frameModel.addVariable(model);
-    });
-    frames.set(frameId, frameModel);
-  });
-
-  const innermostLocals = resolved.length > 0
-    ? resolved[resolved.length - 1].locals
-    : {};
-
-  return { frames, resolvedStack: resolved, innermostLocals };
-}
-
 export function processSnapshotPipeline(
   currentSnapshot,
   previousSnapshot,
   previousModels = new Map(),
   initializedVariables = new Set(),
-  state = { previousFrameStack: [], previousFrames: new Map(), frameCounter: 0 },
+  sourceLine = '',
 ) {
   const heap = currentSnapshot.heap || {};
+  // Vars whose `.value` is read on `sourceLine` (the just-executed line for this
+  // page) — used to relabel a tree node's pointer arrow as `value = <n>` (vs the
+  // plain variable name for `.left`/`.right` navigation).
+  const valueAccessVars = detectValueAccessVars(sourceLine);
+  // Frames are not drawn, but a data structure built in an outer scope (e.g. a
+  // `root` tree created at top level inside the `user_code` wrapper) must still
+  // be visualized while execution is inside a function that walks it. So we
+  // DETECT structures across all call-stack frames (`detectionLocals`), while
+  // POINTERS/arrows come from the innermost frame only (`innermostLocals`) — the
+  // currently-executing scope — so only the active cursor (e.g. the `node`
+  // parameter of a recursive traversal) highlights, not outer-frame temporaries.
+  const innermostLocals = currentSnapshot.locals || {};
+  const detectionLocals = mergeCallStackLocals(currentSnapshot);
+  const previousLocals = previousSnapshot?.locals || {};
 
-  // Build per-call-stack frame models (one Merlin frame per Python frame).
-  const { frames, resolvedStack, innermostLocals } = buildFrames(currentSnapshot, heap, state);
-
-  // Standalone complex models come from the innermost scope only — outer
-  // frames' complex variables stay frame-only (shown as a type hint).
+  // Only data structures (tree/list/stack/graph) get standalone components.
+  // Scalars are NOT shown as text boxes — index/pointer variables already
+  // appear as arrows over the accessed cell, and other scalars (target, n,
+  // result, …) would just be noise floating in the layout.
   const currentModels = new Map();
-  Object.entries(innermostLocals).forEach(([varName, serializedValue]) => {
-    const detection = detectStructureType(varName, serializedValue, heap, innermostLocals);
-    if (detection.type === 'text') return;
-    const model = createModel(varName, detection, heap, innermostLocals);
-    if (model) currentModels.set(varName, model);
+  // Track heap refs already claimed in this snapshot to avoid duplicate models
+  // (e.g. `graph` inside a function that aliases the outer `network` dict).
+  const seenHeapRefs = new Set();
+  // Pre-seed refs for out-of-scope previousModels only: if a var is no longer
+  // in the current scope, block any aliased local from re-declaring its structure.
+  // Vars that ARE still in scope must NOT be seeded — they need normal update
+  // processing so that setColor / setArrow commands are generated each step.
+  const currentSafeNames = new Set(
+    Object.keys(detectionLocals).map((n) => sanitizeDSLIdentifier(n))
+  );
+  previousModels.forEach((m, varName) => {
+    if (m.heapRef !== undefined && !currentSafeNames.has(varName)) {
+      seenHeapRefs.add(m.heapRef);
+    }
+  });
+
+  Object.entries(detectionLocals).forEach(([varName, serializedValue]) => {
+    const detection = detectStructureType(varName, serializedValue, heap, detectionLocals);
+    if (detection.type === 'text') return; // skip all scalars / non-structures
+    // Skip if another model already represents this exact heap object.
+    const ref = serializedValue?.ref;
+    if (ref !== undefined) {
+      if (seenHeapRefs.has(ref)) return;
+      seenHeapRefs.add(ref);
+    }
+    // Sanitize the DSL identifier so a Python variable named e.g. `graph` or
+    // `stack` doesn't collide with a reserved Merlin DSL keyword.
+    const safeVarName = sanitizeDSLIdentifier(varName);
+    const model = createModel(safeVarName, detection, heap, innermostLocals, previousLocals, valueAccessVars);
+    if (model) {
+      model.heapRef = ref;  // store for dedup in future snapshots
+      currentModels.set(safeVarName, model);
+    }
   });
 
   const delta = computeDelta(currentModels, previousModels, initializedVariables);
   const dslCommands = delta.getDSLCommands();
 
-  // Diff frames against the previous snapshot's frames.
-  const frameCommands = [];
-  for (const [frameId, frameModel] of frames) {
-    const previous = state.previousFrames.get(frameId);
-    if (!previous) {
-      frameCommands.push({
-        type: 'frame_declaration',
-        frameId,
-        component: frameModel.componentName(),
-        command: frameModel.toDSLDeclaration(),
-      });
-    } else {
-      frameModel.toDSLUpdates(previous).forEach((cmd) => {
-        frameCommands.push({
-          type: 'frame_update',
-          frameId,
-          component: frameModel.componentName(),
-          command: cmd,
-        });
-      });
-    }
-  }
-
-  const removedFrameIds = [];
-  for (const frameId of state.previousFrames.keys()) {
-    if (!frames.has(frameId)) removedFrameIds.push(frameId);
-  }
-
   return {
     dslCommands,
     models: currentModels,
-    frames,
-    resolvedStack,
-    frameCommands,
-    removedFrameIds,
     delta,
     initializedVariables: delta.initializedVariables,
   };
@@ -528,15 +493,12 @@ export function snapshotsToMerlinDSL_Pipeline(snapshots, pythonCode) {
   }
 
   const lines = [];
-  const previousModels = new Map();          // standalone complex models
-  const initializedVariables = new Set();    // standalone components already declared
-  const initializedFrames = new Set();       // frame components already declared
-  const state = {
-    previousFrameStack: [],                  // outer→inner stack from prior snapshot
-    previousFrames: new Map(),               // frameId → FrameModel from prior snapshot
-    frameCounter: 0,
-  };
-  const maxSnapshots = Math.min(snapshots.length, 100);
+  const previousModels = new Map();          // standalone models from prior step
+  const initializedVariables = new Set();    // components already declared
+  const sourceLines = (pythonCode || '').split('\n');
+  // Match the worker's capture limit (maxSteps = 1000); snapshots with no
+  // changes are skipped/sticky, so emitted pages stay far below this.
+  const maxSnapshots = Math.min(snapshots.length, 1000);
   // snapshotToPage[i] = 1-based page index shown when stepping to snapshot i.
   // Snapshots that don't produce DSL changes "stick" on the last emitted page.
   const snapshotToPage = new Array(snapshots.length).fill(1);
@@ -546,47 +508,30 @@ export function snapshotsToMerlinDSL_Pipeline(snapshots, pythonCode) {
     const currentSnapshot = snapshots[i];
     const previousSnapshot = i > 0 ? snapshots[i - 1] : null;
 
-    const {
-      dslCommands,
-      delta,
-      models,
-      frames,
-      resolvedStack,
-      frameCommands,
-      removedFrameIds,
-    } = processSnapshotPipeline(
+    // A page built from snapshot i represents the state *after* the previous
+    // line executed (the UI shows page[i+1] while line[i] is highlighted). So a
+    // `<var>.value` read should be detected from the just-executed line — the
+    // PREVIOUS snapshot's line — so `value = X` appears when that line is the
+    // highlighted/active one, not one step early.
+    const sourceLine =
+      previousSnapshot && typeof previousSnapshot.line === 'number'
+        ? sourceLines[previousSnapshot.line - 1] || ''
+        : '';
+
+    const { dslCommands, delta, models } = processSnapshotPipeline(
       currentSnapshot,
       previousSnapshot,
       previousModels,
       initializedVariables,
-      state,
+      sourceLine,
     );
 
-    const frameDeclarations = frameCommands.filter((c) => c.type === 'frame_declaration');
-    const frameUpdates = frameCommands.filter((c) => c.type === 'frame_update');
-    const hasFrameChanges =
-      frameDeclarations.length > 0 ||
-      frameUpdates.length > 0 ||
-      removedFrameIds.length > 0;
-
-    if (!delta.hasChanges() && !hasFrameChanges) {
+    if (!delta.hasChanges()) {
       snapshotToPage[i] = Math.max(currentPageNum, 1);
       continue;
     }
 
-    // Capture component names of frames that just went out of scope BEFORE
-    // we overwrite state.previousFrames — we need them to emit `hide` commands.
-    const hideCommands = removedFrameIds
-      .map((id) => state.previousFrames.get(id))
-      .filter(Boolean)
-      .map((frameModel) => `hide ${frameModel.componentName()}`);
-
     models.forEach((model, varName) => previousModels.set(varName, model));
-    state.previousFrames = frames;
-    state.previousFrameStack = resolvedStack.map(({ frameId, displayName }) => ({
-      frameId,
-      displayName,
-    }));
 
     const declarations = dslCommands.filter((cmd) => cmd.type === 'declaration');
     const updates = dslCommands.filter((cmd) => cmd.type === 'update');
@@ -594,13 +539,7 @@ export function snapshotsToMerlinDSL_Pipeline(snapshots, pythonCode) {
       (cmd) => !initializedVariables.has(cmd.varName),
     );
 
-    if (
-      actualDeclarations.length === 0 &&
-      updates.length === 0 &&
-      frameDeclarations.length === 0 &&
-      frameUpdates.length === 0 &&
-      hideCommands.length === 0
-    ) {
+    if (actualDeclarations.length === 0 && updates.length === 0) {
       snapshotToPage[i] = Math.max(currentPageNum, 1);
       continue;
     }
@@ -608,16 +547,12 @@ export function snapshotsToMerlinDSL_Pipeline(snapshots, pythonCode) {
     currentPageNum += 1;
     snapshotToPage[i] = currentPageNum;
 
-    // Generate the columns: 
-    // Left column (col 0): Frames.
-    // Right column (col 1): Data structures (lists, trees, graphs, variables).
-    // The frames remain strictly adjacent to the border and not below the data structures.
-    const maxFrameDepth = Math.max(
-      -1,
-      ...[...frames.values()].map((f) => f.depth),
-    );
-    const standaloneCount = initializedVariables.size;
-    const rowsNeeded = Math.max(maxFrameDepth + 1, standaloneCount, 4);
+    // Each component gets 2 grid rows for vertical breathing room.
+    // 1 component → 4x2 grid, spans (0..3, 0..1) = full canvas height.
+    // N components → 4x(2N) grid, each spans 2 rows = 1/N canvas height.
+    const totalComponents = initializedVariables.size + actualDeclarations.length;
+    const rowsPerComponent = 2;
+    const rowsNeeded = Math.max(totalComponents, 1) * rowsPerComponent;
     lines.push(`page 4x${rowsNeeded}`);
 
     actualDeclarations.forEach((cmd) => {
@@ -625,30 +560,13 @@ export function snapshotsToMerlinDSL_Pipeline(snapshots, pythonCode) {
       initializedVariables.add(cmd.varName);
     });
 
-    frameDeclarations.forEach((cmd) => {
-      lines.push(cmd.command);
-      initializedFrames.add(cmd.frameId);
-    });
-
-    // Hide frames whose function just returned.
-    hideCommands.forEach((cmd) => lines.push(cmd));
-
-    // Only `show` frames currently on the stack. Position is column 0,
-    frames.forEach((frameModel, frameId) => {
-      if (initializedFrames.has(frameId)) {
-        lines.push(`show ${frameModel.componentName()} (0, ${frameModel.depth})`);
-      }
-    });
-
-    // Standalone components go in column 1 to 3 (right wide area), one per row.
-    let standaloneRow = 0;
+    let row = 0;
     initializedVariables.forEach((varName) => {
-      lines.push(`show ${varName} (1..3, ${standaloneRow})`);
-      standaloneRow++;
+      lines.push(`show ${varName} (0..3, ${row}..${row + rowsPerComponent - 1})`);
+      row += rowsPerComponent;
     });
 
     updates.forEach((cmd) => lines.push(cmd.command));
-    frameUpdates.forEach((cmd) => lines.push(cmd.command));
 
     lines.push('');
   }

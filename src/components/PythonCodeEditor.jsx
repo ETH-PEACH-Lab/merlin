@@ -1,11 +1,15 @@
 import React, { useRef, useEffect, useState } from 'react';
 import MonacoEditor from '@monaco-editor/react';
 
-const PythonCodeEditor = ({ value = '', onChange = () => { }, currentLineNumber = null }) => {
+const PythonCodeEditor = ({ value = '', onChange = () => { }, currentLineNumber = null, errorLineNumber = null, errorMessage = '' }) => {
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
   const decorationIdsRef = useRef([]);
-  const [editorReady, setEditorReady] = useState(false); 
+  const [editorReady, setEditorReady] = useState(false);
+  // Tracks the last value that came from user typing (via onChange), so we can distinguish
+  // user edits from external value changes (e.g. loading a new example). This lets us avoid
+  // calling setValue() on every keystroke, which would wipe Monaco's undo stack.
+  const lastUserValue = useRef(value);
 
   const handleMount = (editor, monaco) => {
     editorRef.current = editor;
@@ -90,12 +94,52 @@ const PythonCodeEditor = ({ value = '', onChange = () => { }, currentLineNumber 
     }
   }, [currentLineNumber, editorReady]);
 
+  // Sync externally-changed value (e.g. parent loads a new example) without
+  // clobbering the undo stack for normal user edits.
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    if (value !== lastUserValue.current) {
+      lastUserValue.current = value;
+      editor.setValue(value);
+    }
+  }, [value]);
+
+  // Underline the line where an error occurred with a native Monaco error
+  // marker (red wavy squiggle + message on hover). Cleared when there's no error.
+  useEffect(() => {
+    const editor = editorRef.current;
+    const monaco = monacoRef.current;
+    if (!editor || !monaco) return;
+
+    const model = editor.getModel();
+    if (!model) return;
+
+    if (errorLineNumber) {
+      monaco.editor.setModelMarkers(model, 'python-error', [
+        {
+          startLineNumber: errorLineNumber,
+          startColumn: 1,
+          endLineNumber: errorLineNumber,
+          endColumn: model.getLineMaxColumn(errorLineNumber),
+          message: errorMessage || 'Error',
+          severity: monaco.MarkerSeverity.Error,
+        },
+      ]);
+    } else {
+      monaco.editor.setModelMarkers(model, 'python-error', []);
+    }
+  }, [errorLineNumber, errorMessage, editorReady]);
+
   return (
     <MonacoEditor
       height="100%"
       language="python"
-      value={value}
-      onChange={(newValue) => onChange(newValue || '')}
+      defaultValue={value}
+      onChange={(newValue) => {
+        lastUserValue.current = newValue || '';
+        onChange(newValue || '');
+      }}
       onMount={handleMount}
       theme="vs-dark"
       options={{

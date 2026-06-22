@@ -84,6 +84,26 @@ export function computeDelta(currentModels, previousModels, initializedVariables
   return delta;
 }
 
+function arrowsDiffer(current, previous) {
+  const a = current || [];
+  const b = previous || [];
+  if (a.length !== b.length) return true;
+  for (let i = 0; i < a.length; i++) {
+    if ((a[i] ?? null) !== (b[i] ?? null)) return true;
+  }
+  return false;
+}
+
+function nodeArrowsDiffer(current, previous) {
+  const a = current || new Map();
+  const b = previous || new Map();
+  if (a.size !== b.size) return true;
+  for (const [nodeId, label] of a) {
+    if (b.get(nodeId) !== label) return true;
+  }
+  return false;
+}
+
 
 export function hasModelChanged(currentModel, previousModel) {
   if (currentModel.type !== previousModel.type) {
@@ -99,7 +119,12 @@ export function hasModelChanged(currentModel, previousModel) {
   if (previousModel.coloredNodes && previousModel.coloredNodes.size > 0) {
     return true;
   }
-
+  if (arrowsDiffer(currentModel.arrows, previousModel.arrows)) {
+    return true;
+  }
+  if (nodeArrowsDiffer(currentModel.nodeArrows, previousModel.nodeArrows)) {
+    return true;
+  }
   if (
     (currentModel.type === 'list' || currentModel.type === 'stack') &&
     currentModel.elements

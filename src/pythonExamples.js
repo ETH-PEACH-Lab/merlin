@@ -73,24 +73,37 @@ c1.add_child(c3)
 `
 			},
 			{
-				id: "functions",
-				title: "Example - Function Calls",
-				userCode: `def add(a, b):
-    return a + b
+				id: "BinaryTreeSimulation",
+				title: "Example - BinaryTree",
+				userCode: `# Simple tree node
+class BinaryTreeNode:
+    def __init__(self, value):
+        self.value = value
+        self.left = None
+        self.right = None
 
-result = add(3, 5)`
-			},{
-				id: "recursion",
-				title: "Example - Recursion",
-				userCode: `def fib(n):
-	if n <= 1:
-		return n
-	else:
-		return (fib(n-1) + fib(n-2))
+    def add_left(self, child):
+        self.left = child
 
-res = fib(6)`
+    def add_right(self, child):
+        self.right = child
+
+root = BinaryTreeNode("A")
+c1 = BinaryTreeNode("B")
+c2 = BinaryTreeNode("C")
+c3 = BinaryTreeNode("D")
+c4 = BinaryTreeNode("E")
+c5 = BinaryTreeNode("F")
+c6 = BinaryTreeNode("G")
+
+root.left = c1
+root.right = c2
+c1.left = c3
+c1.right = c4
+c2.right = c5
+c5.left = c6
+`
 			}
-
 		]
 	},{
 		groupName: 'Algorithms',
@@ -148,8 +161,83 @@ location = binary_search(arr, 25)
 			},{
 				id: "BFS",
 				title: "Example - Breadth First Search",
-				userCode: `
-				`
+				userCode: `from collections import deque
+
+graph = {
+    "A": ["B", "C"],
+    "B": ["A", "D", "E"],
+    "C": ["A", "F"],
+    "D": ["B"],
+    "E": ["B", "F"],
+    "F": ["C", "E"]
+}
+
+start = "A"
+visited = set()
+queue = deque([start])
+
+while queue:
+    current = queue.popleft()
+    visited.add(current)
+
+    for neighbor in graph[current]:
+        if neighbor not in visited and neighbor not in queue:
+            queue.append(neighbor)`
+			},{
+				id: "DFS",
+				title: "Example - Depth First Search",
+				userCode: `graph = {
+    "A": ["B", "C"],
+    "B": ["A", "D", "E"],
+    "C": ["A", "F"],
+    "D": ["B"],
+    "E": ["B", "F"],
+    "F": ["C", "E"]
+}
+
+start = "A"
+visited = set()
+stack = [start]
+
+while stack:
+    current = stack.pop()
+
+    if current in visited:
+        continue
+
+    visited.add(current)
+
+    for neighbor in graph[current]:
+        if neighbor not in visited:
+            stack.append(neighbor)`
+			},{
+				id: "Tree Traversal",
+				title: "Example - Tree Traversal",
+				userCode: `class TreeNode:
+    def __init__(self, value):
+        self.value = value
+        self.left = None
+        self.right = None
+ 
+root = TreeNode(1)
+root.left = TreeNode(2)
+root.right = TreeNode(3)
+root.left.left = TreeNode(4)
+root.left.right = TreeNode(5)
+root.right.left = TreeNode(6)
+
+
+def traverse(node):
+    if node is None:
+        return
+
+    print(node.value)
+
+    traverse(node.left)
+    traverse(node.right)
+
+
+traverse(root)`
 			}
 		]
 	},

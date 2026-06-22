@@ -629,54 +629,59 @@ export default function convertParsedDSLtoMermaid(parsedDSLOriginal) {
                             name: componentData.name,
                             body: { ...componentData.body }, // Make a copy to avoid mutating the original
                         };
-                        
+
                         // Initialize value array with node names if needed for trees, graphs, and linkedlists
                         if ((component.type === "tree" || component.type === "graph" || component.type === "linkedlist")) {
                             initializeValueArrayWithNodeNames(component.body);
                         }
-                        
+
                         // Add position information if provided
                         if (expandedPosition) {
                             component.position = expandedPosition;
                         }
-                        
+
                         pages[pages.length - 1].push(component);
+
+                        // Handle placement text components (above, below, left, right).
+                        // Only synthesize these the first time the component is added to a
+                        // page - on later pages it (and its placement text) already carry
+                        // over via the page-to-page deep copy, so re-running this would
+                        // push duplicate placement text whose "previous" sibling is the
+                        // earlier placement text instead of the component itself.
+                        const placementDirections = ['above', 'below', 'left', 'right'];
+                        placementDirections.forEach(direction => {
+                            if (componentData.body[direction]) {
+                                const placementValue = componentData.body[direction];
+                                let textComponent;
+
+                                // First, try to find a referenced component by name
+                                const referencedComponent = findComponentDefinitionByName(definitions, placementValue);
+                                if (referencedComponent && referencedComponent.type === 'text') {
+                                    // It's a reference to another text object
+                                    textComponent = {
+                                        type: 'text',
+                                        name: referencedComponent.name,
+                                        body: referencedComponent.body,
+                                        position: 'previous',
+                                        placement: direction
+                                    };
+                                } else {
+                                    // It's a direct string (no matching component found)
+                                    textComponent = {
+                                        type: 'text',
+                                        name: `${componentData.name}_${direction}`, // Generate a unique name
+                                        body: { value: placementValue },
+                                        position: 'previous',
+                                        placement: direction
+                                    };
+                                }
+
+                                if (textComponent) {
+                                    pages[pages.length - 1].push(textComponent);
+                                }
+                            }
+                        });
                     }
-                    
-                    // Handle placement text components (above, below, left, right)
-                    const placementDirections = ['above', 'below', 'left', 'right'];
-                    placementDirections.forEach(direction => {
-                        if (componentData.body[direction]) {
-                            const placementValue = componentData.body[direction];
-                            let textComponent;
-                            
-                            // First, try to find a referenced component by name
-                            const referencedComponent = findComponentDefinitionByName(definitions, placementValue);
-                            if (referencedComponent && referencedComponent.type === 'text') {
-                                // It's a reference to another text object
-                                textComponent = {
-                                    type: 'text',
-                                    name: referencedComponent.name,
-                                    body: referencedComponent.body,
-                                    position: 'previous',
-                                    placement: direction
-                                };
-                            } else {
-                                // It's a direct string (no matching component found)
-                                textComponent = {
-                                    type: 'text',
-                                    name: `${componentData.name}_${direction}`, // Generate a unique name
-                                    body: { value: placementValue },
-                                    position: 'previous',
-                                    placement: direction
-                                };
-                            }
-                            
-                            if (textComponent) {
-                                pages[pages.length - 1].push(textComponent);
-                            }
-                        }
-                    });
                 } else {
                     causeCompileError(`Component not found\n\nName: ${componentNameToShow}`, command);
                 }

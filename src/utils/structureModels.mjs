@@ -1,10 +1,62 @@
+import { computeIndexArrows, computeNodeArrows } from './indexPointerDetector.mjs';
+import { computeValueNodeArrows } from './algorithmOverlayDetector.mjs';
+
+
+const RESERVED_DSL_WORDS = new Set([
+  'array', 'matrix', 'graph', 'linkedlist', 'tree', 'stack', 'text', 'frame',
+]);
+
+
+export function sanitizeDSLIdentifier(name) {
+  const safe = name.replace(/[^a-zA-Z0-9_]/g, '_');
+  return RESERVED_DSL_WORDS.has(safe) ? `${safe}_` : safe;
+}
+
+function formatArrowLabel(label) {
+  return label === null || label === undefined ? 'null' : `"${label}"`;
+}
+
+
+function diffIndexArrows(varName, currentArrows, previousArrows) {
+  const updates = [];
+  
+  const len = currentArrows?.length || 0;
+  for (let i = 0; i < len; i++) {
+    const cur = currentArrows?.[i] ?? null;
+    const prev = previousArrows?.[i] ?? null;
+    if (cur !== prev) {
+      updates.push(`${varName}.setArrow(${i}, ${formatArrowLabel(cur)})`);
+    }
+  }
+  return updates;
+}
+
+function diffNodeArrows(varName, currentArrows, previousArrows, currentNodeIds) {
+  const updates = [];
+  const cur = currentArrows || new Map();
+  const prev = previousArrows || new Map();
+
+  for (const [nodeId, label] of cur) {
+    if (prev.get(nodeId) !== label) {
+      updates.push(`${varName}.setArrow(${nodeId}, ${formatArrowLabel(label)})`);
+    }
+  }
+  for (const [nodeId] of prev) {
+    if (!cur.has(nodeId) && currentNodeIds.has(nodeId)) {
+      updates.push(`${varName}.setArrow(${nodeId}, null)`);
+    }
+  }
+  return updates;
+}
+
 
 class StructureModel {
-  constructor(varName, heapObj, heap, locals) {
+  constructor(varName, heapObj, heap, locals, previousLocals = null) {
     this.varName = varName;
     this.heapObj = heapObj;  // Current snapshot's object
     this.heap = heap;
     this.locals = locals;
+    this.previousLocals = previousLocals;
     this.type = null;  // Subclass sets: 'list', 'stack', 'tree', 'graph'
     this.elements = [];  // For list/stack: array of {id, value}
     this.nodes = new Map();  // For tree/graph: id → {id, value, edges, children}
@@ -205,6 +257,8 @@ export class ListModel extends StructureModel {
   normalize() {
     if (!this.heapObj || !this.heapObj.value) {
       this.elements = [];
+      this.arrows = [];
+      this.arrowedIndices = new Set();
       return;
     }
 
@@ -213,25 +267,52 @@ export class ListModel extends StructureModel {
       value: this.resolveValue(item),
       serialized: item,
     }));
+
+    this.arrows = computeIndexArrows(this.elements.length, this.locals, this.heap, this.varName);
+    this.arrowedIndices = new Set(
+      this.arrows.reduce((acc, a, i) => (a !== null ? (acc.push(i), acc) : acc), []),
+    );
   }
 
   formatValue(serialized) {
-    if (serialized && serialized.type) {
+    if (!serialized) return '"?"';
+    if (serialized.type) {
       const num = Number(serialized.value);
       return isNaN(num) ? `"${serialized.value}"` : num;
     }
-    return '?';
+    if (serialized.ref !== undefined) {
+      const obj = this.heap[serialized.ref];
+      if (!obj) return '"?"';
+      if (obj.type === 'list' || obj.type === 'tuple') return `"[${obj.length ?? '...'}]"`;
+      if (obj.type === 'set') return `"{${obj.length ?? '...'}}"`;
+      if (obj.type === 'dict') return '"{...}"';
+      return '"[obj]"';
+    }
+    return '"?"';
   }
 
   toDSLDeclaration() {
     const values = this.elements.map((el) => this.formatValue(el.serialized));
-    
+
     const lines = [
       `array ${this.varName} = {`,
+      `  left: "${this.varName}"`,
       `  value: [${values.join(', ')}]`,
-      `}`,
     ];
-    
+
+    if (this.arrowedIndices && this.arrowedIndices.size > 0) {
+      const arrowVals = this.arrows.map(formatArrowLabel);
+      lines.push(`  arrow: [${arrowVals.join(', ')}]`);
+      // Highlight accessed (pointed-at) cells yellow.
+      const colorVals = this.elements.map((_, i) =>
+        this.arrowedIndices.has(i) ? '"yellow"' : 'null',
+      );
+      lines.push(`  color: [${colorVals.join(', ')}]`);
+      this.arrowedIndices.forEach((i) => this.coloredIndices.add(i));
+    }
+
+    lines.push(`}`);
+
     return lines.join('\n');
   }
 
@@ -259,11 +340,10 @@ export class ListModel extends StructureModel {
         updates.push(`${this.varName}.setColor(${i}, "yellow")`);
         this.coloredIndices.add(i);
       }
-      return updates;
     }
 
     if (newLen < oldLen) {
-      
+
       let allRemovedFromEnd = true;
       for (let i = 0; i < newLen; i++) {
         const oldVal = previousModel.elements[i].value?.value ?? previousModel.elements[i].value;
@@ -295,14 +375,13 @@ export class ListModel extends StructureModel {
           const newCount = newValueCounts.get(val) || 0;
           const removedOccurrences = oldCount - newCount;
           if (removedOccurrences > 0) {
+            const formattedVal = isNaN(Number(val)) ? `"${val}"` : val;
             for (let i = 0; i < removedOccurrences; i++) {
-              updates.push(`${this.varName}.removeValue(${val})`);
+              updates.push(`${this.varName}.removeValue(${formattedVal})`);
             }
           }
         }
       }
-      
-      return updates;
     }
 
     if (newLen === oldLen) {
@@ -319,6 +398,20 @@ export class ListModel extends StructureModel {
       }
     }
 
+    // Move pointer arrows after any value/structure changes so setArrow targets
+    // cells that already exist this step.
+    updates.push(...diffIndexArrows(this.varName, this.arrows, previousModel.arrows));
+
+    // Highlight currently accessed (pointed-at) cells yellow. Cells already
+    // coloured above (added/changed this step) are skipped to avoid duplicates;
+    // last step's colours were cleared at the top of this method.
+    this.arrowedIndices.forEach((i) => {
+      if (!this.coloredIndices.has(i)) {
+        updates.push(`${this.varName}.setColor(${i}, "yellow")`);
+      }
+      this.coloredIndices.add(i);
+    });
+
     return updates;
   }
 }
@@ -334,6 +427,8 @@ export class StackModel extends StructureModel {
 
   normalize() {
     this.elements = [];
+    this.arrows = [];
+    this.arrowedIndices = new Set();
     if (!this.heapObj) return;
 
     if (this.heapObj.type === 'list' && this.heapObj.value) {
@@ -356,25 +451,52 @@ export class StackModel extends StructureModel {
         }));
       }
     }
+
+    this.arrows = computeIndexArrows(this.elements.length, this.locals, this.heap, this.varName);
+    this.arrowedIndices = new Set(
+      this.arrows.reduce((acc, a, i) => (a !== null ? (acc.push(i), acc) : acc), []),
+    );
   }
 
   formatValue(serialized) {
-    if (serialized && serialized.type) {
+    if (!serialized) return '"?"';
+    if (serialized.type) {
       const num = Number(serialized.value);
       return isNaN(num) ? `"${serialized.value}"` : num;
     }
-    return '?';
+    if (serialized.ref !== undefined) {
+      const obj = this.heap[serialized.ref];
+      if (!obj) return '"?"';
+      if (obj.type === 'list' || obj.type === 'tuple') return `"[${obj.length ?? '...'}]"`;
+      if (obj.type === 'set') return `"{${obj.length ?? '...'}}"`;
+      if (obj.type === 'dict') return '"{...}"';
+      return '"[obj]"';
+    }
+    return '"?"';
   }
 
   toDSLDeclaration() {
     const values = this.elements.map((el) => this.formatValue(el.serialized));
-    
+
     const lines = [
       `stack ${this.varName} = {`,
+      `  left: "${this.varName}"`,
       `  value: [${values.join(', ')}]`,
-      `}`,
     ];
-    
+
+    if (this.arrowedIndices && this.arrowedIndices.size > 0) {
+      const arrowVals = this.arrows.map(formatArrowLabel);
+      lines.push(`  arrow: [${arrowVals.join(', ')}]`);
+      // Highlight accessed (pointed-at) cells yellow.
+      const colorVals = this.elements.map((_, i) =>
+        this.arrowedIndices.has(i) ? '"yellow"' : 'null',
+      );
+      lines.push(`  color: [${colorVals.join(', ')}]`);
+      this.arrowedIndices.forEach((i) => this.coloredIndices.add(i));
+    }
+
+    lines.push(`}`);
+
     return lines.join('\n');
   }
 
@@ -400,14 +522,12 @@ export class StackModel extends StructureModel {
         updates.push(`${this.varName}.setColor(${i}, "yellow")`);
         this.coloredIndices.add(i);
       }
-      return updates;
     }
 
     if (newLen < oldLen) {
       for (let i = oldLen - 1; i >= newLen; i--) {
         updates.push(`${this.varName}.removeAt(${i})`);
       }
-      return updates;
     }
 
     if (newLen === oldLen) {
@@ -424,17 +544,28 @@ export class StackModel extends StructureModel {
       }
     }
 
+    updates.push(...diffIndexArrows(this.varName, this.arrows, previousModel.arrows));
+
+    // Highlight currently accessed (pointed-at) cells yellow.
+    this.arrowedIndices.forEach((i) => {
+      if (!this.coloredIndices.has(i)) {
+        updates.push(`${this.varName}.setColor(${i}, "yellow")`);
+      }
+      this.coloredIndices.add(i);
+    });
+
     return updates;
   }
 }
 
 export class TreeModel extends StructureModel {
-  constructor(varName, heapObj, heap, locals) {
+  constructor(varName, heapObj, heap, locals, valueAccessVars = null) {
     super(varName, heapObj, heap, locals);
     this.type = 'tree';
     this.edges = [];
     this.rootRef = null;
     this.coloredNodes = new Set();
+    this.valueAccessVars = valueAccessVars;
     this.normalize();
   }
 
@@ -442,6 +573,7 @@ export class TreeModel extends StructureModel {
     this.nodes = new Map();
     this.edges = [];
     this.rootRef = null;
+    this.nodeArrows = new Map();
 
     if (!this.heapObj) return;
 
@@ -494,6 +626,13 @@ export class TreeModel extends StructureModel {
         });
       }
     }
+
+    // No stale-pointer suppression: the cursor (e.g. a recursion's `node`) must
+    // stay highlighted every step it points at a node, matching the array model
+    // (computeIndexArrows). `this.locals` is the innermost frame only, so only
+    // the currently-active pointer produces an arrow. `valueAccessVars` relabels
+    // a pointer as `value = <n>` when the current line reads `<var>.value`.
+    this.nodeArrows = computeNodeArrows(this.nodes, this.locals, this.heap, this.varName, this.valueAccessVars, this.rootRef);
   }
 
   getNodeValue(nodeObj) {
@@ -522,20 +661,39 @@ export class TreeModel extends StructureModel {
   }
 
   toDSLDeclaration() {
-    if (!this.rootRef) {
-      return `tree ${this.varName} = {\n  nodes: []\n  value: []\n  color: []\n  edges: []\n}`;
+    if (!this.rootRef || this.nodes.size === 0) {
+      return `tree ${this.varName} = {\n  nodes: []\n  value: []\n  color: []\n  children: []\n}`;
     }
-    
-    const rootId = `N${this.rootRef}`;
-    const rootNode = this.nodes.get(rootId);
-    const val = this.formatValue(rootNode.value);
+
+    // Emit the WHOLE tree up front (all nodes, values, and parent-child edges),
+    // mirroring GraphModel. The previous version declared only the root and
+    // relied on cross-snapshot updates to add the rest — which never happens
+    // when the tree is built in a single step, so only the root rendered.
+    const nodeIds = [];
+    const values = [];
+    const colors = [];
+    const arrows = [];
+    for (const node of this.nodes.values()) {
+      nodeIds.push(node.id);
+      values.push(this.formatValue(node.value));
+      // Highlight accessed (pointed-at) nodes yellow, and label them with the
+      // pointing variable name so the arrow shows on the first render too.
+      const accessed = this.nodeArrows && this.nodeArrows.has(node.id);
+      colors.push(accessed ? '"yellow"' : 'null');
+      arrows.push(accessed ? formatArrowLabel(this.nodeArrows.get(node.id)) : 'null');
+      if (accessed) this.coloredNodes.add(node.id);
+    }
+
+    const children = this.edges.map((e) => `${e.parent}-${e.child}`);
+
     return [
       `tree ${this.varName} = {`,
-      `  nodes: [${rootId}]`,
-      `  value: [${val}]`,
-      `  color: [null]`,
-      `  children: []`,
-      `}`
+      `  nodes: [${nodeIds.join(', ')}]`,
+      `  value: [${values.join(', ')}]`,
+      `  color: [${colors.join(', ')}]`,
+      `  arrow: [${arrows.join(', ')}]`,
+      `  children: [${children.join(', ')}]`,
+      `}`,
     ].join('\n');
   }
 
@@ -574,14 +732,27 @@ export class TreeModel extends StructureModel {
       }
     }
 
+    // Node pointers after addNode, so setArrow targets nodes that now exist.
+    updates.push(
+      ...diffNodeArrows(this.varName, this.nodeArrows, previousModel.nodeArrows, new Set(this.nodes.keys())),
+    );
+
+    // Highlight currently accessed (pointed-at) nodes yellow.
+    for (const nodeId of this.nodeArrows.keys()) {
+      if (!this.coloredNodes.has(nodeId)) {
+        updates.push(`${this.varName}.setColor(${nodeId}, "yellow")`);
+      }
+      this.coloredNodes.add(nodeId);
+    }
+
     return updates;
   }
 }
 
 
 export class GraphModel extends StructureModel {
-  constructor(varName, heapObj, heap, locals) {
-    super(varName, heapObj, heap, locals);
+  constructor(varName, heapObj, heap, locals, previousLocals = null) {
+    super(varName, heapObj, heap, locals, previousLocals);
     this.type = 'graph';
     this.edges = [];
     this.coloredNodes = new Set();
@@ -589,6 +760,7 @@ export class GraphModel extends StructureModel {
   }
 
   normalize() {
+    this.nodeArrows = new Map();
     if (!this.heapObj || this.heapObj.type !== 'dict' || !this.heapObj.value) return;
 
     this.nodes.clear();
@@ -655,41 +827,40 @@ export class GraphModel extends StructureModel {
       }
     });
     this.edges = deduplicatedEdges;
+
+    this.nodeArrows = computeValueNodeArrows(this.nodes, this.locals, this.varName, this.previousLocals);
   }
 
   toDSLDeclaration() {
     const nodes = Array.from(this.nodes.values());
 
     if (nodes.length === 0) {
-      return `graph ${this.varName} = {\n  nodes: []\n  value: []\n  color: []\n  edges: []\n}`;
+      return `graph ${this.varName} = {\n  left: "${this.varName}"\n  nodes: []\n  value: []\n  color: []\n  edges: []\n}`;
     }
 
     const nodeIds = [];
     const values = [];
     const colors = [];
-    
+
     nodes.forEach((node) => {
       nodeIds.push(node.id);
-      const val = typeof node.value === 'string' ? `"${node.value}"` : `"${node.value}"`;
-      values.push(val);
-      colors.push('null');
+      values.push(`"${node.value}"`);
+      const accessed = this.nodeArrows.has(node.id);
+      colors.push(accessed ? '"yellow"' : 'null');
+      if (accessed) this.coloredNodes.add(node.id);
     });
 
-    const edges = [];
-    this.edges.forEach((edge) => {
-      edges.push(`${edge.from}-${edge.to}`);
-    });
+    const edges = this.edges.map((edge) => `${edge.from}-${edge.to}`);
 
-    const lines = [
+    return [
       `graph ${this.varName} = {`,
+      `  left: "${this.varName}"`,
       `  nodes: [${nodeIds.join(', ')}]`,
       `  value: [${values.join(', ')}]`,
       `  color: [${colors.join(', ')}]`,
       `  edges: [${edges.join(', ')}]`,
       `}`,
-    ];
-
-    return lines.join('\n');
+    ].join('\n');
   }
 
   toDSLUpdates(previousModel) {
@@ -698,18 +869,20 @@ export class GraphModel extends StructureModel {
     }
 
     const updates = [];
-    
+
+    // Clear previous step's highlights first.
     if (previousModel.coloredNodes && previousModel.coloredNodes.size > 0) {
-      previousModel.coloredNodes.forEach(nodeId => {
-        updates.push(`${this.varName}.setColor(${nodeId}, null)`);
+      previousModel.coloredNodes.forEach((nodeId) => {
+        if (this.nodes.has(nodeId)) {
+          updates.push(`${this.varName}.setColor(${nodeId}, null)`);
+        }
       });
       previousModel.coloredNodes.clear();
     }
 
     for (const [nodeId, node] of this.nodes) {
       if (!previousModel.nodes.has(nodeId)) {
-        const val = typeof node.value === 'string' ? `"${node.value}"` : `"${node.value}"`;
-        updates.push(`${this.varName}.addNode(${nodeId}, ${val})`);
+        updates.push(`${this.varName}.addNode(${nodeId}, "${node.value}")`);
         updates.push(`${this.varName}.setColor(${nodeId}, "yellow")`);
         this.coloredNodes.add(nodeId);
       }
@@ -735,13 +908,22 @@ export class GraphModel extends StructureModel {
 
     previousModel.edges.forEach((edge) => {
       const edgeKey = `${edge.from}-${edge.to}`;
-      const currentEdgeExists = this.edges.some(
-        (e) => `${e.from}-${e.to}` === edgeKey
-      );
-      if (!currentEdgeExists) {
+      if (!this.edges.some((e) => `${e.from}-${e.to}` === edgeKey)) {
         updates.push(`${this.varName}.removeEdge(${edgeKey})`);
       }
     });
+
+    updates.push(
+      ...diffNodeArrows(this.varName, this.nodeArrows, previousModel.nodeArrows, new Set(this.nodes.keys())),
+    );
+
+    // Highlight currently pointed-at nodes yellow (mirrors TreeModel).
+    for (const nodeId of this.nodeArrows.keys()) {
+      if (!this.coloredNodes.has(nodeId)) {
+        updates.push(`${this.varName}.setColor(${nodeId}, "yellow")`);
+      }
+      this.coloredNodes.add(nodeId);
+    }
 
     return updates;
   }

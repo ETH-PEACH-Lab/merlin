@@ -3,7 +3,6 @@ import {
   Box,
   Button,
   CircularProgress,
-  Alert,
   Typography,
   IconButton,
   Tooltip,
@@ -20,6 +19,7 @@ import {
   Grid3x3,
   NavigateBefore,
   NavigateNext,
+  LastPage,
   PlayCircleOutline,
   PauseCircleOutline,
 } from '@mui/icons-material';
@@ -50,6 +50,7 @@ const PythonVisualizerSection = () => {
   // Maps each snapshot index to the page it should display.
   const [snapshotToPage, setSnapshotToPage] = useState([]);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [consoleHeight, setConsoleHeight] = useState(140);
   const playIntervalMs = 1000;
 
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -69,6 +70,30 @@ const PythonVisualizerSection = () => {
       const maxWidth = window.innerWidth - 300;
       if (newWidth > minWidth && newWidth < maxWidth) {
         setLeftWidth(newWidth);
+      }
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  // Drag the horizontal divider above the console to resize its height.
+  // Dragging up grows the console; dragging down shrinks it.
+  const handleConsoleResize = (e) => {
+    const startY = e.clientY;
+    const startHeight = consoleHeight;
+
+    const handleMouseMove = (e) => {
+      const newHeight = startHeight + (startY - e.clientY);
+      const minHeight = 40;
+      const maxHeight = window.innerHeight - 200;
+      if (newHeight > minHeight && newHeight < maxHeight) {
+        setConsoleHeight(newHeight);
       }
     };
 
@@ -225,6 +250,11 @@ const PythonVisualizerSection = () => {
           message: result.error,
           type: result.errorType,
           traceback: result.errorTraceback,
+          phase: result.phase,
+          line: result.errorLine,
+          offset: result.errorOffset,
+          text: result.errorText,
+          stdout: result.stdout,
         });
       } else {
         setExecutionResult(result);
@@ -428,6 +458,9 @@ const PythonVisualizerSection = () => {
             const onNext = inSnapshotMode
               ? () => setCurrentSnapshotIndex(Math.min(totalSnapshots - 1, currentSnapshotIndex + 1))
               : handleNextPage;
+            const onSkipToEnd = inSnapshotMode
+              ? () => setCurrentSnapshotIndex(totalSnapshots - 1)
+              : () => setCurrentPage(pages[pages.length - 1]);
             const label = inSnapshotMode
               ? `Step ${currentSnapshotIndex + 1}/${totalSnapshots}`
               : pages.length > 0
@@ -461,6 +494,13 @@ const PythonVisualizerSection = () => {
                   <span>
                     <IconButton size="small" onClick={onNext} disabled={!canNext}>
                       <NavigateNext fontSize="small" />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+                <Tooltip title="Skip to End">
+                  <span>
+                    <IconButton size="small" onClick={onSkipToEnd} disabled={!canNext}>
+                      <LastPage fontSize="small" />
                     </IconButton>
                   </span>
                 </Tooltip>
@@ -505,6 +545,7 @@ const PythonVisualizerSection = () => {
               borderRight: '1px solid',
               borderColor: 'divider',
               minWidth: 0,
+              minHeight: 0,
             }}
           >
             {/* Python Code Editor */}
@@ -514,6 +555,7 @@ const PythonVisualizerSection = () => {
                 display: 'flex',
                 flexDirection: 'column',
                 minWidth: 0,
+                minHeight: 0,
               }}
             >
               <Box
@@ -532,7 +574,10 @@ const PythonVisualizerSection = () => {
                   Python Editor
                 </Typography>
               </Box>
-              <Box sx={{ flex: 1, minHeight: 0 }}>
+              {/* zIndex:0 + position:relative makes this its OWN stacking
+                  context so Monaco's high internal z-indices stay contained
+                  here and can't paint/capture over the console bar below. */}
+              <Box sx={{ flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden', zIndex: 0 }}>
                 {loading && (
                   <Box
                     sx={{
@@ -550,36 +595,6 @@ const PythonVisualizerSection = () => {
                     </Typography>
                   </Box>
                 )}
-                {error && (
-                  <Box sx={{ p: 2, overflow: 'auto', flex: 1 }}>
-                    <Alert severity="error" sx={{ mb: 2 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-                        {error.type || 'Error'}
-                      </Typography>
-                      <Typography variant="body2">
-                        {error.message}
-                      </Typography>
-                      {error.traceback && (
-                        <Box
-                          sx={{
-                            mt: 1,
-                            p: 1,
-                            bgcolor: 'background.paper',
-                            borderRadius: 1,
-                            overflow: 'auto',
-                            maxHeight: '150px',
-                            fontFamily: 'monospace',
-                            fontSize: '0.75rem',
-                            whiteSpace: 'pre-wrap',
-                            wordBreak: 'break-word',
-                          }}
-                        >
-                          {error.traceback}
-                        </Box>
-                      )}
-                    </Alert>
-                  </Box>
-                )}
                 {!loading && (
                   <PythonCodeEditor
                     value={pythonCode}
@@ -587,12 +602,102 @@ const PythonVisualizerSection = () => {
                     currentLineNumber={
                       (() => {
                         const line = executionResult?.snapshots[currentSnapshotIndex]?.line || null;
-                        console.log('PythonVisualizerSection passing line:', line, 'index:', currentSnapshotIndex, 'snapshots length:', executionResult?.snapshots?.length);
                         return line === 'return' ? null : line;
                       })()
                     }
+                    errorLineNumber={error?.line ?? null}
+                    errorMessage={error ? `${error.type}: ${error.message}` : ''}
                   />
                 )}
+              </Box>
+
+              {/* Draggable horizontal divider to resize the console height */}
+              <div
+                onMouseDown={handleConsoleResize}
+                style={{
+                  height: '5px',
+                  cursor: 'row-resize',
+                  backgroundColor: theme.palette.divider,
+                  flexShrink: 0,
+                  position: 'relative',
+                  zIndex: 2,
+                }}
+              />
+
+              {/* Console output panel (synced to the current step) */}
+              <Box
+                sx={{
+                  height: consoleHeight,
+                  flexShrink: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  position: 'relative',
+                  zIndex: 2,
+                }}
+              >
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    backgroundColor: theme.palette.sectionHeaderColor,
+                    px: 2,
+                    height: '32px',
+                    minHeight: '32px',
+                    userSelect: 'none',
+                  }}
+                >
+                  <Typography variant="body2">Console</Typography>
+                </Box>
+                <Box
+                  sx={{
+                    flex: 1,
+                    minHeight: 0,
+                    p: 1,
+                    bgcolor: 'background.paper',
+                    overflow: 'auto',
+                    fontFamily: 'monospace',
+                    fontSize: '0.75rem',
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                  }}
+                >
+                  {(() => {
+                    // Error case: show any partial output produced before the
+                    // crash, then a concise red one-liner.
+                    if (error) {
+                      const partial = error.stdout || '';
+                      const summary = `${error.type}: ${error.message}${error.line ? ` (line ${error.line})` : ''}`;
+                      const sep = partial && !partial.endsWith('\n') ? '\n' : '';
+                      return (
+                        <>
+                          {partial}{sep}
+                          <Box component="span" sx={{ color: 'error.main' }}>
+                            {summary}
+                          </Box>
+                        </>
+                      );
+                    }
+                    const stdout = executionResult?.stdout || '';
+                    if (!stdout) {
+                      return (
+                        <Typography variant="caption" color="textSecondary">
+                          No output
+                        </Typography>
+                      );
+                    }
+                    // stdout_len on a snapshot is the output produced *before*
+                    // its line runs. To show output *after* the highlighted
+                    // line executes (matching the one-ahead visualization
+                    // sync), read the next snapshot's length; past the end,
+                    // the program has finished so show the full output.
+                    const snapshots = executionResult?.snapshots || [];
+                    const nextIdx = currentSnapshotIndex + 1;
+                    const len = nextIdx >= snapshots.length
+                      ? stdout.length
+                      : snapshots[nextIdx]?.stdout_len;
+                    return stdout.slice(0, len ?? stdout.length);
+                  })()}
+                </Box>
               </Box>
             </Box>
           </Box>

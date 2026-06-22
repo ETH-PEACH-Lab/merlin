@@ -14,6 +14,7 @@ const MermaidRenderer = ({
       securityLevel: "loose",
       theme: "forest",
       logLevel: 5,
+      maxTextSize: 500000,
     });
 
     const setPage = (svg, pageIndex) => {
