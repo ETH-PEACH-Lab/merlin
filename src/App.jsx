@@ -31,7 +31,7 @@ const App = () => {
   const [inspectorIndex, setInspectorIndex] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [dslEditorEditable, setDslEditorEditable] = useState(true);
-  const [appMode, setAppMode] = useState("merlin"); // "merlin" or "python-visualizer"
+  const [appMode, setAppMode] = useState("python-visualizer"); // "merlin" or "python-visualizer"
 
   // Export state
   const [exportProgress, setExportProgress] = useState({
