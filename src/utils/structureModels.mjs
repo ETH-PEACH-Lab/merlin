@@ -50,6 +50,23 @@ function diffNodeArrows(varName, currentArrows, previousArrows, currentNodeIds) 
 }
 
 
+/**
+ * Abstract base for all structure models. A model wraps one variable's heap
+ * object for a single snapshot and knows how to emit its own Merlin DSL.
+ *
+ * Constructor inputs (shared by subclasses):
+ *   @param {string} varName        - Sanitized DSL identifier for the variable.
+ *   @param {Object} heapObj        - The variable's resolved heap object.
+ *   @param {Object} heap           - Snapshot heap (id → heap object).
+ *   @param {Object} locals         - Current frame locals (for pointer/arrow detection).
+ *   @param {Object} [previousLocals] - Prior frame locals, when a subclass diffs pointers.
+ *
+ * Subclass contract:
+ *   - `toDSLDeclaration()` → a DSL string that declares the component the first
+ *     time it appears (e.g. `array x = { value: [...] }`).
+ *   - `toDSLUpdates(previousModel)` → an array of DSL update commands describing
+ *     the change from `previousModel` (same type); `[]` when nothing changed.
+ */
 class StructureModel {
   constructor(varName, heapObj, heap, locals, previousLocals = null) {
     this.varName = varName;
@@ -82,6 +99,12 @@ class StructureModel {
   }
 }
 
+/**
+ * A call-stack frame container. Holds child variable models and lays them out.
+ * NOTE: currently unused by the active pipeline (frames are not drawn); retained
+ * as part of the exported model API. Constructed from a `{id, displayName, depth}`
+ * frameInfo object rather than a heap object.
+ */
 export class FrameModel extends StructureModel {
   constructor(frameInfo) {
     super(frameInfo.id, null, null, null);
@@ -197,6 +220,12 @@ export class FrameModel extends StructureModel {
 }
 
 
+/**
+ * Scalar/fallback model. Renders a value as a Merlin `text` component.
+ * Declaration: `text <var> = { value: "<v>" }`; update: `<var>.setValue("<v>")`
+ * when the formatted display value changes. Takes the raw serialized value
+ * (not a heap object) since scalars live inline in locals.
+ */
 export class TextModel extends StructureModel {
   constructor(varName, serializedValue, heap, locals) {
     super(varName, serializedValue, heap, locals);
@@ -246,6 +275,12 @@ export class TextModel extends StructureModel {
 }
 
 
+/**
+ * List/array model. Normalizes a `list`/`array`/`tuple` heap object into
+ * `elements` and renders a Merlin `array`. Declaration emits the value list;
+ * `toDSLUpdates` emits `setValues([...])` on content change plus index-pointer
+ * arrows / cell colors derived from the surrounding locals.
+ */
 export class ListModel extends StructureModel {
   constructor(varName, heapObj, heap, locals) {
     super(varName, heapObj, heap, locals);
@@ -417,6 +452,12 @@ export class ListModel extends StructureModel {
 }
 
 
+/**
+ * Stack model. Normalizes a stack-like object (custom class with items/elements,
+ * or a list treated as a stack) into ordered `elements` and renders a Merlin
+ * `stack`. Declaration emits the values; `toDSLUpdates` emits `setValues([...])`
+ * when the contents change, plus top-of-stack arrows.
+ */
 export class StackModel extends StructureModel {
   constructor(varName, heapObj, heap, locals) {
     super(varName, heapObj, heap, locals);
@@ -558,6 +599,14 @@ export class StackModel extends StructureModel {
   }
 }
 
+/**
+ * Tree model. Walks a tree from its root heap object, collecting `nodes` and
+ * parent→child `edges` (supports left/right and children[] shapes). Declaration
+ * emits a `tree @ ... @` block of `node:`/`child:` lines; `toDSLUpdates` emits
+ * node value changes, node colors, and pointer arrows for the current cursor.
+ * @param {Object} [valueAccessVars] - Vars whose `.value` is read on the active
+ *   line, so their arrow is relabeled `value = <n>` instead of the var name.
+ */
 export class TreeModel extends StructureModel {
   constructor(varName, heapObj, heap, locals, valueAccessVars = null) {
     super(varName, heapObj, heap, locals);
@@ -750,6 +799,12 @@ export class TreeModel extends StructureModel {
 }
 
 
+/**
+ * Graph model. Normalizes an adjacency-dict heap object (node → neighbors) into
+ * `nodes` and `edges`. Declaration emits a `graph @ ... @` block of `node:`/`edge:`
+ * lines; `toDSLUpdates` emits node colors and per-node pointer arrows, diffing
+ * against `previousLocals` to move the active cursor.
+ */
 export class GraphModel extends StructureModel {
   constructor(varName, heapObj, heap, locals, previousLocals = null) {
     super(varName, heapObj, heap, locals, previousLocals);

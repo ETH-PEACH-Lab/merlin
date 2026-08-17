@@ -33,6 +33,20 @@ import { pythonExamples } from '../pythonExamples';
 import parseText from '../parser/parseText.mjs';
 import compiler from '../compiler/compiler.mjs';
 
+/**
+ * Python Visualizer tab. Ties the code editor, the Pyodide executor, and the
+ * Merlin renderer together into a step-through visualization.
+ *
+ * Flow:
+ *   1. User writes Python and hits Run → `handleExecute` runs it in the traced
+ *      worker (`pyodideExecutor.execute`), yielding execution snapshots.
+ *   2. `snapshotsToMerlinDSL_Pipeline(snapshots)` turns those snapshots into
+ *      Merlin DSL (one page per meaningful state change) plus a `snapshotToPage`
+ *      map (`stp[i]` = the 1-based page to show when stepping to snapshot i).
+ *   3. The DSL is parsed/compiled and rendered; stepping the snapshot index
+ *      drives the visible page via `snapshotToPage`, looking one snapshot ahead
+ *      so the diagram shows state *after* the highlighted line runs.
+ */
 const PythonVisualizerSection = () => {
   const theme = useTheme();
   const mermaidRef = useRef(null);
@@ -172,14 +186,10 @@ const PythonVisualizerSection = () => {
 
         const extractedPages = extractPagesFromDSL(editableMerlinCode);
         const currentPageCount = extractedPages.length;
-        const previousPageCount = previousPageCountRef.current;
-        
-        console.log(`Page count: prev=${previousPageCount}, current=${currentPageCount}, currentPage=${currentPage}`);
-        
+
         setPages(extractedPages);
-        
+
         if (extractedPages.length > 0 && currentPage > extractedPages.length) {
-          console.log(`Adjusting currentPage from ${currentPage} to ${extractedPages.length}`);
           setCurrentPage(extractedPages[extractedPages.length - 1]);
         }
         
@@ -234,6 +244,13 @@ const PythonVisualizerSection = () => {
     setIsPlaying(false);
   };
 
+  /**
+   * Run the current Python code and build the visualization. Executes in the
+   * traced worker, then on success converts the snapshots to Merlin DSL and
+   * stores both the editable DSL and the snapshot→page map. On failure, surfaces
+   * the structured error (compile/runtime) into `error` state. Always clears the
+   * loading flag when done.
+   */
   const handleExecute = async () => {
     setLoading(true);
     setError(null);
@@ -242,7 +259,6 @@ const PythonVisualizerSection = () => {
     setCurrentSnapshotIndex(0);
 
     try {
-      console.log('Executing Python code...');
       const result = await pyodideExecutor.execute(pythonCode, 1000);
 
       if (result.success === false) {
@@ -264,8 +280,6 @@ const PythonVisualizerSection = () => {
             result.snapshots,
             pythonCode
           );
-          console.log('Generated Merlin DSL:', merlinCode);
-          console.log('DSL length:', merlinCode?.length);
           setEditableMerlinCode(merlinCode);
           setSnapshotToPage(stp);
         } catch (conversionError) {
@@ -347,6 +361,7 @@ const PythonVisualizerSection = () => {
 
 
 
+  /** Step the visible page one back within `pages` (no-op at the first page). */
   const handlePrevPage = () => {
     const currentIndex = pages.indexOf(currentPage);
     if (currentIndex > 0) {
@@ -354,6 +369,7 @@ const PythonVisualizerSection = () => {
     }
   };
 
+  /** Step the visible page one forward within `pages` (no-op at the last page). */
   const handleNextPage = () => {
     const currentIndex = pages.indexOf(currentPage);
     if (currentIndex < pages.length - 1) {

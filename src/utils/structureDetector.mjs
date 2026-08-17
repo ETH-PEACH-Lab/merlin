@@ -51,42 +51,6 @@ function isTreeNodeInstance(obj, heap) {
   return hasValue && hasChildren && childrenIsArray;
 }
 
-function findTreeNodeParent(targetRef, locals, heap) {
-  for (const [varName, serializedValue] of Object.entries(locals)) {
-    if (!serializedValue || !serializedValue.ref) continue;
-    
-    const parentRef = serializedValue.ref;
-    if (!heap[parentRef]) continue;
-    
-    const parentObj = heap[parentRef];
-    if (!isTreeNodeInstance(parentObj, heap)) continue;
-    
-    const childrenRef = parentObj.attributes.children;
-    if (!childrenRef) continue;
-    
-    let childrenArray = null;
-    if (childrenRef.ref && heap[childrenRef.ref]) {
-      childrenArray = heap[childrenRef.ref];
-    } else if (childrenRef.type === 'list' && childrenRef.value) {
-      childrenArray = childrenRef;
-    }
-    
-    if (childrenArray && childrenArray.value && Array.isArray(childrenArray.value)) {
-      for (const childRef of childrenArray.value) {
-        if (childRef && childRef.ref === targetRef) {
-          return {
-            parentVar: varName,
-            parentObj,
-            parentRef,
-          };
-        }
-      }
-    }
-  }
-  
-  return null;
-}
-
 function resolveValue(value, heap) {
   if (!value) return null;
   if (value.type) return value.value;
@@ -195,7 +159,24 @@ function isGraphInstanceByDict(heapObj, heap, varName) {
   return false;
 }
 
-// Main detection function using priority order
+/**
+ * Classify one variable's structure type, applying signals in priority order:
+ *   1. Metadata hint  — the worker's `ds_hint` / class-name (detectFromMetadata).
+ *   2. Inline list + name — a `{type:'list'}` value whose name hints stack/tree/graph.
+ *   3. Graph-as-dict  — an adjacency-style dict (isGraphLikeDict).
+ *   4. Tree node      — a custom object with value + children (isTreeNodeInstance).
+ *   5. Custom class   — remaining `type:'t'` objects via metadata/pattern/name.
+ *   6. List fallback  — genuine list/array heap objects (name hint, else 'list').
+ *   7. Text           — everything unrecognised (dicts, sets, scalars).
+ *
+ * @param {string} varName - Variable name (used for name-based heuristics).
+ * @param {Object} serializedValue - The snapshot value ({type,value} or {ref}).
+ * @param {Object} heap - Snapshot heap mapping object ids to heap objects.
+ * @param {Object} [locals] - Frame locals, used for graph-as-dict detection.
+ * @returns {{type: string, heapObj: (Object|null), ref?: (number|null), reason: string}}
+ *   `type` is one of 'list'|'stack'|'tree'|'graph'|'text'; `reason` records
+ *   which rule fired (useful for debugging detection).
+ */
 export function detectStructureType(varName, serializedValue, heap, locals) {
   let heapObj = null;
   let ref = null;
@@ -297,18 +278,9 @@ export function detectStructureType(varName, serializedValue, heap, locals) {
     };
   }
 
-  // Only treat genuine list/array heap objects as lists. Dicts, sets, and
-  // other types that weren't recognised above (e.g. {node: -1} comprehensions)
-  // are skipped rather than incorrectly fed into ListModel.
-  if (heapObj && (heapObj.type === 'list' || heapObj.type === 'array')) {
-    return {
-      type: 'list',
-      heapObj,
-      ref,
-      reason: 'default_fallback',
-    };
-  }
-
+  // Anything unrecognised above (dicts, sets, e.g. {node: -1} comprehensions)
+  // falls through to text — skipped rather than incorrectly fed into ListModel.
+  // (Genuine list/array heap objects are already handled by the branch above.)
   return {
     type: 'text',
     heapObj: null,

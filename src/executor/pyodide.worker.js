@@ -17,8 +17,14 @@ import json
 import collections
 
 snapshots = []
+# Diagnostic-only tracing log. Returned to the main thread as \`debug\` (part of
+# the result contract) but NOT surfaced in the UI. Do not remove.
 debug_events = []
 max_steps = ${maxSteps}
+# User code is indented and appended after this wrapper prefix, so a frame's
+# raw f_lineno is offset by the number of prefix lines. line_offset is patched
+# to that count at runtime; actual_line = f_lineno - line_offset maps a traced
+# frame line back to the user's 1-based source line.
 line_offset = 0
 object_ids = {}
 next_object_id = 1
@@ -40,6 +46,13 @@ def get_object_id(v):
     return object_ids[vid]
 
 def detect_ds_hint(v):
+    """Guess the data-structure kind of a custom object from its shape.
+
+    Inspects the instance's attribute names and class name to classify it as
+    'stack', 'tree', or 'graph'. Returned as \`ds_hint\` on the heap entry and
+    used downstream as the highest-priority signal in structure detection.
+    Returns None when no pattern matches (the object is serialized generically).
+    """
     class_name = type(v).__name__
     if not hasattr(v, '__dict__'):
         return None
@@ -65,6 +78,16 @@ def detect_ds_hint(v):
     return None
 
 def serialize_value(v):
+    """Serialize a Python value into the snapshot's JSON-safe wire format.
+
+    Primitives (None/bool/int/float/str) become {'type', 'value'} inline.
+    Containers and custom objects are interned into the shared \`heap\` under a
+    stable object id and referenced as {'ref': oid}, so aliasing/identity is
+    preserved across frames. Collections are truncated (100 items, 50 dict
+    keys) and cycles are broken via visited_during_serialize, returning a
+    {'type': 'cyclic_ref'} marker. Custom objects carry class_name, their
+    non-dunder/non-callable attributes, and an optional ds_hint.
+    """
     t = type(v).__name__
 
     if v is None or isinstance(v, (bool, int, float, str)):
@@ -180,6 +203,12 @@ def serialize_value(v):
         return {'type': t, 'repr': repr(v)}
 
 def capture_locals(frame):
+    """Serialize a frame's local variables into a {name: value} dict.
+
+    Skips dunder names, classes, and callables (functions/methods) so only
+    user data is captured. Resets the per-call cycle-tracking set before
+    serializing this frame's values.
+    """
     visited_during_serialize.clear()
     local_vars = {}
     for k, v in frame.f_locals.items():
@@ -191,6 +220,15 @@ def capture_locals(frame):
     return local_vars
 
 def trace_calls(frame, event, arg):
+    """sys.settrace hook that records one snapshot per executed user line.
+
+    Fires on 'call'/'line'/'return' events. Ignores frames outside this
+    compiled program (stdlib/import machinery) and stops after max_steps.
+    On 'line' and 'return' it captures locals, walks the call stack up to the
+    \`user_code\` wrapper (for recursion depth), and appends a snapshot whose
+    \`line\` is mapped back to user source via actual_line = f_lineno - line_offset
+    ('return' events use the literal 'return' marker instead).
+    """
     if len(snapshots) >= max_steps:
         debug_events.append(f"Max steps ({max_steps}) reached, stopping tracer")
         sys.settrace(None)
@@ -241,6 +279,8 @@ def trace_calls(frame, event, arg):
             debug_events.append(f"  -> Error capturing: {e}")
         return trace_calls
     elif event == 'return':
+        # NOTE: mirrors the 'line' event handling above (locals capture +
+        # call-stack walk + snapshot append). Kept inline, not extracted.
         try:
             local_vars = capture_locals(frame)
 
@@ -344,7 +384,6 @@ stdout_json = json.dumps(stdout_text)
       wrapperSuffix;
 
     try{
-        // Compile-check user code standalone so SyntaxError line numbers map to the user's source.
         py.globals.set('__user_source__', code);
         await py.runPythonAsync(`
 import json as __json

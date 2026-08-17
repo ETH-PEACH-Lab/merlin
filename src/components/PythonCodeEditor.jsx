@@ -53,12 +53,8 @@ const PythonCodeEditor = ({ value = '', onChange = () => { }, currentLineNumber 
   };
 
   useEffect(() => {
-    console.log('Decoration effect triggered, currentLineNumber:', currentLineNumber);
-    
     if (!editorRef.current || currentLineNumber === null) {
-      
       if (decorationIdsRef.current.length > 0) {
-        console.log('Clearing decorations');
         decorationIdsRef.current = editorRef.current?.deltaDecorations(decorationIdsRef.current, []) || [];
       }
       return;
@@ -73,7 +69,6 @@ const PythonCodeEditor = ({ value = '', onChange = () => { }, currentLineNumber 
     }
 
     try {
-      console.log('Setting decoration for line:', currentLineNumber);
       const newDecorations = [
         {
           range: new monaco.Range(currentLineNumber, 1, currentLineNumber, 999999),
@@ -88,7 +83,6 @@ const PythonCodeEditor = ({ value = '', onChange = () => { }, currentLineNumber 
 
       const oldIds = decorationIdsRef.current;
       decorationIdsRef.current = editor.deltaDecorations(oldIds, newDecorations);
-      console.log('Decorations updated, old IDs:', oldIds, 'new IDs:', decorationIdsRef.current);
     } catch (e) {
       console.error('Error setting line decoration:', e);
     }

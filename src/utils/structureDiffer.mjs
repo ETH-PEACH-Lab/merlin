@@ -148,26 +148,26 @@ export function hasModelChanged(currentModel, previousModel) {
     }
   }
 
-if (currentModel.type === 'tree' || currentModel.type === 'graph') {
-      if (currentModel.nodes.size !== previousModel.nodes.size) {
+  if (currentModel.type === 'tree' || currentModel.type === 'graph') {
+    if (currentModel.nodes.size !== previousModel.nodes.size) {
+      return true;
+    }
+
+    for (const [nodeId, node] of currentModel.nodes) {
+      const prevNode = previousModel.nodes.get(nodeId);
+      if (!prevNode || prevNode.value !== node.value) {
         return true;
       }
+    }
 
-      for (const [nodeId, node] of currentModel.nodes) {
-        const prevNode = previousModel.nodes.get(nodeId);
-        if (!prevNode || prevNode.value !== node.value) {
-          return true;
-        }
+    if (currentModel.type === 'tree') {
+      const currentEdges = new Set(currentModel.edges.map(e => `${e.parent}-${e.child}`));
+      const prevEdges = new Set(previousModel.edges.map(e => `${e.parent}-${e.child}`));
+      if (currentEdges.size !== prevEdges.size) {
+        return true;
       }
-
-      if (currentModel.type === 'tree') {
-        const currentEdges = new Set(currentModel.edges.map(e => `${e.parent}-${e.child}`));
-        const prevEdges = new Set(previousModel.edges.map(e => `${e.parent}-${e.child}`));
-        if (currentEdges.size !== prevEdges.size) {
-          return true;
-        }
-        for (const edge of currentEdges) {
-          if (!prevEdges.has(edge)) {
+      for (const edge of currentEdges) {
+        if (!prevEdges.has(edge)) {
           return true;
         }
       }
@@ -187,20 +187,6 @@ if (currentModel.type === 'tree' || currentModel.type === 'graph') {
   }
 
   return false;
-}
-
-
-export function mergeDelta(deltas) {
-  const merged = new SnapshotDelta();
-
-  deltas.forEach((delta) => {
-    merged.newVariables.push(...delta.newVariables);
-    merged.changedVariables.push(...delta.changedVariables);
-    merged.removedVariables.push(...delta.removedVariables);
-    merged.unchangedVariables.push(...delta.unchangedVariables);
-  });
-
-  return merged;
 }
 
 

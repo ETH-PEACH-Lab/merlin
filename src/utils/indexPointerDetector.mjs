@@ -21,6 +21,11 @@ const POINTER_NAMES = new Set([
   'lft', 'rgt',
 ]);
 
+/**
+ * True if `name` is a conventional index/pointer variable name (i, lo, mid, …).
+ * @param {string} name
+ * @returns {boolean}
+ */
 export function isPointerName(name) {
   return POINTER_NAMES.has(name.toLowerCase());
 }
@@ -32,6 +37,17 @@ function asInt(serialized) {
   return Number.isInteger(n) ? n : null;
 }
 
+/**
+ * Build per-index arrow labels for an array/stack of `length` cells. Each local
+ * whose name is a pointer name and whose int value is an in-range index (Python
+ * negative indices resolved) contributes a `name = value` label on that cell;
+ * multiple pointers on one cell are joined, sorted by name.
+ * @param {number} length - Number of cells in the structure.
+ * @param {Object} locals - Frame locals to scan for index pointers.
+ * @param {Object} _heap - Unused; reserved for signature parity with node arrows.
+ * @param {string} selfName - The structure's own variable name (skipped).
+ * @returns {Array<string|null>} `arrows[i]` is the label for cell i, or null.
+ */
 export function computeIndexArrows(length, locals, _heap, selfName) {
   const arrows = new Array(length).fill(null);
   if (!locals || length === 0) return arrows;
@@ -61,7 +77,13 @@ export function computeIndexArrows(length, locals, _heap, selfName) {
   return arrows;
 }
 
-// Variables whose `.value` is read on a line, e.g. `print(node.value)` -> {"node"}.
+/**
+ * Variables whose `.value` attribute is read on a source line, e.g.
+ * `print(node.value)` → {"node"}. Used to relabel a node's pointer arrow as
+ * `value = <n>` when that line is the active one.
+ * @param {string} sourceLine - A single line of user source.
+ * @returns {Set<string>} Names read via `.value` on that line.
+ */
 export function detectValueAccessVars(sourceLine) {
   const vars = new Set();
   if (!sourceLine || typeof sourceLine !== 'string') return vars;
@@ -73,6 +95,19 @@ export function detectValueAccessVars(sourceLine) {
   return vars;
 }
 
+/**
+ * Build pointer arrows for tree/graph nodes. Each local holding a heap ref that
+ * matches a node id (`N<ref>`) contributes an arrow labelled with the variable
+ * name — or `value = <n>` when that name is in `valueAccessVars`. The structure's
+ * own root binding is suppressed so the root doesn't arrow to itself.
+ * @param {Map} nodes - Node id → node ({value, …}).
+ * @param {Object} locals - Frame locals to scan for node pointers.
+ * @param {Object} _heap - Unused; reserved for signature parity with index arrows.
+ * @param {string} selfName - The structure's own variable name.
+ * @param {Set<string>} [valueAccessVars] - Names to relabel as `value = <n>`.
+ * @param {number} [selfRootRef] - Heap ref of the root, to suppress the self-arrow.
+ * @returns {Map<string,string>} Node id → arrow label.
+ */
 export function computeNodeArrows(nodes, locals, _heap, selfName, valueAccessVars = null, selfRootRef = null) {
   const result = new Map();
   if (!nodes || nodes.size === 0 || !locals) return result;
