@@ -155,7 +155,7 @@ for i in range(1, len(numbers)):
 
     return -1
 
-arr = [23, 1, 9, 12, 5, 25, 2, 3]
+arr = [1, 2, 3, 5, 9, 12, 23, 25]
 location = binary_search(arr, 25)
 				`
 			},{
